@@ -181,8 +181,90 @@ public:
 
   const C_STRUCT* GetCStructure() const { return m_cStructure; }
 
+  bool IsOwner() const { return m_owner; }
+
 protected:
   C_STRUCT* m_cStructure = nullptr;
+
+  inline void SetString(char*& c_ptr, const std::string& str)
+  {
+    if (c_ptr)
+    {
+      free(c_ptr);
+      c_ptr = nullptr;
+    }
+
+    if (!str.empty())
+    {
+      c_ptr = strdup(str.c_str());
+    }
+  }
+
+  inline std::string GetString(char*& c_ptr) const
+  {
+    return c_ptr ? c_ptr : "";
+  }
+
+  inline void FreeString(char*& c_ptr)
+  {
+    if (c_ptr)
+    {
+      free(c_ptr);
+      c_ptr = nullptr;
+    }
+  }
+
+  inline void SetStringList(char**& c_ptr, unsigned int& c_cnt, const std::vector<std::string>& strList)
+  {
+    if (c_ptr)
+    {
+      for (unsigned int i = 0; i < c_cnt; ++i)
+      {
+        if (c_ptr[i])
+          free(c_ptr[i]);
+      }
+
+      free(c_ptr);
+      c_ptr = nullptr;
+    }
+
+    c_cnt = 0;
+    if (!strList.empty())
+    {
+      c_ptr = static_cast<char**>(malloc(sizeof(char**)*strList.size()));
+      for (const auto& dir : strList)
+      {
+        c_ptr[c_cnt] = strdup(dir.c_str());
+        ++c_cnt;
+      }
+    }
+  }
+
+  inline std::vector<std::string> GetStringList(char**& c_ptr, unsigned int& c_cnt) const
+  {
+    std::vector<std::string> ret;
+    for (unsigned int i = 0; i < c_cnt; ++i)
+    {
+      if (c_ptr[i])
+        ret.push_back(c_ptr[i]);
+    }
+    return ret;
+  }
+
+  inline void FreeStringList(char**& c_ptr, unsigned int& c_cnt)
+  {
+    if (c_ptr)
+    {
+      for (unsigned int i = 0; i < c_cnt; ++i)
+      {
+        if (c_ptr[i])
+          free(c_ptr[i]);
+      }
+
+      free(c_ptr);
+      c_ptr = nullptr;
+    }
+  }
 
 private:
   bool m_owner = false;
