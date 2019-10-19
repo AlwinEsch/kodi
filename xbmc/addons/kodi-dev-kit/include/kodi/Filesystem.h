@@ -9,6 +9,9 @@
 #pragma once
 
 #include "AddonBase.h"
+#include "InfoTagMusic.h"
+#include "InfoTagRadioRDS.h"
+#include "InfoTagVideo.h"
 #include "c-api/filesystem.h"
 
 #ifdef __cplusplus
