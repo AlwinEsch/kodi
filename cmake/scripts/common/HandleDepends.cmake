@@ -154,7 +154,7 @@ function(add_addon_depends addon searchpath)
                                               "${extraflags}"
                                               -P ${PROJECT_SOURCE_DIR}/install.cmake)
         elseif(EXISTS ${dir}/noinstall.txt)
-          set(INSTALL_COMMAND INSTALL_COMMAND "")
+          set(INSTALL_COMMAND INSTALL_COMMAND ${CMAKE_COMMAND} -E true)
         endif()
 
         # check if there's a platform-specific or generic deps.txt containing dependencies on other libraries

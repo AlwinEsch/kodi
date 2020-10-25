@@ -44,6 +44,7 @@
 #include "utils/FileExtensionProvider.h"
 #include "utils/log.h"
 #include "weather/WeatherManager.h"
+#include "web/WebManager.h"
 
 using namespace KODI;
 
@@ -133,6 +134,8 @@ bool CServiceManager::InitStageTwo(const CAppParamParser &params, const std::str
   m_binaryAddonCache.reset( new ADDON::CBinaryAddonCache());
   m_binaryAddonCache->Init();
 
+  m_webManager.reset(new WEB::CWebManager());
+
   m_favouritesService.reset(new CFavouritesService(profilesUserDataFolder));
 
   m_serviceAddons.reset(new ADDON::CServiceAddonManager(*m_addonMgr));
@@ -188,7 +191,10 @@ bool CServiceManager::InitStageThree(const std::shared_ptr<CProfileManager>& pro
 
   // Init PVR manager after login, not already on login screen
   if (!profileManager->UsingLoginScreen())
+  {
     m_PVRManager->Init();
+    m_webManager->Init();
+  }
 
   m_playerCoreFactory.reset(new CPlayerCoreFactory(*profileManager));
 
@@ -225,6 +231,8 @@ void CServiceManager::DeinitStageTwo()
 {
   init_level = 1;
 
+  m_webManager->Deinit();
+
   m_weatherManager.reset();
   m_powerManager.reset();
   m_fileExtensionProvider.reset();
@@ -237,6 +245,7 @@ void CServiceManager::DeinitStageTwo()
   m_favouritesService.reset();
   m_binaryAddonCache.reset();
   m_dataCacheCore.reset();
+  m_webManager.reset();
   m_PVRManager.reset();
   m_vfsAddonCache.reset();
   m_repositoryUpdater.reset();
@@ -375,6 +384,11 @@ CFileExtensionProvider& CServiceManager::GetFileExtensionProvider()
 CPowerManager &CServiceManager::GetPowerManager()
 {
   return *m_powerManager;
+}
+
+WEB::CWebManager& CServiceManager::GetWEBManager()
+{
+  return *m_webManager;
 }
 
 // deleters for unique_ptr

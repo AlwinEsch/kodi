@@ -79,6 +79,7 @@
 #endif
 #include "ResourceDirectory.h"
 #include "ServiceBroker.h"
+#include "WebDirectory.h"
 #include "addons/VFSEntry.h"
 
 using namespace ADDON;
@@ -153,6 +154,8 @@ IDirectory* CDirectoryFactory::Create(const CURL& url)
   if (url.IsProtocol("videodb")) return new CVideoDatabaseDirectory();
   if (url.IsProtocol("library")) return new CLibraryDirectory();
   if (url.IsProtocol("favourites")) return new CFavouritesDirectory();
+  if (url.IsProtocol("web"))
+    return new CWebDirectory();
 #if defined(TARGET_ANDROID)
   if (url.IsProtocol("androidapp")) return new CAndroidAppDirectory();
 #endif

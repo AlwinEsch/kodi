@@ -1209,6 +1209,11 @@ bool CFileItem::IsAndroidApp() const
   return URIUtils::IsAndroidApp(m_strPath);
 }
 
+bool CFileItem::IsWeb() const
+{
+  return URIUtils::IsWeb(m_strPath);
+}
+
 bool CFileItem::IsStack() const
 {
   return URIUtils::IsStack(m_strPath);

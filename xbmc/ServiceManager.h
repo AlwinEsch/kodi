@@ -53,6 +53,7 @@ class CWeatherManager;
 
 namespace KODI
 {
+
 namespace GAME
 {
   class CControllerManager;
@@ -63,7 +64,13 @@ namespace RETRO
 {
   class CGUIGameRenderManager;
 }
+
+namespace WEB
+{
+class CWebManager;
 }
+
+} /* namespace KODI */
 
 namespace MEDIA_DETECT
 {
@@ -121,6 +128,7 @@ public:
   KODI::GAME::CGameServices& GetGameServices();
   KODI::RETRO::CGUIGameRenderManager& GetGameRenderManager();
   PERIPHERALS::CPeripherals& GetPeripherals();
+  KODI::WEB::CWebManager& GetWEBManager();
 
   PLAYLIST::CPlayListPlayer& GetPlaylistPlayer();
   int init_level = 0;
@@ -189,6 +197,7 @@ protected:
   std::unique_ptr<CPlayerCoreFactory> m_playerCoreFactory;
   std::unique_ptr<CDatabaseManager> m_databaseManager;
   std::unique_ptr<CMediaManager> m_mediaManager;
+  std::unique_ptr<KODI::WEB::CWebManager> m_webManager;
 #if !defined(TARGET_WINDOWS) && defined(HAS_DVD_DRIVE)
   std::unique_ptr<MEDIA_DETECT::CDetectDVDMedia> m_DetectDVDType;
 #endif

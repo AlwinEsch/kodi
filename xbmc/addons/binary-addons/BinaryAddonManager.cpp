@@ -50,6 +50,8 @@ BinaryAddonBasePtr CBinaryAddonManager::GetAddonBase(const AddonInfoPtr& addonIn
 void CBinaryAddonManager::ReleaseAddonBase(const BinaryAddonBasePtr& addonBase,
                                            IAddonInstanceHandler* handler)
 {
+  CSingleLock lock(m_critSection);
+
   const auto& addon = m_runningAddons.find(addonBase->ID());
   if (addon == m_runningAddons.end())
     return;

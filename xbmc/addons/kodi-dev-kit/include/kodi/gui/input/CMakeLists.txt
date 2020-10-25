@@ -1,4 +1,5 @@
-set(HEADERS ActionIDs.h)
+set(HEADERS Action.h
+            ActionIDs.h)
 
 if(NOT ENABLE_STATIC_LIBS)
   core_add_library(addons_kodi-dev-kit_include_kodi_gui_input)

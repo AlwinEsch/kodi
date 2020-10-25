@@ -11,7 +11,7 @@
 #include "../AddonBase.h"
 #include "../c-api/gui/window.h"
 #include "ListItem.h"
-#include "input/ActionIDs.h"
+#include "input/Action.h"
 
 #ifdef __cplusplus
 
@@ -737,6 +737,64 @@ public:
   /// ..
   /// ~~~~~~~~~~~~~
   ///
+  virtual bool OnAction(const kodi::gui::input::CAction& action)
+  {
+    return OnAction(action.GetID());
+  }
+  //----------------------------------------------------------------------------
+
+  //============================================================================
+  /// @ingroup cpp_kodi_gui_windows_window_callbacks
+  /// @brief OnAction method.
+  ///
+  /// @param[in] actionId             The action id to perform, see
+  ///                                 @ref kodi_key_action_ids to get list of
+  ///                                 them
+  /// @return Return true if action was handled there
+  ///                                 or false to handle them by Kodi itself
+  ///
+  ///
+  /// This method will receive all actions that the main program will send
+  /// to this window.
+  ///
+  /// @note
+  /// - By default, only the @c ADDON_ACTION_PREVIOUS_MENU and @c ADDON_ACTION_NAV_BACK actions are handled.
+  /// - Overwrite this method to let your code handle all actions.
+  /// - Don't forget to capture @ref ADDON_ACTION_PREVIOUS_MENU or @ref ADDON_ACTION_NAV_BACK, else the user can't close this window.
+  ///
+  ///
+  ///----------------------------------------------------------------------------
+  ///
+  /// **Example:**
+  /// ~~~~~~~~~~~~~{.cpp}
+  /// ..
+  /// // Window used with parent / child way
+  /// bool cYOUR_CLASS::OnAction(ADDON_ACTION actionId)
+  /// {
+  ///   switch (action)
+  ///   {
+  ///     case ADDON_ACTION_PREVIOUS_MENU:
+  ///     case ADDON_ACTION_NAV_BACK:
+  ///       printf("action recieved: previous");
+  ///       Close();
+  ///       return true;
+  ///     case ADDON_ACTION_SHOW_INFO:
+  ///       printf("action recieved: show info");
+  ///       break;
+  ///     case ADDON_ACTION_STOP:
+  ///       printf("action recieved: stop");
+  ///       break;
+  ///     case ADDON_ACTION_PAUSE:
+  ///       printf("action recieved: pause");
+  ///       break;
+  ///     default:
+  ///       break;
+  ///   }
+  ///   return false;
+  /// }
+  /// ..
+  /// ~~~~~~~~~~~~~
+  ///
   virtual bool OnAction(ADDON_ACTION actionId)
   {
     switch (actionId)
@@ -837,7 +895,7 @@ public:
                                bool (*CBOnFocus)(kodi::gui::ClientHandle cbhdl, int controlId),
                                bool (*CBOnClick)(kodi::gui::ClientHandle cbhdl, int controlId),
                                bool (*CBOnAction)(kodi::gui::ClientHandle cbhdl,
-                                                  ADDON_ACTION actionId),
+                                                  const addon_action_data* action),
                                void (*CBGetContextButtons)(kodi::gui::ClientHandle cbhdl,
                                                            int itemNumber,
                                                            gui_context_menu_pair* buttons,
@@ -875,9 +933,9 @@ private:
     return static_cast<CWindow*>(cbhdl)->OnClick(controlId);
   }
 
-  static bool CBOnAction(KODI_GUI_CLIENT_HANDLE cbhdl, ADDON_ACTION actionId)
+  static bool CBOnAction(KODI_GUI_CLIENT_HANDLE cbhdl, const struct addon_action_data* action)
   {
-    return static_cast<CWindow*>(cbhdl)->OnAction(actionId);
+    return static_cast<CWindow*>(cbhdl)->OnAction(action);
   }
 
   static void CBGetContextButtons(KODI_GUI_CLIENT_HANDLE cbhdl,

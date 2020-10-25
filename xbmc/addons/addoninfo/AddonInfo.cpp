@@ -70,6 +70,7 @@ static const TypeMapping types[] =
    {"kodi.inputstream",                  "", ADDON_INPUTSTREAM,         24048, "DefaultAddonInputstream.png" },
    {"kodi.vfs",                          "", ADDON_VFS,                 39013, "DefaultAddonVfs.png" },
    {"kodi.imagedecoder",                 "", ADDON_IMAGEDECODER,        39015, "DefaultAddonImageDecoder.png" },
+   {"kodi.web",                          "", ADDON_WEB_MANAGER,         29986, "DefaultAddonWeb.png" },
   };
 // clang-format on
 
