@@ -589,7 +589,7 @@ public:
   /// @defgroup cpp_kodi_vfs_CDirEntry_Help Value Help
   /// @ingroup cpp_kodi_vfs_CDirEntry
   /// --------------------------------------------------------------------------
-  ///
+  ///ffffffffff
   /// <b>The following table contains values that can be set with @ref cpp_kodi_vfs_CDirEntry :</b>
   /// | Name | Type | Set call | Get call | Clear call |
   /// |------|------|----------|----------|------------|

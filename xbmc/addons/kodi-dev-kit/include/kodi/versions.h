@@ -56,8 +56,8 @@
                                                       "c-api/gui/" \
                                                       "gui/"
 
-#define ADDON_GLOBAL_VERSION_AUDIOENGINE              "1.1.1"
-#define ADDON_GLOBAL_VERSION_AUDIOENGINE_MIN          "1.1.0"
+#define ADDON_GLOBAL_VERSION_AUDIOENGINE              "1.5.1"
+#define ADDON_GLOBAL_VERSION_AUDIOENGINE_MIN          "1.5.0"
 #define ADDON_GLOBAL_VERSION_AUDIOENGINE_XML_ID       "kodi.binary.global.audioengine"
 #define ADDON_GLOBAL_VERSION_AUDIOENGINE_DEPENDS      "AudioEngine.h" \
                                                       "c-api/audio_engine.h"
