@@ -1,0 +1,24 @@
+name: change-checker
+
+on:
+  push:
+    branches: [ master ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Check binary addon API change
+        id: check-binary-addon-api-change
+        run: |
+          echo "Checking binary addon API change ..."
+          git fetch origin ${{github.event.before}} --depth=1
+          export DIFF=$(git diff-tree --no-commit-id --patch-with-stat ${{github.event.before}} $GITHUB_SHA xbmc/addons/kodi-dev-kit/include/kodi/versions.h | grep +.*ADDON_.*_VERSION.*_MIN)
+          if [[ ! -z $DIFF ]]; then
+            echo "Binary API change found:"
+            echo "${DIFF//+#define /}"
+          else
+            echo "Binary not API changed"
+          fi
