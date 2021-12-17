@@ -38,8 +38,13 @@ namespace ADDON
 
 CCriticalSection CAddonStatusHandler::m_critSection;
 
-CAddonStatusHandler::CAddonStatusHandler(const std::string &addonID, ADDON_STATUS status, std::string message, bool sameThread)
-  : CThread(("AddonStatus " + addonID).c_str()),
+CAddonStatusHandler::CAddonStatusHandler(const std::string& addonID,
+                                         uint32_t instanceID,
+                                         ADDON_STATUS status,
+                                         std::string message,
+                                         bool sameThread)
+  : CThread(("AddonStatus " + std::to_string(instanceID) + "@" + addonID).c_str()),
+    m_instanceID(instanceID),
     m_status(ADDON_STATUS_UNKNOWN)
 {
   //! @todo The status handled CAddonStatusHandler by is related to the class, not the instance
@@ -49,8 +54,9 @@ CAddonStatusHandler::CAddonStatusHandler(const std::string &addonID, ADDON_STATU
     return;
 
   CLog::Log(LOGINFO,
-            "Called Add-on status handler for '{}' of clientName:{}, clientID:{} (same Thread={})",
-            status, m_addon->Name(), m_addon->ID(), sameThread ? "yes" : "no");
+            "Called Add-on status handler for '{}' of clientName:{}, clientID:{}, instanceID:{} "
+            "(same Thread={})",
+            status, m_addon->Name(), m_addon->ID(), m_instanceID, sameThread ? "yes" : "no");
 
   m_status  = status;
   m_message = std::move(message);
@@ -90,7 +96,9 @@ void CAddonStatusHandler::Process()
   if (m_status == ADDON_STATUS_NEED_RESTART)
   {
     HELPERS::ShowOKDialogLines(CVariant{heading}, CVariant{24074});
-    CServiceBroker::GetAddonMgr().GetCallbackForType(m_addon->Type())->RequestRestart(m_addon->ID(), true);
+    CServiceBroker::GetAddonMgr()
+        .GetCallbackForType(m_addon->Type())
+        ->RequestRestart(m_addon->ID(), m_instanceID, true);
   }
   /* Some required settings are missing/invalid */
   else if (m_status == ADDON_STATUS_NEED_SETTINGS)
@@ -106,14 +114,16 @@ void CAddonStatusHandler::Process()
 
     if (!pDialogYesNo->IsConfirmed()) return;
 
-    if (!m_addon->HasSettings(KODI::ADDONS::ADDON_SETTINGS_ID))
+    if (!m_addon->HasSettings(m_instanceID))
       return;
 
     if (CGUIDialogAddonSettings::ShowForAddon(m_addon))
     {
       //! @todo Doesn't dialogaddonsettings save these automatically? It should do this.
-      m_addon->SaveSettings(KODI::ADDONS::ADDON_SETTINGS_ID);
-      CServiceBroker::GetAddonMgr().GetCallbackForType(m_addon->Type())->RequestRestart(m_addon->ID(), true);
+      m_addon->SaveSettings(m_instanceID);
+      CServiceBroker::GetAddonMgr()
+          .GetCallbackForType(m_addon->Type())
+          ->RequestRestart(m_addon->ID(), m_instanceID, true);
     }
   }
 }

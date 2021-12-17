@@ -199,9 +199,9 @@ void CPVRClients::UpdateAddons(const std::string& changedAddonId /*= ""*/)
   }
 }
 
-bool CPVRClients::RequestRestart(const std::string& id, bool bDataChanged)
+bool CPVRClients::RequestRestart(const std::string& addonId, uint32_t instance, bool bDataChanged)
 {
-  return StopClient(id, true);
+  return StopClient(addonId, true);
 }
 
 bool CPVRClients::StopClient(const std::string& id, bool bRestart)

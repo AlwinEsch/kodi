@@ -84,11 +84,12 @@ namespace PVR
 
     /*!
      * @brief Restart a single client add-on.
-     * @param id The add-on to restart.
+     * @param addonId The add-on to restart.
+     * @param instance Identifier of the add-on instance.
      * @param bDataChanged True if the client's data changed, false otherwise (unused).
      * @return True if the client was found and restarted, false otherwise.
      */
-    bool RequestRestart(const std::string& id, bool bDataChanged) override;
+    bool RequestRestart(const std::string& addonId, uint32_t instance, bool bDataChanged) override;
 
     /*!
      * @brief Stop a client.

@@ -27,7 +27,11 @@ namespace ADDON
   class CAddonStatusHandler : private CThread
   {
     public:
-      CAddonStatusHandler(const std::string &addonID, ADDON_STATUS status, std::string message, bool sameThread = true);
+      CAddonStatusHandler(const std::string& addonID,
+                          uint32_t instanceID,
+                          ADDON_STATUS status,
+                          std::string message,
+                          bool sameThread = true);
       ~CAddonStatusHandler() override;
 
       /* Thread handling */
@@ -37,6 +41,7 @@ namespace ADDON
 
     private:
       static CCriticalSection   m_critSection;
+      const uint32_t m_instanceID;
       AddonPtr                  m_addon;
       ADDON_STATUS              m_status;
       std::string               m_message;
