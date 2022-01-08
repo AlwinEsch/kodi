@@ -41,11 +41,12 @@ CCriticalSection CAddonStatusHandler::m_critSection;
 CAddonStatusHandler::CAddonStatusHandler(const std::string& addonID,
                                          uint32_t instanceID,
                                          ADDON_STATUS status,
-                                         std::string message,
+                                         const std::string& message,
                                          bool sameThread)
   : CThread(("AddonStatus " + std::to_string(instanceID) + "@" + addonID).c_str()),
     m_instanceID(instanceID),
-    m_status(ADDON_STATUS_UNKNOWN)
+    m_status(ADDON_STATUS_UNKNOWN),
+    m_message(message)
 {
   //! @todo The status handled CAddonStatusHandler by is related to the class, not the instance
   //! having CAddonMgr construct an instance makes no sense
@@ -59,7 +60,6 @@ CAddonStatusHandler::CAddonStatusHandler(const std::string& addonID,
             status, m_addon->Name(), m_addon->ID(), m_instanceID, sameThread ? "yes" : "no");
 
   m_status  = status;
-  m_message = std::move(message);
 
   if (sameThread)
   {

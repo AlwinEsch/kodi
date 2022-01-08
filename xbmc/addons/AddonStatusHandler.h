@@ -30,7 +30,7 @@ namespace ADDON
       CAddonStatusHandler(const std::string& addonID,
                           uint32_t instanceID,
                           ADDON_STATUS status,
-                          std::string message,
+                          const std::string& message,
                           bool sameThread = true);
       ~CAddonStatusHandler() override;
 
