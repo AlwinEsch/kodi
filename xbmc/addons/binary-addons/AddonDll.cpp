@@ -360,6 +360,18 @@ ADDON_STATUS CAddonDll::TransferSettings(uint32_t instance)
   auto settings = GetSettings(instance);
   if (settings != nullptr)
   {
+    KODI_ADDON_INSTANCE_FUNC* instanceTarget{nullptr};
+    if (instance != KODI::ADDONS::ADDON_SETTINGS_ID)
+    {
+      const auto it = std::find_if(m_usedInstances.begin(), m_usedInstances.end(),
+                                   [instance](const auto& data)
+                                   { return data.second->info->number == instance; });
+      if (it == m_usedInstances.end())
+        return ADDON_STATUS_UNKNOWN;
+
+      instanceTarget = it->second->functions;
+    }
+
     for (const auto& section : settings->GetSections())
     {
       for (const auto& category : section->GetCategories())
@@ -375,44 +387,94 @@ ADDON_STATUS CAddonDll::TransferSettings(uint32_t instance)
               case SettingType::Boolean:
               {
                 bool tmp = std::static_pointer_cast<CSettingBool>(setting)->GetValue();
-                if (m_interface.toAddon->setting_change_boolean)
-                  status =
-                      m_interface.toAddon->setting_change_boolean(m_interface.addonBase, id, tmp);
+                if (instance == KODI::ADDONS::ADDON_SETTINGS_ID)
+                {
+                  if (m_interface.toAddon->setting_change_boolean)
+                    status =
+                        m_interface.toAddon->setting_change_boolean(m_interface.addonBase, id, tmp);
+                }
+                else if (instanceTarget)
+                {
+                  if (instanceTarget->instance_setting_change_boolean)
+                    status = instanceTarget->instance_setting_change_boolean(m_interface.addonBase,
+                                                                             id, tmp);
+                }
                 break;
               }
 
               case SettingType::Integer:
               {
                 int tmp = std::static_pointer_cast<CSettingInt>(setting)->GetValue();
-                if (m_interface.toAddon->setting_change_integer)
-                  status =
-                      m_interface.toAddon->setting_change_integer(m_interface.addonBase, id, tmp);
+                if (instance == KODI::ADDONS::ADDON_SETTINGS_ID)
+                {
+                  if (m_interface.toAddon->setting_change_integer)
+                    status =
+                        m_interface.toAddon->setting_change_integer(m_interface.addonBase, id, tmp);
+                }
+                else if (instanceTarget)
+                {
+                  if (instanceTarget->instance_setting_change_integer)
+                    status = instanceTarget->instance_setting_change_integer(m_interface.addonBase,
+                                                                             id, tmp);
+                }
                 break;
               }
 
               case SettingType::Number:
               {
                 float tmpf = static_cast<float>(std::static_pointer_cast<CSettingNumber>(setting)->GetValue());
-                if (m_interface.toAddon->setting_change_float)
-                  status =
-                      m_interface.toAddon->setting_change_float(m_interface.addonBase, id, tmpf);
+                if (instance == KODI::ADDONS::ADDON_SETTINGS_ID)
+                {
+                  if (m_interface.toAddon->setting_change_float)
+                    status =
+                        m_interface.toAddon->setting_change_float(m_interface.addonBase, id, tmpf);
+                }
+                else if (instanceTarget)
+                {
+                  if (instanceTarget->instance_setting_change_float)
+                    status = instanceTarget->instance_setting_change_float(m_interface.addonBase,
+                                                                           id, tmpf);
+                }
                 break;
               }
 
               case SettingType::String:
-                if (m_interface.toAddon->setting_change_string)
-                  status = m_interface.toAddon->setting_change_string(
-                      m_interface.addonBase, id,
-                      std::static_pointer_cast<CSettingString>(setting)->GetValue().c_str());
+              {
+                if (instance == KODI::ADDONS::ADDON_SETTINGS_ID)
+                {
+                  if (m_interface.toAddon->setting_change_string)
+                    status = m_interface.toAddon->setting_change_string(
+                        m_interface.addonBase, id,
+                        std::static_pointer_cast<CSettingString>(setting)->GetValue().c_str());
+                }
+                else if (instanceTarget)
+                {
+                  if (instanceTarget->instance_setting_change_string)
+                    status = instanceTarget->instance_setting_change_string(
+                        m_interface.addonBase, id,
+                        std::static_pointer_cast<CSettingString>(setting)->GetValue().c_str());
+                }
                 break;
+              }
 
               default:
+              {
                 // log unknowns as an error, but go ahead and transfer the string
                 CLog::Log(LOGERROR, "Unknown setting type of '{}' for {}", id, Name());
-                if (m_interface.toAddon->setting_change_string)
-                  status = m_interface.toAddon->setting_change_string(m_interface.addonBase, id,
-                                                                      setting->ToString().c_str());
+                if (instance == KODI::ADDONS::ADDON_SETTINGS_ID)
+                {
+                  if (m_interface.toAddon->setting_change_string)
+                    status = m_interface.toAddon->setting_change_string(
+                        m_interface.addonBase, id, setting->ToString().c_str());
+                }
+                else if (instanceTarget)
+                {
+                  if (instanceTarget->instance_setting_change_string)
+                    status = instanceTarget->instance_setting_change_string(
+                        m_interface.addonBase, id, setting->ToString().c_str());
+                }
                 break;
+              }
             }
 
             if (status == ADDON_STATUS_NEED_RESTART)

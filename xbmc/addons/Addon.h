@@ -459,14 +459,21 @@ protected:
   virtual bool SettingsToXML(uint32_t instance, CXBMCTinyXML& doc) const;
 
   const AddonInfoPtr m_addonInfo;
-  std::string m_userSettingsPath;
 
 private:
-  bool m_loadSettingsFailed;
-  bool m_hasUserSettings;
+  struct CSettingsData
+  {
+    bool m_loadSettingsFailed{false};
+    bool m_hasUserSettings{false};
+    std::string m_addonSettingsPath;
+    std::string m_userSettingsPath;
+    std::shared_ptr<CAddonSettings> m_addonSettings;
+  };
+
+  bool InitSettings(uint32_t instance);
 
   std::string m_profilePath;
-  mutable std::shared_ptr<CAddonSettings> m_settings;
+  mutable std::unordered_map<uint32_t, CSettingsData> m_settings;
   const TYPE m_type;
 };
 
