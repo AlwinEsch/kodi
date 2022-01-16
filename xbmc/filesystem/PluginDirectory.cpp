@@ -458,7 +458,7 @@ std::string CPluginDirectory::GetSetting(int handle, const std::string &strID)
   std::unique_lock<CCriticalSection> lock(GetScriptsLock());
   CPluginDirectory* dir = GetScriptFromHandle(handle);
   if (dir && dir->GetAddon())
-    return dir->GetAddon()->GetSetting(strID);
+    return dir->GetAddon()->GetSetting(KODI::ADDONS::ADDON_SETTINGS_ID, strID);
   else
     return "";
 }
@@ -468,7 +468,7 @@ void CPluginDirectory::SetSetting(int handle, const std::string &strID, const st
   std::unique_lock<CCriticalSection> lock(GetScriptsLock());
   CPluginDirectory* dir = GetScriptFromHandle(handle);
   if (dir && dir->GetAddon())
-    dir->GetAddon()->UpdateSetting(strID, value);
+    dir->GetAddon()->UpdateSetting(KODI::ADDONS::ADDON_SETTINGS_ID, strID, value);
 }
 
 void CPluginDirectory::SetContent(int handle, const std::string &strContent)

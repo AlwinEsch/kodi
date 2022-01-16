@@ -35,6 +35,7 @@ struct Interface_Base
   static void DeInitInterface(AddonGlobalInterface& addonInterface);
   static void RegisterInterface(ADDON_GET_INTERFACE_FN fn);
   static bool UpdateSettingInActiveDialog(CAddonDll* addon,
+                                          uint32_t instance,
                                           const char* id,
                                           const std::string& value);
 

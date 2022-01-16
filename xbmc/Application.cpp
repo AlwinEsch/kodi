@@ -1245,7 +1245,7 @@ bool CApplication::LoadSkin(const std::string& skinID)
 void CApplication::UnloadSkin()
 {
   if (g_SkinInfo != nullptr && m_saveSkinOnUnloading)
-    g_SkinInfo->SaveSettings();
+    g_SkinInfo->SaveSettings(KODI::ADDONS::ADDON_SETTINGS_ID);
   else if (!m_saveSkinOnUnloading)
     m_saveSkinOnUnloading = true;
 
@@ -2624,7 +2624,7 @@ bool CApplication::Stop(int exitCode)
     // skin settings early
     CLog::Log(LOGINFO, "Saving skin settings");
     if (g_SkinInfo != nullptr)
-      g_SkinInfo->SaveSettings();
+      g_SkinInfo->SaveSettings(KODI::ADDONS::ADDON_SETTINGS_ID);
 
     m_bStop = true;
     // Add this here to keep the same ordering behaviour for now
@@ -4180,7 +4180,7 @@ void CApplication::ConfigureAndEnableAddons()
                                           CVariant{24059}, // Would you like to enable this add-on?
                                           CVariant{addon->Name()}) == DialogResponse::CHOICE_YES)
         {
-          if (addon->HasSettings())
+          if (addon->CanHaveAddonOrInstanceSettings())
           {
             if (CGUIDialogAddonSettings::ShowForAddon(addon))
             {

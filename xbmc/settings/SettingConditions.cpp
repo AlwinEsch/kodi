@@ -51,7 +51,7 @@ bool AddonHasSettings(const std::string& condition,
   if (addon->Type() == ADDON::ADDON_SKIN)
     return ((ADDON::CSkinInfo*)addon.get())->HasSkinFile("SkinSettings.xml");
 
-  return addon->HasSettings();
+  return addon->CanHaveAddonOrInstanceSettings();
 }
 
 bool CheckMasterLock(const std::string& condition,

@@ -188,8 +188,8 @@ public:
 
   /*! \brief Don't handle skin settings like normal addon settings
    */
-  bool HasSettings() override { return false; }
-  bool HasUserSettings() override { return false; }
+  bool HasSettings(uint32_t instance) override { return false; }
+  bool HasUserSettings(uint32_t instance) override { return false; }
 
   int TranslateString(const std::string &setting);
   const std::string& GetString(int setting) const;
@@ -211,10 +211,12 @@ protected:
 
   static CSkinSettingPtr ParseSetting(const TiXmlElement* element);
 
-  bool SettingsInitialized() const override;
-  bool SettingsLoaded() const override;
-  bool SettingsFromXML(const CXBMCTinyXML &doc, bool loadDefaults = false) override;
-  bool SettingsToXML(CXBMCTinyXML &doc) const override;
+  bool SettingsInitialized(uint32_t instance) const override;
+  bool SettingsLoaded(uint32_t instance) const override;
+  bool SettingsFromXML(uint32_t instance,
+                       const CXBMCTinyXML& doc,
+                       bool loadDefaults = false) override;
+  bool SettingsToXML(uint32_t instance, CXBMCTinyXML& doc) const override;
 
   RESOLUTION_INFO m_defaultRes;
   std::vector<RESOLUTION_INFO> m_resolutions;

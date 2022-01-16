@@ -172,17 +172,17 @@ bool CScraper::SetPathSettings(CONTENT_TYPE content, const std::string &xml)
 
   CXBMCTinyXML doc;
   doc.Parse(xml);
-  return SettingsFromXML(doc);
+  return SettingsFromXML(KODI::ADDONS::ADDON_SETTINGS_ID, doc);
 }
 
 std::string CScraper::GetPathSettings()
 {
-  if (!LoadSettings(false))
+  if (!LoadSettings(KODI::ADDONS::ADDON_SETTINGS_ID, false))
     return "";
 
   std::stringstream stream;
   CXBMCTinyXML doc;
-  SettingsToXML(doc);
+  SettingsToXML(KODI::ADDONS::ADDON_SETTINGS_ID, doc);
   if (doc.RootElement())
     stream << *doc.RootElement();
 
@@ -333,11 +333,12 @@ std::string CScraper::GetPathSettingsAsJSON()
 {
   static const std::string EmptyPathSettings = "{}";
 
-  if (!LoadSettings(false))
+  if (!LoadSettings(KODI::ADDONS::ADDON_SETTINGS_ID, false))
     return EmptyPathSettings;
 
   CSettingsValueFlatJsonSerializer jsonSerializer;
-  auto json = jsonSerializer.SerializeValues(GetSettings()->GetSettingsManager());
+  auto json = jsonSerializer.SerializeValues(
+      GetSettings(KODI::ADDONS::ADDON_SETTINGS_ID)->GetSettingsManager());
   if (json.empty())
     return EmptyPathSettings;
 

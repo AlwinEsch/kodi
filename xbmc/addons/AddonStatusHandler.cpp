@@ -106,13 +106,13 @@ void CAddonStatusHandler::Process()
 
     if (!pDialogYesNo->IsConfirmed()) return;
 
-    if (!m_addon->HasSettings())
+    if (!m_addon->HasSettings(KODI::ADDONS::ADDON_SETTINGS_ID))
       return;
 
     if (CGUIDialogAddonSettings::ShowForAddon(m_addon))
     {
       //! @todo Doesn't dialogaddonsettings save these automatically? It should do this.
-      m_addon->SaveSettings();
+      m_addon->SaveSettings(KODI::ADDONS::ADDON_SETTINGS_ID);
       CServiceBroker::GetAddonMgr().GetCallbackForType(m_addon->Type())->RequestRestart(m_addon->ID(), true);
     }
   }

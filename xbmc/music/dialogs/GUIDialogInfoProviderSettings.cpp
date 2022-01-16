@@ -267,9 +267,9 @@ bool CGUIDialogInfoProviderSettings::Save()
   settings->SetBool(CSettings::SETTING_MUSICLIBRARY_DOWNLOADINFO, m_fetchInfo);
   // Save default scrapers and addon setting values
   settings->SetString(CSettings::SETTING_MUSICLIBRARY_ALBUMSSCRAPER, m_albumscraper->ID());
-  m_albumscraper->SaveSettings();
+  m_albumscraper->SaveSettings(KODI::ADDONS::ADDON_SETTINGS_ID);
   settings->SetString(CSettings::SETTING_MUSICLIBRARY_ARTISTSSCRAPER, m_artistscraper->ID());
-  m_artistscraper->SaveSettings();
+  m_artistscraper->SaveSettings(KODI::ADDONS::ADDON_SETTINGS_ID);
   // Save artist information folder
   settings->SetString(CSettings::SETTING_MUSICLIBRARY_ARTISTSFOLDER, m_strArtistInfoPath);
   settings->Save();
@@ -304,7 +304,7 @@ void CGUIDialogInfoProviderSettings::SetupView()
       if (m_albumscraper && !CServiceBroker::GetAddonMgr().IsAddonDisabled(m_albumscraper->ID()))
       {
         SetLabel2(CSettings::SETTING_MUSICLIBRARY_ALBUMSSCRAPER, m_albumscraper->Name());
-        if (m_albumscraper && m_albumscraper->HasSettings())
+        if (m_albumscraper && m_albumscraper->HasSettings(KODI::ADDONS::ADDON_SETTINGS_ID))
           ToggleState(SETTING_ALBUMSCRAPER_SETTINGS, true);
         else
           ToggleState(SETTING_ALBUMSCRAPER_SETTINGS, false);
@@ -319,7 +319,7 @@ void CGUIDialogInfoProviderSettings::SetupView()
       if (m_artistscraper && !CServiceBroker::GetAddonMgr().IsAddonDisabled(m_artistscraper->ID()))
       {
         SetLabel2(CSettings::SETTING_MUSICLIBRARY_ARTISTSSCRAPER, m_artistscraper->Name());
-        if (m_artistscraper && m_artistscraper->HasSettings())
+        if (m_artistscraper && m_artistscraper->HasSettings(KODI::ADDONS::ADDON_SETTINGS_ID))
           ToggleState(SETTING_ARTISTSCRAPER_SETTINGS, true);
         else
           ToggleState(SETTING_ARTISTSCRAPER_SETTINGS, false);
@@ -341,7 +341,7 @@ void CGUIDialogInfoProviderSettings::SetupView()
     if (m_albumscraper && !CServiceBroker::GetAddonMgr().IsAddonDisabled(m_albumscraper->ID()))
     {
       SetLabel2(CSettings::SETTING_MUSICLIBRARY_ALBUMSSCRAPER, m_albumscraper->Name());
-      if (m_albumscraper && m_albumscraper->HasSettings())
+      if (m_albumscraper && m_albumscraper->HasSettings(KODI::ADDONS::ADDON_SETTINGS_ID))
         ToggleState(SETTING_ALBUMSCRAPER_SETTINGS, true);
       else
         ToggleState(SETTING_ALBUMSCRAPER_SETTINGS, false);
@@ -360,7 +360,7 @@ void CGUIDialogInfoProviderSettings::SetupView()
     if (m_artistscraper && !CServiceBroker::GetAddonMgr().IsAddonDisabled(m_artistscraper->ID()))
     {
       SetLabel2(CSettings::SETTING_MUSICLIBRARY_ARTISTSSCRAPER, m_artistscraper->Name());
-      if (m_artistscraper && m_artistscraper->HasSettings())
+      if (m_artistscraper && m_artistscraper->HasSettings(KODI::ADDONS::ADDON_SETTINGS_ID))
         ToggleState(SETTING_ARTISTSCRAPER_SETTINGS, true);
       else
         ToggleState(SETTING_ARTISTSCRAPER_SETTINGS, false);

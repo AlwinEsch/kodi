@@ -159,7 +159,7 @@ void CScraperParser::ReplaceBuffers(std::string& strDest)
     std::string strInfo = strDest.substr(iIndex+6, iEnd - iIndex - 6);
     std::string strReplace;
     if (m_scraper)
-      strReplace = m_scraper->GetSetting(strInfo);
+      strReplace = m_scraper->GetSetting(KODI::ADDONS::ADDON_SETTINGS_ID, strInfo);
     strDest.replace(strDest.begin()+iIndex,strDest.begin()+iEnd+1,strReplace);
     iIndex += strReplace.length();
   }
@@ -424,8 +424,8 @@ void CScraperParser::ParseNext(TiXmlElement* element)
         szConditional++;
       }
       std::string strSetting;
-      if (m_scraper && m_scraper->HasSettings())
-        strSetting = m_scraper->GetSetting(szConditional);
+      if (m_scraper && m_scraper->HasSettings(KODI::ADDONS::ADDON_SETTINGS_ID))
+        strSetting = m_scraper->GetSetting(KODI::ADDONS::ADDON_SETTINGS_ID, szConditional);
       bExecute = bInverse != (strSetting == "true");
     }
 

@@ -82,18 +82,18 @@ namespace XBMCAddon
 
     Settings* Addon::getSettings()
     {
-      return new Settings(pAddon->GetSettings());
+      return new Settings(pAddon->GetSettings(KODI::ADDONS::ADDON_SETTINGS_ID));
     }
 
     String Addon::getSetting(const char* id)
     {
-      return pAddon->GetSetting(id);
+      return pAddon->GetSetting(KODI::ADDONS::ADDON_SETTINGS_ID, id);
     }
 
     bool Addon::getSettingBool(const char* id)
     {
       bool value = false;
-      if (!pAddon->GetSettingBool(id, value))
+      if (!pAddon->GetSettingBool(KODI::ADDONS::ADDON_SETTINGS_ID, id, value))
         throw XBMCAddon::WrongTypeException("Invalid setting type");
 
       return value;
@@ -102,7 +102,7 @@ namespace XBMCAddon
     int Addon::getSettingInt(const char* id)
     {
       int value = 0;
-      if (!pAddon->GetSettingInt(id, value))
+      if (!pAddon->GetSettingInt(KODI::ADDONS::ADDON_SETTINGS_ID, id, value))
         throw XBMCAddon::WrongTypeException("Invalid setting type");
 
       return value;
@@ -111,7 +111,7 @@ namespace XBMCAddon
     double Addon::getSettingNumber(const char* id)
     {
       double value = 0.0;
-      if (!pAddon->GetSettingNumber(id, value))
+      if (!pAddon->GetSettingNumber(KODI::ADDONS::ADDON_SETTINGS_ID, id, value))
         throw XBMCAddon::WrongTypeException("Invalid setting type");
 
       return value;
@@ -120,7 +120,7 @@ namespace XBMCAddon
     String Addon::getSettingString(const char* id)
     {
       std::string value;
-      if (!pAddon->GetSettingString(id, value))
+      if (!pAddon->GetSettingString(KODI::ADDONS::ADDON_SETTINGS_ID, id, value))
         throw XBMCAddon::WrongTypeException("Invalid setting type");
 
       return value;
@@ -132,8 +132,8 @@ namespace XBMCAddon
       ADDON::AddonPtr addon(pAddon);
       if (!UpdateSettingInActiveDialog(id, value))
       {
-        addon->UpdateSetting(id, value);
-        addon->SaveSettings();
+        addon->UpdateSetting(KODI::ADDONS::ADDON_SETTINGS_ID, id, value);
+        addon->SaveSettings(KODI::ADDONS::ADDON_SETTINGS_ID);
       }
     }
 
@@ -144,10 +144,10 @@ namespace XBMCAddon
       if (UpdateSettingInActiveDialog(id, value ? "true" : "false"))
         return true;
 
-      if (!addon->UpdateSettingBool(id, value))
+      if (!addon->UpdateSettingBool(KODI::ADDONS::ADDON_SETTINGS_ID, id, value))
         throw XBMCAddon::WrongTypeException("Invalid setting type");
 
-      addon->SaveSettings();
+      addon->SaveSettings(KODI::ADDONS::ADDON_SETTINGS_ID);
 
       return true;
     }
@@ -159,10 +159,10 @@ namespace XBMCAddon
       if (UpdateSettingInActiveDialog(id, std::to_string(value)))
         return true;
 
-      if (!addon->UpdateSettingInt(id, value))
+      if (!addon->UpdateSettingInt(KODI::ADDONS::ADDON_SETTINGS_ID, id, value))
         throw XBMCAddon::WrongTypeException("Invalid setting type");
 
-      addon->SaveSettings();
+      addon->SaveSettings(KODI::ADDONS::ADDON_SETTINGS_ID);
 
       return true;
     }
@@ -174,10 +174,10 @@ namespace XBMCAddon
       if (UpdateSettingInActiveDialog(id, StringUtils::Format("{:f}", value)))
         return true;
 
-      if (!addon->UpdateSettingNumber(id, value))
+      if (!addon->UpdateSettingNumber(KODI::ADDONS::ADDON_SETTINGS_ID, id, value))
         throw XBMCAddon::WrongTypeException("Invalid setting type");
 
-      addon->SaveSettings();
+      addon->SaveSettings(KODI::ADDONS::ADDON_SETTINGS_ID);
 
       return true;
     }
@@ -189,10 +189,10 @@ namespace XBMCAddon
       if (UpdateSettingInActiveDialog(id, value))
         return true;
 
-      if (!addon->UpdateSettingString(id, value))
+      if (!addon->UpdateSettingString(KODI::ADDONS::ADDON_SETTINGS_ID, id, value))
         throw XBMCAddon::WrongTypeException("Invalid setting type");
 
-      addon->SaveSettings();
+      addon->SaveSettings(KODI::ADDONS::ADDON_SETTINGS_ID);
 
       return true;
     }

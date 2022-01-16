@@ -156,7 +156,7 @@ void CSkinSettings::MigrateSettings(const ADDON::SkinPtr& skin)
   if (settingsMigrated)
   {
     // save the skin's settings
-    skin->SaveSettings();
+    skin->SaveSettings(KODI::ADDONS::ADDON_SETTINGS_ID);
 
     // save the guisettings.xml
     CServiceBroker::GetSettingsComponent()->GetSettings()->Save();

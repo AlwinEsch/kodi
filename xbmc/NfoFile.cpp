@@ -171,7 +171,7 @@ std::vector<ScraperPtr> CNfoFile::GetScrapers(TYPE type, const ScraperPtr& selec
     ScraperPtr scraper = std::dynamic_pointer_cast<CScraper>(addon);
 
     // skip if scraper requires settings and there's nothing set yet
-    if (scraper->RequiresSettings() && !scraper->HasUserSettings())
+    if (scraper->RequiresSettings() && !scraper->HasUserSettings(KODI::ADDONS::ADDON_SETTINGS_ID))
       continue;
 
     if ((!selectedScraper || selectedScraper->ID() != scraper->ID()) &&
@@ -180,9 +180,9 @@ std::vector<ScraperPtr> CNfoFile::GetScrapers(TYPE type, const ScraperPtr& selec
   }
 
   // add default scraper - not user selectable so it's last priority
-  if (defaultScraper && (!selectedScraper ||
-                          selectedScraper->ID() != defaultScraper->ID()) &&
-      (!defaultScraper->RequiresSettings() || defaultScraper->HasUserSettings()))
+  if (defaultScraper && (!selectedScraper || selectedScraper->ID() != defaultScraper->ID()) &&
+      (!defaultScraper->RequiresSettings() ||
+       defaultScraper->HasUserSettings(KODI::ADDONS::ADDON_SETTINGS_ID)))
     vecScrapers.push_back(defaultScraper);
 
   return vecScrapers;

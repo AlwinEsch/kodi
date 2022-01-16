@@ -294,7 +294,8 @@ void CGUIDialogContentSettings::SetupView()
     if (m_scraper != NULL && !CServiceBroker::GetAddonMgr().IsAddonDisabled(m_scraper->ID()))
     {
       SetLabel2(SETTING_SCRAPER_LIST, m_scraper->Name());
-      if (m_scraper && m_scraper->Supports(m_content) && m_scraper->HasSettings())
+      if (m_scraper && m_scraper->Supports(m_content) &&
+          m_scraper->HasSettings(KODI::ADDONS::ADDON_SETTINGS_ID))
         ToggleState(SETTING_SCRAPER_SETTINGS, true);
       else
         ToggleState(SETTING_SCRAPER_SETTINGS, false);

@@ -288,7 +288,7 @@ bool CGUIWindowMusicNav::ManageInfoProvider(const CFileItemPtr& item)
         if (CGUIDialogYesNo::ShowAndGetInput(CVariant{20195}, msgctxt)) // Change information provider, confirm default and clear
         {
           // Save scraper addon default setting values
-          scraper->SaveSettings();
+          scraper->SaveSettings(KODI::ADDONS::ADDON_SETTINGS_ID);
           // Set default scraper
           const std::shared_ptr<CSettings> settings = CServiceBroker::GetSettingsComponent()->GetSettings();
           if (content == CONTENT_ARTISTS)

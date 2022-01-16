@@ -193,7 +193,7 @@ ADDON_STATUS CAddonDll::Create(KODI_ADDON_INSTANCE_STRUCT* firstKodiInstance)
   }
   else if (status == ADDON_STATUS_NEED_SETTINGS)
   {
-    if ((status = TransferSettings()) == ADDON_STATUS_OK)
+    if ((status = TransferSettings(KODI::ADDONS::ADDON_SETTINGS_ID)) == ADDON_STATUS_OK)
       m_initialized = true;
     else
       new CAddonStatusHandler(ID(), status, "", false);
@@ -232,7 +232,7 @@ void CAddonDll::Destroy()
     CLog::Log(LOGINFO, "ADDON: Dll Destroyed - {}", Name());
   }
 
-  ResetSettings();
+  ResetSettings(KODI::ADDONS::ADDON_SETTINGS_ID);
 
   m_initialized = false;
 }
@@ -340,24 +340,24 @@ AddonVersion CAddonDll::GetTypeMinVersionDll(int type) const
   return AddonVersion(m_pDll ? m_pDll->GetAddonTypeMinVersion(type) : nullptr);
 }
 
-void CAddonDll::SaveSettings()
+void CAddonDll::SaveSettings(uint32_t instance)
 {
   // must save first, as TransferSettings() reloads saved settings!
-  CAddon::SaveSettings();
+  CAddon::SaveSettings(instance);
   if (m_initialized)
-    TransferSettings();
+    TransferSettings(instance);
 }
 
-ADDON_STATUS CAddonDll::TransferSettings()
+ADDON_STATUS CAddonDll::TransferSettings(uint32_t instance)
 {
   bool restart = false;
   ADDON_STATUS reportStatus = ADDON_STATUS_OK;
 
   CLog::Log(LOGDEBUG, "Calling TransferSettings for: {}", Name());
 
-  LoadSettings(false);
+  LoadSettings(instance, false);
 
-  auto settings = GetSettings();
+  auto settings = GetSettings(instance);
   if (settings != nullptr)
   {
     for (const auto& section : settings->GetSections())

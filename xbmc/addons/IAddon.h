@@ -15,6 +15,28 @@
 
 class TiXmlElement;
 
+namespace KODI
+{
+namespace ADDONS
+{
+
+/*!
+ * @brief Identifier denoting default add-on instance.
+ *
+ * All numbers greater than 0 denote add-ons with support for multiple instances.
+ */
+constexpr uint32_t ADDON_SINGLETON_INSTANCE_ID = 0;
+
+/*!
+ * @brief Identifier denoting default add-on settings.xml.
+ *
+ * All numbers greater than 0 denote add-on instances with an individual set of settings.
+ */
+constexpr uint32_t ADDON_SETTINGS_ID = ADDON_SINGLETON_INSTANCE_ID;
+
+} /* namespace ADDONS */
+} /* namespace KODI */
+
 namespace ADDON
 {
   class IAddon;
@@ -64,25 +86,33 @@ namespace ADDON
     virtual std::string OriginName() const = 0;
     virtual uint64_t PackageSize() const =0;
     virtual const InfoMap &ExtraInfo() const =0;
-    virtual bool HasSettings() =0;
-    virtual void SaveSettings() =0;
-    virtual void UpdateSetting(const std::string& key, const std::string& value) =0;
-    virtual bool UpdateSettingBool(const std::string& key, bool value) = 0;
-    virtual bool UpdateSettingInt(const std::string& key, int value) = 0;
-    virtual bool UpdateSettingNumber(const std::string& key, double value) = 0;
-    virtual bool UpdateSettingString(const std::string& key, const std::string& value) = 0;
-    virtual std::string GetSetting(const std::string& key) =0;
-    virtual bool GetSettingBool(const std::string& key, bool& value) = 0;
-    virtual bool GetSettingInt(const std::string& key, int& value) = 0;
-    virtual bool GetSettingNumber(const std::string& key, double& value) = 0;
-    virtual bool GetSettingString(const std::string& key, std::string& value) = 0;
-    virtual std::shared_ptr<CAddonSettings> GetSettings() = 0;
+    virtual bool CanHaveAddonOrInstanceSettings() = 0;
+    virtual bool HasSettings(uint32_t instance) = 0;
+    virtual bool HasUserSettings(uint32_t instance) = 0;
+    virtual void SaveSettings(uint32_t instance) = 0;
+    virtual void UpdateSetting(uint32_t instance,
+                               const std::string& key,
+                               const std::string& value) = 0;
+    virtual bool UpdateSettingBool(uint32_t instance, const std::string& key, bool value) = 0;
+    virtual bool UpdateSettingInt(uint32_t instance, const std::string& key, int value) = 0;
+    virtual bool UpdateSettingNumber(uint32_t instance, const std::string& key, double value) = 0;
+    virtual bool UpdateSettingString(uint32_t instance,
+                                     const std::string& key,
+                                     const std::string& value) = 0;
+    virtual std::string GetSetting(uint32_t instance, const std::string& key) = 0;
+    virtual bool GetSettingBool(uint32_t instance, const std::string& key, bool& value) = 0;
+    virtual bool GetSettingInt(uint32_t instance, const std::string& key, int& value) = 0;
+    virtual bool GetSettingNumber(uint32_t instance, const std::string& key, double& value) = 0;
+    virtual bool GetSettingString(uint32_t instance,
+                                  const std::string& key,
+                                  std::string& value) = 0;
+    virtual std::shared_ptr<CAddonSettings> GetSettings(uint32_t instance) = 0;
     virtual const std::vector<DependencyInfo> &GetDependencies() const =0;
     virtual AddonVersion GetDependencyVersion(const std::string &dependencyID) const =0;
     virtual bool MeetsVersion(const AddonVersion& versionMin,
                               const AddonVersion& version) const = 0;
-    virtual bool ReloadSettings() =0;
-    virtual void ResetSettings() = 0;
+    virtual bool ReloadSettings(uint32_t instance) = 0;
+    virtual void ResetSettings(uint32_t instance) = 0;
     virtual AddonPtr GetRunningInstance() const=0;
     virtual void OnPreInstall() =0;
     virtual void OnPostInstall(bool update, bool modal) =0;

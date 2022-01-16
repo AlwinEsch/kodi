@@ -215,7 +215,7 @@ struct closestRes
 
 void CSkinInfo::Start()
 {
-  if (!LoadUserSettings())
+  if (!LoadUserSettings(KODI::ADDONS::ADDON_SETTINGS_ID))
     CLog::Log(LOGWARNING, "CSkinInfo: failed to load skin settings");
 
   if (!m_resolutions.size())
@@ -734,18 +734,29 @@ CSkinSettingPtr CSkinInfo::ParseSetting(const TiXmlElement* element)
   return setting;
 }
 
-bool CSkinInfo::SettingsInitialized() const
+bool CSkinInfo::SettingsInitialized(uint32_t instance) const
 {
+  if (instance != KODI::ADDONS::ADDON_SETTINGS_ID)
+    return false;
+
   return true;
 }
 
-bool CSkinInfo::SettingsLoaded() const
+bool CSkinInfo::SettingsLoaded(uint32_t instance) const
 {
+  if (instance != KODI::ADDONS::ADDON_SETTINGS_ID)
+    return false;
+
   return !m_strings.empty() || !m_bools.empty();
 }
 
-bool CSkinInfo::SettingsFromXML(const CXBMCTinyXML &doc, bool loadDefaults /* = false */)
+bool CSkinInfo::SettingsFromXML(uint32_t instance,
+                                const CXBMCTinyXML& doc,
+                                bool loadDefaults /* = false */)
 {
+  if (instance != KODI::ADDONS::ADDON_SETTINGS_ID)
+    return false;
+
   const TiXmlElement *rootElement = doc.RootElement();
   if (rootElement == nullptr || rootElement->ValueStr().compare(XML_SETTINGS) != 0)
   {
@@ -772,7 +783,7 @@ bool CSkinInfo::SettingsFromXML(const CXBMCTinyXML &doc, bool loadDefaults /* = 
   return true;
 }
 
-bool CSkinInfo::SettingsToXML(CXBMCTinyXML &doc) const
+bool CSkinInfo::SettingsToXML(uint32_t instance, CXBMCTinyXML& doc) const
 {
   // add the <skinsettings> tag
   TiXmlElement rootElement(XML_SETTINGS);
@@ -801,7 +812,7 @@ bool CSkinInfo::SettingsToXML(CXBMCTinyXML &doc) const
 
 void CSkinSettingUpdateHandler::OnTimeout()
 {
-  m_addon.SaveSettings();
+  m_addon.SaveSettings(KODI::ADDONS::ADDON_SETTINGS_ID);
 }
 
 void CSkinSettingUpdateHandler::TriggerSave()

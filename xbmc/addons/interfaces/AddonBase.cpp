@@ -106,6 +106,7 @@ void Interface_Base::RegisterInterface(ADDON_GET_INTERFACE_FN fn)
 }
 
 bool Interface_Base::UpdateSettingInActiveDialog(CAddonDll* addon,
+                                                 uint32_t instance,
                                                  const char* id,
                                                  const std::string& value)
 {
@@ -334,14 +335,14 @@ bool Interface_Base::is_setting_using_default(const KODI_ADDON_BACKEND_HDL hdl, 
     return false;
   }
 
-  if (!addon->HasSettings())
+  if (!addon->HasSettings(KODI::ADDONS::ADDON_SETTINGS_ID))
   {
     CLog::Log(LOGERROR, "Interface_Base::{} - couldn't get settings for add-on '{}'", __func__,
               addon->Name());
     return false;
   }
 
-  auto setting = addon->GetSettings()->GetSetting(id);
+  auto setting = addon->GetSettings(KODI::ADDONS::ADDON_SETTINGS_ID)->GetSetting(id);
   if (setting == nullptr)
   {
     CLog::Log(LOGERROR, "Interface_Base::{} - can't find setting '{}' in '{}'", __func__, id,
@@ -363,14 +364,14 @@ bool Interface_Base::get_setting_bool(const KODI_ADDON_BACKEND_HDL hdl, const ch
     return false;
   }
 
-  if (!addon->HasSettings())
+  if (!addon->HasSettings(KODI::ADDONS::ADDON_SETTINGS_ID))
   {
     CLog::Log(LOGERROR, "Interface_Base::{} - couldn't get settings for add-on '{}'", __func__,
               addon->Name());
     return false;
   }
 
-  auto setting = addon->GetSettings()->GetSetting(id);
+  auto setting = addon->GetSettings(KODI::ADDONS::ADDON_SETTINGS_ID)->GetSetting(id);
   if (setting == nullptr)
   {
     CLog::Log(LOGERROR, "Interface_Base::{} - can't find setting '{}' in '{}'", __func__, id,
@@ -400,14 +401,14 @@ bool Interface_Base::get_setting_int(const KODI_ADDON_BACKEND_HDL hdl, const cha
     return false;
   }
 
-  if (!addon->HasSettings())
+  if (!addon->HasSettings(KODI::ADDONS::ADDON_SETTINGS_ID))
   {
     CLog::Log(LOGERROR, "Interface_Base::{} - couldn't get settings for add-on '{}'", __func__,
               addon->Name());
     return false;
   }
 
-  auto setting = addon->GetSettings()->GetSetting(id);
+  auto setting = addon->GetSettings(KODI::ADDONS::ADDON_SETTINGS_ID)->GetSetting(id);
   if (setting == nullptr)
   {
     CLog::Log(LOGERROR, "Interface_Base::{} - can't find setting '{}' in '{}'", __func__, id,
@@ -442,14 +443,14 @@ bool Interface_Base::get_setting_float(const KODI_ADDON_BACKEND_HDL hdl,
     return false;
   }
 
-  if (!addon->HasSettings())
+  if (!addon->HasSettings(KODI::ADDONS::ADDON_SETTINGS_ID))
   {
     CLog::Log(LOGERROR, "Interface_Base::{} - couldn't get settings for add-on '{}'", __func__,
               addon->Name());
     return false;
   }
 
-  auto setting = addon->GetSettings()->GetSetting(id);
+  auto setting = addon->GetSettings(KODI::ADDONS::ADDON_SETTINGS_ID)->GetSetting(id);
   if (setting == nullptr)
   {
     CLog::Log(LOGERROR, "Interface_Base::{} - can't find setting '{}' in '{}'", __func__, id,
@@ -481,14 +482,14 @@ bool Interface_Base::get_setting_string(const KODI_ADDON_BACKEND_HDL hdl,
     return false;
   }
 
-  if (!addon->HasSettings())
+  if (!addon->HasSettings(KODI::ADDONS::ADDON_SETTINGS_ID))
   {
     CLog::Log(LOGERROR, "Interface_Base::{} - couldn't get settings for add-on '{}'", __func__,
               addon->Name());
     return false;
   }
 
-  auto setting = addon->GetSettings()->GetSetting(id);
+  auto setting = addon->GetSettings(KODI::ADDONS::ADDON_SETTINGS_ID)->GetSetting(id);
   if (setting == nullptr)
   {
     CLog::Log(LOGERROR, "Interface_Base::{} - can't find setting '{}' in '{}'", __func__, id,
@@ -518,16 +519,17 @@ bool Interface_Base::set_setting_bool(const KODI_ADDON_BACKEND_HDL hdl, const ch
     return false;
   }
 
-  if (Interface_Base::UpdateSettingInActiveDialog(addon, id, value ? "true" : "false"))
+  if (Interface_Base::UpdateSettingInActiveDialog(addon, KODI::ADDONS::ADDON_SETTINGS_ID, id,
+                                                  value ? "true" : "false"))
     return true;
 
-  if (!addon->UpdateSettingBool(id, value))
+  if (!addon->UpdateSettingBool(KODI::ADDONS::ADDON_SETTINGS_ID, id, value))
   {
     CLog::Log(LOGERROR, "Interface_Base::{} - invalid setting type", __func__);
     return false;
   }
 
-  addon->SaveSettings();
+  addon->SaveSettings(KODI::ADDONS::ADDON_SETTINGS_ID);
 
   return true;
 }
@@ -543,16 +545,17 @@ bool Interface_Base::set_setting_int(const KODI_ADDON_BACKEND_HDL hdl, const cha
     return false;
   }
 
-  if (Interface_Base::UpdateSettingInActiveDialog(addon, id, std::to_string(value)))
+  if (Interface_Base::UpdateSettingInActiveDialog(addon, KODI::ADDONS::ADDON_SETTINGS_ID, id,
+                                                  std::to_string(value)))
     return true;
 
-  if (!addon->UpdateSettingInt(id, value))
+  if (!addon->UpdateSettingInt(KODI::ADDONS::ADDON_SETTINGS_ID, id, value))
   {
     CLog::Log(LOGERROR, "Interface_Base::{} - invalid setting type", __func__);
     return false;
   }
 
-  addon->SaveSettings();
+  addon->SaveSettings(KODI::ADDONS::ADDON_SETTINGS_ID);
 
   return true;
 }
@@ -570,16 +573,17 @@ bool Interface_Base::set_setting_float(const KODI_ADDON_BACKEND_HDL hdl,
     return false;
   }
 
-  if (Interface_Base::UpdateSettingInActiveDialog(addon, id, StringUtils::Format("{:f}", value)))
+  if (Interface_Base::UpdateSettingInActiveDialog(addon, KODI::ADDONS::ADDON_SETTINGS_ID, id,
+                                                  StringUtils::Format("{:f}", value)))
     return true;
 
-  if (!addon->UpdateSettingNumber(id, static_cast<double>(value)))
+  if (!addon->UpdateSettingNumber(KODI::ADDONS::ADDON_SETTINGS_ID, id, static_cast<double>(value)))
   {
     CLog::Log(LOGERROR, "Interface_Base::{} - invalid setting type", __func__);
     return false;
   }
 
-  addon->SaveSettings();
+  addon->SaveSettings(KODI::ADDONS::ADDON_SETTINGS_ID);
 
   return true;
 }
@@ -597,16 +601,17 @@ bool Interface_Base::set_setting_string(const KODI_ADDON_BACKEND_HDL hdl,
     return false;
   }
 
-  if (Interface_Base::UpdateSettingInActiveDialog(addon, id, value))
+  if (Interface_Base::UpdateSettingInActiveDialog(addon, KODI::ADDONS::ADDON_SETTINGS_ID, id,
+                                                  value))
     return true;
 
-  if (!addon->UpdateSettingString(id, value))
+  if (!addon->UpdateSettingString(KODI::ADDONS::ADDON_SETTINGS_ID, id, value))
   {
     CLog::Log(LOGERROR, "Interface_Base::{} - invalid setting type", __func__);
     return false;
   }
 
-  addon->SaveSettings();
+  addon->SaveSettings(KODI::ADDONS::ADDON_SETTINGS_ID);
 
   return true;
 }

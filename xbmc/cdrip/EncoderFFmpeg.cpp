@@ -47,7 +47,7 @@ bool CEncoderFFmpeg::Init()
     int bitrate;
     if (success && addon)
     {
-      addon->GetSettingInt("bitrate", bitrate);
+      addon->GetSettingInt(KODI::ADDONS::ADDON_SETTINGS_ID, "bitrate", bitrate);
       bitrate *= 1000; /* Multiply as on settings as kbps */
     }
     else

@@ -302,7 +302,7 @@ bool CProfileManager::LoadProfile(unsigned int index)
   // save any settings of the currently used skin but only if the (master)
   // profile hasn't just been loaded as a temporary profile for login
   if (g_SkinInfo != nullptr && !m_previousProfileLoadedForLogin)
-    g_SkinInfo->SaveSettings();
+    g_SkinInfo->SaveSettings(KODI::ADDONS::ADDON_SETTINGS_ID);
 
   // @todo: why is m_settings not used here?
   const std::shared_ptr<CSettings> settings = CServiceBroker::GetSettingsComponent()->GetSettings();

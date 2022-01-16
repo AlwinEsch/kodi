@@ -39,8 +39,10 @@ void CGUIWindowScreensaverDim::UpdateVisibility()
       ADDON::AddonPtr info;
       bool success = CServiceBroker::GetAddonMgr().GetAddon(usedId, info, ADDON::ADDON_SCREENSAVER,
                                                             ADDON::OnlyEnabled::CHOICE_YES);
-      if (success && info && !info->GetSetting("level").empty())
-        m_newDimLevel = 100.0f - (float)atof(info->GetSetting("level").c_str());
+      if (success && info && !info->GetSetting(KODI::ADDONS::ADDON_SETTINGS_ID, "level").empty())
+        m_newDimLevel =
+            100.0f - static_cast<float>(std::atof(
+                         info->GetSetting(KODI::ADDONS::ADDON_SETTINGS_ID, "level").c_str()));
       else
         m_newDimLevel = 100.0f;
       Open();
