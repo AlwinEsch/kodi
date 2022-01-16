@@ -8,14 +8,17 @@
 
 #pragma once
 
-#include <string>
+#include "IAddon.h"
 
 namespace ADDON
 {
   struct AddonEvent
   {
     std::string id;
+    uint32_t instance{KODI::ADDONS::ADDON_SINGLETON_INSTANCE_ID};
+
     explicit AddonEvent(std::string id) : id(std::move(id)) {}
+    AddonEvent(std::string id, uint32_t instance) : id(std::move(id)), instance(instance) {}
 
     // Note: Do not remove the virtual dtor. There are types derived from AddonEvent (see below)
     //       and there are several places where 'typeid' is used to determine the runtime type of
@@ -39,6 +42,22 @@ namespace ADDON
     struct Disabled : AddonEvent
     {
       explicit Disabled(std::string id) : AddonEvent(std::move(id)) {}
+    };
+
+    /**
+     * Emitted after a new usable addon instance was added.
+     */
+    struct InstanceAdded : AddonEvent
+    {
+      InstanceAdded(std::string id, uint32_t instance) : AddonEvent(std::move(id), instance) {}
+    };
+
+    /**
+     * Emitted after a addon instance was removed.
+     */
+    struct InstanceRemoved : AddonEvent
+    {
+      InstanceRemoved(std::string id, uint32_t instance) : AddonEvent(std::move(id), instance) {}
     };
 
     /**

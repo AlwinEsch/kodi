@@ -380,6 +380,27 @@ namespace ADDON
      * \sa CGUIDialogAddonInfo::OnToggleAutoUpdates()
      */
     void PublishEventAutoUpdateStateChanged(const std::string& id);
+
+    /*
+     * \brief Launches event AddonEvent::InstanceAdded
+     *
+     * This is called when a new instance is added in add-on settings.
+     *
+     * \param[in] id Add-on id to pass through
+     * \param[in] instance Identifier of the add-on instance
+     */
+    void PublishInstanceAdded(const std::string& id, uint32_t instance);
+
+    /*
+     * \brief Launches event AddonEvent::InstanceRemoved
+     *
+     * This is called when an instance is removed in add-on settings.
+     *
+     * \param[in] id Add-on id to pass through
+     * \param[in] instance Identifier of the add-on instance
+     */
+    void PublishInstanceRemoved(const std::string& id, uint32_t instance);
+
     void UpdateLastUsed(const std::string& id);
 
     /*! \brief Load the addon in the given path

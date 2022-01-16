@@ -1078,6 +1078,16 @@ void CAddonMgr::PublishEventAutoUpdateStateChanged(const std::string& id)
   m_events.Publish(AddonEvents::AutoUpdateStateChanged(id));
 }
 
+void CAddonMgr::PublishInstanceAdded(const std::string& id, uint32_t instance)
+{
+  m_events.Publish(AddonEvents::InstanceAdded(id, instance));
+}
+
+void CAddonMgr::PublishInstanceRemoved(const std::string& id, uint32_t instance)
+{
+  m_events.Publish(AddonEvents::InstanceRemoved(id, instance));
+}
+
 bool CAddonMgr::IsCompatible(const IAddon& addon) const
 {
   for (const auto& dependency : addon.GetDependencies())
