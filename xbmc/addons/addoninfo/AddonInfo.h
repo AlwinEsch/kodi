@@ -64,6 +64,26 @@ enum class AddonUpdateRule
 };
 
 /*!
+ * @brief Independent addon instance support.
+ *
+ * Used to be able to find out its instance path for the respective addon types.
+ */
+enum class AddonInstanceUse
+{
+  //! If addon type does not support instances.
+  NONE = 0,
+
+  //! If addon type need supports several instances individually.
+  SUPPORTED_MANDATORY = 1,
+
+  //! If addon type can supports several instances individually.
+  SUPPORTED_OPTIONAL = 2,
+
+  //! If addon type supports multiple instances using independent settings.
+  SUPPORTED_BY_SETTINGS = 3,
+};
+
+/*!
  * @brief Add-on state defined within addon.xml to report about the current addon
  * lifecycle state.
  *
@@ -217,6 +237,13 @@ public:
   CDateTime LastUpdated() const { return m_lastUpdated; }
   CDateTime LastUsed() const { return m_lastUsed; }
 
+  bool SupportsMultipleInstances() const;
+  AddonInstanceUse InstanceUseType() const { return m_addonInstanceUseType; }
+
+  bool SupportsAddonSettings() const { return m_supportsAddonSettings; }
+  bool SupportsInstanceSettings() const { return m_supportsInstanceSettings; }
+  std::vector<uint32_t> GetKnownInstanceIds() const;
+
   /*!
     * @brief Utilities to translate add-on parts to his requested part.
     */
@@ -225,6 +252,7 @@ public:
   static std::string TranslateIconType(TYPE type);
   static TYPE TranslateType(const std::string& string);
   static TYPE TranslateSubContent(const std::string& content);
+  static AddonInstanceUse InstanceUseType(TYPE type);
   //@}
 
 private:
@@ -264,6 +292,9 @@ private:
   std::string m_libname;
   InfoMap m_extrainfo;
   std::vector<std::string> m_platforms;
+  AddonInstanceUse m_addonInstanceUseType{AddonInstanceUse::NONE};
+  bool m_supportsAddonSettings{false};
+  bool m_supportsInstanceSettings{false};
 
   const std::string& GetTranslatedText(const std::unordered_map<std::string, std::string>& locales) const;
 };

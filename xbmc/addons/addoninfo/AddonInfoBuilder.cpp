@@ -441,6 +441,17 @@ bool CAddonInfoBuilder::ParseXML(const AddonInfoPtr& addon, const TiXmlElement* 
     }
   }
 
+  if (!isRepoXMLContent)
+  {
+    using XFILE::CFile;
+    if (CFile::Exists(URIUtils::AddFileToFolder(addonPath, "resources", "settings.xml")))
+      addon->m_supportsAddonSettings = true;
+    if (CFile::Exists(URIUtils::AddFileToFolder(addonPath, "resources", "instance-settings.xml")))
+      addon->m_supportsInstanceSettings = true;
+  }
+
+  addon->m_addonInstanceUseType = CAddonInfo::InstanceUseType(addon->m_mainType);
+
   return true;
 }
 

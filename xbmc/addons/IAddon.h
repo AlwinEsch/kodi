@@ -93,6 +93,11 @@ namespace ADDON
     virtual std::string OriginName() const = 0;
     virtual uint64_t PackageSize() const =0;
     virtual const InfoMap &ExtraInfo() const =0;
+    virtual bool SupportsMultipleInstances() const = 0;
+    virtual AddonInstanceUse InstanceUseType() const = 0;
+    virtual std::vector<uint32_t> GetKnownInstanceIds() const = 0;
+    virtual bool SupportsInstanceSettings() const = 0;
+    virtual bool DeleteInstanceSettings(uint32_t instance) = 0;
     virtual bool CanHaveAddonOrInstanceSettings() = 0;
     virtual bool HasSettings(uint32_t instance) = 0;
     virtual bool HasUserSettings(uint32_t instance) = 0;

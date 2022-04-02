@@ -12,65 +12,72 @@
 #include "ServiceBroker.h"
 #include "addons/AddonManager.h"
 #include "addons/IAddon.h"
+#include "filesystem/Directory.h"
 #include "guilib/LocalizeStrings.h"
+#include "utils/URIUtils.h"
 
 #include <algorithm>
+#include <array>
+
+using namespace KODI::ADDONS;
 
 namespace ADDON
 {
 
 typedef struct
 {
-  std::string name;
-  std::string old_name;
+  const char* name;
+  const char* old_name;
   TYPE type;
   int pretty;
-  std::string icon;
+  AddonInstanceUse instance_use;
+  const char* icon;
 } TypeMapping;
 
 // clang-format off
-static const TypeMapping types[] =
-  {{"unknown",                           "", ADDON_UNKNOWN,                 0, "" },
-   {"xbmc.metadata.scraper.albums",      "", ADDON_SCRAPER_ALBUMS,      24016, "DefaultAddonAlbumInfo.png" },
-   {"xbmc.metadata.scraper.artists",     "", ADDON_SCRAPER_ARTISTS,     24017, "DefaultAddonArtistInfo.png" },
-   {"xbmc.metadata.scraper.movies",      "", ADDON_SCRAPER_MOVIES,      24007, "DefaultAddonMovieInfo.png" },
-   {"xbmc.metadata.scraper.musicvideos", "", ADDON_SCRAPER_MUSICVIDEOS, 24015, "DefaultAddonMusicVideoInfo.png" },
-   {"xbmc.metadata.scraper.tvshows",     "", ADDON_SCRAPER_TVSHOWS,     24014, "DefaultAddonTvInfo.png" },
-   {"xbmc.metadata.scraper.library",     "", ADDON_SCRAPER_LIBRARY,     24083, "DefaultAddonInfoLibrary.png" },
-   {"xbmc.ui.screensaver",               "", ADDON_SCREENSAVER,         24008, "DefaultAddonScreensaver.png" },
-   {"xbmc.player.musicviz",              "", ADDON_VIZ,                 24010, "DefaultAddonVisualization.png" },
-   {"xbmc.python.pluginsource",          "", ADDON_PLUGIN,              24005, "" },
-   {"xbmc.python.script",                "", ADDON_SCRIPT,              24009, "" },
-   {"xbmc.python.weather",               "", ADDON_SCRIPT_WEATHER,      24027, "DefaultAddonWeather.png" },
-   {"xbmc.python.lyrics",                "", ADDON_SCRIPT_LYRICS,       24013, "DefaultAddonLyrics.png" },
-   {"xbmc.python.library",               "", ADDON_SCRIPT_LIBRARY,      24081, "DefaultAddonHelper.png" },
-   {"xbmc.python.module",                "", ADDON_SCRIPT_MODULE,       24082, "DefaultAddonLibrary.png" },
-   {"xbmc.subtitle.module",              "", ADDON_SUBTITLE_MODULE,     24012, "DefaultAddonSubtitles.png" },
-   {"kodi.context.item",                 "", ADDON_CONTEXT_ITEM,        24025, "DefaultAddonContextItem.png" },
-   {"kodi.game.controller",              "", ADDON_GAME_CONTROLLER,     35050, "DefaultAddonGame.png" },
-   {"xbmc.gui.skin",                     "", ADDON_SKIN,                  166, "DefaultAddonSkin.png" },
-   {"xbmc.webinterface",                 "", ADDON_WEB_INTERFACE,         199, "DefaultAddonWebSkin.png" },
-   {"xbmc.addon.repository",             "", ADDON_REPOSITORY,          24011, "DefaultAddonRepository.png" },
-   {"kodi.pvrclient",      "xbmc.pvrclient", ADDON_PVRDLL,              24019, "DefaultAddonPVRClient.png" },
-   {"kodi.gameclient",                   "", ADDON_GAMEDLL,             35049, "DefaultAddonGame.png" },
-   {"kodi.peripheral",                   "", ADDON_PERIPHERALDLL,       35010, "DefaultAddonPeripheral.png" },
-   {"xbmc.addon.video",                  "", ADDON_VIDEO,                1037, "DefaultAddonVideo.png" },
-   {"xbmc.addon.audio",                  "", ADDON_AUDIO,                1038, "DefaultAddonMusic.png" },
-   {"xbmc.addon.image",                  "", ADDON_IMAGE,                1039, "DefaultAddonPicture.png" },
-   {"xbmc.addon.executable",             "", ADDON_EXECUTABLE,           1043, "DefaultAddonProgram.png" },
-   {"kodi.addon.game",                   "", ADDON_GAME,                35049, "DefaultAddonGame.png" },
-   {"kodi.audioencoder",                 "", ADDON_AUDIOENCODER,         200,  "DefaultAddonAudioEncoder.png" },
-   {"kodi.audiodecoder",                 "", ADDON_AUDIODECODER,         201,  "DefaultAddonAudioDecoder.png" },
-   {"xbmc.service",                      "", ADDON_SERVICE,             24018, "DefaultAddonService.png" },
-   {"kodi.resource.images",              "", ADDON_RESOURCE_IMAGES,     24035, "DefaultAddonImages.png" },
-   {"kodi.resource.language",            "", ADDON_RESOURCE_LANGUAGE,   24026, "DefaultAddonLanguage.png" },
-   {"kodi.resource.uisounds",            "", ADDON_RESOURCE_UISOUNDS,   24006, "DefaultAddonUISounds.png" },
-   {"kodi.resource.games",               "", ADDON_RESOURCE_GAMES,      35209, "DefaultAddonGame.png" },
-   {"kodi.resource.font",                "", ADDON_RESOURCE_FONT,       13303, "DefaultAddonFont.png" },
-   {"kodi.inputstream",                  "", ADDON_INPUTSTREAM,         24048, "DefaultAddonInputstream.png" },
-   {"kodi.vfs",                          "", ADDON_VFS,                 39013, "DefaultAddonVfs.png" },
-   {"kodi.imagedecoder",                 "", ADDON_IMAGEDECODER,        39015, "DefaultAddonImageDecoder.png" },
-  };
+static constexpr const std::array<TypeMapping, 40> types =
+  {{
+   {"unknown",                           "", ADDON_UNKNOWN,                 0, AddonInstanceUse::NONE, "" },
+   {"xbmc.metadata.scraper.albums",      "", ADDON_SCRAPER_ALBUMS,      24016, AddonInstanceUse::NONE, "DefaultAddonAlbumInfo.png" },
+   {"xbmc.metadata.scraper.artists",     "", ADDON_SCRAPER_ARTISTS,     24017, AddonInstanceUse::NONE, "DefaultAddonArtistInfo.png" },
+   {"xbmc.metadata.scraper.movies",      "", ADDON_SCRAPER_MOVIES,      24007, AddonInstanceUse::NONE, "DefaultAddonMovieInfo.png" },
+   {"xbmc.metadata.scraper.musicvideos", "", ADDON_SCRAPER_MUSICVIDEOS, 24015, AddonInstanceUse::NONE, "DefaultAddonMusicVideoInfo.png" },
+   {"xbmc.metadata.scraper.tvshows",     "", ADDON_SCRAPER_TVSHOWS,     24014, AddonInstanceUse::NONE, "DefaultAddonTvInfo.png" },
+   {"xbmc.metadata.scraper.library",     "", ADDON_SCRAPER_LIBRARY,     24083, AddonInstanceUse::NONE, "DefaultAddonInfoLibrary.png" },
+   {"xbmc.ui.screensaver",               "", ADDON_SCREENSAVER,         24008, AddonInstanceUse::SUPPORTED_OPTIONAL, "DefaultAddonScreensaver.png" },
+   {"xbmc.player.musicviz",              "", ADDON_VIZ,                 24010, AddonInstanceUse::SUPPORTED_OPTIONAL, "DefaultAddonVisualization.png" },
+   {"xbmc.python.pluginsource",          "", ADDON_PLUGIN,              24005, AddonInstanceUse::NONE, "" },
+   {"xbmc.python.script",                "", ADDON_SCRIPT,              24009, AddonInstanceUse::NONE, "" },
+   {"xbmc.python.weather",               "", ADDON_SCRIPT_WEATHER,      24027, AddonInstanceUse::NONE, "DefaultAddonWeather.png" },
+   {"xbmc.python.lyrics",                "", ADDON_SCRIPT_LYRICS,       24013, AddonInstanceUse::NONE, "DefaultAddonLyrics.png" },
+   {"xbmc.python.library",               "", ADDON_SCRIPT_LIBRARY,      24081, AddonInstanceUse::NONE, "DefaultAddonHelper.png" },
+   {"xbmc.python.module",                "", ADDON_SCRIPT_MODULE,       24082, AddonInstanceUse::NONE, "DefaultAddonLibrary.png" },
+   {"xbmc.subtitle.module",              "", ADDON_SUBTITLE_MODULE,     24012, AddonInstanceUse::NONE, "DefaultAddonSubtitles.png" },
+   {"kodi.context.item",                 "", ADDON_CONTEXT_ITEM,        24025, AddonInstanceUse::NONE, "DefaultAddonContextItem.png" },
+   {"kodi.game.controller",              "", ADDON_GAME_CONTROLLER,     35050, AddonInstanceUse::SUPPORTED_OPTIONAL, "DefaultAddonGame.png" },
+   {"xbmc.gui.skin",                     "", ADDON_SKIN,                  166, AddonInstanceUse::NONE, "DefaultAddonSkin.png" },
+   {"xbmc.webinterface",                 "", ADDON_WEB_INTERFACE,         199, AddonInstanceUse::NONE, "DefaultAddonWebSkin.png" },
+   {"xbmc.addon.repository",             "", ADDON_REPOSITORY,          24011, AddonInstanceUse::NONE, "DefaultAddonRepository.png" },
+   {"kodi.pvrclient",      "xbmc.pvrclient", ADDON_PVRDLL,              24019, AddonInstanceUse::SUPPORTED_BY_SETTINGS, "DefaultAddonPVRClient.png" },
+   {"kodi.gameclient",                   "", ADDON_GAMEDLL,             35049, AddonInstanceUse::SUPPORTED_OPTIONAL, "DefaultAddonGame.png" },
+   {"kodi.peripheral",                   "", ADDON_PERIPHERALDLL,       35010, AddonInstanceUse::SUPPORTED_MANDATORY, "DefaultAddonPeripheral.png" },
+   {"xbmc.addon.video",                  "", ADDON_VIDEO,                1037, AddonInstanceUse::NONE, "DefaultAddonVideo.png" },
+   {"xbmc.addon.audio",                  "", ADDON_AUDIO,                1038, AddonInstanceUse::NONE, "DefaultAddonMusic.png" },
+   {"xbmc.addon.image",                  "", ADDON_IMAGE,                1039, AddonInstanceUse::NONE, "DefaultAddonPicture.png" },
+   {"xbmc.addon.executable",             "", ADDON_EXECUTABLE,           1043, AddonInstanceUse::NONE, "DefaultAddonProgram.png" },
+   {"kodi.addon.game",                   "", ADDON_GAME,                35049, AddonInstanceUse::NONE, "DefaultAddonGame.png" },
+   {"kodi.audioencoder",                 "", ADDON_AUDIOENCODER,          200, AddonInstanceUse::SUPPORTED_MANDATORY, "DefaultAddonAudioEncoder.png" },
+   {"kodi.audiodecoder",                 "", ADDON_AUDIODECODER,          201, AddonInstanceUse::SUPPORTED_MANDATORY, "DefaultAddonAudioDecoder.png" },
+   {"xbmc.service",                      "", ADDON_SERVICE,             24018, AddonInstanceUse::NONE, "DefaultAddonService.png" },
+   {"kodi.resource.images",              "", ADDON_RESOURCE_IMAGES,     24035, AddonInstanceUse::NONE, "DefaultAddonImages.png" },
+   {"kodi.resource.language",            "", ADDON_RESOURCE_LANGUAGE,   24026, AddonInstanceUse::NONE, "DefaultAddonLanguage.png" },
+   {"kodi.resource.uisounds",            "", ADDON_RESOURCE_UISOUNDS,   24006, AddonInstanceUse::NONE, "DefaultAddonUISounds.png" },
+   {"kodi.resource.games",               "", ADDON_RESOURCE_GAMES,      35209, AddonInstanceUse::NONE, "DefaultAddonGame.png" },
+   {"kodi.resource.font",                "", ADDON_RESOURCE_FONT,       13303, AddonInstanceUse::NONE, "DefaultAddonFont.png" },
+   {"kodi.inputstream",                  "", ADDON_INPUTSTREAM,         24048, AddonInstanceUse::SUPPORTED_MANDATORY, "DefaultAddonInputstream.png" },
+   {"kodi.vfs",                          "", ADDON_VFS,                 39013, AddonInstanceUse::SUPPORTED_MANDATORY, "DefaultAddonVfs.png" },
+   {"kodi.imagedecoder",                 "", ADDON_IMAGEDECODER,        39015, AddonInstanceUse::SUPPORTED_MANDATORY, "DefaultAddonImageDecoder.png" },
+  }};
 // clang-format on
 
 const std::string& CAddonInfo::OriginName() const
@@ -111,7 +118,7 @@ TYPE CAddonInfo::TranslateType(const std::string& string)
 {
   for (const TypeMapping& map : types)
   {
-    if (string == map.name || (!map.old_name.empty() && string == map.old_name))
+    if (string == map.name || (strlen(map.old_name) > 0 && string == map.old_name))
       return map.type;
   }
 
@@ -142,6 +149,13 @@ TYPE CAddonInfo::TranslateSubContent(const std::string& content)
     return ADDON_GAME;
   else
     return ADDON_UNKNOWN;
+}
+
+AddonInstanceUse CAddonInfo::InstanceUseType(TYPE type)
+{
+  const auto it = std::find_if(types.begin(), types.end(),
+                               [type](const TypeMapping& entry) { return entry.type == type; });
+  return it == types.end() ? AddonInstanceUse::NONE : it->instance_use;
 }
 
 CAddonInfo::CAddonInfo(std::string id, TYPE type)
@@ -241,6 +255,51 @@ const std::string& CAddonInfo::GetTranslatedText(const std::unordered_map<std::s
   if (translatedValue != locales.end())
     return translatedValue->second;
   return StringUtils::Empty;
+}
+
+bool CAddonInfo::SupportsMultipleInstances() const
+{
+  switch (m_addonInstanceUseType)
+  {
+    case AddonInstanceUse::SUPPORTED_MANDATORY:
+    case AddonInstanceUse::SUPPORTED_OPTIONAL:
+      return true;
+    case AddonInstanceUse::SUPPORTED_BY_SETTINGS:
+      return m_supportsInstanceSettings;
+    case AddonInstanceUse::NONE:
+    default:
+      return false;
+  }
+}
+
+std::vector<uint32_t> CAddonInfo::GetKnownInstanceIds() const
+{
+  static const std::vector<uint32_t> singletonInstance = {ADDON_SINGLETON_INSTANCE_ID};
+
+  if (!m_supportsInstanceSettings)
+    return singletonInstance;
+
+  const std::string searchPath = StringUtils::Format("special://profile/addon_data/{}/", m_id);
+  CFileItemList items;
+  if (!XFILE::CDirectory::GetDirectory(searchPath, items, ".xml", XFILE::DIR_FLAG_NO_FILE_DIRS))
+    return singletonInstance;
+
+  std::vector<uint32_t> ret;
+
+  for (const auto& item : items)
+  {
+    const std::string startName = "instance-settings-";
+    std::string filename = URIUtils::GetFileName(item->GetPath());
+    if (StringUtils::StartsWithNoCase(URIUtils::GetFileName(item->GetPath()), startName))
+    {
+      URIUtils::RemoveExtension(filename);
+      const std::string uid = filename.substr(startName.length());
+      if (!uid.empty() && StringUtils::IsInteger(uid))
+        ret.emplace_back(std::atoi(uid.c_str()));
+    }
+  }
+
+  return ret;
 }
 
 } /* namespace ADDON */
