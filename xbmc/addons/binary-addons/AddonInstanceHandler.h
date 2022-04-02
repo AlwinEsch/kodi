@@ -24,12 +24,14 @@ class IAddonInstanceHandler
 public:
   IAddonInstanceHandler(ADDON_TYPE type,
                         const AddonInfoPtr& addonInfo,
+                        uint32_t instanceId = KODI::ADDONS::ADDON_INSTANCE_ID_UNUSED,
                         KODI_HANDLE parentInstance = nullptr,
-                        const std::string& instanceID = "");
+                        const std::string& instanceUniqueIdStr = "");
   virtual ~IAddonInstanceHandler();
 
   ADDON_TYPE UsedType() const { return m_type; }
-  const std::string& InstanceID() { return m_instanceId; }
+  uint32_t InstanceId() const { return m_instanceId; }
+  const std::string& InstanceUniqueIdStr() { return m_instanceUniqueIdStr; }
 
   std::string ID() const;
   std::string Name() const;
@@ -84,8 +86,9 @@ private:
                                           const char* id,
                                           const char* value);
 
-  ADDON_TYPE m_type;
-  std::string m_instanceId;
+  const ADDON_TYPE m_type;
+  const uint32_t m_instanceId;
+  std::string m_instanceUniqueIdStr;
   KODI_HANDLE m_parentInstance;
   AddonInfoPtr m_addonInfo;
   BinaryAddonBasePtr m_addonBase;

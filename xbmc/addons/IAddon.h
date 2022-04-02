@@ -28,6 +28,13 @@ namespace ADDONS
 constexpr uint32_t ADDON_SINGLETON_INSTANCE_ID = 0;
 
 /*!
+ * @brief Identifier denoting add-on instance id as unused.
+ *
+ * @sa ADDON::IAddonInstanceHandler
+ */
+constexpr uint32_t ADDON_INSTANCE_ID_UNUSED = ADDON_SINGLETON_INSTANCE_ID;
+
+/*!
  * @brief Identifier denoting default add-on settings.xml.
  *
  * All numbers greater than 0 denote add-on instances with an individual set of settings.

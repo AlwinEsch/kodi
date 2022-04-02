@@ -372,7 +372,8 @@ std::shared_ptr<CAddonSettings> CAddon::GetSettings(uint32_t instance)
   // initialize addon settings if necessary
   if (m_settings == nullptr)
   {
-    m_settings = std::make_shared<CAddonSettings>(enable_shared_from_this::shared_from_this());
+    m_settings =
+        std::make_shared<CAddonSettings>(enable_shared_from_this::shared_from_this(), instance);
     LoadSettings(instance, false);
   }
 

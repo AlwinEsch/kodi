@@ -12,6 +12,7 @@
 #include "GUIInfoManager.h"
 #include "LangInfo.h"
 #include "ServiceBroker.h"
+#include "addons/binary-addons/AddonInstanceHandler.h"
 #include "addons/gui/GUIDialogAddonSettings.h"
 #include "addons/settings/SettingUrlEncodedString.h"
 #include "filesystem/Directory.h"
@@ -99,7 +100,8 @@ SettingPtr AddSettingWithoutDefinition(ADDON::CAddonSettings& settings,
   auto sections = settings.GetSettingsManager()->GetSections();
   SettingSectionPtr section;
   if (sections.empty())
-    section = std::make_shared<CSettingSection>(settings.GetAddon()->ID(), settings.GetSettingsManager());
+    section =
+        std::make_shared<CSettingSection>(settings.GetAddonId(), settings.GetSettingsManager());
   else
     section = sections.back();
 
@@ -139,16 +141,16 @@ SettingPtr AddSettingWithoutDefinition(ADDON::CAddonSettings& settings,
 
 namespace ADDON
 {
-CAddonSettings::CAddonSettings(const std::shared_ptr<const IAddon>& addon)
+CAddonSettings::CAddonSettings(const std::shared_ptr<const IAddon>& addon, uint32_t instanceId)
   : CSettingsBase(),
-    m_addon(addon),
     m_addonId(addon->ID()),
     m_addonPath(addon->Path()),
     m_addonProfile(addon->Profile()),
+    m_instanceId(instanceId),
     m_unidentifiedSettingId(0),
     m_unknownSettingLabelId(UnknownSettingLabelIdStart),
     m_logger(CServiceBroker::GetLogging().GetLogger(
-        StringUtils::Format("CAddonSettings[{}]", m_addonId)))
+        StringUtils::Format("CAddonSettings[{}@{}]", instanceId, m_addonId)))
 { }
 
 std::shared_ptr<CSetting> CAddonSettings::CreateSetting(const std::string &settingType, const std::string &settingId, CSettingsManager *settingsManager /* = NULL */) const

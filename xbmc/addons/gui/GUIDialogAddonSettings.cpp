@@ -128,9 +128,9 @@ bool CGUIDialogAddonSettings::ShowForAddon(const ADDON::AddonPtr& addon,
   if (!g_passwordManager.CheckMenuLock(WINDOW_ADDON_BROWSER))
     return false;
 
-  uint32_t instanceNumber = KODI::ADDONS::ADDON_SETTINGS_ID;
+  uint32_t instanceId = KODI::ADDONS::ADDON_SETTINGS_ID;
 
-  if (!addon->HasSettings(instanceNumber))
+  if (!addon->HasSettings(instanceId))
   {
     // addon does not support settings, inform user
     HELPERS::ShowOKDialogText(CVariant{24000}, CVariant{24030});
@@ -145,7 +145,7 @@ bool CGUIDialogAddonSettings::ShowForAddon(const ADDON::AddonPtr& addon,
     return false;
 
   dialog->m_addon = addon;
-  dialog->m_instanceNumber = instanceNumber;
+  dialog->m_instanceId = instanceId;
   dialog->m_saveToDisk = saveToDisk;
   dialog->Open();
 
@@ -153,7 +153,7 @@ bool CGUIDialogAddonSettings::ShowForAddon(const ADDON::AddonPtr& addon,
     return false;
 
   if (saveToDisk)
-    addon->SaveSettings(dialog->m_instanceNumber);
+    addon->SaveSettings(dialog->m_instanceId);
 
   return true;
 }
@@ -172,7 +172,7 @@ void CGUIDialogAddonSettings::SaveAndClose()
 
   // check if we need to save the settings
   if (dialog->m_saveToDisk && dialog->m_addon != nullptr)
-    dialog->m_addon->SaveSettings(dialog->m_instanceNumber);
+    dialog->m_addon->SaveSettings(dialog->m_instanceId);
 
   // close the dialog
   dialog->Close();
@@ -188,10 +188,10 @@ std::string CGUIDialogAddonSettings::GetCurrentAddonID() const
 
 void CGUIDialogAddonSettings::SetupView()
 {
-  if (m_addon == nullptr || m_addon->GetSettings(m_instanceNumber) == nullptr)
+  if (m_addon == nullptr || m_addon->GetSettings(m_instanceId) == nullptr)
     return;
 
-  auto settings = m_addon->GetSettings(m_instanceNumber);
+  auto settings = m_addon->GetSettings(m_instanceId);
   if (!settings->IsLoaded())
     return;
 
@@ -231,7 +231,7 @@ std::string CGUIDialogAddonSettings::GetSettingsLabel(const std::shared_ptr<ISet
     return label;
 
   // try the addon settings
-  label = m_addon->GetSettings(m_instanceNumber)->GetSettingLabel(setting->GetLabel());
+  label = m_addon->GetSettings(m_instanceId)->GetSettingLabel(setting->GetLabel());
   if (!label.empty())
     return label;
 
@@ -258,16 +258,16 @@ std::shared_ptr<CSettingSection> CGUIDialogAddonSettings::GetSection()
 
 CSettingsManager* CGUIDialogAddonSettings::GetSettingsManager() const
 {
-  if (m_addon == nullptr || m_addon->GetSettings(m_instanceNumber) == nullptr)
+  if (m_addon == nullptr || m_addon->GetSettings(m_instanceId) == nullptr)
     return nullptr;
 
-  return m_addon->GetSettings(m_instanceNumber)->GetSettingsManager();
+  return m_addon->GetSettings(m_instanceId)->GetSettingsManager();
 }
 
 void CGUIDialogAddonSettings::OnSettingAction(const std::shared_ptr<const CSetting>& setting)
 {
-  if (m_addon == nullptr || m_addon->GetSettings(m_instanceNumber) == nullptr)
+  if (m_addon == nullptr || m_addon->GetSettings(m_instanceId) == nullptr)
     return;
 
-  m_addon->GetSettings(m_instanceNumber)->OnSettingAction(setting);
+  m_addon->GetSettings(m_instanceId)->OnSettingAction(setting);
 }

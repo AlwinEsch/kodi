@@ -44,6 +44,6 @@ protected:
 
 private:
   ADDON::AddonPtr m_addon;
-  uint32_t m_instanceNumber{KODI::ADDONS::ADDON_SETTINGS_ID};
+  uint32_t m_instanceId{KODI::ADDONS::ADDON_SETTINGS_ID};
   bool m_saveToDisk = false;
 };
