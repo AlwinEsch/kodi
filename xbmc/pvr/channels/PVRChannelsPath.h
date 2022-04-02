@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include <string>
+#include "addons/IAddon.h"
 
 class CDateTime;
 
@@ -23,7 +23,11 @@ namespace PVR
     explicit CPVRChannelsPath(const std::string& strPath);
     CPVRChannelsPath(bool bRadio, const std::string& strGroupName);
     CPVRChannelsPath(bool bRadio, bool bHidden, const std::string& strGroupName);
-    CPVRChannelsPath(bool bRadio, const std::string& strGroupName, const std::string& strClientID, int iChannelUID);
+    CPVRChannelsPath(bool bRadio,
+                     const std::string& strGroupName,
+                     const std::string& strClientID,
+                     uint32_t instanceID,
+                     int iChannelUID);
 
     operator std::string() const { return m_path; }
     bool operator ==(const CPVRChannelsPath& right) const { return m_path == right.m_path; }
@@ -42,6 +46,7 @@ namespace PVR
 
     const std::string& GetGroupName() const { return m_group; }
     const std::string& GetClientID() const { return m_clientID; }
+    uint32_t GetInstanceID() const { return m_instanceID; }
     int GetChannelUID() const { return m_iChannelUID; }
 
   private:
@@ -62,6 +67,7 @@ namespace PVR
     std::string m_path;
     std::string m_group;
     std::string m_clientID;
+    uint32_t m_instanceID{KODI::ADDONS::ADDON_SINGLETON_INSTANCE_ID};
     int m_iChannelUID = -1;
   };
 }
