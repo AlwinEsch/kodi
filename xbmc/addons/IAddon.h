@@ -20,6 +20,10 @@ namespace KODI
 namespace ADDONS
 {
 
+constexpr const char* ADDON_SETTING_ADDON_INSTANCE_GROUP = "kodi_addon_instance";
+constexpr const char* ADDON_SETTING_ADDON_INSTANCE_NAME_VALUE = "kodi_addon_instance_name";
+constexpr const char* ADDON_SETTING_ADDON_INSTANCE_ENABLED_VALUE = "kodi_addon_instance_enabled";
+
 /*!
  * @brief Identifier denoting default add-on instance.
  *
