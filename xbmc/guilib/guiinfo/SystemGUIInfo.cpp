@@ -600,6 +600,9 @@ bool CSystemGUIInfo::GetBool(bool& value, const CGUIListItem *gitem, int context
     case SYSTEM_ISSTANDALONE:
       value = CServiceBroker::GetAppParams()->IsStandAlone();
       return true;
+    case SYSTEM_ISNOSANDBOX:
+      value = CServiceBroker::GetAppParams()->IsNoSandbox();
+      return true;
     case SYSTEM_IDLE_SHUTDOWN_INHIBITED:
       value = g_application.IsIdleShutdownInhibited();
       return true;

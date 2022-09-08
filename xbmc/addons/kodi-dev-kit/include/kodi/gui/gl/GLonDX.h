@@ -12,13 +12,14 @@
 
 #if defined(WIN32) && defined(HAS_ANGLE)
 
+#include "../../AddonBase.h"
+#include "../../gui/General.h"
+
 #include <EGL/egl.h>
 #include <EGL/eglext.h>
 #include <angle_gl.h>
 #include <d3d11.h>
 #include <d3dcompiler.h>
-#include <kodi/AddonBase.h>
-#include <kodi/gui/General.h>
 #include <wrl/client.h>
 
 #pragma comment(lib, "d3dcompiler.lib")

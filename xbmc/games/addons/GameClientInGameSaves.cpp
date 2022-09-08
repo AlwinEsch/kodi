@@ -20,6 +20,7 @@
 #include <assert.h>
 
 using namespace KODI;
+using namespace KODI::ADDONS::INTERFACE;
 using namespace GAME;
 
 #define INGAME_SAVES_DIRECTORY "InGameSaves"
@@ -27,11 +28,13 @@ using namespace GAME;
 #define INGAME_SAVES_EXTENSION_RTC ".rtc"
 
 CGameClientInGameSaves::CGameClientInGameSaves(CGameClient* addon,
-                                               const AddonInstance_Game* dllStruct)
-  : m_gameClient(addon), m_dllStruct(dllStruct)
+                                               CHdl_kodi_addoninstance_game_h* gameClientIfc,
+                                               const KODI_ADDON_GAME_HDL gameClientHdl)
+  : m_gameClient(addon), m_gameClientIfc(gameClientIfc), m_gameClientHdl(gameClientHdl)
 {
   assert(m_gameClient != nullptr);
-  assert(m_dllStruct != nullptr);
+  assert(m_gameClientIfc != nullptr);
+  assert(m_gameClientHdl != nullptr);
 }
 
 void CGameClientInGameSaves::Load()
@@ -78,11 +81,12 @@ void CGameClientInGameSaves::Load(GAME_MEMORY memoryType)
 
   try
   {
-    m_dllStruct->toAddon->GetMemory(m_dllStruct, memoryType, &gameMemory, &size);
+    m_gameClientIfc->kodi_addon_game_get_memory_v1(m_gameClientHdl, memoryType, &gameMemory, &size);
   }
   catch (...)
   {
-    CLog::Log(LOGERROR, "GAME: {}: Exception caught in GetMemory()", m_gameClient->ID());
+    CLog::Log(LOGERROR, "GAME: %s: Exception caught in kodi_addon_game_get_memory()",
+              m_gameClient->ID());
   }
 
   const std::string path = GetPath(memoryType);
@@ -123,11 +127,12 @@ void CGameClientInGameSaves::Save(GAME_MEMORY memoryType)
 
   try
   {
-    m_dllStruct->toAddon->GetMemory(m_dllStruct, memoryType, &gameMemory, &size);
+    m_gameClientIfc->kodi_addon_game_get_memory_v1(m_gameClientHdl, memoryType, &gameMemory, &size);
   }
   catch (...)
   {
-    CLog::Log(LOGERROR, "GAME: {}: Exception caught in GetMemory()", m_gameClient->ID());
+    CLog::Log(LOGERROR, "GAME: {}: Exception caught in kodi_addon_game_get_memory()",
+              m_gameClient->ID());
   }
 
   if (size > 0)

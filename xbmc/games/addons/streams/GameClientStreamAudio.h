@@ -9,7 +9,7 @@
 #pragma once
 
 #include "IGameClientStream.h"
-#include "addons/kodi-dev-kit/include/kodi/addon-instance/Game.h"
+#include "addons/kodi-dev-kit/include/kodi/c-api/addon-instance/game.h"
 
 #include <vector>
 

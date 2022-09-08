@@ -13,6 +13,8 @@
 
 #ifdef __cplusplus
 
+#include <vector>
+
 namespace kodi
 {
 namespace gui
@@ -67,15 +69,13 @@ namespace ContextMenu
 ///
 inline int ATTR_DLL_LOCAL Show(const std::string& heading, const std::vector<std::string>& entries)
 {
-  using namespace ::kodi::addon;
-  unsigned int size = static_cast<unsigned int>(entries.size());
+  const size_t size = entries.size();
   const char** cEntries = static_cast<const char**>(malloc(size * sizeof(const char**)));
   for (unsigned int i = 0; i < size; ++i)
   {
     cEntries[i] = entries[i].c_str();
   }
-  int ret = CPrivateBase::m_interface->toKodi->kodi_gui->dialogContextMenu->open(
-      CPrivateBase::m_interface->toKodi->kodiBase, heading.c_str(), cEntries, size);
+  int ret = kodi::dl::api.kodi_gui_dialogs_context_menu_open(heading.c_str(), cEntries, size);
   free(cEntries);
   return ret;
 }
@@ -115,15 +115,13 @@ inline int ATTR_DLL_LOCAL Show(const std::string& heading, const std::vector<std
 inline int ATTR_DLL_LOCAL Show(const std::string& heading,
                                const std::vector<std::pair<std::string, std::string>>& entries)
 {
-  using namespace ::kodi::addon;
-  unsigned int size = static_cast<unsigned int>(entries.size());
+  const size_t size = entries.size();
   const char** cEntries = static_cast<const char**>(malloc(size * sizeof(const char**)));
   for (unsigned int i = 0; i < size; ++i)
   {
     cEntries[i] = entries[i].second.c_str();
   }
-  int ret = CPrivateBase::m_interface->toKodi->kodi_gui->dialogContextMenu->open(
-      CPrivateBase::m_interface->toKodi->kodiBase, heading.c_str(), cEntries, size);
+  int ret = kodi::dl::api.kodi_gui_dialogs_context_menu_open(heading.c_str(), cEntries, size);
   free(cEntries);
   return ret;
 }
@@ -163,15 +161,13 @@ inline int ATTR_DLL_LOCAL Show(const std::string& heading,
 inline int ATTR_DLL_LOCAL Show(const std::string& heading,
                                const std::vector<std::pair<int, std::string>>& entries)
 {
-  using namespace ::kodi::addon;
-  unsigned int size = static_cast<unsigned int>(entries.size());
+  const size_t size = entries.size();
   const char** cEntries = static_cast<const char**>(malloc(size * sizeof(const char**)));
   for (unsigned int i = 0; i < size; ++i)
   {
     cEntries[i] = entries[i].second.c_str();
   }
-  int ret = CPrivateBase::m_interface->toKodi->kodi_gui->dialogContextMenu->open(
-      CPrivateBase::m_interface->toKodi->kodiBase, heading.c_str(), cEntries, size);
+  int ret = kodi::dl::api.kodi_gui_dialogs_context_menu_open(heading.c_str(), cEntries, size);
   free(cEntries);
   return ret;
 }

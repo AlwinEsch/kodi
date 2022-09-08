@@ -8,19 +8,19 @@
 #pragma once
 
 #include "Encoder.h"
-#include "addons/binary-addons/AddonInstanceHandler.h"
-#include "addons/kodi-dev-kit/include/kodi/addon-instance/AudioEncoder.h"
+#include "addons/interface/InstanceHandler.h"
+#include "addons/interface/api/addon-instance/audioencoder.h"
 
 namespace KODI
 {
 namespace CDRIP
 {
 
-class CEncoderAddon : public CEncoder, public ADDON::IAddonInstanceHandler
+class CEncoderAddon : public CEncoder, public KODI::ADDONS::INTERFACE::IInstanceHandler
 {
 public:
   explicit CEncoderAddon(const ADDON::AddonInfoPtr& addonInfo);
-  ~CEncoderAddon() override;
+  ~CEncoderAddon() override = default;
 
   // Child functions related to IEncoder within CEncoder
   bool Init() override;
@@ -29,14 +29,9 @@ public:
 
   // Addon callback functions
   ssize_t Write(const uint8_t* data, size_t len) override;
+  /*---AUTO_GEN_PARSE<CB:kodi_addon_audioencoder_write>---*/
   ssize_t Seek(ssize_t pos, int whence) override;
-
-private:
-  // Currently needed addon interface parts
-  //@{
-  static ssize_t cb_write(KODI_HANDLE kodiInstance, const uint8_t* data, size_t len);
-  static ssize_t cb_seek(KODI_HANDLE kodiInstance, ssize_t pos, int whence);
-  //@}
+  /*---AUTO_GEN_PARSE<CB:kodi_addon_audioencoder_seek>---*/
 };
 
 } /* namespace CDRIP */

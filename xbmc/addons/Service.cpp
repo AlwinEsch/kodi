@@ -8,12 +8,14 @@
 #include "Service.h"
 
 #include "AddonManager.h"
+#include "ServiceBroker.h"
+#include "interface/Controller.h"
+#include "interface/RunningProcess.h"
 #include "interfaces/generic/ScriptInvocationManager.h"
 #include "utils/StringUtils.h"
 #include "utils/log.h"
 
 #include <mutex>
-
 
 namespace ADDON
 {
@@ -73,7 +75,31 @@ void CServiceAddonManager::Start(const std::string& addonId)
 void CServiceAddonManager::Start(const AddonPtr& addon)
 {
   std::unique_lock<CCriticalSection> lock(m_criticalSection);
+
   if (m_services.find(addon->ID()) != m_services.end())
+  {
+    CLog::Log(LOGDEBUG, "CServiceAddonManager: {} already started.", addon->ID());
+    return;
+  }
+
+  if (CServiceBroker::GetAddonIfcCtrl().AddonLanguageSupported(addon))
+  {
+    std::vector<std::string> argv;
+    std::shared_ptr<KODI::ADDONS::INTERFACE::CRunningProcess> process;
+    bool ret = CServiceBroker::GetAddonIfcCtrl().LaunchAddon(addon, argv, false, process);
+    if (!ret)
+    {
+      CLog::Log(LOGERROR, "CServiceAddonManager: {} failed to start", addon->ID());
+      return;
+    }
+
+    m_services[addon->ID()] = process;
+  }
+
+  //! @brief Old way. Still supported until new is main
+  //! @todo Remove after new is final and support whole python interface
+  /*!@{*/
+  if (m_servicesPythonOld.find(addon->ID()) != m_servicesPythonOld.end())
   {
     CLog::Log(LOGDEBUG, "CServiceAddonManager: {} already started.", addon->ID());
     return;
@@ -88,8 +114,9 @@ void CServiceAddonManager::Start(const AddonPtr& addon)
       CLog::Log(LOGERROR, "CServiceAddonManager: {} failed to start", addon->ID());
       return;
     }
-    m_services[addon->ID()] = handle;
+    m_servicesPythonOld[addon->ID()] = handle;
   }
+  /*!@}*/
 }
 
 void CServiceAddonManager::Stop()
@@ -99,9 +126,19 @@ void CServiceAddonManager::Stop()
   std::unique_lock<CCriticalSection> lock(m_criticalSection);
   for (const auto& service : m_services)
   {
-    Stop(service);
+    Stop(service.second);
   }
   m_services.clear();
+
+  //! @brief Old way. Still supported until new is main
+  //! @todo Remove after new is final and support whole python interface
+  /*!@{*/
+  for (const auto& service : m_servicesPythonOld)
+  {
+    Stop(service);
+  }
+  m_servicesPythonOld.clear();
+  /*!@}*/
 }
 
 void CServiceAddonManager::Stop(const std::string& addonId)
@@ -110,11 +147,36 @@ void CServiceAddonManager::Stop(const std::string& addonId)
   auto it = m_services.find(addonId);
   if (it != m_services.end())
   {
-    Stop(*it);
+    Stop(it->second);
     m_services.erase(it);
+  }
+
+  //! @brief Old way. Still supported until new is main
+  //! @todo Remove after new is final and support whole python interface
+  /*!@{*/
+  auto itOld = m_servicesPythonOld.find(addonId);
+  if (itOld != m_servicesPythonOld.end())
+  {
+    Stop(*itOld);
+    m_servicesPythonOld.erase(itOld);
+  }
+  /*!@}*/
+}
+
+void CServiceAddonManager::Stop(
+    const std::shared_ptr<KODI::ADDONS::INTERFACE::CRunningProcess>& service)
+{
+  CLog::Log(LOGDEBUG, "CServiceAddonManager: stopping {}.", service->GetAddon()->ID());
+  if (!service->Kill())
+  {
+    CLog::Log(LOGINFO, "CServiceAddonManager: failed to stop {} (may have ended)",
+              service->GetAddon()->ID());
   }
 }
 
+//! @brief Old way. Still supported until new is main
+//! @todo Remove after new is final and support whole python interface
+/*!@{*/
 void CServiceAddonManager::Stop(const std::map<std::string, int>::value_type& service)
 {
   CLog::Log(LOGDEBUG, "CServiceAddonManager: stopping {}.", service.first);
@@ -123,4 +185,5 @@ void CServiceAddonManager::Stop(const std::map<std::string, int>::value_type& se
     CLog::Log(LOGINFO, "CServiceAddonManager: failed to stop {} (may have ended)", service.first);
   }
 }
+/*!@}*/
 }

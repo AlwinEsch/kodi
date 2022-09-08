@@ -7,12 +7,14 @@
 
 #pragma once
 
+// Devkit API interface
+#include "addons/AddonEvents.h"
 #include "addons/IAddonSupportCheck.h"
 #include "addons/IAddonSupportList.h"
-#include "addons/binary-addons/AddonInstanceHandler.h"
-#include "addons/kodi-dev-kit/include/kodi/addon-instance/AudioDecoder.h"
+#include "addons/interface/InstanceHandler.h"
 #include "cores/paplayer/ICodec.h"
 #include "filesystem/MusicFileDirectory.h"
+#include "interface/api/addon-instance/audiodecoder.h"
 #include "music/tags/ImusicInfoTagLoader.h"
 
 namespace KODI
@@ -20,8 +22,8 @@ namespace KODI
 namespace ADDONS
 {
 
-class CAudioDecoder : public ADDON::IAddonInstanceHandler,
-                      public IAddonSupportCheck,
+class CAudioDecoder : public KODI::ADDONS::INTERFACE::IInstanceHandler,
+                      public KODI::ADDONS::IAddonSupportCheck,
                       public ICodec,
                       public MUSIC_INFO::IMusicInfoTagLoader,
                       public XFILE::CMusicFileDirectory

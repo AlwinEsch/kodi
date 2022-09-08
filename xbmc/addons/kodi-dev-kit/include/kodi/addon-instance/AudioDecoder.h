@@ -467,10 +467,6 @@ public:
   explicit CInstanceAudioDecoder(const kodi::addon::IInstanceInfo& instance)
     : IAddonInstance(instance)
   {
-    if (CPrivateBase::m_interface->globalSingleInstance != nullptr)
-      throw std::logic_error("kodi::addon::CInstanceAudioDecoder: Creation of multiple together with single instance way is not allowed!");
-
-    SetAddonStruct(instance);
   }
   //--------------------------------------------------------------------------
 
@@ -523,7 +519,7 @@ public:
   /// @param[in] buffer Output buffer
   /// @param[in] size Size of output buffer
   /// @param[out] actualsize Actual number of bytes written to output buffer
-  /// @return @copydetails cpp_kodi_addon_audiodecoder_Defs_AUDIODECODER_READ_RETURN
+  /// @return @copydetails cpp_kodi_addon_audiodecoder_Defs_KODI_ADDON_AUDIODECODER_READ_RETURN
   ///
   virtual int ReadPCM(uint8_t* buffer, size_t size, size_t& actualsize) = 0;
   //--------------------------------------------------------------------------
@@ -608,15 +604,15 @@ public:
   //--------------------------------------------------------------------------
 
 private:
-  void SetAddonStruct(KODI_ADDON_INSTANCE_STRUCT* instance)
+  void SetAddonStruct(KODI_ADDON_INSTANCE_STRUCT* instance) override
   {
     instance->hdl = this;
-    instance->audiodecoder->toAddon->supports_file = ADDON_supports_file;
-    instance->audiodecoder->toAddon->init = ADDON_init;
-    instance->audiodecoder->toAddon->read_pcm = ADDON_read_pcm;
-    instance->audiodecoder->toAddon->seek = ADDON_seek;
-    instance->audiodecoder->toAddon->read_tag = ADDON_read_tag;
-    instance->audiodecoder->toAddon->track_count = ADDON_track_count;
+    instance->audiodecoder->supports_file = ADDON_supports_file;
+    instance->audiodecoder->init = ADDON_init;
+    instance->audiodecoder->read_pcm = ADDON_read_pcm;
+    instance->audiodecoder->seek = ADDON_seek;
+    instance->audiodecoder->read_tag = ADDON_read_tag;
+    instance->audiodecoder->track_count = ADDON_track_count;
   }
 
   inline static bool ADDON_supports_file(const KODI_ADDON_AUDIODECODER_HDL hdl, const char* file)

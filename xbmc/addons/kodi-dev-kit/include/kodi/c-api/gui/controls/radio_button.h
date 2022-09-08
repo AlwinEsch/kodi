@@ -9,22 +9,31 @@
 #ifndef C_API_GUI_CONTROLS_RADIO_BUTTON_H
 #define C_API_GUI_CONTROLS_RADIO_BUTTON_H
 
-#include "../definitions.h"
+#include "../../addon_base.h"
 
 #ifdef __cplusplus
 extern "C"
 {
 #endif /* __cplusplus */
 
-  typedef struct AddonToKodiFuncTable_kodi_gui_control_radio_button
-  {
-    void (*set_visible)(KODI_HANDLE kodiBase, KODI_GUI_CONTROL_HANDLE handle, bool visible);
-    void (*set_enabled)(KODI_HANDLE kodiBase, KODI_GUI_CONTROL_HANDLE handle, bool enabled);
-    void (*set_label)(KODI_HANDLE kodiBase, KODI_GUI_CONTROL_HANDLE handle, const char* text);
-    char* (*get_label)(KODI_HANDLE kodiBase, KODI_GUI_CONTROL_HANDLE handle);
-    void (*set_selected)(KODI_HANDLE kodiBase, KODI_GUI_CONTROL_HANDLE handle, bool selected);
-    bool (*is_selected)(KODI_HANDLE kodiBase, KODI_GUI_CONTROL_HANDLE handle);
-  } AddonToKodiFuncTable_kodi_gui_control_radio_button;
+  typedef void* KODI_GUI_CONTROL_HANDLE;
+
+  ATTR_DLL_EXPORT void kodi_gui_controls_radio_button_set_visible(KODI_GUI_CONTROL_HANDLE handle,
+                                                                  bool visible)
+      __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT void kodi_gui_controls_radio_button_set_enabled(KODI_GUI_CONTROL_HANDLE handle,
+                                                                  bool enabled)
+      __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT void kodi_gui_controls_radio_button_set_label(KODI_GUI_CONTROL_HANDLE handle,
+                                                                const char* text)
+      __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT char* kodi_gui_controls_radio_button_get_label(KODI_GUI_CONTROL_HANDLE handle)
+      __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT void kodi_gui_controls_radio_button_set_selected(KODI_GUI_CONTROL_HANDLE handle,
+                                                                   bool selected)
+      __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT bool kodi_gui_controls_radio_button_is_selected(KODI_GUI_CONTROL_HANDLE handle)
+      __INTRODUCED_IN_KODI(1);
 
 #ifdef __cplusplus
 } /* extern "C" */

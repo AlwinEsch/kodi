@@ -114,6 +114,7 @@ set(INCLUDES ${CMAKE_SOURCE_DIR}
              ${CMAKE_SOURCE_DIR}/lib
              ${CMAKE_SOURCE_DIR}/xbmc
              ${CMAKE_SOURCE_DIR}/xbmc/${PLATFORM_DIR}
+             ${CMAKE_SOURCE_DIR}/xbmc/addons/kodi-dev-kit
              ${CMAKE_SOURCE_DIR}/xbmc/cores/VideoPlayer
              ${CMAKE_BINARY_DIR}/${CORE_BUILD_DIR}
              ${CMAKE_BINARY_DIR}/${CORE_BUILD_DIR}/include)
@@ -242,6 +243,9 @@ if(ENABLE_AIRTUNES)
   endif()
 endif()
 
+list(APPEND DEP_DEFINES -DDEVKIT_LIBRARY="${DEVKIT_LIBRARY}")
+list(APPEND DEP_DEFINES -DDEVKIT_LAUNCH_EXE="${DEVKIT_LAUNCH_EXE}")
+
 # find all folders containing addon.xml.in
 # used to define ADDON_XML_OUTPUTS, ADDON_XML_DEPENDS and ADDON_INSTALL_DATA
 # Function defined in ./cmake/scripts/common/Macros.cmake
@@ -342,9 +346,9 @@ if(CMAKE_GENERATOR STREQUAL Xcode)
   )
   add_library(lib${APP_NAME_LC} STATIC)
   add_dependencies(lib${APP_NAME_LC} compileinfo)
-  target_link_libraries(lib${APP_NAME_LC} PUBLIC compileinfo_obj)
+  target_link_libraries(lib${APP_NAME_LC} PUBLIC compileinfo_obj $<TARGET_OBJECTS:devkit_shared>)
 else()
-  add_library(lib${APP_NAME_LC} STATIC $<TARGET_OBJECTS:compileinfo>)
+  add_library(lib${APP_NAME_LC} STATIC $<TARGET_OBJECTS:compileinfo> $<TARGET_OBJECTS:devkit_shared>)
 endif()
 add_dependencies(lib${APP_NAME_LC} ${GLOBAL_TARGET_DEPS})
 set_target_properties(lib${APP_NAME_LC} PROPERTIES PREFIX "")

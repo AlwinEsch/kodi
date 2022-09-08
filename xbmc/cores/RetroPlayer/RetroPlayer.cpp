@@ -32,6 +32,7 @@
 #include "games/GameSettings.h"
 #include "games/GameUtils.h"
 #include "games/addons/GameClient.h"
+#include "games/addons/GameClientController.h"
 #include "games/addons/input/GameClientInput.h"
 #include "games/tags/GameInfoTag.h"
 #include "guilib/GUIComponent.h"
@@ -122,7 +123,8 @@ bool CRetroPlayer::OpenFile(const CFileItem& file, const CPlayerOptions& options
   }
   else
   {
-    m_gameClient = std::static_pointer_cast<CGameClient>(addon);
+    auto client = CServiceBroker::GetGameServices().GameClientController().GetGameClient(addon->ID());
+    m_gameClient = client->GetActiveGameClient();
     if (m_gameClient->Initialize())
     {
       m_streamManager.reset(new CRPStreamManager(*m_renderManager, *m_processInfo));

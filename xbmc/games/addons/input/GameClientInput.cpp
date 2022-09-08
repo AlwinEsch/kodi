@@ -16,7 +16,6 @@
 #include "GameClientPort.h"
 #include "GameClientTopology.h"
 #include "ServiceBroker.h"
-#include "addons/kodi-dev-kit/include/kodi/addon-instance/Game.h"
 #include "games/GameServices.h"
 #include "games/addons/GameClient.h"
 #include "games/addons/GameClientCallbacks.h"
@@ -33,12 +32,14 @@
 #include <mutex>
 
 using namespace KODI;
+using namespace KODI::ADDONS::INTERFACE;
 using namespace GAME;
 
 CGameClientInput::CGameClientInput(CGameClient& gameClient,
-                                   AddonInstance_Game& addonStruct,
+                                   CHdl_kodi_addoninstance_game_h& gameClientIfc,
+                                   const KODI_ADDON_GAME_HDL gameClientHdl,
                                    CCriticalSection& clientAccess)
-  : CGameClientSubsystem(gameClient, addonStruct, clientAccess),
+  : CGameClientSubsystem(gameClient, gameClientIfc, gameClientHdl, clientAccess),
     m_topology(new CGameClientTopology),
     m_portManager(std::make_unique<CPortManager>())
 {
@@ -151,8 +152,8 @@ bool CGameClientInput::HasFeature(const std::string& controllerId,
 
   try
   {
-    bHasFeature =
-        m_struct.toAddon->HasFeature(&m_struct, controllerId.c_str(), featureName.c_str());
+    bHasFeature = m_gameClientIfc.kodi_addon_game_has_feature_v1(
+        m_gameClientHdl, controllerId.c_str(), featureName.c_str());
   }
   catch (...)
   {
@@ -179,7 +180,7 @@ bool CGameClientInput::InputEvent(const game_input_event& event)
 
   try
   {
-    bHandled = m_struct.toAddon->InputEvent(&m_struct, &event);
+    bHandled = m_gameClientIfc.kodi_addon_game_input_event_v1(m_gameClientHdl, &event);
   }
   catch (...)
   {
@@ -197,7 +198,7 @@ void CGameClientInput::LoadTopology()
   {
     try
     {
-      topologyStruct = m_struct.toAddon->GetTopology(&m_struct);
+      topologyStruct = m_gameClientIfc.kodi_addon_game_get_topology_v1(m_gameClientHdl);
     }
     catch (...)
     {
@@ -223,7 +224,7 @@ void CGameClientInput::LoadTopology()
 
     try
     {
-      m_struct.toAddon->FreeTopology(&m_struct, topologyStruct);
+      m_gameClientIfc.kodi_addon_game_free_topology_v1(m_gameClientHdl, topologyStruct);
     }
     catch (...)
     {
@@ -271,8 +272,9 @@ void CGameClientInput::SetControllerLayouts(const ControllerVector& controllers)
 
   try
   {
-    m_struct.toAddon->SetControllerLayouts(&m_struct, controllerStructs.data(),
-                                           static_cast<unsigned int>(controllerStructs.size()));
+    m_gameClientIfc.kodi_addon_game_set_controller_layouts_v1(
+        m_gameClientHdl, controllerStructs.data(),
+        static_cast<unsigned int>(controllerStructs.size()));
   }
   catch (...)
   {
@@ -342,8 +344,8 @@ bool CGameClientInput::ConnectController(const std::string& portAddress,
 
     try
     {
-      if (!m_struct.toAddon->ConnectController(&m_struct, true, portAddress.c_str(),
-                                               controller->ID().c_str()))
+      if (!m_gameClientIfc.kodi_addon_game_connect_controller_v1(
+              m_gameClientHdl, true, portAddress.c_str(), controller->ID().c_str()))
       {
         return false;
       }
@@ -391,7 +393,8 @@ bool CGameClientInput::DisconnectController(const std::string& portAddress)
 
     try
     {
-      if (!m_struct.toAddon->ConnectController(&m_struct, false, portAddress.c_str(), ""))
+      if (!m_gameClientIfc.kodi_addon_game_connect_controller_v1(m_gameClientHdl, false,
+                                                                 portAddress.c_str(), ""))
         return false;
     }
     catch (...)
@@ -469,7 +472,8 @@ bool CGameClientInput::OpenKeyboard(const ControllerPtr& controller)
     {
       try
       {
-        bSuccess = m_struct.toAddon->EnableKeyboard(&m_struct, true, controller->ID().c_str());
+        bSuccess = m_gameClientIfc.kodi_addon_game_enable_keyboard_v1(m_gameClientHdl, true,
+                                                                      controller->ID().c_str());
       }
       catch (...)
       {
@@ -499,7 +503,7 @@ void CGameClientInput::CloseKeyboard()
     {
       try
       {
-        m_struct.toAddon->EnableKeyboard(&m_struct, false, "");
+        m_gameClientIfc.kodi_addon_game_enable_keyboard_v1(m_gameClientHdl, false, "");
       }
       catch (...)
       {
@@ -534,7 +538,8 @@ bool CGameClientInput::OpenMouse(const ControllerPtr& controller)
     {
       try
       {
-        bSuccess = m_struct.toAddon->EnableMouse(&m_struct, true, controller->ID().c_str());
+        bSuccess = m_gameClientIfc.kodi_addon_game_enable_mouse_v1(m_gameClientHdl, true,
+                                                                   controller->ID().c_str());
       }
       catch (...)
       {
@@ -563,7 +568,7 @@ void CGameClientInput::CloseMouse()
     {
       try
       {
-        m_struct.toAddon->EnableMouse(&m_struct, false, "");
+        m_gameClientIfc.kodi_addon_game_enable_mouse_v1(m_gameClientHdl, false, "");
       }
       catch (...)
       {
@@ -789,7 +794,7 @@ ControllerVector CGameClientInput::GetControllers(const CGameClient& gameClient)
 
   CGameServices& gameServices = CServiceBroker::GetGameServices();
 
-  const auto& dependencies = gameClient.GetDependencies();
+  const auto& dependencies = gameClient.GetAddonInfo()->GetDependencies();
   for (auto it = dependencies.begin(); it != dependencies.end(); ++it)
   {
     ControllerPtr controller = gameServices.GetController(it->id);

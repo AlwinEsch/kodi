@@ -99,11 +99,11 @@ public:
     }
   }
 
-  static void FreeStructs(unsigned int structCount, THE_STRUCT* structs)
+  static void FreeStructs(THE_STRUCT* structs, size_t structCount)
   {
     if (structs)
     {
-      for (unsigned int i = 0; i < structCount; i++)
+      for (size_t i = 0; i < structCount; i++)
         THE_CLASS::FreeStruct(structs[i]);
     }
     PERIPHERAL_SAFE_DELETE_ARRAY(structs);

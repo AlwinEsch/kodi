@@ -34,6 +34,7 @@
 #include "video/VideoThumbLoader.h"
 #include "video/dialogs/GUIDialogVideoInfo.h"
 #include "video/windows/GUIWindowVideoBase.h"
+#include "web/WebManager.h"
 
 #include <memory>
 #include <mutex>
@@ -339,6 +340,18 @@ void CDirectoryProvider::OnPVRManagerEvent(const PVR::PVREvent& event)
   }
 }
 
+void CDirectoryProvider::OnWebManagerEvent(const KODI::WEB::WebEvent& event)
+{
+  std::unique_lock<CCriticalSection> lock(m_section);
+  if (URIUtils::IsProtocol(m_currentUrl, "web"))
+  {
+    if (event == KODI::WEB::ManagerStarted || event == KODI::WEB::ManagerStopped ||
+        event == KODI::WEB::ManagerError || event == KODI::WEB::ManagerInterrupted ||
+        event == KODI::WEB::ManagerChanged)
+      m_updateState = INVALIDATED;
+  }
+}
+
 void CDirectoryProvider::OnFavouritesEvent(const CFavouritesService::FavouritesUpdated& event)
 {
   std::unique_lock<CCriticalSection> lock(m_section);
@@ -497,6 +510,8 @@ bool CDirectoryProvider::UpdateURL()
     CServiceBroker::GetRepositoryUpdater().Events().Subscribe(this, &CDirectoryProvider::OnAddonRepositoryEvent);
     CServiceBroker::GetPVRManager().Events().Subscribe(this, &CDirectoryProvider::OnPVRManagerEvent);
     CServiceBroker::GetFavouritesService().Events().Subscribe(this, &CDirectoryProvider::OnFavouritesEvent);
+    CServiceBroker::GetWEBManager().Events().Subscribe(this,
+                                                       &CDirectoryProvider::OnWebManagerEvent);
   }
   return true;
 }

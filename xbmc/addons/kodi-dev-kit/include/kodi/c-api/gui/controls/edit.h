@@ -9,12 +9,14 @@
 #ifndef C_API_GUI_CONTROLS_EDIT_H
 #define C_API_GUI_CONTROLS_EDIT_H
 
-#include "../definitions.h"
+#include "../../addon_base.h"
 
 #ifdef __cplusplus
 extern "C"
 {
 #endif /* __cplusplus */
+
+  typedef void* KODI_GUI_CONTROL_HANDLE;
 
   //============================================================================
   /// @ingroup cpp_kodi_gui_windows_controls_CEdit_Defs
@@ -52,23 +54,28 @@ extern "C"
   /// @}
   //----------------------------------------------------------------------------
 
-  typedef struct AddonToKodiFuncTable_kodi_gui_control_edit
-  {
-    void (*set_visible)(KODI_HANDLE kodiBase, KODI_GUI_CONTROL_HANDLE handle, bool visible);
-    void (*set_enabled)(KODI_HANDLE kodiBase, KODI_GUI_CONTROL_HANDLE handle, bool enabled);
-    void (*set_label)(KODI_HANDLE kodiBase, KODI_GUI_CONTROL_HANDLE handle, const char* label);
-    char* (*get_label)(KODI_HANDLE kodiBase, KODI_GUI_CONTROL_HANDLE handle);
-    void (*set_text)(KODI_HANDLE kodiBase, KODI_GUI_CONTROL_HANDLE handle, const char* text);
-    char* (*get_text)(KODI_HANDLE kodiBase, KODI_GUI_CONTROL_HANDLE handle);
-    void (*set_cursor_position)(KODI_HANDLE kodiBase,
-                                KODI_GUI_CONTROL_HANDLE handle,
-                                unsigned int position);
-    unsigned int (*get_cursor_position)(KODI_HANDLE kodiBase, KODI_GUI_CONTROL_HANDLE handle);
-    void (*set_input_type)(KODI_HANDLE kodiBase,
-                           KODI_GUI_CONTROL_HANDLE handle,
-                           int type,
-                           const char* heading);
-  } AddonToKodiFuncTable_kodi_gui_control_edit;
+  ATTR_DLL_EXPORT void kodi_gui_controls_edit_set_visible(KODI_GUI_CONTROL_HANDLE handle,
+                                                          bool visible) __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT void kodi_gui_controls_edit_set_enabled(KODI_GUI_CONTROL_HANDLE handle,
+                                                          bool enabled) __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT void kodi_gui_controls_edit_set_label(KODI_GUI_CONTROL_HANDLE handle,
+                                                        const char* label) __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT char* kodi_gui_controls_edit_get_label(KODI_GUI_CONTROL_HANDLE handle)
+      __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT void kodi_gui_controls_edit_set_text(KODI_GUI_CONTROL_HANDLE handle,
+                                                       const char* text) __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT char* kodi_gui_controls_edit_get_text(KODI_GUI_CONTROL_HANDLE handle)
+      __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT void kodi_gui_controls_edit_set_cursor_position(KODI_GUI_CONTROL_HANDLE handle,
+                                                                  unsigned int position)
+      __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT unsigned int kodi_gui_controls_edit_get_cursor_position(
+      KODI_GUI_CONTROL_HANDLE handle) __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT void kodi_gui_controls_edit_set_input_type(KODI_GUI_CONTROL_HANDLE handle,
+                                                             int type,
+                                                             const char* heading)
+      __INTRODUCED_IN_KODI(1);
+
 
 #ifdef __cplusplus
 } /* extern "C" */

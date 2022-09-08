@@ -9,7 +9,7 @@
 #include "GameClientKeyboard.h"
 
 #include "GameClientInput.h"
-#include "addons/kodi-dev-kit/include/kodi/addon-instance/Game.h"
+#include "addons/kodi-dev-kit/include/kodi/c-api/addon-instance/game.h"
 #include "games/addons/GameClient.h"
 #include "games/addons/GameClientTranslator.h"
 #include "input/keyboard/interfaces/IKeyboardInputProvider.h"

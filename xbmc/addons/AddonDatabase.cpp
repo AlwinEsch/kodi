@@ -46,6 +46,8 @@ std::string CAddonDatabaseSerializer::SerializeMetadata(const CAddonInfo& addon)
   for (const auto& item : addon.Screenshots())
     variant["screenshots"].push_back(item);
 
+  variant["language"] = addon.Type(addon.MainType())->LanguageName();
+
   variant["extensions"] = CVariant(CVariant::VariantTypeArray);
   variant["extensions"].push_back(SerializeExtensions(*addon.Type(addon.MainType())));
 
@@ -135,9 +137,10 @@ void CAddonDatabaseSerializer::DeserializeMetadata(const std::string& document,
     screenshots.push_back(it->asString());
   builder.SetScreenshots(std::move(screenshots));
 
-  CAddonType addonType;
+  CAddonType addonType(ADDON_UNKNOWN, AddonLanguage::Unknown);
   DeserializeExtensions(variant["extensions"][0], addonType);
-  addonType.m_type = CAddonInfo::TranslateType(addonType.m_point);
+  addonType.SetType(CAddonInfo::TranslateType(addonType.m_point));
+  addonType.SetLanguage(variant["language"].asString());
   builder.SetExtensions(std::move(addonType));
 
   {

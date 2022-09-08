@@ -9,19 +9,22 @@
 #ifndef C_API_GUI_CONTROLS_PROGRESS_H
 #define C_API_GUI_CONTROLS_PROGRESS_H
 
-#include "../definitions.h"
+#include "../../addon_base.h"
 
 #ifdef __cplusplus
 extern "C"
 {
 #endif /* __cplusplus */
 
-  typedef struct AddonToKodiFuncTable_kodi_gui_control_progress
-  {
-    void (*set_visible)(KODI_HANDLE kodiBase, KODI_GUI_CONTROL_HANDLE handle, bool visible);
-    void (*set_percentage)(KODI_HANDLE kodiBase, KODI_GUI_CONTROL_HANDLE handle, float percent);
-    float (*get_percentage)(KODI_HANDLE kodiBase, KODI_GUI_CONTROL_HANDLE handle);
-  } AddonToKodiFuncTable_kodi_gui_control_progress;
+  typedef void* KODI_GUI_CONTROL_HANDLE;
+
+  ATTR_DLL_EXPORT void kodi_gui_controls_progress_set_visible(KODI_GUI_CONTROL_HANDLE handle,
+                                                              bool visible) __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT void kodi_gui_controls_progress_set_percentage(KODI_GUI_CONTROL_HANDLE handle,
+                                                                 float percent)
+      __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT float kodi_gui_controls_progress_get_percentage(KODI_GUI_CONTROL_HANDLE handle)
+      __INTRODUCED_IN_KODI(1);
 
 #ifdef __cplusplus
 } /* extern "C" */

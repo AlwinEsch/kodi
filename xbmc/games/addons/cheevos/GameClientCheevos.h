@@ -8,10 +8,10 @@
 
 #pragma once
 
+#include "addons/interface/api/addon-instance/game.h"
+
 #include <stddef.h> /* size_t */
 #include <string>
-
-struct AddonInstance_Game;
 
 namespace KODI
 {
@@ -28,7 +28,9 @@ class CGameClient;
 class CGameClientCheevos
 {
 public:
-  CGameClientCheevos(CGameClient& gameClient, AddonInstance_Game& addonStruct);
+  CGameClientCheevos(CGameClient& gameClient,
+                     KODI::ADDONS::INTERFACE::CHdl_kodi_addoninstance_game_h& gameClientIfc,
+                     const KODI_ADDON_GAME_HDL gameClientHdl);
 
   bool RCGenerateHashFromFile(std::string& hash,
                               RETRO::RConsoleID consoleID,
@@ -51,7 +53,8 @@ public:
 
 private:
   CGameClient& m_gameClient;
-  AddonInstance_Game& m_struct;
+  KODI::ADDONS::INTERFACE::CHdl_kodi_addoninstance_game_h& m_gameClientIfc;
+  const KODI_ADDON_GAME_HDL m_gameClientHdl;
 };
 } // namespace GAME
 } // namespace KODI

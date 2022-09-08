@@ -9,41 +9,48 @@
 #ifndef C_API_GUI_LIST_ITEM_H
 #define C_API_GUI_LIST_ITEM_H
 
-#include "definitions.h"
+#include "../addon_base.h"
 
 #ifdef __cplusplus
 extern "C"
 {
 #endif /* __cplusplus */
 
-  typedef struct AddonToKodiFuncTable_kodi_gui_listItem
-  {
-    KODI_GUI_LISTITEM_HANDLE(*create)
-    (KODI_HANDLE kodiBase,
-     const char* label,
-     const char* label2,
-     const char* path);
-    void (*destroy)(KODI_HANDLE kodiBase, KODI_GUI_LISTITEM_HANDLE handle);
+  typedef void* KODI_GUI_LISTITEM_HANDLE;
 
-    char* (*get_label)(KODI_HANDLE kodiBase, KODI_GUI_LISTITEM_HANDLE handle);
-    void (*set_label)(KODI_HANDLE kodiBase, KODI_GUI_LISTITEM_HANDLE handle, const char* label);
-    char* (*get_label2)(KODI_HANDLE kodiBase, KODI_GUI_LISTITEM_HANDLE handle);
-    void (*set_label2)(KODI_HANDLE kodiBase, KODI_GUI_LISTITEM_HANDLE handle, const char* label);
-    char* (*get_art)(KODI_HANDLE kodiBase, KODI_GUI_LISTITEM_HANDLE handle, const char* type);
-    void (*set_art)(KODI_HANDLE kodiBase,
-                    KODI_GUI_LISTITEM_HANDLE handle,
-                    const char* type,
-                    const char* image);
-    char* (*get_path)(KODI_HANDLE kodiBase, KODI_GUI_LISTITEM_HANDLE handle);
-    void (*set_path)(KODI_HANDLE kodiBase, KODI_GUI_LISTITEM_HANDLE handle, const char* path);
-    char* (*get_property)(KODI_HANDLE kodiBase, KODI_GUI_LISTITEM_HANDLE handle, const char* key);
-    void (*set_property)(KODI_HANDLE kodiBase,
-                         KODI_GUI_LISTITEM_HANDLE handle,
-                         const char* key,
-                         const char* value);
-    void (*select)(KODI_HANDLE kodiBase, KODI_GUI_LISTITEM_HANDLE handle, bool select);
-    bool (*is_selected)(KODI_HANDLE kodiBase, KODI_GUI_LISTITEM_HANDLE handle);
-  } AddonToKodiFuncTable_kodi_gui_listItem;
+  ATTR_DLL_EXPORT KODI_GUI_LISTITEM_HANDLE kodi_gui_listitem_create(const char* label,
+                                                                    const char* label2,
+                                                                    const char* path)
+      __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT void kodi_gui_listitem_destroy(KODI_GUI_LISTITEM_HANDLE handle)
+      __INTRODUCED_IN_KODI(1);
+
+  ATTR_DLL_EXPORT char* kodi_gui_listitem_get_label(KODI_GUI_LISTITEM_HANDLE handle)
+      __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT void kodi_gui_listitem_set_label(KODI_GUI_LISTITEM_HANDLE handle,
+                                                   const char* label) __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT char* kodi_gui_listitem_get_label2(KODI_GUI_LISTITEM_HANDLE handle)
+      __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT void kodi_gui_listitem_set_label2(KODI_GUI_LISTITEM_HANDLE handle,
+                                                    const char* label) __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT char* kodi_gui_listitem_get_art(KODI_GUI_LISTITEM_HANDLE handle, const char* type)
+      __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT void kodi_gui_listitem_set_art(KODI_GUI_LISTITEM_HANDLE handle,
+                                                 const char* type,
+                                                 const char* image) __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT char* kodi_gui_listitem_get_path(KODI_GUI_LISTITEM_HANDLE handle)
+      __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT void kodi_gui_listitem_set_path(KODI_GUI_LISTITEM_HANDLE handle, const char* path)
+      __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT char* kodi_gui_listitem_get_property(KODI_GUI_LISTITEM_HANDLE handle,
+                                                       const char* key) __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT void kodi_gui_listitem_set_property(KODI_GUI_LISTITEM_HANDLE handle,
+                                                      const char* key,
+                                                      const char* value) __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT void kodi_gui_listitem_select(KODI_GUI_LISTITEM_HANDLE handle, bool select)
+      __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT bool kodi_gui_listitem_is_selected(KODI_GUI_LISTITEM_HANDLE handle)
+      __INTRODUCED_IN_KODI(1);
 
 #ifdef __cplusplus
 } /* extern "C" */

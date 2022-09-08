@@ -159,16 +159,12 @@ public:
   /// ADDONCREATOR(CGameExample)
   /// ~~~~~~~~~~~~~
   ///
-  CInstanceGame() : IAddonInstance(IInstanceInfo(CPrivateBase::m_interface->firstKodiInstance))
-  {
-    if (CPrivateBase::m_interface->globalSingleInstance != nullptr)
-      throw std::logic_error("kodi::addon::CInstanceGame: Creation of more as one in single "
-                             "instance way is not allowed!");
-
-    SetAddonStruct(CPrivateBase::m_interface->firstKodiInstance);
-    CPrivateBase::m_interface->globalSingleInstance = this;
-  }
+  CInstanceGame() = default;
   //----------------------------------------------------------------------------
+
+  explicit CInstanceGame(const IInstanceInfo& instance) : IAddonInstance(instance)
+  {
+  }
 
   //============================================================================
   /// @brief Destructor
@@ -461,7 +457,7 @@ public:
     ///
     bool Open(const game_stream_properties& properties)
     {
-      if (!CPrivateBase::m_interface->globalSingleInstance)
+      if (!CPrivateBase::ifc.globalSingleInstance)
         return false;
 
       if (m_handle)
@@ -471,7 +467,7 @@ public:
       }
 
       AddonToKodiFuncTable_Game& cb =
-          *static_cast<CInstanceGame*>(CPrivateBase::m_interface->globalSingleInstance)
+          *static_cast<CInstanceGame*>(CPrivateBase::ifc.globalSingleInstance)
                ->m_instanceData->toKodi;
       m_handle = cb.OpenStream(cb.kodiInstance, &properties);
       return m_handle != nullptr;
@@ -486,11 +482,11 @@ public:
     ///
     void Close()
     {
-      if (!m_handle || !CPrivateBase::m_interface->globalSingleInstance)
+      if (!m_handle || !CPrivateBase::ifc.globalSingleInstance)
         return;
 
       AddonToKodiFuncTable_Game& cb =
-          *static_cast<CInstanceGame*>(CPrivateBase::m_interface->globalSingleInstance)
+          *static_cast<CInstanceGame*>(CPrivateBase::ifc.globalSingleInstance)
                ->m_instanceData->toKodi;
       cb.CloseStream(cb.kodiInstance, m_handle);
       m_handle = nullptr;
@@ -512,11 +508,11 @@ public:
     ///
     bool GetBuffer(unsigned int width, unsigned int height, game_stream_buffer& buffer)
     {
-      if (!m_handle || !CPrivateBase::m_interface->globalSingleInstance)
+      if (!m_handle || !CPrivateBase::ifc.globalSingleInstance)
         return false;
 
       AddonToKodiFuncTable_Game& cb =
-          *static_cast<CInstanceGame*>(CPrivateBase::m_interface->globalSingleInstance)
+          *static_cast<CInstanceGame*>(CPrivateBase::ifc.globalSingleInstance)
                ->m_instanceData->toKodi;
       return cb.GetStreamBuffer(cb.kodiInstance, m_handle, width, height, &buffer);
     }
@@ -532,11 +528,11 @@ public:
     ///
     void AddData(const game_stream_packet& packet)
     {
-      if (!m_handle || !CPrivateBase::m_interface->globalSingleInstance)
+      if (!m_handle || !CPrivateBase::ifc.globalSingleInstance)
         return;
 
       AddonToKodiFuncTable_Game& cb =
-          *static_cast<CInstanceGame*>(CPrivateBase::m_interface->globalSingleInstance)
+          *static_cast<CInstanceGame*>(CPrivateBase::ifc.globalSingleInstance)
                ->m_instanceData->toKodi;
       cb.AddStreamData(cb.kodiInstance, m_handle, &packet);
     }
@@ -552,11 +548,11 @@ public:
     ///
     void ReleaseBuffer(game_stream_buffer& buffer)
     {
-      if (!m_handle || !CPrivateBase::m_interface->globalSingleInstance)
+      if (!m_handle || !CPrivateBase::ifc.globalSingleInstance)
         return;
 
       AddonToKodiFuncTable_Game& cb =
-          *static_cast<CInstanceGame*>(CPrivateBase::m_interface->globalSingleInstance)
+          *static_cast<CInstanceGame*>(CPrivateBase::ifc.globalSingleInstance)
                ->m_instanceData->toKodi;
       cb.ReleaseStreamBuffer(cb.kodiInstance, m_handle, &buffer);
     }

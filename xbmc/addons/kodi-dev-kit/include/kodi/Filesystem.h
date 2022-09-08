@@ -92,14 +92,14 @@ namespace vfs
 /// Used on kodi::vfs::StatFile() to get detailed information about a file.
 ///
 ///@{
-class ATTR_DLL_LOCAL FileStatus : public kodi::addon::CStructHdl<FileStatus, STAT_STRUCTURE>
+class FileStatus : public kodi::addon::CStructHdl<FileStatus, VFS_STAT_STRUCTURE>
 {
 public:
   /*! \cond PRIVATE */
-  FileStatus() { memset(m_cStructure, 0, sizeof(STAT_STRUCTURE)); }
+  FileStatus() { memset(m_cStructure, 0, sizeof(VFS_STAT_STRUCTURE)); }
   FileStatus(const FileStatus& channel) : CStructHdl(channel) {}
-  FileStatus(const STAT_STRUCTURE* channel) : CStructHdl(channel) {}
-  FileStatus(STAT_STRUCTURE* channel) : CStructHdl(channel) {}
+  FileStatus(const VFS_STAT_STRUCTURE* channel) : CStructHdl(channel) {}
+  FileStatus(VFS_STAT_STRUCTURE* channel) : CStructHdl(channel) {}
   /*! \endcond */
 
   /// @defgroup cpp_kodi_vfs_Defs_FileStatus_Help Value Help
@@ -127,6 +127,8 @@ public:
   /// @addtogroup cpp_kodi_vfs_Defs_FileStatus
   /// @copydetails cpp_kodi_vfs_Defs_FileStatus_Help
   ///@{
+
+  /// @brief Set ID of device containing file.
 
   /// @brief Set ID of device containing file.
   void SetDeviceId(uint32_t deviceId) { m_cStructure->deviceId = deviceId; }
@@ -221,15 +223,13 @@ public:
 /// status of processed stream.
 ///
 ///@{
-class ATTR_DLL_LOCAL CacheStatus
-  : public kodi::addon::CStructHdl<CacheStatus, VFS_CACHE_STATUS_DATA>
+class CacheStatus : public kodi::addon::CStructHdl<CacheStatus, VFS_CACHE_STATUS>
 {
 public:
-  /*! \cond PRIVATE */
-  CacheStatus() { memset(m_cStructure, 0, sizeof(VFS_CACHE_STATUS_DATA)); }
+  CacheStatus() { memset(m_cStructure, 0, sizeof(VFS_CACHE_STATUS)); }
   CacheStatus(const CacheStatus& channel) : CStructHdl(channel) {}
-  CacheStatus(const VFS_CACHE_STATUS_DATA* channel) : CStructHdl(channel) {}
-  CacheStatus(VFS_CACHE_STATUS_DATA* channel) : CStructHdl(channel) {}
+  CacheStatus(const VFS_CACHE_STATUS* channel) : CStructHdl(channel) {}
+  CacheStatus(VFS_CACHE_STATUS* channel) : CStructHdl(channel) {}
   /*! \endcond */
 
   /// @defgroup cpp_kodi_vfs_Defs_CacheStatus_Help Value Help
@@ -291,7 +291,7 @@ public:
 /// @copydetails cpp_kodi_vfs_Defs_HttpHeader_Help
 ///
 ///@{
-class ATTR_DLL_LOCAL HttpHeader
+class HttpHeader
 {
 public:
   //==========================================================================
@@ -299,23 +299,13 @@ public:
   ///
   HttpHeader()
   {
-    using namespace ::kodi::addon;
-
-    CPrivateBase::m_interface->toKodi->kodi_filesystem->http_header_create(
-        CPrivateBase::m_interface->toKodi->kodiBase, &m_handle);
   }
   //--------------------------------------------------------------------------
 
   //==========================================================================
   /// @brief Class destructor.
   ///
-  ~HttpHeader()
-  {
-    using namespace ::kodi::addon;
-
-    CPrivateBase::m_interface->toKodi->kodi_filesystem->http_header_free(
-        CPrivateBase::m_interface->toKodi->kodiBase, &m_handle);
-  }
+  ~HttpHeader() { kodi::dl::api.kodi_vfs_http_header_close(m_handle); }
   //--------------------------------------------------------------------------
 
   /// @defgroup cpp_kodi_vfs_Defs_HttpHeader_Help Value Help
@@ -344,19 +334,15 @@ public:
   ///
   std::string GetValue(const std::string& param) const
   {
-    using namespace ::kodi::addon;
-
-    if (!m_handle.handle)
+    if (!m_handle)
       return "";
 
     std::string protoLine;
-    char* string = m_handle.get_value(CPrivateBase::m_interface->toKodi->kodiBase, m_handle.handle,
-                                      param.c_str());
+    char* string = kodi::dl::api.kodi_vfs_http_header_get_value(m_handle, param.c_str());
     if (string != nullptr)
     {
       protoLine = string;
-      CPrivateBase::m_interface->toKodi->free_string(CPrivateBase::m_interface->toKodi->kodiBase,
-                                                     string);
+      free(string);
     }
     return protoLine;
   }
@@ -371,24 +357,22 @@ public:
   ///
   std::vector<std::string> GetValues(const std::string& param) const
   {
-    using namespace kodi::addon;
-
-    if (!m_handle.handle)
+    if (!m_handle)
       return std::vector<std::string>();
 
-    int numValues = 0;
-    char** res(m_handle.get_values(CPrivateBase::m_interface->toKodi->kodiBase, m_handle.handle,
-                                   param.c_str(), &numValues));
+    size_t numValues = 0;
+    char** res(kodi::dl::api.kodi_vfs_http_header_get_values(m_handle, param.c_str(), &numValues));
     if (res)
     {
       std::vector<std::string> vecReturn;
       vecReturn.reserve(numValues);
-      for (int i = 0; i < numValues; ++i)
+      for (size_t i = 0; i < numValues; ++i)
       {
         vecReturn.emplace_back(res[i]);
+        free(res[i]);
       }
-      CPrivateBase::m_interface->toKodi->free_string_array(
-          CPrivateBase::m_interface->toKodi->kodiBase, res, numValues);
+      free(res);
+
       return vecReturn;
     }
     return std::vector<std::string>();
@@ -404,17 +388,15 @@ public:
   {
     using namespace ::kodi::addon;
 
-    if (!m_handle.handle)
+    if (!m_handle)
       return "";
 
     std::string header;
-    char* string =
-        m_handle.get_header(CPrivateBase::m_interface->toKodi->kodiBase, m_handle.handle);
+    char* string = kodi::dl::api.kodi_vfs_http_header_get_header(m_handle);
     if (string != nullptr)
     {
       header = string;
-      CPrivateBase::m_interface->toKodi->free_string(CPrivateBase::m_interface->toKodi->kodiBase,
-                                                     string);
+      free(string);
     }
     return header;
   }
@@ -429,17 +411,15 @@ public:
   {
     using namespace ::kodi::addon;
 
-    if (!m_handle.handle)
+    if (!m_handle)
       return "";
 
     std::string protoLine;
-    char* string =
-        m_handle.get_mime_type(CPrivateBase::m_interface->toKodi->kodiBase, m_handle.handle);
+    char* string = kodi::dl::api.kodi_vfs_http_header_get_mime_type(m_handle);
     if (string != nullptr)
     {
       protoLine = string;
-      CPrivateBase::m_interface->toKodi->free_string(CPrivateBase::m_interface->toKodi->kodiBase,
-                                                     string);
+      free(string);
     }
     return protoLine;
   }
@@ -454,17 +434,15 @@ public:
   {
     using namespace ::kodi::addon;
 
-    if (!m_handle.handle)
+    if (!m_handle)
       return "";
 
     std::string protoLine;
-    char* string =
-        m_handle.get_charset(CPrivateBase::m_interface->toKodi->kodiBase, m_handle.handle);
+    char* string = kodi::dl::api.kodi_vfs_http_header_get_charset(m_handle);
     if (string != nullptr)
     {
       protoLine = string;
-      CPrivateBase::m_interface->toKodi->free_string(CPrivateBase::m_interface->toKodi->kodiBase,
-                                                     string);
+      free(string);
     }
     return protoLine;
   }
@@ -479,17 +457,15 @@ public:
   {
     using namespace ::kodi::addon;
 
-    if (!m_handle.handle)
+    if (!m_handle)
       return "";
 
     std::string protoLine;
-    char* string =
-        m_handle.get_proto_line(CPrivateBase::m_interface->toKodi->kodiBase, m_handle.handle);
+    char* string = kodi::dl::api.kodi_vfs_http_header_get_proto_line(m_handle);
     if (string != nullptr)
     {
       protoLine = string;
-      CPrivateBase::m_interface->toKodi->free_string(CPrivateBase::m_interface->toKodi->kodiBase,
-                                                     string);
+      free(string);
     }
     return protoLine;
   }
@@ -497,7 +473,7 @@ public:
 
   ///@}
 
-  KODI_HTTP_HEADER m_handle;
+  KODI_HTTP_HEADER_HDL m_handle;
 };
 ///@}
 //----------------------------------------------------------------------------
@@ -541,7 +517,7 @@ public:
 /// to enjoy it.
 ///
 ///@{
-class ATTR_DLL_LOCAL CDirEntry
+class CDirEntry
 {
 public:
   //============================================================================
@@ -573,7 +549,7 @@ public:
   //
   // @param[in] dirEntry pointer to own class type
   //
-  explicit CDirEntry(const VFSDirEntry& dirEntry)
+  explicit CDirEntry(const VFS_DIR_ENTRY& dirEntry)
     : m_label(dirEntry.label ? dirEntry.label : ""),
       m_path(dirEntry.path ? dirEntry.path : ""),
       m_folder(dirEntry.folder),
@@ -581,6 +557,8 @@ public:
       m_dateTime(dirEntry.date_time)
   {
   }
+
+
   //----------------------------------------------------------------------------
 
   /// @defgroup cpp_kodi_vfs_CDirEntry_Help Value Help
@@ -772,12 +750,9 @@ private:
 /// ...
 /// ~~~~~~~~~~~~~
 ///
-inline bool ATTR_DLL_LOCAL CreateDirectory(const std::string& path)
+inline bool CreateDirectory(const std::string& path)
 {
-  using namespace kodi::addon;
-
-  return CPrivateBase::m_interface->toKodi->kodi_filesystem->create_directory(
-      CPrivateBase::m_interface->toKodi->kodiBase, path.c_str());
+  return kodi::dl::api.kodi_vfs_create_directory(path.c_str());
 }
 //------------------------------------------------------------------------------
 
@@ -804,12 +779,9 @@ inline bool ATTR_DLL_LOCAL CreateDirectory(const std::string& path)
 /// ...
 /// ~~~~~~~~~~~~~
 ///
-inline bool ATTR_DLL_LOCAL DirectoryExists(const std::string& path)
+inline bool DirectoryExists(const std::string& path)
 {
-  using namespace kodi::addon;
-
-  return CPrivateBase::m_interface->toKodi->kodi_filesystem->directory_exists(
-      CPrivateBase::m_interface->toKodi->kodiBase, path.c_str());
+  return kodi::dl::api.kodi_vfs_directory_exists(path.c_str());
 }
 //------------------------------------------------------------------------------
 
@@ -838,16 +810,12 @@ inline bool ATTR_DLL_LOCAL DirectoryExists(const std::string& path)
 /// ...
 /// ~~~~~~~~~~~~~
 ///
-inline bool ATTR_DLL_LOCAL RemoveDirectory(const std::string& path, bool recursive = false)
+inline bool RemoveDirectory(const std::string& path, bool recursive = false)
 {
-  using namespace kodi::addon;
-
   if (!recursive)
-    return CPrivateBase::m_interface->toKodi->kodi_filesystem->remove_directory(
-        CPrivateBase::m_interface->toKodi->kodiBase, path.c_str());
+    return kodi::dl::api.kodi_vfs_remove_directory(path.c_str());
   else
-    return CPrivateBase::m_interface->toKodi->kodi_filesystem->remove_directory_recursive(
-        CPrivateBase::m_interface->toKodi->kodiBase, path.c_str());
+    return kodi::dl::api.kodi_vfs_remove_directory_recursive(path.c_str());
 }
 //------------------------------------------------------------------------------
 
@@ -887,25 +855,20 @@ inline bool ATTR_DLL_LOCAL RemoveDirectory(const std::string& path, bool recursi
 ///             items[i].Path().c_str());
 /// }
 /// ~~~~~~~~~~~~~
-inline bool ATTR_DLL_LOCAL GetDirectory(const std::string& path,
-                                        const std::string& mask,
-                                        std::vector<kodi::vfs::CDirEntry>& items)
+inline bool GetDirectory(const std::string& path,
+                         const std::string& mask,
+                         std::vector<kodi::vfs::CDirEntry>& items)
 {
-  using namespace kodi::addon;
-
-  VFSDirEntry* dir_list = nullptr;
-  unsigned int num_items = 0;
-  if (CPrivateBase::m_interface->toKodi->kodi_filesystem->get_directory(
-          CPrivateBase::m_interface->toKodi->kodiBase, path.c_str(), mask.c_str(), &dir_list,
-          &num_items))
+  VFS_DIR_ENTRY* dir_list = nullptr;
+  size_t num_items = 0;
+  if (kodi::dl::api.kodi_vfs_get_directory(path.c_str(), mask.c_str(), &dir_list, &num_items))
   {
     if (dir_list)
     {
-      for (unsigned int i = 0; i < num_items; ++i)
+      for (size_t i = 0; i < num_items; ++i)
         items.emplace_back(dir_list[i]);
 
-      CPrivateBase::m_interface->toKodi->kodi_filesystem->free_directory(
-          CPrivateBase::m_interface->toKodi->kodiBase, dir_list, num_items);
+      kodi::dl::api.kodi_vfs_free_directory(dir_list, num_items);
     }
 
     return true;
@@ -913,8 +876,6 @@ inline bool ATTR_DLL_LOCAL GetDirectory(const std::string& path,
   return false;
 }
 //------------------------------------------------------------------------------
-
-//}}}
 
 //¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
 // "C++" File related functions
@@ -939,12 +900,9 @@ inline bool ATTR_DLL_LOCAL GetDirectory(const std::string& path,
 /// fprintf(stderr, "Log file should be always present, is it present? %s\n", exists ? "yes" : "no");
 /// ~~~~~~~~~~~~~
 ///
-inline bool ATTR_DLL_LOCAL FileExists(const std::string& filename, bool usecache = false)
+inline bool FileExists(const std::string& filename, bool usecache = false)
 {
-  using namespace kodi::addon;
-
-  return CPrivateBase::m_interface->toKodi->kodi_filesystem->file_exists(
-      CPrivateBase::m_interface->toKodi->kodiBase, filename.c_str(), usecache);
+  return kodi::dl::api.kodi_vfs_file_exists(filename.c_str(), usecache);
 }
 //------------------------------------------------------------------------------
 
@@ -994,12 +952,9 @@ inline bool ATTR_DLL_LOCAL FileExists(const std::string& filename, bool usecache
 ///                      ret);
 /// ~~~~~~~~~~~~~
 ///
-inline bool ATTR_DLL_LOCAL StatFile(const std::string& filename, kodi::vfs::FileStatus& buffer)
+inline bool StatFile(const std::string& filename, kodi::vfs::FileStatus& buffer)
 {
-  using namespace kodi::addon;
-
-  return CPrivateBase::m_interface->toKodi->kodi_filesystem->stat_file(
-      CPrivateBase::m_interface->toKodi->kodiBase, filename.c_str(), buffer);
+  return kodi::dl::api.kodi_vfs_stat_file(filename.c_str(), buffer);
 }
 //------------------------------------------------------------------------------
 
@@ -1032,12 +987,9 @@ inline bool ATTR_DLL_LOCAL StatFile(const std::string& filename, kodi::vfs::File
 /// }
 /// ~~~~~~~~~~~~~
 ///
-inline bool ATTR_DLL_LOCAL DeleteFile(const std::string& filename)
+inline bool DeleteFile(const std::string& filename)
 {
-  using namespace kodi::addon;
-
-  return CPrivateBase::m_interface->toKodi->kodi_filesystem->delete_file(
-      CPrivateBase::m_interface->toKodi->kodiBase, filename.c_str());
+  return kodi::dl::api.kodi_vfs_delete_file(filename.c_str());
 }
 //------------------------------------------------------------------------------
 
@@ -1050,12 +1002,9 @@ inline bool ATTR_DLL_LOCAL DeleteFile(const std::string& filename)
 /// @return true if successfully renamed
 ///
 ///
-inline bool ATTR_DLL_LOCAL RenameFile(const std::string& filename, const std::string& newFileName)
+inline bool RenameFile(const std::string& filename, const std::string& newFileName)
 {
-  using namespace kodi::addon;
-
-  return CPrivateBase::m_interface->toKodi->kodi_filesystem->rename_file(
-      CPrivateBase::m_interface->toKodi->kodiBase, filename.c_str(), newFileName.c_str());
+  return kodi::dl::api.kodi_vfs_rename_file(filename.c_str(), newFileName.c_str());
 }
 //------------------------------------------------------------------------------
 
@@ -1068,16 +1017,11 @@ inline bool ATTR_DLL_LOCAL RenameFile(const std::string& filename, const std::st
 /// @return true if successfully copied
 ///
 ///
-inline bool ATTR_DLL_LOCAL CopyFile(const std::string& filename, const std::string& destination)
+inline bool CopyFile(const std::string& filename, const std::string& destination)
 {
-  using namespace kodi::addon;
-
-  return CPrivateBase::m_interface->toKodi->kodi_filesystem->copy_file(
-      CPrivateBase::m_interface->toKodi->kodiBase, filename.c_str(), destination.c_str());
+  return kodi::dl::api.kodi_vfs_copy_file(filename.c_str(), destination.c_str());
 }
 //------------------------------------------------------------------------------
-
-//}}}
 
 //¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
 // "C++" General filesystem functions
@@ -1109,19 +1053,16 @@ inline bool ATTR_DLL_LOCAL CopyFile(const std::string& filename, const std::stri
 /// }
 /// ~~~~~~~~~~~~~
 ///
-inline std::string ATTR_DLL_LOCAL GetFileMD5(const std::string& path)
+inline std::string GetFileMD5(const std::string& path)
 {
-  using namespace kodi::addon;
 
   std::string strReturn;
-  char* strMd5 = CPrivateBase::m_interface->toKodi->kodi_filesystem->get_file_md5(
-      CPrivateBase::m_interface->toKodi->kodiBase, path.c_str());
+  char* strMd5 = kodi::dl::api.kodi_vfs_get_file_md5(path.c_str());
   if (strMd5 != nullptr)
   {
     if (std::strlen(strMd5))
       strReturn = strMd5;
-    CPrivateBase::m_interface->toKodi->free_string(CPrivateBase::m_interface->toKodi->kodiBase,
-                                                   strMd5);
+    free(strMd5);
   }
   return strReturn;
 }
@@ -1153,19 +1094,15 @@ inline std::string ATTR_DLL_LOCAL GetFileMD5(const std::string& path)
 /// }
 /// ~~~~~~~~~~~~~
 ///
-inline std::string ATTR_DLL_LOCAL GetCacheThumbName(const std::string& filename)
+inline std::string GetCacheThumbName(const std::string& filename)
 {
-  using namespace kodi::addon;
-
   std::string strReturn;
-  char* strThumbName = CPrivateBase::m_interface->toKodi->kodi_filesystem->get_cache_thumb_name(
-      CPrivateBase::m_interface->toKodi->kodiBase, filename.c_str());
+  char* strThumbName = kodi::dl::api.kodi_vfs_get_cache_thumb_name(filename.c_str());
   if (strThumbName != nullptr)
   {
     if (std::strlen(strThumbName))
       strReturn = strThumbName;
-    CPrivateBase::m_interface->toKodi->free_string(CPrivateBase::m_interface->toKodi->kodiBase,
-                                                   strThumbName);
+    free(strThumbName);
   }
   return strReturn;
 }
@@ -1196,19 +1133,15 @@ inline std::string ATTR_DLL_LOCAL GetCacheThumbName(const std::string& filename)
 /// /* Returns as legal: 'jk___lj____.mpg' */
 /// ~~~~~~~~~~~~~
 ///
-inline std::string ATTR_DLL_LOCAL MakeLegalFileName(const std::string& filename)
+inline std::string MakeLegalFileName(const std::string& filename)
 {
-  using namespace kodi::addon;
-
   std::string strReturn;
-  char* strLegalFileName = CPrivateBase::m_interface->toKodi->kodi_filesystem->make_legal_filename(
-      CPrivateBase::m_interface->toKodi->kodiBase, filename.c_str());
+  char* strLegalFileName = kodi::dl::api.kodi_vfs_make_legal_filename(filename.c_str());
   if (strLegalFileName != nullptr)
   {
     if (std::strlen(strLegalFileName))
       strReturn = strLegalFileName;
-    CPrivateBase::m_interface->toKodi->free_string(CPrivateBase::m_interface->toKodi->kodiBase,
-                                                   strLegalFileName);
+    free(strLegalFileName);
   }
   return strReturn;
 }
@@ -1239,19 +1172,15 @@ inline std::string ATTR_DLL_LOCAL MakeLegalFileName(const std::string& filename)
 /// /* Returns as legal: '/jk___lj____/hgjkg' */
 /// ~~~~~~~~~~~~~
 ///
-inline std::string ATTR_DLL_LOCAL MakeLegalPath(const std::string& path)
+inline std::string MakeLegalPath(const std::string& path)
 {
-  using namespace kodi::addon;
-
   std::string strReturn;
-  char* strLegalPath = CPrivateBase::m_interface->toKodi->kodi_filesystem->make_legal_path(
-      CPrivateBase::m_interface->toKodi->kodiBase, path.c_str());
+  char* strLegalPath = kodi::dl::api.kodi_vfs_make_legal_path(path.c_str());
   if (strLegalPath != nullptr)
   {
     if (std::strlen(strLegalPath))
       strReturn = strLegalPath;
-    CPrivateBase::m_interface->toKodi->free_string(CPrivateBase::m_interface->toKodi->kodiBase,
-                                                   strLegalPath);
+    free(strLegalPath);
   }
   return strReturn;
 }
@@ -1287,19 +1216,15 @@ inline std::string ATTR_DLL_LOCAL MakeLegalPath(const std::string& path)
 /// ...
 /// ~~~~~~~~~~~~~
 ///
-inline std::string ATTR_DLL_LOCAL TranslateSpecialProtocol(const std::string& source)
+inline std::string TranslateSpecialProtocol(const std::string& source)
 {
-  using namespace kodi::addon;
-
   std::string strReturn;
-  char* protocol = CPrivateBase::m_interface->toKodi->kodi_filesystem->translate_special_protocol(
-      CPrivateBase::m_interface->toKodi->kodiBase, source.c_str());
+  char* protocol = kodi::dl::api.kodi_vfs_translate_special_protocol(source.c_str());
   if (protocol != nullptr)
   {
     if (std::strlen(protocol))
       strReturn = protocol;
-    CPrivateBase::m_interface->toKodi->free_string(CPrivateBase::m_interface->toKodi->kodiBase,
-                                                   protocol);
+    free(protocol);
   }
   return strReturn;
 }
@@ -1341,16 +1266,14 @@ inline std::string ATTR_DLL_LOCAL TranslateSpecialProtocol(const std::string& so
 /// fprintf(stderr, " - available: %lu MByte\n", available / 1024 / 1024);
 /// ~~~~~~~~~~~~~
 ///
-inline bool ATTR_DLL_LOCAL GetDiskSpace(const std::string& path,
-                                        uint64_t& capacity,
-                                        uint64_t& free,
-                                        uint64_t& available)
-{
-  using namespace kodi::addon;
-
-  return CPrivateBase::m_interface->toKodi->kodi_filesystem->get_disk_space(
-      CPrivateBase::m_interface->toKodi->kodiBase, path.c_str(), &capacity, &free, &available);
-}
+// inline bool GetDiskSpace(const std::string& path,
+//                                           uint64_t& capacity,
+//                                           uint64_t& free,
+//                                           uint64_t& available)
+// {
+//   return kodi::dl::api.kodi_vfs_get_disk_space(
+//       path.c_str(), &capacity, &free, &available);
+// }
 //------------------------------------------------------------------------------
 
 //==============================================================================
@@ -1371,7 +1294,7 @@ inline bool ATTR_DLL_LOCAL GetDiskSpace(const std::string& path,
 /// fprintf(stderr, "File name is '%s'\n", fileName.c_str());
 /// ~~~~~~~~~~~~~
 ///
-inline std::string ATTR_DLL_LOCAL GetFileName(const std::string& path)
+inline std::string GetFileName(const std::string& path)
 {
   /* find the last slash */
   const size_t slash = path.find_last_of("/\\");
@@ -1397,7 +1320,7 @@ inline std::string ATTR_DLL_LOCAL GetFileName(const std::string& path)
 /// fprintf(stderr, "Directory name is '%s'\n", dirName.c_str());
 /// ~~~~~~~~~~~~~
 ///
-inline std::string ATTR_DLL_LOCAL GetDirectoryName(const std::string& path)
+inline std::string GetDirectoryName(const std::string& path)
 {
   // Will from a full filename return the directory the file resides in.
   // Keeps the final slash at end and possible |option=foo options.
@@ -1432,7 +1355,7 @@ inline std::string ATTR_DLL_LOCAL GetDirectoryName(const std::string& path)
 /// fprintf(stderr, "Directory name is '%s'\n", dirName.c_str());
 /// ~~~~~~~~~~~~~
 ///
-inline void ATTR_DLL_LOCAL RemoveSlashAtEnd(std::string& path)
+inline void RemoveSlashAtEnd(std::string& path)
 {
   if (!path.empty())
   {
@@ -1452,7 +1375,7 @@ inline void ATTR_DLL_LOCAL RemoveSlashAtEnd(std::string& path)
 /// @param[in] minimum The minimum size (or maybe the minimum number of chunks?)
 /// @return The aligned size
 ///
-inline unsigned int ATTR_DLL_LOCAL GetChunkSize(unsigned int chunk, unsigned int minimum)
+inline unsigned int GetChunkSize(unsigned int chunk, unsigned int minimum)
 {
   if (chunk)
     return chunk * ((minimum + chunk - 1) / chunk);
@@ -1509,12 +1432,9 @@ inline unsigned int ATTR_DLL_LOCAL GetChunkSize(unsigned int chunk, unsigned int
 ///                     kodi::vfs::IsInternetStream("ftp://do-somewhere.com/the-file.mkv") ? "yes" : "no", true);
 /// ~~~~~~~~~~~~~
 ///
-inline bool ATTR_DLL_LOCAL IsInternetStream(const std::string& path, bool strictCheck = false)
+inline bool IsInternetStream(const std::string& path, bool strictCheck = false)
 {
-  using namespace kodi::addon;
-
-  return CPrivateBase::m_interface->toKodi->kodi_filesystem->is_internet_stream(
-      CPrivateBase::m_interface->toKodi->kodiBase, path.c_str(), strictCheck);
+  return kodi::dl::api.kodi_vfs_is_internet_stream(path.c_str(), strictCheck);
 }
 //------------------------------------------------------------------------------
 
@@ -1541,12 +1461,9 @@ inline bool ATTR_DLL_LOCAL IsInternetStream(const std::string& path, bool strict
 /// bool lan = kodi::vfs::IsOnLAN("smb://path/to/file");
 /// ~~~~~~~~~~~~~
 ///
-inline bool ATTR_DLL_LOCAL IsOnLAN(const std::string& path)
+inline bool IsOnLAN(const std::string& path)
 {
-  using namespace kodi::addon;
-
-  return CPrivateBase::m_interface->toKodi->kodi_filesystem->is_on_lan(
-      CPrivateBase::m_interface->toKodi->kodiBase, path.c_str());
+  return kodi::dl::api.kodi_vfs_is_on_lan(path.c_str());
 }
 //------------------------------------------------------------------------------
 
@@ -1570,12 +1487,9 @@ inline bool ATTR_DLL_LOCAL IsOnLAN(const std::string& path)
 /// bool remote = kodi::vfs::IsRemote("http://path/to/file");
 /// ~~~~~~~~~~~~~
 ///
-inline bool ATTR_DLL_LOCAL IsRemote(const std::string& path)
+inline bool IsRemote(const std::string& path)
 {
-  using namespace kodi::addon;
-
-  return CPrivateBase::m_interface->toKodi->kodi_filesystem->is_remote(
-      CPrivateBase::m_interface->toKodi->kodiBase, path.c_str());
+  return kodi::dl::api.kodi_vfs_is_remote(path.c_str());
 }
 //------------------------------------------------------------------------------
 
@@ -1586,12 +1500,9 @@ inline bool ATTR_DLL_LOCAL IsRemote(const std::string& path)
 /// @param[in] path To checked path
 /// @return True if path is local, false otherwise
 ///
-inline bool ATTR_DLL_LOCAL IsLocal(const std::string& path)
+inline bool IsLocal(const std::string& path)
 {
-  using namespace kodi::addon;
-
-  return CPrivateBase::m_interface->toKodi->kodi_filesystem->is_local(
-      CPrivateBase::m_interface->toKodi->kodiBase, path.c_str());
+  return kodi::dl::api.kodi_vfs_is_local(path.c_str());
 }
 //------------------------------------------------------------------------------
 
@@ -1617,14 +1528,11 @@ inline bool ATTR_DLL_LOCAL IsLocal(const std::string& path)
 /// isURL = kodi::vfs::IsURL("/path/to/file");
 /// ~~~~~~~~~~~~~
 ///
-inline bool ATTR_DLL_LOCAL IsURL(const std::string& path)
+inline bool IsURL(const std::string& path)
 {
-  using namespace kodi::addon;
-
-  return CPrivateBase::m_interface->toKodi->kodi_filesystem->is_url(
-      CPrivateBase::m_interface->toKodi->kodiBase, path.c_str());
+  return kodi::dl::api.kodi_vfs_is_url(path.c_str());
 }
-//--------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
 //============================================================================
 /// @ingroup cpp_kodi_vfs_General
@@ -1650,14 +1558,12 @@ inline bool ATTR_DLL_LOCAL IsURL(const std::string& path)
 /// ...
 /// ~~~~~~~~~~~~~
 ///
-inline bool ATTR_DLL_LOCAL GetHttpHeader(const std::string& url, HttpHeader& header)
+inline bool GetHttpHeader(const std::string& url, HttpHeader& header)
 {
-  using namespace ::kodi::addon;
-
-  return CPrivateBase::m_interface->toKodi->kodi_filesystem->get_http_header(
-      CPrivateBase::m_interface->toKodi->kodiBase, url.c_str(), &header.m_handle);
+  header.m_handle = kodi::dl::api.kodi_vfs_http_header_open(url.c_str());
+  return header.m_handle != nullptr;
 }
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
 //============================================================================
 /// @ingroup cpp_kodi_vfs_General
@@ -1681,24 +1587,20 @@ inline bool ATTR_DLL_LOCAL GetHttpHeader(const std::string& url, HttpHeader& hea
 /// ...
 /// ~~~~~~~~~~~~~
 ///
-inline bool ATTR_DLL_LOCAL GetMimeType(const std::string& url,
-                                       std::string& mimeType,
-                                       const std::string& useragent = "")
+inline bool GetMimeType(const std::string& url,
+                        std::string& mimeType,
+                        const std::string& useragent = "")
 {
-  using namespace ::kodi::addon;
-
   char* cMimeType = nullptr;
-  bool ret = CPrivateBase::m_interface->toKodi->kodi_filesystem->get_mime_type(
-      CPrivateBase::m_interface->toKodi->kodiBase, url.c_str(), &cMimeType, useragent.c_str());
+  bool ret = kodi::dl::api.kodi_vfs_get_mime_type(url.c_str(), &cMimeType, useragent.c_str());
   if (cMimeType != nullptr)
   {
     mimeType = cMimeType;
-    CPrivateBase::m_interface->toKodi->free_string(CPrivateBase::m_interface->toKodi->kodiBase,
-                                                   cMimeType);
+    free(cMimeType);
   }
   return ret;
 }
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
 //============================================================================
 /// @ingroup cpp_kodi_vfs_General
@@ -1726,20 +1628,16 @@ inline bool ATTR_DLL_LOCAL GetContentType(const std::string& url,
                                           std::string& content,
                                           const std::string& useragent = "")
 {
-  using namespace ::kodi::addon;
-
   char* cContent = nullptr;
-  bool ret = CPrivateBase::m_interface->toKodi->kodi_filesystem->get_content_type(
-      CPrivateBase::m_interface->toKodi->kodiBase, url.c_str(), &cContent, useragent.c_str());
+  bool ret = kodi::dl::api.kodi_vfs_get_content_type(url.c_str(), &cContent, useragent.c_str());
   if (cContent != nullptr)
   {
     content = cContent;
-    CPrivateBase::m_interface->toKodi->free_string(CPrivateBase::m_interface->toKodi->kodiBase,
-                                                   cContent);
+    free(cContent);
   }
   return ret;
 }
-//----------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
 //============================================================================
 /// @ingroup cpp_kodi_vfs_General
@@ -1766,22 +1664,16 @@ inline bool ATTR_DLL_LOCAL GetContentType(const std::string& url,
 ///
 inline bool ATTR_DLL_LOCAL GetCookies(const std::string& url, std::string& cookies)
 {
-  using namespace ::kodi::addon;
-
   char* cCookies = nullptr;
-  bool ret = CPrivateBase::m_interface->toKodi->kodi_filesystem->get_cookies(
-      CPrivateBase::m_interface->toKodi->kodiBase, url.c_str(), &cCookies);
+  bool ret = kodi::dl::api.kodi_vfs_get_cookies(url.c_str(), &cCookies);
   if (cCookies != nullptr)
   {
     cookies = cCookies;
-    CPrivateBase::m_interface->toKodi->free_string(CPrivateBase::m_interface->toKodi->kodiBase,
-                                                   cCookies);
+    free(cCookies);
   }
   return ret;
 }
-//----------------------------------------------------------------------------
-
-//}}}
+//------------------------------------------------------------------------------
 
 //¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
 // "C++" CFile class
@@ -1857,11 +1749,8 @@ public:
   ///
   bool OpenFile(const std::string& filename, unsigned int flags = 0)
   {
-    using namespace kodi::addon;
-
     Close();
-    m_file = CPrivateBase::m_interface->toKodi->kodi_filesystem->open_file(
-        CPrivateBase::m_interface->toKodi->kodiBase, filename.c_str(), flags);
+    m_file = kodi::dl::api.kodi_vfs_file_open(filename.c_str(), flags);
     return m_file != nullptr;
   }
   //--------------------------------------------------------------------------
@@ -1880,23 +1769,17 @@ public:
   ///
   bool OpenFileForWrite(const std::string& filename, bool overwrite = false)
   {
-    using namespace kodi::addon;
-
     Close();
 
     // Try to open the file. If it fails, check if we need to create the directory first
     // This way we avoid checking if the directory exists every time
-    m_file = CPrivateBase::m_interface->toKodi->kodi_filesystem->open_file_for_write(
-        CPrivateBase::m_interface->toKodi->kodiBase, filename.c_str(), overwrite);
+    m_file = kodi::dl::api.kodi_vfs_file_open_for_write(filename.c_str(), overwrite);
     if (!m_file)
     {
       std::string cacheDirectory = kodi::vfs::GetDirectoryName(filename);
-      if (CPrivateBase::m_interface->toKodi->kodi_filesystem->directory_exists(
-              CPrivateBase::m_interface->toKodi->kodiBase, cacheDirectory.c_str()) ||
-          CPrivateBase::m_interface->toKodi->kodi_filesystem->create_directory(
-              CPrivateBase::m_interface->toKodi->kodiBase, cacheDirectory.c_str()))
-        m_file = CPrivateBase::m_interface->toKodi->kodi_filesystem->open_file_for_write(
-            CPrivateBase::m_interface->toKodi->kodiBase, filename.c_str(), overwrite);
+      if (kodi::dl::api.kodi_vfs_directory_exists(cacheDirectory.c_str()) ||
+          kodi::dl::api.kodi_vfs_create_directory(cacheDirectory.c_str()))
+        m_file = kodi::dl::api.kodi_vfs_file_open_for_write(filename.c_str(), overwrite);
     }
     return m_file != nullptr;
   }
@@ -1917,12 +1800,9 @@ public:
   ///
   void Close()
   {
-    using namespace kodi::addon;
-
     if (!m_file)
       return;
-    CPrivateBase::m_interface->toKodi->kodi_filesystem->close_file(
-        CPrivateBase::m_interface->toKodi->kodiBase, m_file);
+    kodi::dl::api.kodi_vfs_file_close(m_file);
     m_file = nullptr;
   }
   //--------------------------------------------------------------------------
@@ -1936,10 +1816,7 @@ public:
   ///
   bool CURLCreate(const std::string& url)
   {
-    using namespace kodi::addon;
-
-    m_file = CPrivateBase::m_interface->toKodi->kodi_filesystem->curl_create(
-        CPrivateBase::m_interface->toKodi->kodiBase, url.c_str());
+    m_file = kodi::dl::api.kodi_vfs_file_curl_create(url.c_str());
     return m_file != nullptr;
   }
   //--------------------------------------------------------------------------
@@ -1955,15 +1832,12 @@ public:
   ///
   bool CURLAddOption(CURLOptiontype type, const std::string& name, const std::string& value)
   {
-    using namespace kodi::addon;
-
     if (!m_file)
     {
       kodi::Log(ADDON_LOG_ERROR, "kodi::vfs::CURLCreate(...) needed to call before!");
       return false;
     }
-    return CPrivateBase::m_interface->toKodi->kodi_filesystem->curl_add_option(
-        CPrivateBase::m_interface->toKodi->kodiBase, m_file, type, name.c_str(), value.c_str());
+    return kodi::dl::api.kodi_vfs_file_curl_add_option(m_file, type, name.c_str(), value.c_str());
   }
   //--------------------------------------------------------------------------
 
@@ -1976,15 +1850,12 @@ public:
   ///
   bool CURLOpen(unsigned int flags = 0)
   {
-    using namespace kodi::addon;
-
     if (!m_file)
     {
       kodi::Log(ADDON_LOG_ERROR, "kodi::vfs::CURLCreate(...) needed to call before!");
       return false;
     }
-    return CPrivateBase::m_interface->toKodi->kodi_filesystem->curl_open(
-        CPrivateBase::m_interface->toKodi->kodiBase, m_file, flags);
+    return kodi::dl::api.kodi_vfs_file_curl_open(m_file, flags);
   }
   //--------------------------------------------------------------------------
 
@@ -1999,14 +1870,11 @@ public:
   ///         file was reached) or undetectable error occur, -1 in case of any
   ///         explicit error
   ///
-  ssize_t Read(void* ptr, size_t size)
+  ssize_t Read(uint8_t* ptr, size_t size)
   {
-    using namespace kodi::addon;
-
     if (!m_file)
       return -1;
-    return CPrivateBase::m_interface->toKodi->kodi_filesystem->read_file(
-        CPrivateBase::m_interface->toKodi->kodiBase, m_file, ptr, size);
+    return kodi::dl::api.kodi_vfs_file_read(m_file, ptr, size);
   }
   //--------------------------------------------------------------------------
 
@@ -2019,8 +1887,6 @@ public:
   ///
   bool ReadLine(std::string& line)
   {
-    using namespace kodi::addon;
-
     line.clear();
     if (!m_file)
       return false;
@@ -2028,8 +1894,7 @@ public:
     // chars, we didn't hit a newline. Otherwise, if file position is 1 or 2
     // past the number of bytes read, we read (and skipped) a newline sequence.
     char buffer[1025];
-    if (CPrivateBase::m_interface->toKodi->kodi_filesystem->read_file_string(
-            CPrivateBase::m_interface->toKodi->kodiBase, m_file, buffer, sizeof(buffer)))
+    if (kodi::dl::api.kodi_vfs_file_read_line(m_file, buffer, sizeof(buffer)))
     {
       line = buffer;
       return !line.empty();
@@ -2048,14 +1913,11 @@ public:
   ///         zero if no bytes were written and no detectable error occur,-1
   ///         in case of any explicit error
   ///
-  ssize_t Write(const void* ptr, size_t size)
+  ssize_t Write(const uint8_t* ptr, size_t size)
   {
-    using namespace kodi::addon;
-
     if (!m_file)
       return -1;
-    return CPrivateBase::m_interface->toKodi->kodi_filesystem->write_file(
-        CPrivateBase::m_interface->toKodi->kodiBase, m_file, ptr, size);
+    return kodi::dl::api.kodi_vfs_file_write(m_file, ptr, size);
   }
   //--------------------------------------------------------------------------
 
@@ -2075,12 +1937,9 @@ public:
   ///
   void Flush()
   {
-    using namespace kodi::addon;
-
     if (!m_file)
       return;
-    CPrivateBase::m_interface->toKodi->kodi_filesystem->flush_file(
-        CPrivateBase::m_interface->toKodi->kodiBase, m_file);
+    kodi::dl::api.kodi_vfs_file_flush(m_file);
   }
   //--------------------------------------------------------------------------
 
@@ -2104,12 +1963,9 @@ public:
   ///
   int64_t Seek(int64_t position, int whence = SEEK_SET)
   {
-    using namespace kodi::addon;
-
     if (!m_file)
       return -1;
-    return CPrivateBase::m_interface->toKodi->kodi_filesystem->seek_file(
-        CPrivateBase::m_interface->toKodi->kodiBase, m_file, position, whence);
+    return kodi::dl::api.kodi_vfs_file_seek(m_file, position, whence);
   }
   //--------------------------------------------------------------------------
 
@@ -2122,12 +1978,9 @@ public:
   ///
   int Truncate(int64_t size)
   {
-    using namespace kodi::addon;
-
     if (!m_file)
       return -1;
-    return CPrivateBase::m_interface->toKodi->kodi_filesystem->truncate_file(
-        CPrivateBase::m_interface->toKodi->kodiBase, m_file, size);
+    return kodi::dl::api.kodi_vfs_file_truncate(m_file, size);
   }
   //--------------------------------------------------------------------------
 
@@ -2139,12 +1992,9 @@ public:
   ///
   int64_t GetPosition() const
   {
-    using namespace kodi::addon;
-
     if (!m_file)
       return -1;
-    return CPrivateBase::m_interface->toKodi->kodi_filesystem->get_file_position(
-        CPrivateBase::m_interface->toKodi->kodiBase, m_file);
+    return kodi::dl::api.kodi_vfs_file_get_position(m_file);
   }
   //--------------------------------------------------------------------------
 
@@ -2156,12 +2006,9 @@ public:
   ///
   int64_t GetLength() const
   {
-    using namespace kodi::addon;
-
     if (!m_file)
       return -1;
-    return CPrivateBase::m_interface->toKodi->kodi_filesystem->get_file_length(
-        CPrivateBase::m_interface->toKodi->kodiBase, m_file);
+    return kodi::dl::api.kodi_vfs_file_get_length(m_file);
   }
   //--------------------------------------------------------------------------
 
@@ -2171,18 +2018,7 @@ public:
   ///
   /// @return If you've reached the end of the file, AtEnd() returns true.
   ///
-  bool AtEnd() const
-  {
-    using namespace kodi::addon;
-
-    if (!m_file)
-      return true;
-    int64_t length = CPrivateBase::m_interface->toKodi->kodi_filesystem->get_file_length(
-        CPrivateBase::m_interface->toKodi->kodiBase, m_file);
-    int64_t position = CPrivateBase::m_interface->toKodi->kodi_filesystem->get_file_position(
-        CPrivateBase::m_interface->toKodi->kodiBase, m_file);
-    return position >= length;
-  }
+  bool AtEnd() const { return kodi::dl::api.kodi_vfs_file_at_end(m_file); }
   //--------------------------------------------------------------------------
 
   //==========================================================================
@@ -2193,12 +2029,9 @@ public:
   ///
   int GetChunkSize() const
   {
-    using namespace kodi::addon;
-
     if (!m_file)
       return -1;
-    return CPrivateBase::m_interface->toKodi->kodi_filesystem->get_file_chunk_size(
-        CPrivateBase::m_interface->toKodi->kodiBase, m_file);
+    return kodi::dl::api.kodi_vfs_file_get_chunk_size(m_file);
   }
   //--------------------------------------------------------------------------
 
@@ -2210,12 +2043,9 @@ public:
   ///
   bool IoControlGetSeekPossible() const
   {
-    using namespace kodi::addon;
-
     if (!m_file)
       return false;
-    return CPrivateBase::m_interface->toKodi->kodi_filesystem->io_control_get_seek_possible(
-        CPrivateBase::m_interface->toKodi->kodiBase, m_file);
+    return kodi::dl::api.kodi_vfs_file_io_ctl_get_seek_possible(m_file);
   }
   //--------------------------------------------------------------------------
 
@@ -2231,14 +2061,11 @@ public:
   ///
   bool IoControlGetCacheStatus(CacheStatus& status) const
   {
-    using namespace kodi::addon;
-
     if (!m_file)
       return false;
-    return CPrivateBase::m_interface->toKodi->kodi_filesystem->io_control_get_cache_status(
-        CPrivateBase::m_interface->toKodi->kodiBase, m_file, status);
+    return kodi::dl::api.kodi_vfs_file_io_ctl_get_cache_status(m_file, status);
   }
-  //--------------------------------------------------------------------------
+  //------------------------------------------------------------------------------
 
   //==========================================================================
   /// @ingroup cpp_kodi_vfs_CFile
@@ -2249,14 +2076,11 @@ public:
   ///
   bool IoControlSetCacheRate(uint32_t rate)
   {
-    using namespace kodi::addon;
-
     if (!m_file)
       return false;
-    return CPrivateBase::m_interface->toKodi->kodi_filesystem->io_control_set_cache_rate(
-        CPrivateBase::m_interface->toKodi->kodiBase, m_file, rate);
+    return kodi::dl::api.kodi_vfs_file_io_ctl_set_cache_rate(m_file, rate);
   }
-  //--------------------------------------------------------------------------
+  //------------------------------------------------------------------------------
 
   //==========================================================================
   /// @ingroup cpp_kodi_vfs_CFile
@@ -2267,14 +2091,11 @@ public:
   ///
   bool IoControlSetRetry(bool retry)
   {
-    using namespace kodi::addon;
-
     if (!m_file)
       return false;
-    return CPrivateBase::m_interface->toKodi->kodi_filesystem->io_control_set_retry(
-        CPrivateBase::m_interface->toKodi->kodiBase, m_file, retry);
+    return kodi::dl::api.kodi_vfs_file_io_ctl_set_retry(m_file, retry);
   }
-  //--------------------------------------------------------------------------
+  //------------------------------------------------------------------------------
 
   //==========================================================================
   /// @ingroup cpp_kodi_vfs_CFile
@@ -2286,8 +2107,6 @@ public:
   ///
   const std::string GetPropertyValue(FilePropertyTypes type, const std::string& name) const
   {
-    using namespace kodi::addon;
-
     if (!m_file)
     {
       kodi::Log(ADDON_LOG_ERROR,
@@ -2314,27 +2133,27 @@ public:
   const std::vector<std::string> GetPropertyValues(FilePropertyTypes type,
                                                    const std::string& name) const
   {
-    using namespace kodi::addon;
-
     if (!m_file)
     {
       kodi::Log(ADDON_LOG_ERROR,
                 "kodi::vfs::CURLCreate(...) needed to call before GetPropertyValues!");
       return std::vector<std::string>();
     }
-    int numValues = 0;
-    char** res(CPrivateBase::m_interface->toKodi->kodi_filesystem->get_property_values(
-        CPrivateBase::m_interface->toKodi->kodiBase, m_file, type, name.c_str(), &numValues));
+    size_t numValues = 0;
+    char** res(
+        kodi::dl::api.kodi_vfs_file_get_property_values(m_file, type, name.c_str(), &numValues));
     if (res)
     {
       std::vector<std::string> vecReturn;
       vecReturn.reserve(numValues);
-      for (int i = 0; i < numValues; ++i)
+      for (size_t i = 0; i < numValues; ++i)
       {
         vecReturn.emplace_back(res[i]);
+        free(res[i]);
       }
-      CPrivateBase::m_interface->toKodi->free_string_array(
-          CPrivateBase::m_interface->toKodi->kodiBase, res, numValues);
+
+      free(res);
+
       return vecReturn;
     }
     return std::vector<std::string>();
@@ -2349,22 +2168,15 @@ public:
   ///
   double GetFileDownloadSpeed() const
   {
-    using namespace kodi::addon;
-
     if (!m_file)
       return 0.0;
-    return CPrivateBase::m_interface->toKodi->kodi_filesystem->get_file_download_speed(
-        CPrivateBase::m_interface->toKodi->kodiBase, m_file);
+    return kodi::dl::api.kodi_vfs_file_get_download_speed(m_file);
   }
   //--------------------------------------------------------------------------
 
 private:
-  void* m_file = nullptr;
+  KODI_FILE_HDL m_file = nullptr;
 };
-///@}
-//------------------------------------------------------------------------------
-
-//}}}
 
 } /* namespace vfs */
 } /* namespace kodi */

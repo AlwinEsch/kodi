@@ -7,7 +7,6 @@
  */
 
 #include "VideoPlayer.h"
-
 #include "Application.h"
 #include "DVDCodecs/DVDCodecUtils.h"
 #include "DVDDemuxers/DVDDemux.h"
@@ -25,7 +24,6 @@
 #include "DVDInputStreams/DVDInputStreamBluray.h"
 #endif
 #include "DVDInputStreams/DVDInputStreamNavigator.h"
-#include "DVDInputStreams/InputStreamPVRBase.h"
 #include "FileItem.h"
 #include "GUIUserMessages.h"
 #include "LangInfo.h"
@@ -2893,12 +2891,6 @@ void CVideoPlayer::HandleMessages()
       {
         m_callback.OnPlayBackSpeedChanged(speed / DVD_PLAYSPEED_NORMAL);
         m_processInfo->SeekFinished(0);
-      }
-
-      if (m_pInputStream->IsStreamType(DVDSTREAM_TYPE_PVRMANAGER) && speed != m_playSpeed)
-      {
-        std::shared_ptr<CInputStreamPVRBase> pvrinputstream = std::static_pointer_cast<CInputStreamPVRBase>(m_pInputStream);
-        pvrinputstream->Pause(speed == 0);
       }
 
       // do a seek after rewind, clock is not in sync with current pts

@@ -12,6 +12,19 @@
 #include "AddonEvents.h"
 #include "threads/CriticalSection.h"
 
+namespace KODI
+{
+namespace ADDONS
+{
+namespace INTERFACE
+{
+
+class CRunningProcess;
+
+} /* namespace INTERFACE */
+} /* namespace ADDONS */
+} /* namespace KODI */
+
 namespace ADDON
 {
   class CService: public CAddon
@@ -50,11 +63,13 @@ namespace ADDON
   private:
     void OnEvent(const AddonEvent& event);
 
+    void Stop(const std::shared_ptr<KODI::ADDONS::INTERFACE::CRunningProcess>& service);
     void Stop(const std::map<std::string, int>::value_type& service);
 
     CAddonMgr& m_addonMgr;
     CCriticalSection m_criticalSection;
+    std::map<std::string, std::shared_ptr<KODI::ADDONS::INTERFACE::CRunningProcess>> m_services;
     /** add-on id -> script id */
-    std::map<std::string, int> m_services;
+    std::map<std::string, int> m_servicesPythonOld;
   };
 }

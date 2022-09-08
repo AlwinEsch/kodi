@@ -13,6 +13,7 @@ set(HEADERS
   VFS.h
   VideoCodec.h
   Visualization.h
+  Web.h
 )
 
 if(HEADERS)

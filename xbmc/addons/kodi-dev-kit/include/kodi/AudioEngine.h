@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2005-2019 Team Kodi
+ *  Copyright (C) 2005-2020 Team Kodi
  *  This file is part of Kodi - https://kodi.tv
  *
  *  SPDX-License-Identifier: GPL-2.0-or-later
@@ -9,9 +9,12 @@
 #pragma once
 
 #include "AddonBase.h"
+#include "General.h"
 #include "c-api/audio_engine.h"
 
 #ifdef __cplusplus
+
+#include <vector>
 
 namespace kodi
 {
@@ -100,107 +103,65 @@ namespace audioengine
 ///
 ///@{
 class ATTR_DLL_LOCAL AudioEngineFormat
-  : public addon::CStructHdl<AudioEngineFormat, AUDIO_ENGINE_FORMAT>
+  : public addon::CStructHdl<AudioEngineFormat, AUDIO_ENGINE_FMT>
 {
 public:
-  /*! \cond PRIVATE */
   AudioEngineFormat()
   {
-    m_cStructure->m_dataFormat = AUDIOENGINE_FMT_INVALID;
-    m_cStructure->m_sampleRate = 0;
-    m_cStructure->m_encodedRate = 0;
-    m_cStructure->m_frames = 0;
-    m_cStructure->m_frameSize = 0;
-    m_cStructure->m_channelCount = 0;
+    m_cStructure->data_format = AUDIOENGINE_FMT_INVALID;
+    m_cStructure->sample_rate = 0;
+    m_cStructure->frames = 0;
+    m_cStructure->frame_size = 0;
+    m_cStructure->channel_count = 0;
 
     for (size_t ch = 0; ch < AUDIOENGINE_CH_MAX; ++ch)
-      m_cStructure->m_channels[ch] = AUDIOENGINE_CH_NULL;
+      m_cStructure->channels[ch] = AUDIOENGINE_CH_NULL;
   }
   AudioEngineFormat(const AudioEngineFormat& channel) : CStructHdl(channel) {}
-  AudioEngineFormat(const AUDIO_ENGINE_FORMAT* channel) : CStructHdl(channel) {}
-  AudioEngineFormat(AUDIO_ENGINE_FORMAT* channel) : CStructHdl(channel) {}
-  /*! \endcond */
+  AudioEngineFormat(const AUDIO_ENGINE_FMT* channel) : CStructHdl(channel) {}
+  AudioEngineFormat(AUDIO_ENGINE_FMT* channel) : CStructHdl(channel) {}
 
-  /// @defgroup cpp_kodi_audioengine_Defs_AudioEngineFormat_Help *Value Help*
-  /// @ingroup cpp_kodi_audioengine_Defs_AudioEngineFormat
-  ///
-  /// <b>The following table contains values that can be set with @ref cpp_kodi_audioengine_Defs_AudioEngineFormat :</b>
-  /// | Name | Type | Set call | Get call
-  /// |------|------|----------|----------
-  /// | **Data format**, see @ref AudioEngineDataFormat for available types | enum | @ref AudioEngineFormat::SetDataFormat "SetDataFormat" | @ref AudioEngineFormat::GetDataFormat "GetDataFormat"
-  /// | **Sample rate** | unsigned int | @ref AudioEngineFormat::SetSampleRate "SetSampleRate" | @ref AudioEngineFormat::GetSampleRate "GetSampleRate"
-  /// | **Encoded rate** | unsigned int | @ref AudioEngineFormat::SetEncodedRate "SetEncodedRate" | @ref AudioEngineFormat::GetEncodedRate "GetEncodedRate"
-  /// | **Channel layout**, see @ref AudioEngineChannel for available types | std::vector<enum AudioEngineChannel> | @ref AudioEngineFormat::SetChannelLayout "SetChannelLayout" | @ref AudioEngineFormat::GetChannelLayout "GetChannelLayout"
-  /// | **Frames amount** | unsigned int | @ref AudioEngineFormat::SetFramesAmount "SetFramesAmount" | @ref AudioEngineFormat::GetFramesAmount "GetFramesAmount"
-  /// | **Frame size** | unsigned int | @ref AudioEngineFormat::SetFrameSize "SetFrameSize" | @ref AudioEngineFormat::GetFrameSize "GetFrameSize"
-  ///
-  /// Further is @ref AudioEngineFormat::CompareFormat "CompareFormat" included to compare this class with another.
-  ///
+  void SetDataFormat(AudioEngineDataFormat format) { m_cStructure->data_format = format; }
+  AudioEngineDataFormat GetDataFormat() const { return m_cStructure->data_format; }
 
-  /// @addtogroup cpp_kodi_audioengine_Defs_AudioEngineFormat
-  /// @copydetails cpp_kodi_audioengine_Defs_AudioEngineFormat_Help
-  ///@{
+  void SetSampleRate(unsigned int rate) { m_cStructure->sample_rate = rate; }
+  unsigned int GetSampleRate() const { return m_cStructure->sample_rate; }
 
-  /// @brief The stream's data format (eg, AUDIOENGINE_FMT_S16LE)
-  void SetDataFormat(enum AudioEngineDataFormat format) { m_cStructure->m_dataFormat = format; }
-
-  /// @brief To get with @ref SetDataFormat changed values.
-  enum AudioEngineDataFormat GetDataFormat() const { return m_cStructure->m_dataFormat; }
-
-  /// @brief The stream's sample rate (eg, 48000)
-  void SetSampleRate(unsigned int rate) { m_cStructure->m_sampleRate = rate; }
-
-  /// @brief To get with @ref SetSampleRate changed values.
-  unsigned int GetSampleRate() const { return m_cStructure->m_sampleRate; }
-
-  /// @brief The encoded streams sample rate if a bitstream, otherwise undefined
-  void SetEncodedRate(unsigned int rate) { m_cStructure->m_encodedRate = rate; }
-
-  /// @brief To get with @ref SetEncodedRate changed values.
-  unsigned int GetEncodedRate() const { return m_cStructure->m_encodedRate; }
-
-  /// @brief The stream's channel layout
-  void SetChannelLayout(const std::vector<enum AudioEngineChannel>& layout)
+  void SetChannelLayout(const std::vector<AudioEngineChannel>& layout)
   {
     // Reset first all to empty values to AUDIOENGINE_CH_NULL, in case given list is empty
-    m_cStructure->m_channelCount = 0;
+    m_cStructure->channel_count = 0;
     for (size_t ch = 0; ch < AUDIOENGINE_CH_MAX; ++ch)
-      m_cStructure->m_channels[ch] = AUDIOENGINE_CH_NULL;
+      m_cStructure->channels[ch] = AUDIOENGINE_CH_NULL;
 
     for (size_t ch = 0; ch < layout.size() && ch < AUDIOENGINE_CH_MAX; ++ch)
     {
-      m_cStructure->m_channels[ch] = layout[ch];
-      m_cStructure->m_channelCount++;
+      m_cStructure->channels[ch] = layout[ch];
+      m_cStructure->channel_count++;
     }
   }
 
-  /// @brief To get with @ref SetChannelLayout changed values.
-  std::vector<enum AudioEngineChannel> GetChannelLayout() const
+  std::vector<AudioEngineChannel> GetChannelLayout() const
   {
-    std::vector<enum AudioEngineChannel> channels;
+    std::vector<AudioEngineChannel> channels;
     for (size_t ch = 0; ch < AUDIOENGINE_CH_MAX; ++ch)
     {
-      if (m_cStructure->m_channels[ch] == AUDIOENGINE_CH_NULL)
+      if (m_cStructure->channels[ch] == AUDIOENGINE_CH_NULL)
         break;
 
-      channels.push_back(m_cStructure->m_channels[ch]);
+      channels.push_back(m_cStructure->channels[ch]);
     }
     return channels;
   }
 
-  /// @brief The number of frames per period
-  void SetFramesAmount(unsigned int frames) { m_cStructure->m_frames = frames; }
+  unsigned int GetChannelCount() { return m_cStructure->channel_count; }
 
-  /// @brief To get with @ref SetFramesAmount changed values.
-  unsigned int GetFramesAmount() const { return m_cStructure->m_frames; }
+  void SetFramesAmount(unsigned int frames) { m_cStructure->frames = frames; }
+  unsigned int GetFramesAmount() const { return m_cStructure->frames; }
 
-  /// @brief The size of one frame in bytes
-  void SetFrameSize(unsigned int frameSize) { m_cStructure->m_frameSize = frameSize; }
+  void SetFrameSize(unsigned int frameSize) { m_cStructure->frame_size = frameSize; }
+  unsigned int GetFrameSize() const { return m_cStructure->frame_size; }
 
-  /// @brief To get with @ref SetFrameSize changed values.
-  unsigned int GetFrameSize() const { return m_cStructure->m_frameSize; }
-
-  /// @brief Function to compare the format structure with another
   bool CompareFormat(const AudioEngineFormat* fmt)
   {
     if (!fmt)
@@ -208,19 +169,18 @@ public:
       return false;
     }
 
-    if (m_cStructure->m_dataFormat != fmt->m_cStructure->m_dataFormat ||
-        m_cStructure->m_sampleRate != fmt->m_cStructure->m_sampleRate ||
-        m_cStructure->m_encodedRate != fmt->m_cStructure->m_encodedRate ||
-        m_cStructure->m_frames != fmt->m_cStructure->m_frames ||
-        m_cStructure->m_frameSize != fmt->m_cStructure->m_frameSize ||
-        m_cStructure->m_channelCount != fmt->m_cStructure->m_channelCount)
+    if (m_cStructure->data_format != fmt->m_cStructure->data_format ||
+        m_cStructure->sample_rate != fmt->m_cStructure->sample_rate ||
+        m_cStructure->frames != fmt->m_cStructure->frames ||
+        m_cStructure->frame_size != fmt->m_cStructure->frame_size ||
+        m_cStructure->channel_count != fmt->m_cStructure->channel_count)
     {
       return false;
     }
 
     for (unsigned int ch = 0; ch < AUDIOENGINE_CH_MAX; ++ch)
     {
-      if (fmt->m_cStructure->m_channels[ch] != m_cStructure->m_channels[ch])
+      if (fmt->m_cStructure->channels[ch] != m_cStructure->channels[ch])
       {
         return false;
       }
@@ -228,7 +188,6 @@ public:
 
     return true;
   }
-  ///@}
 };
 ///@}
 //----------------------------------------------------------------------------
@@ -302,53 +261,35 @@ public:
   ///
   /// ~~~~~~~~~~~~~
   ///
-  CAEStream(AudioEngineFormat& format, unsigned int options = 0)
-    : m_kodiBase(::kodi::addon::CPrivateBase::m_interface->toKodi->kodiBase),
-      m_cb(::kodi::addon::CPrivateBase::m_interface->toKodi->kodi_audioengine)
+  CAEStream(AudioEngineFormat& format, unsigned int options = 0) : m_format(format)
   {
-    m_StreamHandle = m_cb->make_stream(m_kodiBase, format, options);
-    if (m_StreamHandle == nullptr)
+    m_streamHandle = kodi::dl::api.kodi_audioengine_stream_make(m_format, options);
+    if (m_streamHandle == nullptr)
     {
       kodi::Log(ADDON_LOG_FATAL, "CAEStream: make_stream failed!");
+      return;
     }
-  }
-  //--------------------------------------------------------------------------
 
-  //==========================================================================
-  /// @ingroup cpp_kodi_audioengine_CAEStream
-  /// @brief Class destructor.
-  ///
+    m_planes = kodi::dl::api.kodi_audioengine_is_planar_format(format.GetDataFormat())
+                   ? format.GetChannelCount()
+                   : 1;
+  }
+  //------------------------------------------------------------------------------
+
   ~CAEStream()
   {
-    if (m_StreamHandle)
+    if (m_streamHandle)
     {
-      m_cb->free_stream(m_kodiBase, m_StreamHandle);
-      m_StreamHandle = nullptr;
+      kodi::dl::api.kodi_audioengine_stream_free(m_streamHandle);
+      m_streamHandle = nullptr;
     }
   }
-  //--------------------------------------------------------------------------
 
-  //==========================================================================
-  /// @ingroup cpp_kodi_audioengine_CAEStream
-  /// @brief Returns the amount of space available in the stream.
-  ///
-  /// @return The number of bytes AddData will consume
-  ///
-  unsigned int GetSpace() { return m_cb->aestream_get_space(m_kodiBase, m_StreamHandle); }
-  //--------------------------------------------------------------------------
+  unsigned int GetSpace()
+  {
+    return kodi::dl::api.kodi_audioengine_stream_get_space(m_streamHandle);
+  }
 
-  //==========================================================================
-  /// @ingroup cpp_kodi_audioengine_CAEStream
-  /// @brief Add planar or interleaved PCM data to the stream.
-  ///
-  /// @param[in] data array of pointers to the planes
-  /// @param[in] offset to frame in frames
-  /// @param[in] frames number of frames
-  /// @param[in] pts [opt] presentation timestamp, default is 0
-  /// @param[in] hasDownmix [opt] set true if downmix is present, default is false
-  /// @param[in] centerMixLevel [opt] level to mix left and right to center default is 1.0
-  /// @return The number of frames consumed
-  ///
   unsigned int AddData(uint8_t* const* data,
                        unsigned int offset,
                        unsigned int frames,
@@ -356,222 +297,91 @@ public:
                        bool hasDownmix = false,
                        double centerMixLevel = 1.0)
   {
-    return m_cb->aestream_add_data(m_kodiBase, m_StreamHandle, data, offset, frames, pts,
-                                   hasDownmix, centerMixLevel);
+    return kodi::dl::api.kodi_audioengine_stream_add_data(
+        m_streamHandle, data, m_planes, frames * m_format.GetFrameSize(), offset, frames,
+        m_format.GetFrameSize(), pts, hasDownmix, centerMixLevel);
   }
-  //--------------------------------------------------------------------------
 
-  //==========================================================================
-  /// @ingroup cpp_kodi_audioengine_CAEStream
-  /// @brief Returns the time in seconds that it will take for the next added
-  /// packet to be heard from the speakers.
-  ///
-  /// @return seconds
-  ///
-  double GetDelay() { return m_cb->aestream_get_delay(m_kodiBase, m_StreamHandle); }
-  //--------------------------------------------------------------------------
+  double GetDelay() { return kodi::dl::api.kodi_audioengine_stream_get_delay(m_streamHandle); }
 
-  //==========================================================================
-  /// @ingroup cpp_kodi_audioengine_CAEStream
-  /// @brief Returns if the stream is buffering.
-  ///
-  /// @return True if the stream is buffering
-  ///
-  bool IsBuffering() { return m_cb->aestream_is_buffering(m_kodiBase, m_StreamHandle); }
-  //--------------------------------------------------------------------------
+  bool IsBuffering() { return kodi::dl::api.kodi_audioengine_stream_is_buffering(m_streamHandle); }
 
-  //==========================================================================
-  /// @ingroup cpp_kodi_audioengine_CAEStream
-  /// @brief Returns the time in seconds of the stream's cached audio samples.
-  /// Engine buffers excluded.
-  ///
-  /// @return seconds
-  ///
-  double GetCacheTime() { return m_cb->aestream_get_cache_time(m_kodiBase, m_StreamHandle); }
-  //--------------------------------------------------------------------------
+  double GetCacheTime()
+  {
+    return kodi::dl::api.kodi_audioengine_stream_get_cache_time(m_streamHandle);
+  }
 
-  //==========================================================================
-  /// @ingroup cpp_kodi_audioengine_CAEStream
-  /// @brief Returns the total time in seconds of the cache.
-  ///
-  /// @return seconds
-  ///
-  double GetCacheTotal() { return m_cb->aestream_get_cache_total(m_kodiBase, m_StreamHandle); }
-  //--------------------------------------------------------------------------
+  double GetCacheTotal()
+  {
+    return kodi::dl::api.kodi_audioengine_stream_get_cache_total(m_streamHandle);
+  }
 
-  //==========================================================================
-  /// @ingroup cpp_kodi_audioengine_CAEStream
-  /// @brief Pauses the stream playback.
-  ///
-  void Pause() { return m_cb->aestream_pause(m_kodiBase, m_StreamHandle); }
-  //--------------------------------------------------------------------------
+  void Pause() { return kodi::dl::api.kodi_audioengine_stream_pause(m_streamHandle); }
 
-  //==========================================================================
-  /// @ingroup cpp_kodi_audioengine_CAEStream
-  /// @brief Resumes the stream after pausing
-  ///
-  void Resume() { return m_cb->aestream_resume(m_kodiBase, m_StreamHandle); }
-  //--------------------------------------------------------------------------
+  void Resume() { return kodi::dl::api.kodi_audioengine_stream_resume(m_streamHandle); }
 
-  //==========================================================================
-  /// @ingroup cpp_kodi_audioengine_CAEStream
-  /// @brief Start draining the stream.
-  ///
-  /// @param[in] wait [opt] Wait until drain is finished if set to true,
-  ///                 otherwise it returns direct
-  ///
-  /// @note Once called AddData will not consume more data.
-  ///
-  void Drain(bool wait = true) { return m_cb->aestream_drain(m_kodiBase, m_StreamHandle, wait); }
-  //--------------------------------------------------------------------------
+  void Drain(bool wait = true)
+  {
+    return kodi::dl::api.kodi_audioengine_stream_drain(m_streamHandle, wait);
+  }
 
-  //==========================================================================
-  /// @ingroup cpp_kodi_audioengine_CAEStream
-  /// @brief Returns true if the is stream draining.
-  ///
-  bool IsDraining() { return m_cb->aestream_is_draining(m_kodiBase, m_StreamHandle); }
-  //--------------------------------------------------------------------------
+  bool IsDraining() { return kodi::dl::api.kodi_audioengine_stream_is_draining(m_streamHandle); }
 
-  //==========================================================================
-  /// @ingroup cpp_kodi_audioengine_CAEStream
-  /// @brief Returns true if the is stream has finished draining.
-  ///
-  bool IsDrained() { return m_cb->aestream_is_drained(m_kodiBase, m_StreamHandle); }
-  //--------------------------------------------------------------------------
+  bool IsDrained() { return kodi::dl::api.kodi_audioengine_stream_is_drained(m_streamHandle); }
 
-  //==========================================================================
-  /// @ingroup cpp_kodi_audioengine_CAEStream
-  /// @brief Flush all buffers dropping the audio data.
-  ///
-  void Flush() { return m_cb->aestream_flush(m_kodiBase, m_StreamHandle); }
-  //--------------------------------------------------------------------------
+  void Flush() { return kodi::dl::api.kodi_audioengine_stream_flush(m_streamHandle); }
 
-  //==========================================================================
-  /// @ingroup cpp_kodi_audioengine_CAEStream
-  /// @brief Return the stream's current volume level.
-  ///
-  /// @return The volume level between 0.0 and 1.0
-  ///
-  float GetVolume() { return m_cb->aestream_get_volume(m_kodiBase, m_StreamHandle); }
-  //--------------------------------------------------------------------------
+  float GetVolume() { return kodi::dl::api.kodi_audioengine_stream_get_volume(m_streamHandle); }
 
-  //==========================================================================
-  /// @ingroup cpp_kodi_audioengine_CAEStream
-  /// @brief Set the stream's volume level.
-  ///
-  /// @param[in] volume               The new volume level between 0.0 and 1.0
-  ///
   void SetVolume(float volume)
   {
-    return m_cb->aestream_set_volume(m_kodiBase, m_StreamHandle, volume);
+    return kodi::dl::api.kodi_audioengine_stream_set_volume(m_streamHandle, volume);
   }
-  //--------------------------------------------------------------------------
 
-  //==========================================================================
-  /// @ingroup cpp_kodi_audioengine_CAEStream
-  /// @brief Gets the stream's volume amplification in linear units.
-  ///
-  /// @return The volume amplification factor between 1.0 and 1000.0
-  ///
-  float GetAmplification() { return m_cb->aestream_get_amplification(m_kodiBase, m_StreamHandle); }
-  //--------------------------------------------------------------------------
+  float GetAmplification()
+  {
+    return kodi::dl::api.kodi_audioengine_stream_get_amplification(m_streamHandle);
+  }
 
-  //==========================================================================
-  /// @ingroup cpp_kodi_audioengine_CAEStream
-  /// @brief Sets the stream's volume amplification in linear units.
-  ///
-  /// @param[in] amplify The volume amplification factor between 1.0 and 1000.0
-  ///
   void SetAmplification(float amplify)
   {
-    return m_cb->aestream_set_amplification(m_kodiBase, m_StreamHandle, amplify);
+    return kodi::dl::api.kodi_audioengine_stream_set_amplification(m_streamHandle, amplify);
   }
-  //--------------------------------------------------------------------------
 
-  //==========================================================================
-  /// @ingroup cpp_kodi_audioengine_CAEStream
-  /// @brief Returns the size of one audio frame in bytes (channelCount * resolution).
-  ///
-  /// @return The size in bytes of one frame
-  ///
   unsigned int GetFrameSize() const
   {
-    return m_cb->aestream_get_frame_size(m_kodiBase, m_StreamHandle);
+    return kodi::dl::api.kodi_audioengine_stream_get_frame_size(m_streamHandle);
   }
-  //--------------------------------------------------------------------------
 
-  //==========================================================================
-  /// @ingroup cpp_kodi_audioengine_CAEStream
-  /// @brief Returns the number of channels the stream is configured to accept.
-  ///
-  /// @return The channel count
-  ///
   unsigned int GetChannelCount() const
   {
-    return m_cb->aestream_get_channel_count(m_kodiBase, m_StreamHandle);
+    return kodi::dl::api.kodi_audioengine_stream_get_channel_count(m_streamHandle);
   }
-  //--------------------------------------------------------------------------
 
-  //==========================================================================
-  /// @ingroup cpp_kodi_audioengine_CAEStream
-  /// @brief Returns the stream's sample rate, if the stream is using a dynamic
-  /// sample rate, this value will NOT reflect any changes made by calls to
-  /// SetResampleRatio().
-  ///
-  /// @return The stream's sample rate (eg, 48000)
-  ///
   unsigned int GetSampleRate() const
   {
-    return m_cb->aestream_get_sample_rate(m_kodiBase, m_StreamHandle);
+    return kodi::dl::api.kodi_audioengine_stream_get_sample_rate(m_streamHandle);
   }
-  //--------------------------------------------------------------------------
 
-  //==========================================================================
-  /// @ingroup cpp_kodi_audioengine_CAEStream
-  /// @brief Return the data format the stream has been configured with.
-  ///
-  /// @return The stream's data format (eg, AUDIOENGINE_FMT_S16LE)
-  ///
   AudioEngineDataFormat GetDataFormat() const
   {
-    return m_cb->aestream_get_data_format(m_kodiBase, m_StreamHandle);
+    return kodi::dl::api.kodi_audioengine_stream_get_data_format(m_streamHandle);
   }
-  //--------------------------------------------------------------------------
 
-  //==========================================================================
-  /// @ingroup cpp_kodi_audioengine_CAEStream
-  /// @brief Return the resample ratio.
-  ///
-  /// @note This will return an undefined value if the stream is not resampling.
-  ///
-  /// @return the current resample ratio or undefined if the stream is not resampling
-  ///
   double GetResampleRatio()
   {
-    return m_cb->aestream_get_resample_ratio(m_kodiBase, m_StreamHandle);
+    return kodi::dl::api.kodi_audioengine_stream_get_resample_ratio(m_streamHandle);
   }
-  //--------------------------------------------------------------------------
 
-  //==========================================================================
-  /// @ingroup cpp_kodi_audioengine_CAEStream
-  /// @brief Sets the resample ratio.
-  ///
-  /// @note This function may return false if the stream is not resampling, if
-  /// you wish to use this be sure to set the AESTREAM_FORCE_RESAMPLE option.
-  ///
-  /// @param[in] ratio the new sample rate ratio, calculated by
-  ///                  ((double)desiredRate / (double)GetSampleRate())
-  ///
   void SetResampleRatio(double ratio)
   {
-    m_cb->aestream_set_resample_ratio(m_kodiBase, m_StreamHandle, ratio);
+    kodi::dl::api.kodi_audioengine_stream_set_resample_ratio(m_streamHandle, ratio);
   }
-  //--------------------------------------------------------------------------
 
 private:
-  void* m_kodiBase;
-  AddonToKodiFuncTable_kodi_audioengine* m_cb;
-  AEStreamHandle* m_StreamHandle;
+  const AudioEngineFormat m_format;
+  int m_planes = 1;
+  KODI_AE_HDL m_streamHandle;
 };
 //----------------------------------------------------------------------------
 
@@ -605,13 +415,13 @@ private:
 ///
 inline bool ATTR_DLL_LOCAL GetCurrentSinkFormat(AudioEngineFormat& format)
 {
-  using namespace kodi::addon;
-  return CPrivateBase::m_interface->toKodi->kodi_audioengine->get_current_sink_format(
-      CPrivateBase::m_interface->toKodi->kodiBase, format);
+  return kodi::dl::api.kodi_audioengine_get_current_sink_format(format);
 }
-//----------------------------------------------------------------------------
 
-//}}}
+inline bool IsPlanarFormat(AudioEngineDataFormat format)
+{
+  return kodi::dl::api.kodi_audioengine_is_planar_format(format);
+}
 
 } // namespace audioengine
 } // namespace kodi

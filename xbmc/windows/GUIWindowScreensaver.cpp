@@ -28,16 +28,19 @@ void CGUIWindowScreensaver::Process(unsigned int currentTime, CDirtyRegionList &
 {
   MarkDirtyRegion();
   CGUIWindow::Process(currentTime, regions);
-  m_renderRegion.SetRect(0, 0, (float)CServiceBroker::GetWinSystem()->GetGfxContext().GetWidth(), (float)CServiceBroker::GetWinSystem()->GetGfxContext().GetHeight());
+  auto& context = CServiceBroker::GetWinSystem()->GetGfxContext();
+  m_renderRegion.SetRect(0, 0, static_cast<float>(context.GetWidth()), static_cast<float>(context.GetHeight()));
 }
 
 void CGUIWindowScreensaver::Render()
 {
   if (m_addon)
   {
-    CServiceBroker::GetWinSystem()->GetGfxContext().CaptureStateBlock();
+    auto& context = CServiceBroker::GetWinSystem()->GetGfxContext();
+
+    context.CaptureStateBlock();
     m_addon->Render();
-    CServiceBroker::GetWinSystem()->GetGfxContext().ApplyStateBlock();
+    context.ApplyStateBlock();
     return;
   }
 
@@ -53,6 +56,8 @@ EVENT_RESULT CGUIWindowScreensaver::OnMouseEvent(const CPoint &point, const CMou
 
 bool CGUIWindowScreensaver::OnMessage(CGUIMessage& message)
 {
+  auto& context = CServiceBroker::GetWinSystem()->GetGfxContext();
+
   switch (message.GetMessage())
   {
   case GUI_MSG_WINDOW_DEINIT:
@@ -63,7 +68,7 @@ bool CGUIWindowScreensaver::OnMessage(CGUIMessage& message)
         m_addon.reset();
       }
 
-      CServiceBroker::GetWinSystem()->GetGfxContext().ApplyStateBlock();
+      context.ApplyStateBlock();
     }
     break;
 
@@ -71,7 +76,7 @@ bool CGUIWindowScreensaver::OnMessage(CGUIMessage& message)
     {
       CGUIWindow::OnMessage(message);
 
-      CServiceBroker::GetWinSystem()->GetGfxContext().CaptureStateBlock();
+      context.CaptureStateBlock();
 
       const std::string addon = CServiceBroker::GetSettingsComponent()->GetSettings()->GetString(
           CSettings::SETTING_SCREENSAVER_MODE);

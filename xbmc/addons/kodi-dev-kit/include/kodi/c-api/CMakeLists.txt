@@ -6,7 +6,9 @@ set(HEADERS
   audio_engine.h
   filesystem.h
   general.h
+  monitor.h
   network.h
+  version.h
 )
 
 if(HEADERS)

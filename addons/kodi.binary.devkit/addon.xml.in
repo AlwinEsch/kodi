@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<addon id="kodi.binary.devkit" version="@__KDK_MAJOR__@.@__KDK_MINOR__@" provider-name="Team Kodi">
+  <backwards-compatibility abi="@__KDK_API_OLDEST__@.0"/>
+  <canary>@__KDK_CANARY_XML__@</canary>
+  <requires>
+    <import addon="xbmc.core" version="0.1.0"/>
+  </requires>
+</addon>

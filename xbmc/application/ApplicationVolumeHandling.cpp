@@ -20,6 +20,7 @@
 #include "settings/lib/Setting.h"
 #include "utils/Variant.h"
 #include "utils/XMLUtils.h"
+#include "web/WebManager.h"
 
 #include <tinyxml.h>
 
@@ -59,6 +60,9 @@ void CApplicationVolumeHandling::VolumeChanged()
   // if player has volume control, set it.
   m_appPlayer.SetVolume(m_volumeLevel);
   m_appPlayer.SetMute(m_muted);
+
+  // if webbrowser has volume control, set it to prevent stream send if not needed.
+  CServiceBroker::GetWEBManager().SetMute(m_muted || m_volumeLevel <= VOLUME_MINIMUM);
 }
 
 void CApplicationVolumeHandling::ShowVolumeBar(const CAction* action)

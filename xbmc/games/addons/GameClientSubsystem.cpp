@@ -10,32 +10,40 @@
 
 #include "GameClient.h"
 #include "GameClientProperties.h"
-#include "addons/kodi-dev-kit/include/kodi/addon-instance/Game.h"
+#include "addons/kodi-dev-kit/include/kodi/c-api/addon-instance/game.h"
 #include "games/addons/cheevos/GameClientCheevos.h"
 #include "games/addons/input/GameClientInput.h"
 #include "games/addons/streams/GameClientStreams.h"
 
 using namespace KODI;
+using namespace KODI::ADDONS::INTERFACE;
 using namespace GAME;
 
 CGameClientSubsystem::CGameClientSubsystem(CGameClient& gameClient,
-                                           AddonInstance_Game& addonStruct,
+                                           CHdl_kodi_addoninstance_game_h& gameClientIfc,
+                                           const KODI_ADDON_GAME_HDL gameClientHdl,
                                            CCriticalSection& clientAccess)
-  : m_gameClient(gameClient), m_struct(addonStruct), m_clientAccess(clientAccess)
+  : m_gameClient(gameClient),
+    m_gameClientIfc(gameClientIfc),
+    m_gameClientHdl(gameClientHdl),
+    m_clientAccess(clientAccess)
 {
 }
 
 CGameClientSubsystem::~CGameClientSubsystem() = default;
 
-GameClientSubsystems CGameClientSubsystem::CreateSubsystems(CGameClient& gameClient,
-                                                            AddonInstance_Game& gameStruct,
-                                                            CCriticalSection& clientAccess)
+GameClientSubsystems CGameClientSubsystem::CreateSubsystems(
+    CGameClient& gameClient,
+    CHdl_kodi_addoninstance_game_h& gameClientIfc,
+    const KODI_ADDON_GAME_HDL gameClientHdl,
+    CCriticalSection& clientAccess)
 {
   GameClientSubsystems subsystems = {};
 
-  subsystems.Cheevos = std::make_unique<CGameClientCheevos>(gameClient, gameStruct);
-  subsystems.Input.reset(new CGameClientInput(gameClient, gameStruct, clientAccess));
-  subsystems.AddonProperties.reset(new CGameClientProperties(gameClient, *gameStruct.props));
+  subsystems.Cheevos = std::make_unique<CGameClientCheevos>(gameClient, gameClientIfc, gameClientHdl);
+  subsystems.Input.reset(
+      new CGameClientInput(gameClient, gameClientIfc, gameClientHdl, clientAccess));
+  subsystems.AddonProperties.reset(new CGameClientProperties(gameClient));
   subsystems.Streams.reset(new CGameClientStreams(gameClient));
 
   return subsystems;

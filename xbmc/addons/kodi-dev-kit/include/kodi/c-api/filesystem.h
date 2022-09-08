@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2005-2018 Team Kodi
+ *  Copyright (C) 2005-2020 Team Kodi
  *  This file is part of Kodi - https://kodi.tv
  *
  *  SPDX-License-Identifier: GPL-2.0-or-later
@@ -9,8 +9,8 @@
 #ifndef C_API_FILESYSTEM_H
 #define C_API_FILESYSTEM_H
 
-#include <stdbool.h>
-#include <stdint.h>
+#include "addon_base.h"
+
 #include <time.h>
 
 #ifdef _WIN32 // windows
@@ -39,6 +39,9 @@ typedef intptr_t ssize_t;
 extern "C"
 {
 #endif /* __cplusplus */
+
+  typedef void* KODI_FILE_HDL;
+  typedef void* KODI_HTTP_HEADER_HDL;
 
   //¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
   // "C" Definitions, structures and enumerators of filesystem
@@ -169,54 +172,24 @@ extern "C"
 
   //}}}
 
-  //¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
-  // "C" Internal interface tables for intercommunications between addon and kodi
-  //{{{
-
-  struct KODI_HTTP_HEADER
+  struct VFS_STAT_STRUCTURE
   {
-    void* handle;
-
-    char* (*get_value)(void* kodiBase, void* handle, const char* param);
-    char** (*get_values)(void* kodiBase, void* handle, const char* param, int* length);
-    char* (*get_header)(void* kodiBase, void* handle);
-    char* (*get_mime_type)(void* kodiBase, void* handle);
-    char* (*get_charset)(void* kodiBase, void* handle);
-    char* (*get_proto_line)(void* kodiBase, void* handle);
-  };
-
-  struct STAT_STRUCTURE
-  {
-    /// ID of device containing file
     uint32_t deviceId;
-    /// Total size, in bytes
     uint64_t size;
-    /// Time of last access
     time_t accessTime;
-    /// Time of last modification
     time_t modificationTime;
-    /// Time of last status change
     time_t statusTime;
-    /// The stat url is a directory
     bool isDirectory;
-    /// The stat url is a symbolic link
     bool isSymLink;
-    /// The stat url is block special
     bool isBlock;
-    /// The stat url is character special
     bool isCharacter;
-    /// The stat url is FIFO special
     bool isFifo;
-    /// The stat url is regular
     bool isRegular;
-    /// The stat url is socket
     bool isSocket;
-    /// The file serial number, which distinguishes this file from all other files on the same
-    /// device.
     uint64_t fileSerialNumber;
   };
 
-  struct VFS_CACHE_STATUS_DATA
+  struct VFS_CACHE_STATUS
   {
     uint64_t forward;
     uint32_t maxrate;
@@ -224,99 +197,149 @@ extern "C"
     uint32_t lowrate;
   };
 
-  struct VFSProperty
+  struct VFS_PROPERTY
   {
     char* name;
     char* val;
   };
 
-  struct VFSDirEntry
+  struct VFS_DIR_ENTRY
   {
-    char* label; //!< item label
-    char* title; //!< item title
-    char* path; //!< item path
-    unsigned int num_props; //!< Number of properties attached to item
-    struct VFSProperty* properties; //!< Properties
-    time_t date_time; //!< file creation date & time
-    bool folder; //!< Item is a folder
-    uint64_t size; //!< Size of file represented by item
+    char* label;
+    char* title;
+    char* path;
+    size_t num_props;
+    struct VFS_PROPERTY* properties;
+    time_t date_time;
+    bool folder;
+    uint64_t size;
   };
 
-  typedef struct AddonToKodiFuncTable_kodi_filesystem
-  {
-    bool (*can_open_directory)(void* kodiBase, const char* url);
-    bool (*create_directory)(void* kodiBase, const char* path);
-    bool (*remove_directory)(void* kodiBase, const char* path);
-    bool (*directory_exists)(void* kodiBase, const char* path);
-    bool (*get_directory)(void* kodiBase,
-                          const char* path,
-                          const char* mask,
-                          struct VFSDirEntry** items,
-                          unsigned int* num_items);
-    void (*free_directory)(void* kodiBase, struct VFSDirEntry* items, unsigned int num_items);
+  /*!@{*/
+  ATTR_DLL_EXPORT bool kodi_vfs_can_open_directory(const char* url) __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT bool kodi_vfs_create_directory(const char* path) __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT bool kodi_vfs_remove_directory(const char* path) __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT bool kodi_vfs_remove_directory_recursive(const char* path)
+      __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT bool kodi_vfs_directory_exists(const char* path) __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT bool kodi_vfs_get_directory(const char* path,
+                                              const char* mask,
+                                              struct VFS_DIR_ENTRY** items,
+                                              size_t* num_items) __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT void kodi_vfs_free_directory(struct VFS_DIR_ENTRY* items, size_t num_items)
+      __INTRODUCED_IN_KODI(1);
+  /*---AUTO_GEN_PARSE<OVERRIDE;USE_INTERNAL=kodi_vfs_free_directory>---*/
+  /*!@}*/
 
-    bool (*file_exists)(void* kodiBase, const char* filename, bool useCache);
-    bool (*stat_file)(void* kodiBase, const char* filename, struct STAT_STRUCTURE* buffer);
-    bool (*delete_file)(void* kodiBase, const char* filename);
-    bool (*rename_file)(void* kodiBase, const char* filename, const char* newFileName);
-    bool (*copy_file)(void* kodiBase, const char* filename, const char* dest);
+  /*!@{*/
+  ATTR_DLL_EXPORT bool kodi_vfs_file_exists(const char* filename, bool useCache)
+      __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT bool kodi_vfs_stat_file(const char* filename, struct VFS_STAT_STRUCTURE* buffer)
+      __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT bool kodi_vfs_delete_file(const char* filename) __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT bool kodi_vfs_rename_file(const char* filename, const char* newFileName)
+      __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT bool kodi_vfs_copy_file(const char* filename, const char* dest)
+      __INTRODUCED_IN_KODI(1);
+  /*!@}*/
 
-    char* (*get_file_md5)(void* kodiBase, const char* filename);
-    char* (*get_cache_thumb_name)(void* kodiBase, const char* filename);
-    char* (*make_legal_filename)(void* kodiBase, const char* filename);
-    char* (*make_legal_path)(void* kodiBase, const char* path);
-    char* (*translate_special_protocol)(void* kodiBase, const char* strSource);
-    bool (*is_internet_stream)(void* kodiBase, const char* path, bool strictCheck);
-    bool (*is_on_lan)(void* kodiBase, const char* path);
-    bool (*is_remote)(void* kodiBase, const char* path);
-    bool (*is_local)(void* kodiBase, const char* path);
-    bool (*is_url)(void* kodiBase, const char* path);
-    bool (*get_http_header)(void* kodiBase, const char* url, struct KODI_HTTP_HEADER* headers);
-    bool (*get_mime_type)(void* kodiBase, const char* url, char** content, const char* useragent);
-    bool (*get_content_type)(void* kodiBase,
-                             const char* url,
-                             char** content,
-                             const char* useragent);
-    bool (*get_cookies)(void* kodiBase, const char* url, char** cookies);
-    bool (*http_header_create)(void* kodiBase, struct KODI_HTTP_HEADER* headers);
-    void (*http_header_free)(void* kodiBase, struct KODI_HTTP_HEADER* headers);
+  /*!@{*/
+  ATTR_DLL_EXPORT char* kodi_vfs_get_file_md5(const char* filename) __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT char* kodi_vfs_get_cache_thumb_name(const char* filename) __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT char* kodi_vfs_make_legal_filename(const char* filename) __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT char* kodi_vfs_make_legal_path(const char* path) __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT char* kodi_vfs_translate_special_protocol(const char* strSource)
+      __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT bool kodi_vfs_is_internet_stream(const char* path, bool strictCheck)
+      __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT bool kodi_vfs_is_on_lan(const char* path) __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT bool kodi_vfs_is_remote(const char* path) __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT bool kodi_vfs_is_local(const char* path) __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT bool kodi_vfs_is_url(const char* path) __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT bool kodi_vfs_get_mime_type(const char* url,
+                                              char** content,
+                                              const char* useragent) __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT bool kodi_vfs_get_content_type(const char* url,
+                                                 char** content,
+                                                 const char* useragent) __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT bool kodi_vfs_get_cookies(const char* url, char** cookies)
+      __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT bool kodi_vfs_get_disk_space(const char* path,
+                                               uint64_t* capacity,
+                                               uint64_t* free,
+                                               uint64_t* available) __INTRODUCED_IN_KODI(1);
+  /*!@}*/
 
-    void* (*open_file)(void* kodiBase, const char* filename, unsigned int flags);
-    void* (*open_file_for_write)(void* kodiBase, const char* filename, bool overwrite);
-    ssize_t (*read_file)(void* kodiBase, void* file, void* ptr, size_t size);
-    bool (*read_file_string)(void* kodiBase, void* file, char* szLine, int iLineLength);
-    ssize_t (*write_file)(void* kodiBase, void* file, const void* ptr, size_t size);
-    void (*flush_file)(void* kodiBase, void* file);
-    int64_t (*seek_file)(void* kodiBase, void* file, int64_t position, int whence);
-    int (*truncate_file)(void* kodiBase, void* file, int64_t size);
-    int64_t (*get_file_position)(void* kodiBase, void* file);
-    int64_t (*get_file_length)(void* kodiBase, void* file);
-    double (*get_file_download_speed)(void* kodiBase, void* file);
-    void (*close_file)(void* kodiBase, void* file);
-    int (*get_file_chunk_size)(void* kodiBase, void* file);
-    bool (*io_control_get_seek_possible)(void* kodiBase, void* file);
-    bool (*io_control_get_cache_status)(void* kodiBase,
-                                        void* file,
-                                        struct VFS_CACHE_STATUS_DATA* status);
-    bool (*io_control_set_cache_rate)(void* kodiBase, void* file, uint32_t rate);
-    bool (*io_control_set_retry)(void* kodiBase, void* file, bool retry);
-    char** (*get_property_values)(
-        void* kodiBase, void* file, int type, const char* name, int* numValues);
+  /*!@{*/
+  ATTR_DLL_EXPORT KODI_HTTP_HEADER_HDL kodi_vfs_http_header_open(const char* url)
+      __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT void kodi_vfs_http_header_close(KODI_HTTP_HEADER_HDL hdl) __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT char* kodi_vfs_http_header_get_value(KODI_HTTP_HEADER_HDL hdl, const char* param)
+      __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT char** kodi_vfs_http_header_get_values(KODI_HTTP_HEADER_HDL hdl,
+                                                         const char* param,
+                                                         size_t* length) __INTRODUCED_IN_KODI(1);
 
-    void* (*curl_create)(void* kodiBase, const char* url);
-    bool (*curl_add_option)(
-        void* kodiBase, void* file, int type, const char* name, const char* value);
-    bool (*curl_open)(void* kodiBase, void* file, unsigned int flags);
+  ATTR_DLL_EXPORT char* kodi_vfs_http_header_get_header(KODI_HTTP_HEADER_HDL hdl)
+      __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT char* kodi_vfs_http_header_get_mime_type(KODI_HTTP_HEADER_HDL hdl)
+      __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT char* kodi_vfs_http_header_get_charset(KODI_HTTP_HEADER_HDL hdl)
+      __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT char* kodi_vfs_http_header_get_proto_line(KODI_HTTP_HEADER_HDL hdl)
+      __INTRODUCED_IN_KODI(1);
+  /*!@}*/
 
-    bool (*get_disk_space)(
-        void* kodiBase, const char* path, uint64_t* capacity, uint64_t* free, uint64_t* available);
-    bool (*remove_directory_recursive)(void* kodiBase, const char* path);
-  } AddonToKodiFuncTable_kodi_filesystem;
-
-  //}}}
+  /*!@{*/
+  ATTR_DLL_EXPORT KODI_FILE_HDL kodi_vfs_file_open(const char* filename, unsigned int flags)
+      __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT KODI_FILE_HDL kodi_vfs_file_open_for_write(const char* filename, bool overwrite)
+      __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT KODI_FILE_HDL kodi_vfs_file_curl_create(const char* url) __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT bool kodi_vfs_file_curl_add_option(KODI_FILE_HDL hdl,
+                                                     enum CURLOptiontype type,
+                                                     const char* name,
+                                                     const char* value) __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT bool kodi_vfs_file_curl_open(KODI_FILE_HDL hdl, unsigned int flags)
+      __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT void kodi_vfs_file_close(KODI_FILE_HDL hdl) __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT ssize_t kodi_vfs_file_read(KODI_FILE_HDL hdl, uint8_t* ptr, size_t size)
+      __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT bool kodi_vfs_file_read_line(KODI_FILE_HDL hdl, char* szLine, size_t lineLength)
+      __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT ssize_t kodi_vfs_file_write(KODI_FILE_HDL hdl, const uint8_t* ptr, size_t size)
+      __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT void kodi_vfs_file_flush(KODI_FILE_HDL hdl) __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT int64_t kodi_vfs_file_seek(KODI_FILE_HDL hdl, int64_t position, int whence)
+      __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT int kodi_vfs_file_truncate(KODI_FILE_HDL hdl, int64_t size)
+      __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT int64_t kodi_vfs_file_get_position(KODI_FILE_HDL hdl) __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT int64_t kodi_vfs_file_get_length(KODI_FILE_HDL hdl) __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT bool kodi_vfs_file_at_end(KODI_FILE_HDL hdl) __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT double kodi_vfs_file_get_download_speed(KODI_FILE_HDL hdl)
+      __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT int kodi_vfs_file_get_chunk_size(KODI_FILE_HDL hdl) __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT bool kodi_vfs_file_io_ctl_get_seek_possible(KODI_FILE_HDL hdl)
+      __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT bool kodi_vfs_file_io_ctl_get_cache_status(KODI_FILE_HDL hdl,
+                                                             struct VFS_CACHE_STATUS* status)
+      __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT bool kodi_vfs_file_io_ctl_set_cache_rate(KODI_FILE_HDL hdl, uint32_t rate)
+      __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT bool kodi_vfs_file_io_ctl_set_retry(KODI_FILE_HDL hdl, bool retry)
+      __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT char* kodi_vfs_file_get_property_value(KODI_FILE_HDL hdl,
+                                                         enum FilePropertyTypes type,
+                                                         const char* name) __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT char** kodi_vfs_file_get_property_values(KODI_FILE_HDL hdl,
+                                                           enum FilePropertyTypes type,
+                                                           const char* name,
+                                                           size_t* length) __INTRODUCED_IN_KODI(1);
+  /*!@}*/
 
 #ifdef __cplusplus
-} /* extern "C" */
+}
 #endif /* __cplusplus */
 
 #endif /* !C_API_FILESYSTEM_H */

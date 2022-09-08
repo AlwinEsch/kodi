@@ -20,6 +20,10 @@ class CGameClient;
 using GameClientPtr = std::shared_ptr<CGameClient>;
 using GameClientVector = std::vector<GameClientPtr>;
 
+class CGameClientInfo;
+using GameClientInfoPtr = std::shared_ptr<CGameClientInfo>;
+using GameClientInfoVector = std::vector<GameClientInfoPtr>;
+
 class CGameClientPort;
 using GameClientPortPtr = std::unique_ptr<CGameClientPort>;
 using GameClientPortVec = std::vector<GameClientPortPtr>;

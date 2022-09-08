@@ -11,6 +11,7 @@
 #include "controllers/Controller.h"
 #include "controllers/ControllerManager.h"
 #include "games/GameSettings.h"
+#include "games/addons/GameClientController.h"
 #include "profiles/ProfileManager.h"
 
 using namespace KODI;
@@ -23,11 +24,20 @@ CGameServices::CGameServices(CControllerManager& controllerManager,
   : m_controllerManager(controllerManager),
     m_gameRenderManager(renderManager),
     m_profileManager(profileManager),
-    m_gameSettings(new CGameSettings())
+    m_gameSettings(new CGameSettings()),
+    m_gameClientController(new CGameClientController())
 {
 }
 
 CGameServices::~CGameServices() = default;
+
+bool CGameServices::Init()
+{
+  if (!m_gameClientController->Init())
+    return false;
+
+  return true;
+}
 
 ControllerPtr CGameServices::GetController(const std::string& controllerId)
 {

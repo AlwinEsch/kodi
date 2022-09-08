@@ -8,9 +8,10 @@
 
 #pragma once
 
+#include "addons/interface/api/addon-instance/game.h"
+
 #include <memory>
 
-struct AddonInstance_Game;
 class CCriticalSection;
 
 namespace KODI
@@ -38,7 +39,8 @@ class CGameClientSubsystem
 {
 protected:
   CGameClientSubsystem(CGameClient& gameClient,
-                       AddonInstance_Game& addonStruct,
+                       KODI::ADDONS::INTERFACE::CHdl_kodi_addoninstance_game_h& gameClientIfc,
+                       const KODI_ADDON_GAME_HDL gameClientHdl,
                        CCriticalSection& clientAccess);
 
   virtual ~CGameClientSubsystem();
@@ -53,9 +55,11 @@ public:
    *
    * \return A fully-allocated GameClientSubsystems struct
    */
-  static GameClientSubsystems CreateSubsystems(CGameClient& gameClient,
-                                               AddonInstance_Game& gameStruct,
-                                               CCriticalSection& clientAccess);
+  static GameClientSubsystems CreateSubsystems(
+      CGameClient& gameClient,
+      KODI::ADDONS::INTERFACE::CHdl_kodi_addoninstance_game_h& gameStruct,
+      const KODI_ADDON_GAME_HDL gameClientHdl,
+      CCriticalSection& clientAccess);
 
   /*!
    * \brief Deallocate subsystems
@@ -73,7 +77,8 @@ protected:
 
   // Construction parameters
   CGameClient& m_gameClient;
-  AddonInstance_Game& m_struct;
+  KODI::ADDONS::INTERFACE::CHdl_kodi_addoninstance_game_h& m_gameClientIfc;
+  const KODI_ADDON_GAME_HDL m_gameClientHdl;
   CCriticalSection& m_clientAccess;
 };
 

@@ -6,17 +6,21 @@
  *  See LICENSES/README.md for more information.
  */
 
-#ifndef C_API_ADDONINSTANCE_AUDIO_ENCODER_H
-#define C_API_ADDONINSTANCE_AUDIO_ENCODER_H
+#ifndef C_API_ADDONINSTANCE_AUDIOENCODER_H
+#define C_API_ADDONINSTANCE_AUDIOENCODER_H
 
 #include "../addon_base.h"
+
+#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C"
 {
 #endif /* __cplusplus */
 
-  typedef void* KODI_ADDON_AUDIOENCODER_HDL;
+#if __KODI_API__ >= 1
+
+  typedef KODI_ADDON_INSTANCE_HDL KODI_ADDON_AUDIOENCODER_HDL;
 
   struct KODI_ADDON_AUDIOENCODER_INFO_TAG
   {
@@ -47,28 +51,26 @@ extern "C"
   typedef bool(ATTR_APIENTRYP PFN_KODI_ADDON_AUDIOENCODER_FINISH_V1)(
       KODI_ADDON_AUDIOENCODER_HDL hdl);
 
-  typedef struct AddonToKodiFuncTable_AudioEncoder
+  typedef struct KODI_ADDON_AUDIOENCODER_FUNC
   {
-    KODI_HANDLE kodiInstance;
-    ssize_t (*write)(KODI_HANDLE kodiInstance, const uint8_t* data, size_t len);
-    ssize_t (*seek)(KODI_HANDLE kodiInstance, ssize_t pos, int whence);
-  } AddonToKodiFuncTable_AudioEncoder;
-
-  typedef struct KodiToAddonFuncTable_AudioEncoder
-  {
+    PFN_KODI_ADDON_INSTANCE_CREATE_V1 create;
+    PFN_KODI_ADDON_INSTANCE_DESTROY_V1 destroy;
     PFN_KODI_ADDON_AUDIOENCODER_START_V1 start;
     PFN_KODI_ADDON_AUDIOENCODER_ENCODE_V1 encode;
     PFN_KODI_ADDON_AUDIOENCODER_FINISH_V1 finish;
-  } KodiToAddonFuncTable_AudioEncoder;
+  } KODI_ADDON_AUDIOENCODER_FUNC;
 
-  typedef struct AddonInstance_AudioEncoder
-  {
-    struct AddonToKodiFuncTable_AudioEncoder* toKodi;
-    struct KodiToAddonFuncTable_AudioEncoder* toAddon;
-  } AddonInstance_AudioEncoder;
+  ATTR_DLL_EXPORT ssize_t kodi_addon_audioencoder_write(KODI_ADDON_INSTANCE_BACKEND_HDL hdl,
+                                                        const uint8_t* data,
+                                                        size_t len) __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT ssize_t kodi_addon_audioencoder_seek(KODI_ADDON_INSTANCE_BACKEND_HDL hdl,
+                                                       ssize_t pos,
+                                                       int whence) __INTRODUCED_IN_KODI(1);
+
+#endif /* __KODI_API__ >= 1 */
 
 #ifdef __cplusplus
 } /* extern "C" */
 #endif /* __cplusplus */
 
-#endif /* !C_API_ADDONINSTANCE_AUDIO_ENCODER_H */
+#endif /* !C_API_ADDONINSTANCE_AUDIOENCODER_H */

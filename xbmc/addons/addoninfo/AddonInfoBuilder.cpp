@@ -8,7 +8,6 @@
 
 #include "AddonInfoBuilder.h"
 
-#include "CompileInfo.h"
 #include "LangInfo.h"
 #include "addons/addoninfo/AddonType.h"
 #include "filesystem/File.h"
@@ -23,7 +22,6 @@
 
 #include <algorithm>
 #include <memory>
-#include <regex>
 
 namespace
 {
@@ -145,6 +143,8 @@ bool CAddonInfoBuilder::ParseXML(const AddonInfoPtr& addon, const TiXmlElement* 
               addon->m_version.empty() ? "missing" : addon->m_version.asString());
     return false;
   }
+
+  addon->m_profilePath = StringUtils::Format("special://profile/addon_data/{}/", addon->m_id);
 
   // Check addon identifier for forbidden characters
   // The identifier is used e.g. in URLs so we shouldn't allow just
@@ -399,7 +399,7 @@ bool CAddonInfoBuilder::ParseXML(const AddonInfoPtr& addon, const TiXmlElement* 
         return false;
       }
 
-      CAddonType addonType(type);
+      CAddonType addonType(type, AddonLanguage::Unknown);
       if (ParseXMLTypes(addonType, addon, child))
         addon->m_types.emplace_back(std::move(addonType));
     }
@@ -411,7 +411,7 @@ bool CAddonInfoBuilder::ParseXML(const AddonInfoPtr& addon, const TiXmlElement* 
    */
   if (addon->m_types.empty())
   {
-    CAddonType addonType(ADDON_UNKNOWN);
+    CAddonType addonType(ADDON_UNKNOWN, AddonLanguage::Unknown);
     addon->m_types.emplace_back(std::move(addonType));
   }
 
@@ -472,25 +472,19 @@ bool CAddonInfoBuilder::ParseXMLTypes(CAddonType& addonType,
     if (library != nullptr)
     {
       addonType.m_libname = library;
+      info->SetBinary(URIUtils::IsSharedLibrarySuffix(library));
 
-      try
-      {
-        // linux is different and has the version number after the suffix
-        static const std::regex libRegex("^.*" +
-                                        CCompileInfo::CCompileInfo::GetSharedLibrarySuffix() +
-                                        "\\.?[0-9]*\\.?[0-9]*\\.?[0-9]*$");
-        if (std::regex_match(library, libRegex))
-        {
-          info->SetBinary(true);
-          CLog::Log(LOGDEBUG, "CAddonInfoBuilder::{}: Binary addon found: {}", __func__,
-                    info->ID());
-        }
-      }
-      catch (const std::regex_error& e)
-      {
-        CLog::Log(LOGERROR, "CAddonInfoBuilder::{}: Regex error caught: {}", __func__,
-                  e.what());
-      }
+      const char* language = child->Attribute("language");
+      if (language)
+        addonType.SetLanguage(language);
+      else if (info->IsBinary())
+        addonType.SetLanguage(AddonLanguage::CPP);
+      else
+        addonType.SetLanguage(DetectAddonLanguage(library));
+    }
+    else if (addonType.Type() == ADDON_SKIN)
+    {
+      addonType.SetLanguage(AddonLanguage::Skin);
     }
 
     if (!ParseXMLExtension(addonType, child))
@@ -602,6 +596,32 @@ bool CAddonInfoBuilder::GetTextList(const TiXmlElement* element, const std::stri
   }
 
   return !translatedValues.empty();
+}
+
+AddonLanguage CAddonInfoBuilder::DetectAddonLanguage(const std::string& library)
+{
+  AddonLanguage language = AddonLanguage::Unknown;
+
+  const std::string ext = URIUtils::GetExtension(library);
+  if (ext.empty())
+    return language;
+
+  /*if (ext == ".py")
+    return AddonLanguage::Python3;
+  else */if (ext == ".java" || ext == ".jar")
+    return AddonLanguage::Java;
+  else if (ext == ".js")
+    return AddonLanguage::JavaScript;
+  else if (ext == ".exe")
+    return AddonLanguage::CPP; // Hopefully, but no matter there if C or C++
+  else if (ext == ".groovy" || ext == ".gvy" || ext == ".gy" || ext == ".gsh")
+    return AddonLanguage::Groovy;
+  else if (ext == ".rb")
+    return AddonLanguage::Ruby;
+  else if (ext == ".xml")
+    return AddonLanguage::XML;
+
+  return language;
 }
 
 const char* CAddonInfoBuilder::GetPlatformLibraryName(const TiXmlElement* element)

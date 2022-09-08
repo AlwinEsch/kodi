@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2005-2018 Team Kodi
+ *  Copyright (C) 2005-2021 Team Kodi
  *  This file is part of Kodi - https://kodi.tv
  *
  *  SPDX-License-Identifier: GPL-2.0-or-later
@@ -13,6 +13,8 @@
 #include "tools/StringUtils.h"
 
 #ifdef __cplusplus
+
+#include <string>
 
 //==============================================================================
 /// \ingroup cpp_kodi_Defs
@@ -67,14 +69,12 @@ inline bool ATTR_DLL_LOCAL UnknownToUTF8(const std::string& stringSrc,
   using namespace kodi::addon;
 
   bool ret = false;
-  char* retString = CPrivateBase::m_interface->toKodi->kodi->unknown_to_utf8(
-      CPrivateBase::m_interface->toKodi->kodiBase, stringSrc.c_str(), &ret, failOnBadChar);
+  char* retString = kodi::dl::api.kodi_unknown_to_utf8(stringSrc.c_str(), &ret, failOnBadChar);
   if (retString != nullptr)
   {
     if (ret)
       utf8StringDst = retString;
-    CPrivateBase::m_interface->toKodi->free_string(CPrivateBase::m_interface->toKodi->kodiBase,
-                                                   retString);
+    free(retString);
   }
   return ret;
 }
@@ -107,17 +107,13 @@ inline bool ATTR_DLL_LOCAL UnknownToUTF8(const std::string& stringSrc,
 inline std::string ATTR_DLL_LOCAL GetLanguage(LangFormats format = LANG_FMT_ENGLISH_NAME,
                                               bool region = false)
 {
-  using namespace kodi::addon;
-
   std::string language;
-  char* retString = CPrivateBase::m_interface->toKodi->kodi->get_language(
-      CPrivateBase::m_interface->toKodi->kodiBase, format, region);
+  char* retString = kodi::dl::api.kodi_get_language(format, region);
   if (retString != nullptr)
   {
     if (std::strlen(retString))
       language = retString;
-    CPrivateBase::m_interface->toKodi->free_string(CPrivateBase::m_interface->toKodi->kodiBase,
-                                                   retString);
+    free(retString);
   }
   return language;
 }
@@ -201,16 +197,12 @@ inline std::string ATTR_DLL_LOCAL GetLanguage(LangFormats format = LANG_FMT_ENGL
 ///
 inline void ATTR_DLL_LOCAL QueueFormattedNotification(QueueMsg type, const char* format, ...)
 {
-  using namespace kodi::addon;
-
   va_list args;
   va_start(args, format);
   const std::string str = kodi::tools::StringUtils::FormatV(format, args);
   va_end(args);
-  CPrivateBase::m_interface->toKodi->kodi->queue_notification(
-      CPrivateBase::m_interface->toKodi->kodiBase, type, "", str.c_str(), "", 5000, false, 1000);
+  kodi::dl::api.kodi_queue_notification(type, "", str.c_str(), "", 5000, false, 1000);
 }
-//------------------------------------------------------------------------------
 
 //==============================================================================
 /// \ingroup cpp_kodi
@@ -265,45 +257,10 @@ inline void ATTR_DLL_LOCAL QueueNotification(QueueMsg type,
                                              bool withSound = true,
                                              unsigned int messageTime = 1000)
 {
-  using namespace kodi::addon;
-
-  CPrivateBase::m_interface->toKodi->kodi->queue_notification(
-      CPrivateBase::m_interface->toKodi->kodiBase, type, header.c_str(), message.c_str(),
-      imageFile.c_str(), displayTime, withSound, messageTime);
+  kodi::dl::api.kodi_queue_notification(type, header.c_str(), message.c_str(), imageFile.c_str(),
+                                        displayTime, withSound, messageTime);
 }
 //------------------------------------------------------------------------------
-
-//============================================================================
-/// \ingroup cpp_kodi
-/// @brief Get the MD5 digest of the given text
-///
-/// @param[in]  text  text to compute the MD5 for
-/// @return           Returned MD5 digest
-///
-///
-/// ------------------------------------------------------------------------
-///
-/// **Example:**
-/// ~~~~~~~~~~~~~{.cpp}
-/// #include <kodi/General.h>
-/// ...
-/// std::string md5 = kodi::GetMD5("Make me as md5");
-/// fprintf(stderr, "My md5 digest is: '%s'\n", md5.c_str());
-/// ...
-/// ~~~~~~~~~~~~~
-///
-inline std::string ATTR_DLL_LOCAL GetMD5(const std::string& text)
-{
-  using namespace kodi::addon;
-
-  char* md5ret = static_cast<char*>(malloc(40 * sizeof(char))); // md5 size normally 32 bytes
-  CPrivateBase::m_interface->toKodi->kodi->get_md5(CPrivateBase::m_interface->toKodi->kodiBase,
-                                                   text.c_str(), md5ret);
-  std::string md5 = md5ret;
-  free(md5ret);
-  return md5;
-}
-//----------------------------------------------------------------------------
 
 //==============================================================================
 /// \ingroup cpp_kodi
@@ -330,17 +287,13 @@ inline std::string ATTR_DLL_LOCAL GetMD5(const std::string& text)
 ///
 inline std::string ATTR_DLL_LOCAL GetRegion(const std::string& id)
 {
-  using namespace kodi::addon;
-
-  AddonToKodiFuncTable_Addon* toKodi = CPrivateBase::m_interface->toKodi;
-
   std::string strReturn;
-  char* strMsg = toKodi->kodi->get_region(toKodi->kodiBase, id.c_str());
+  char* strMsg = kodi::dl::api.kodi_get_region(id.c_str());
   if (strMsg != nullptr)
   {
     if (std::strlen(strMsg))
       strReturn = strMsg;
-    toKodi->free_string(toKodi->kodiBase, strMsg);
+    free(strMsg);
   }
   return strReturn;
 }
@@ -371,12 +324,9 @@ inline std::string ATTR_DLL_LOCAL GetRegion(const std::string& id)
 ///
 inline void ATTR_DLL_LOCAL GetFreeMem(long& free, long& total, bool asBytes = false)
 {
-  using namespace kodi::addon;
-
   free = -1;
   total = -1;
-  AddonToKodiFuncTable_Addon* toKodi = CPrivateBase::m_interface->toKodi;
-  toKodi->kodi->get_free_mem(toKodi->kodiBase, &free, &total, asBytes);
+  kodi::dl::api.kodi_get_free_mem(&free, &total, asBytes);
 }
 //------------------------------------------------------------------------------
 
@@ -399,10 +349,7 @@ inline void ATTR_DLL_LOCAL GetFreeMem(long& free, long& total, bool asBytes = fa
 ///
 inline int ATTR_DLL_LOCAL GetGlobalIdleTime()
 {
-  using namespace kodi::addon;
-
-  AddonToKodiFuncTable_Addon* toKodi = CPrivateBase::m_interface->toKodi;
-  return toKodi->kodi->get_global_idle_time(toKodi->kodiBase);
+  return kodi::dl::api.kodi_get_global_idle_time();
 }
 //------------------------------------------------------------------------------
 
@@ -429,17 +376,13 @@ inline int ATTR_DLL_LOCAL GetGlobalIdleTime()
 ///
 inline std::string ATTR_DLL_LOCAL GetCurrentSkinId()
 {
-  using namespace kodi::addon;
-
-  AddonToKodiFuncTable_Addon* toKodi = CPrivateBase::m_interface->toKodi;
-
   std::string strReturn;
-  char* strMsg = toKodi->kodi->get_current_skin_id(toKodi->kodiBase);
+  char* strMsg = kodi::dl::api.kodi_get_current_skin_id();
   if (strMsg != nullptr)
   {
     if (std::strlen(strMsg))
       strReturn = strMsg;
-    toKodi->free_string(toKodi->kodiBase, strMsg);
+    free(strMsg);
   }
   return strReturn;
 }
@@ -472,16 +415,12 @@ inline bool ATTR_DLL_LOCAL IsAddonAvailable(const std::string& id,
                                             std::string& version,
                                             bool& enabled)
 {
-  using namespace kodi::addon;
-
-  AddonToKodiFuncTable_Addon* toKodi = CPrivateBase::m_interface->toKodi;
-
   char* cVersion = nullptr;
-  bool ret = toKodi->kodi->is_addon_avilable(toKodi->kodiBase, id.c_str(), &cVersion, &enabled);
+  bool ret = kodi::dl::api.kodi_is_addon_avilable(id.c_str(), &cVersion, &enabled);
   if (cVersion)
   {
     version = cVersion;
-    toKodi->free_string(toKodi->kodiBase, cVersion);
+    free(cVersion);
   }
   return ret;
 }
@@ -528,35 +467,32 @@ inline bool ATTR_DLL_LOCAL IsAddonAvailable(const std::string& id,
 ///
 inline void ATTR_DLL_LOCAL KodiVersion(kodi_version_t& version)
 {
-  using namespace kodi::addon;
-
   char* compile_name = nullptr;
   char* revision = nullptr;
   char* tag = nullptr;
   char* tag_revision = nullptr;
 
-  AddonToKodiFuncTable_Addon* toKodi = CPrivateBase::m_interface->toKodi;
-  toKodi->kodi->kodi_version(toKodi->kodiBase, &compile_name, &version.major, &version.minor,
-                             &revision, &tag, &tag_revision);
+  kodi::dl::api.kodi_version(&compile_name, &version.major, &version.minor, &revision, &tag,
+                             &tag_revision);
   if (compile_name != nullptr)
   {
     version.compile_name = compile_name;
-    toKodi->free_string(toKodi->kodiBase, compile_name);
+    free(compile_name);
   }
   if (revision != nullptr)
   {
     version.revision = revision;
-    toKodi->free_string(toKodi->kodiBase, revision);
+    free(revision);
   }
   if (tag != nullptr)
   {
     version.tag = tag;
-    toKodi->free_string(toKodi->kodiBase, tag);
+    free(tag);
   }
   if (tag_revision != nullptr)
   {
     version.tag_revision = tag_revision;
-    toKodi->free_string(toKodi->kodiBase, tag_revision);
+    free(tag_revision);
   }
 }
 //------------------------------------------------------------------------------
@@ -598,19 +534,15 @@ inline bool ATTR_DLL_LOCAL GetKeyboardLayout(int modifierKey,
                                              std::string& layout_name,
                                              std::vector<std::vector<std::string>>& layout)
 {
-  using namespace kodi::addon;
-
-  AddonToKodiFuncTable_Addon* toKodi = CPrivateBase::m_interface->toKodi;
   AddonKeyboardKeyTable c_layout;
   char* c_layout_name = nullptr;
-  bool ret =
-      toKodi->kodi->get_keyboard_layout(toKodi->kodiBase, &c_layout_name, modifierKey, &c_layout);
+  bool ret = kodi::dl::api.kodi_get_keyboard_layout(modifierKey, &c_layout_name, &c_layout);
   if (ret)
   {
     if (c_layout_name)
     {
       layout_name = c_layout_name;
-      toKodi->free_string(toKodi->kodiBase, c_layout_name);
+      free(c_layout_name);
     }
 
     layout.resize(STD_KB_BUTTONS_MAX_ROWS);
@@ -623,7 +555,7 @@ inline bool ATTR_DLL_LOCAL GetKeyboardLayout(int modifierKey,
         if (button)
         {
           layout[row][column] = button;
-          toKodi->free_string(toKodi->kodiBase, button);
+          free(button);
         }
       }
     }
@@ -668,18 +600,42 @@ inline bool ATTR_DLL_LOCAL GetKeyboardLayout(int modifierKey,
 ///
 inline bool ATTR_DLL_LOCAL ChangeKeyboardLayout(std::string& layout_name)
 {
-  using namespace kodi::addon;
-
-  AddonToKodiFuncTable_Addon* toKodi = CPrivateBase::m_interface->toKodi;
   char* c_layout_name = nullptr;
-  bool ret = toKodi->kodi->change_keyboard_layout(toKodi->kodiBase, &c_layout_name);
+  bool ret = kodi::dl::api.kodi_change_keyboard_layout(&c_layout_name);
   if (c_layout_name)
   {
     layout_name = c_layout_name;
-    toKodi->free_string(toKodi->kodiBase, c_layout_name);
+    free(c_layout_name);
   }
 
   return ret;
+}
+//------------------------------------------------------------------------------
+
+//==============================================================================
+/// @ingroup cpp_kodi
+/// @brief
+///
+///
+///
+/// @param[in] filename
+/// @param[in] use_cached
+///
+inline void ATTR_DLL_LOCAL PlaySFX(const std::string& filename, bool use_cached)
+{
+  kodi::dl::api.kodi_play_sfx(filename.c_str(), use_cached);
+}
+//------------------------------------------------------------------------------
+
+//==============================================================================
+/// @ingroup cpp_kodi
+/// @brief
+///
+///
+///
+inline void ATTR_DLL_LOCAL StopSFX()
+{
+  kodi::dl::api.kodi_stop_sfx();
 }
 //------------------------------------------------------------------------------
 

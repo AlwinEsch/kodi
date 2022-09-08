@@ -9,7 +9,7 @@
 #include "GameClientPort.h"
 
 #include "GameClientDevice.h"
-#include "addons/kodi-dev-kit/include/kodi/addon-instance/Game.h"
+#include "addons/kodi-dev-kit/include/kodi/c-api/addon-instance/game.h"
 #include "games/addons/GameClientTranslator.h"
 #include "games/controllers/Controller.h"
 #include "games/controllers/input/PhysicalTopology.h"

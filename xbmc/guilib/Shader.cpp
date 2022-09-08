@@ -250,6 +250,23 @@ CGLSLShaderProgram::CGLSLShaderProgram(const std::string& vert,
   m_pVP->LoadSource(vert);
 }
 
+bool CGLSLShaderProgram::LoadShaderFiles(const std::string& vert, const std::string& frag)
+{
+  if (!m_pVP->LoadSource(vert))
+  {
+    CLog::Log(LOGERROR, "{}: Failed to load '{}'", __func__, vert.c_str());
+    return false;
+  }
+
+  if (!m_pFP->LoadSource(frag))
+  {
+    CLog::Log(LOGERROR, "{}: Failed to load '{}'", __func__, frag.c_str());
+    return false;
+  }
+
+  return true;
+}
+
 CGLSLShaderProgram::~CGLSLShaderProgram()
 {
   Free();

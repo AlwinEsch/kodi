@@ -9,29 +9,25 @@
 #ifndef C_API_GUI_DIALOGS_SELECT_H
 #define C_API_GUI_DIALOGS_SELECT_H
 
-#include "../definitions.h"
+#include "../../addon_base.h"
 
 #ifdef __cplusplus
 extern "C"
 {
 #endif /* __cplusplus */
 
-  typedef struct AddonToKodiFuncTable_kodi_gui_dialogSelect
-  {
-    int (*open)(KODI_HANDLE kodiBase,
-                const char* heading,
-                const char* entries[],
-                unsigned int size,
-                int selected,
-                unsigned int autoclose);
-    bool (*open_multi_select)(KODI_HANDLE kodiBase,
-                              const char* heading,
-                              const char* entryIDs[],
-                              const char* entryNames[],
-                              bool entriesSelected[],
-                              unsigned int size,
-                              unsigned int autoclose);
-  } AddonToKodiFuncTable_kodi_gui_dialogSelect;
+  ATTR_DLL_EXPORT int kodi_gui_dialogs_select_open(const char* heading,
+                                                   const char* entries[],
+                                                   size_t size,
+                                                   int selected,
+                                                   unsigned int autoclose) __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT bool kodi_gui_dialogs_select_open_multi_select(const char* heading,
+                                                                 const char* entryIDs[],
+                                                                 const char* entryNames[],
+                                                                 uint8_t entriesSelected[],
+                                                                 size_t size,
+                                                                 unsigned int autoclose)
+      __INTRODUCED_IN_KODI(1);
 
 #ifdef __cplusplus
 } /* extern "C" */

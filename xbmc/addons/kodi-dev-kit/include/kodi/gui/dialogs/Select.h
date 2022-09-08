@@ -13,6 +13,8 @@
 
 #ifdef __cplusplus
 
+#include <vector>
+
 namespace kodi
 {
 namespace gui
@@ -115,9 +117,8 @@ inline int ATTR_DLL_LOCAL Show(const std::string& heading,
   {
     cEntries[i] = entries[i].c_str();
   }
-  int ret = CPrivateBase::m_interface->toKodi->kodi_gui->dialogSelect->open(
-      CPrivateBase::m_interface->toKodi->kodiBase, heading.c_str(), cEntries, size, selected,
-      autoclose);
+  int ret = kodi::dl::api.kodi_gui_dialogs_select_open(heading.c_str(), cEntries, size, selected,
+                                                       autoclose);
   free(cEntries);
   return ret;
 }
@@ -167,7 +168,6 @@ inline int ATTR_DLL_LOCAL Show(const std::string& heading,
                                int selected = -1,
                                unsigned int autoclose = 0)
 {
-  using namespace ::kodi::addon;
   unsigned int size = static_cast<unsigned int>(entries.size());
   const char** cEntries = static_cast<const char**>(malloc(size * sizeof(const char*)));
   for (unsigned int i = 0; i < size; ++i)
@@ -176,9 +176,8 @@ inline int ATTR_DLL_LOCAL Show(const std::string& heading,
     if (selected == -1 && entries[i].selected)
       selected = i;
   }
-  int ret = CPrivateBase::m_interface->toKodi->kodi_gui->dialogSelect->open(
-      CPrivateBase::m_interface->toKodi->kodiBase, heading.c_str(), cEntries, size, selected,
-      autoclose);
+  int ret = kodi::dl::api.kodi_gui_dialogs_select_open(heading.c_str(), cEntries, size, selected,
+                                                       autoclose);
   if (ret >= 0)
   {
     entries[ret].selected = true;
@@ -235,20 +234,18 @@ ShowMultiSelect(const std::string& heading,
                 std::vector<kodi::gui::dialogs::SSelectionEntry>& entries,
                 int autoclose = 0)
 {
-  using namespace ::kodi::addon;
   unsigned int size = static_cast<unsigned int>(entries.size());
   const char** cEntryIDs = static_cast<const char**>(malloc(size * sizeof(const char*)));
   const char** cEntryNames = static_cast<const char**>(malloc(size * sizeof(const char*)));
-  bool* cEntriesSelected = static_cast<bool*>(malloc(size * sizeof(bool)));
+  uint8_t* cEntriesSelected = static_cast<uint8_t*>(malloc(size * sizeof(uint8_t)));
   for (unsigned int i = 0; i < size; ++i)
   {
     cEntryIDs[i] = entries[i].id.c_str();
     cEntryNames[i] = entries[i].name.c_str();
     cEntriesSelected[i] = entries[i].selected;
   }
-  bool ret = CPrivateBase::m_interface->toKodi->kodi_gui->dialogSelect->open_multi_select(
-      CPrivateBase::m_interface->toKodi->kodiBase, heading.c_str(), cEntryIDs, cEntryNames,
-      cEntriesSelected, size, autoclose);
+  bool ret = kodi::dl::api.kodi_gui_dialogs_select_open_multi_select(
+      heading.c_str(), cEntryIDs, cEntryNames, cEntriesSelected, size, autoclose);
   if (ret)
   {
     for (unsigned int i = 0; i < size; ++i)

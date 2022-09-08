@@ -1,15 +1,19 @@
 /*
- *  Copyright (C) 2014-2018 Team Kodi
+ *  Copyright (C) 2005-2018 Team Kodi
  *  This file is part of Kodi - https://kodi.tv
  *
  *  SPDX-License-Identifier: GPL-2.0-or-later
  *  See LICENSES/README.md for more information.
  */
 
+/*---AUTO_GEN_PARSE<OVERRIDE;USE_DIRECT_API_ONLY>---*/
+
 #ifndef C_API_ADDONINSTANCE_PERIPHERAL_H
 #define C_API_ADDONINSTANCE_PERIPHERAL_H
 
 #include "../addon_base.h"
+
+#include <stdint.h>
 
 /* indicates a joystick has no preference for port number */
 #define NO_PORT_REQUESTED (-1)
@@ -21,6 +25,8 @@
 extern "C"
 {
 #endif /* __cplusplus */
+
+  typedef void* KODI_ADDON_PERIPHERAL_HDL;
 
   //============================================================================
   /// @defgroup cpp_kodi_addon_peripheral_Defs_General_PERIPHERAL_ERROR enum PERIPHERAL_ERROR
@@ -84,25 +90,25 @@ extern "C"
   /*!
    * @brief Information shared between peripherals
    */
-  typedef struct PERIPHERAL_INFO
+  struct PERIPHERAL_INFO
   {
-    PERIPHERAL_TYPE type; /*!< type of peripheral */
+    enum PERIPHERAL_TYPE type; /*!< type of peripheral */
     char* name; /*!< name of peripheral */
     uint16_t vendor_id; /*!< vendor ID of peripheral, 0x0000 if unknown */
     uint16_t product_id; /*!< product ID of peripheral, 0x0000 if unknown */
     unsigned int index; /*!< the order in which the add-on identified this peripheral */
-  } ATTR_PACKED PERIPHERAL_INFO;
+  };
 
   /*!
    * @brief Peripheral add-on capabilities.
    */
-  typedef struct PERIPHERAL_CAPABILITIES
+  struct PERIPHERAL_CAPABILITIES
   {
     bool provides_joysticks; /*!< true if the add-on provides joysticks */
     bool provides_joystick_rumble;
     bool provides_joystick_power_off;
     bool provides_buttonmaps; /*!< true if the add-on provides button maps */
-  } ATTR_PACKED PERIPHERAL_CAPABILITIES;
+  };
 
   //}
 
@@ -210,22 +216,22 @@ extern "C"
   /*!
    * @brief Event information
    */
-  typedef struct PERIPHERAL_EVENT
+  struct PERIPHERAL_EVENT
   {
     /*! @brief Index of the peripheral handling/receiving the event */
     unsigned int peripheral_index;
 
     /*! @brief Type of the event used to determine which enum field to access below */
-    PERIPHERAL_EVENT_TYPE type;
+    enum PERIPHERAL_EVENT_TYPE type;
 
     /*! @brief The index of the event source */
     unsigned int driver_index;
 
-    JOYSTICK_STATE_BUTTON driver_button_state;
-    JOYSTICK_STATE_HAT driver_hat_state;
+    enum JOYSTICK_STATE_BUTTON driver_button_state;
+    enum JOYSTICK_STATE_HAT driver_hat_state;
     JOYSTICK_STATE_AXIS driver_axis_state;
     JOYSTICK_STATE_MOTOR motor_state;
-  } ATTR_PACKED PERIPHERAL_EVENT;
+  };
 
   //}
 
@@ -235,9 +241,9 @@ extern "C"
   /*!
    * @brief Info specific to joystick peripherals
    */
-  typedef struct JOYSTICK_INFO
+  struct JOYSTICK_INFO
   {
-    PERIPHERAL_INFO peripheral; /*!< @brief peripheral info for this joystick */
+    struct PERIPHERAL_INFO peripheral; /*!< @brief peripheral info for this joystick */
     char* provider; /*!< @brief name of the driver or interface providing the joystick */
     int requested_port; /*!< @brief requested port number (such as for 360 controllers), or NO_PORT_REQUESTED */
     unsigned int button_count; /*!< @brief number of buttons reported by the driver */
@@ -245,7 +251,7 @@ extern "C"
     unsigned int axis_count; /*!< @brief number of axes reported by the driver */
     unsigned int motor_count; /*!< @brief number of motors reported by the driver */
     bool supports_poweroff; /*!< @brief whether the joystick supports being powered off */
-  } ATTR_PACKED JOYSTICK_INFO;
+  };
 
   //============================================================================
   /// @defgroup cpp_kodi_addon_peripheral_Defs_Joystick_JOYSTICK_DRIVER_PRIMITIVE_TYPE enum JOYSTICK_DRIVER_PRIMITIVE_TYPE
@@ -292,10 +298,10 @@ extern "C"
   /*!
    * @brief Button primitive
    */
-  typedef struct JOYSTICK_DRIVER_BUTTON
+  struct JOYSTICK_DRIVER_BUTTON
   {
     int index;
-  } ATTR_PACKED JOYSTICK_DRIVER_BUTTON;
+  };
 
   //============================================================================
   /// @defgroup cpp_kodi_addon_peripheral_Defs_Joystick_JOYSTICK_DRIVER_HAT_DIRECTION enum JOYSTICK_DRIVER_HAT_DIRECTION
@@ -326,11 +332,11 @@ extern "C"
   /*!
    * @brief Hat direction primitive
    */
-  typedef struct JOYSTICK_DRIVER_HAT
+  struct JOYSTICK_DRIVER_HAT
   {
     int index;
-    JOYSTICK_DRIVER_HAT_DIRECTION direction;
-  } ATTR_PACKED JOYSTICK_DRIVER_HAT;
+    enum JOYSTICK_DRIVER_HAT_DIRECTION direction;
+  };
 
   //============================================================================
   /// @defgroup cpp_kodi_addon_peripheral_Defs_Joystick_JOYSTICK_DRIVER_SEMIAXIS_DIRECTION enum JOYSTICK_DRIVER_SEMIAXIS_DIRECTION
@@ -355,29 +361,29 @@ extern "C"
   /*!
    * @brief Semiaxis primitive
    */
-  typedef struct JOYSTICK_DRIVER_SEMIAXIS
+  struct JOYSTICK_DRIVER_SEMIAXIS
   {
     int index;
     int center;
-    JOYSTICK_DRIVER_SEMIAXIS_DIRECTION direction;
+    enum JOYSTICK_DRIVER_SEMIAXIS_DIRECTION direction;
     unsigned int range;
-  } ATTR_PACKED JOYSTICK_DRIVER_SEMIAXIS;
+  };
 
   /*!
    * @brief Motor primitive
    */
-  typedef struct JOYSTICK_DRIVER_MOTOR
+  struct JOYSTICK_DRIVER_MOTOR
   {
     int index;
-  } ATTR_PACKED JOYSTICK_DRIVER_MOTOR;
+  };
 
   /*!
    * @brief Keyboard key primitive
    */
-  typedef struct JOYSTICK_DRIVER_KEY
+  struct JOYSTICK_DRIVER_KEY
   {
     char keycode[16];
-  } ATTR_PACKED JOYSTICK_DRIVER_KEY;
+  };
 
   //============================================================================
   /// @defgroup cpp_kodi_addon_peripheral_Defs_Joystick_JOYSTICK_DRIVER_MOUSE_INDEX enum JOYSTICK_DRIVER_MOUSE_INDEX
@@ -423,10 +429,10 @@ extern "C"
   /*!
    * @brief Mouse button primitive
    */
-  typedef struct JOYSTICK_DRIVER_MOUSE_BUTTON
+  struct JOYSTICK_DRIVER_MOUSE_BUTTON
   {
-    JOYSTICK_DRIVER_MOUSE_INDEX button;
-  } ATTR_PACKED JOYSTICK_DRIVER_MOUSE_BUTTON;
+    enum JOYSTICK_DRIVER_MOUSE_INDEX button;
+  };
 
   //============================================================================
   /// @defgroup cpp_kodi_addon_peripheral_Defs_Joystick_JOYSTICK_DRIVER_RELPOINTER_DIRECTION enum JOYSTICK_DRIVER_RELPOINTER_DIRECTION
@@ -457,17 +463,17 @@ extern "C"
   /*!
    * @brief Relative pointer direction primitive
    */
-  typedef struct JOYSTICK_DRIVER_RELPOINTER
+  struct JOYSTICK_DRIVER_RELPOINTER
   {
-    JOYSTICK_DRIVER_RELPOINTER_DIRECTION direction;
-  } ATTR_PACKED JOYSTICK_DRIVER_RELPOINTER;
+    enum JOYSTICK_DRIVER_RELPOINTER_DIRECTION direction;
+  };
 
   /*!
    * @brief Driver primitive struct
    */
-  typedef struct JOYSTICK_DRIVER_PRIMITIVE
+  struct JOYSTICK_DRIVER_PRIMITIVE
   {
-    JOYSTICK_DRIVER_PRIMITIVE_TYPE type;
+    enum JOYSTICK_DRIVER_PRIMITIVE_TYPE type;
     union
     {
       struct JOYSTICK_DRIVER_BUTTON button;
@@ -478,7 +484,7 @@ extern "C"
       struct JOYSTICK_DRIVER_MOUSE_BUTTON mouse;
       struct JOYSTICK_DRIVER_RELPOINTER relpointer;
     };
-  } ATTR_PACKED JOYSTICK_DRIVER_PRIMITIVE;
+  };
 
   //============================================================================
   /// @defgroup cpp_kodi_addon_peripheral_Defs_Joystick_JOYSTICK_FEATURE_TYPE enum JOYSTICK_FEATURE_TYPE
@@ -590,115 +596,119 @@ extern "C"
   /*!
    * @brief Mapping between higher-level controller feature and its driver primitives
    */
-  typedef struct JOYSTICK_FEATURE
+  struct JOYSTICK_FEATURE
   {
     char* name;
-    JOYSTICK_FEATURE_TYPE type;
+    enum JOYSTICK_FEATURE_TYPE type;
     struct JOYSTICK_DRIVER_PRIMITIVE primitives[JOYSTICK_PRIMITIVE_MAX];
-  } ATTR_PACKED JOYSTICK_FEATURE;
-  //}
+  };
 
-  typedef struct AddonProps_Peripheral
+  //--==----==----==----==----==----==----==----==----==----==----==----==----==
+  // General interface functions
+  typedef KODI_ADDON_PERIPHERAL_HDL(ATTR_APIENTRYP PFN_KODI_ADDON_PERIPHERAL_CREATE_V1)(
+      KODI_ADDON_INSTANCE_BACKEND_HDL kodi_hdl);
+  typedef void(ATTR_APIENTRYP PFN_KODI_ADDON_PERIPHERAL_DESTROY_V1)(KODI_ADDON_PERIPHERAL_HDL hdl);
+
+  typedef void(ATTR_APIENTRYP PFN_KODI_ADDON_PERIPHERAL_GET_CAPABILITIES_V1)(
+      KODI_ADDON_PERIPHERAL_HDL hdl, struct PERIPHERAL_CAPABILITIES* capabilities);
+  typedef enum PERIPHERAL_ERROR(ATTR_APIENTRYP PFN_KODI_ADDON_PERIPHERAL_PERFORM_DEVICE_SCAN_V1)(
+      KODI_ADDON_PERIPHERAL_HDL hdl,
+      struct PERIPHERAL_INFO** scan_results,
+      size_t* peripheral_count);
+  typedef void(ATTR_APIENTRYP PFN_KODI_ADDON_PERIPHERAL_FREE_SCAN_RESULTS_V1)(
+      KODI_ADDON_PERIPHERAL_HDL hdl, struct PERIPHERAL_INFO* scan_results, size_t peripheral_count);
+  typedef enum PERIPHERAL_ERROR(ATTR_APIENTRYP PFN_KODI_ADDON_PERIPHERAL_GET_EVENTS_V1)(
+      KODI_ADDON_PERIPHERAL_HDL hdl, struct PERIPHERAL_EVENT** events, size_t* event_count);
+  typedef void(ATTR_APIENTRYP PFN_KODI_ADDON_PERIPHERAL_FREE_EVENTS_V1)(
+      KODI_ADDON_PERIPHERAL_HDL hdl, struct PERIPHERAL_EVENT* events, size_t event_count);
+  typedef bool(ATTR_APIENTRYP PFN_KODI_ADDON_PERIPHERAL_SEND_EVENT_V1)(
+      KODI_ADDON_PERIPHERAL_HDL hdl, const struct PERIPHERAL_EVENT* event);
+
+  //--==----==----==----==----==----==----==----==----==----==----==----==----==
+  // Joystick operations
+  typedef enum PERIPHERAL_ERROR(ATTR_APIENTRYP PFN_KODI_ADDON_PERIPHERAL_GET_JOYSTICK_INFO_V1)(
+      KODI_ADDON_PERIPHERAL_HDL hdl, unsigned int index, struct JOYSTICK_INFO* info);
+  typedef void(ATTR_APIENTRYP PFN_KODI_ADDON_PERIPHERAL_FREE_JOYSTICK_INFO_V1)(
+      KODI_ADDON_PERIPHERAL_HDL hdl, struct JOYSTICK_INFO* info);
+  typedef enum PERIPHERAL_ERROR(ATTR_APIENTRYP PFN_KODI_ADDON_PERIPHERAL_GET_FEATURES_V1)(
+      KODI_ADDON_PERIPHERAL_HDL hdl,
+      const struct JOYSTICK_INFO* joystick,
+      const char* controller_id,
+      struct JOYSTICK_FEATURE** features,
+      size_t* feature_count);
+  typedef void(ATTR_APIENTRYP PFN_KODI_ADDON_PERIPHERAL_FREE_FEATURES_V1)(
+      KODI_ADDON_PERIPHERAL_HDL hdl, struct JOYSTICK_FEATURE* features, size_t feature_count);
+  typedef enum PERIPHERAL_ERROR(ATTR_APIENTRYP PFN_KODI_ADDON_PERIPHERAL_MAP_FEATURES_V1)(
+      KODI_ADDON_PERIPHERAL_HDL hdl,
+      const struct JOYSTICK_INFO* joystick,
+      const char* controller_id,
+      const struct JOYSTICK_FEATURE* features,
+      size_t feature_count);
+  typedef enum PERIPHERAL_ERROR(ATTR_APIENTRYP PFN_KODI_ADDON_PERIPHERAL_GET_IGNORED_PRIMITIVES_V1)(
+      KODI_ADDON_PERIPHERAL_HDL hdl,
+      const struct JOYSTICK_INFO* joystick,
+      struct JOYSTICK_DRIVER_PRIMITIVE** primitives,
+      size_t* primitive_count);
+  typedef void(ATTR_APIENTRYP PFN_KODI_ADDON_PERIPHERAL_FREE_PRIMITIVES_V1)(
+      KODI_ADDON_PERIPHERAL_HDL hdl,
+      struct JOYSTICK_DRIVER_PRIMITIVE* primitives,
+      size_t primitive_count);
+  typedef enum PERIPHERAL_ERROR(ATTR_APIENTRYP PFN_KODI_ADDON_PERIPHERAL_SET_IGNORED_PRIMITIVES_V1)(
+      KODI_ADDON_PERIPHERAL_HDL hdl,
+      const struct JOYSTICK_INFO* joystick,
+      const struct JOYSTICK_DRIVER_PRIMITIVE* primitives,
+      size_t primitive_count);
+  typedef void(ATTR_APIENTRYP PFN_KODI_ADDON_PERIPHERAL_SAVE_BUTTON_MAP_V1)(
+      KODI_ADDON_PERIPHERAL_HDL hdl, const struct JOYSTICK_INFO* joystick);
+  typedef void(ATTR_APIENTRYP PFN_KODI_ADDON_PERIPHERAL_REVERT_BUTTON_MAP_V1)(
+      KODI_ADDON_PERIPHERAL_HDL hdl, const struct JOYSTICK_INFO* joystick);
+  typedef void(ATTR_APIENTRYP PFN_KODI_ADDON_PERIPHERAL_RESET_BUTTON_MAP_V1)(
+      KODI_ADDON_PERIPHERAL_HDL hdl,
+      const struct JOYSTICK_INFO* joystick,
+      const char* controller_id);
+  typedef void(ATTR_APIENTRYP PFN_KODI_ADDON_PERIPHERAL_POWER_OFF_JOYSTICK_V1)(
+      KODI_ADDON_PERIPHERAL_HDL hdl, unsigned int index);
+
+  typedef struct KODI_ADDON_PERIPHERAL_FUNC
   {
-    const char* user_path; /*!< @brief path to the user profile */
-    const char* addon_path; /*!< @brief path to this add-on */
-  } ATTR_PACKED AddonProps_Peripheral;
+    PFN_KODI_ADDON_PERIPHERAL_CREATE_V1 create;
+    PFN_KODI_ADDON_PERIPHERAL_DESTROY_V1 destroy;
 
-  struct AddonInstance_Peripheral;
+    PFN_KODI_ADDON_PERIPHERAL_GET_CAPABILITIES_V1 get_capabilities;
+    PFN_KODI_ADDON_PERIPHERAL_PERFORM_DEVICE_SCAN_V1 perform_device_scan;
+    PFN_KODI_ADDON_PERIPHERAL_FREE_SCAN_RESULTS_V1 free_scan_results;
+    PFN_KODI_ADDON_PERIPHERAL_GET_EVENTS_V1 get_events;
+    PFN_KODI_ADDON_PERIPHERAL_FREE_EVENTS_V1 free_events;
+    PFN_KODI_ADDON_PERIPHERAL_SEND_EVENT_V1 send_event;
 
-  typedef struct AddonToKodiFuncTable_Peripheral
-  {
-    KODI_HANDLE kodiInstance;
-    void (*trigger_scan)(void* kodiInstance);
-    void (*refresh_button_maps)(void* kodiInstance,
-                                const char* device_name,
-                                const char* controller_id);
-    unsigned int (*feature_count)(void* kodiInstance,
-                                  const char* controller_id,
-                                  JOYSTICK_FEATURE_TYPE type);
-    JOYSTICK_FEATURE_TYPE(*feature_type)
-    (void* kodiInstance, const char* controller_id, const char* feature_name);
-  } AddonToKodiFuncTable_Peripheral;
+    //--==----==----==----==----==----==----==----==----==----==----==----==----==
+    // Joystick operations
+    PFN_KODI_ADDON_PERIPHERAL_GET_JOYSTICK_INFO_V1 get_joystick_info;
+    PFN_KODI_ADDON_PERIPHERAL_FREE_JOYSTICK_INFO_V1 free_joystick_info;
+    PFN_KODI_ADDON_PERIPHERAL_GET_FEATURES_V1 get_features;
+    PFN_KODI_ADDON_PERIPHERAL_FREE_FEATURES_V1 free_features;
+    PFN_KODI_ADDON_PERIPHERAL_MAP_FEATURES_V1 map_features;
+    PFN_KODI_ADDON_PERIPHERAL_GET_IGNORED_PRIMITIVES_V1 get_ignored_primitives;
+    PFN_KODI_ADDON_PERIPHERAL_FREE_PRIMITIVES_V1 free_primitives;
+    PFN_KODI_ADDON_PERIPHERAL_SET_IGNORED_PRIMITIVES_V1 set_ignored_primitives;
+    PFN_KODI_ADDON_PERIPHERAL_SAVE_BUTTON_MAP_V1 save_button_map;
+    PFN_KODI_ADDON_PERIPHERAL_REVERT_BUTTON_MAP_V1 revert_button_map;
+    PFN_KODI_ADDON_PERIPHERAL_RESET_BUTTON_MAP_V1 reset_button_map;
+    PFN_KODI_ADDON_PERIPHERAL_POWER_OFF_JOYSTICK_V1 power_off_joystick;
+  } KODI_ADDON_PERIPHERAL_FUNC;
 
-  //! @todo Mouse, light gun, multitouch
-
-  typedef struct KodiToAddonFuncTable_Peripheral
-  {
-    KODI_HANDLE addonInstance;
-
-    void(__cdecl* get_capabilities)(const struct AddonInstance_Peripheral* addonInstance,
-                                    struct PERIPHERAL_CAPABILITIES* capabilities);
-    PERIPHERAL_ERROR(__cdecl* perform_device_scan)
-    (const struct AddonInstance_Peripheral* addonInstance,
-     unsigned int* peripheral_count,
-     struct PERIPHERAL_INFO** scan_results);
-    void(__cdecl* free_scan_results)(const struct AddonInstance_Peripheral* addonInstance,
-                                     unsigned int peripheral_count,
-                                     struct PERIPHERAL_INFO* scan_results);
-    PERIPHERAL_ERROR(__cdecl* get_events)
-    (const struct AddonInstance_Peripheral* addonInstance,
-     unsigned int* event_count,
-     struct PERIPHERAL_EVENT** events);
-    void(__cdecl* free_events)(const struct AddonInstance_Peripheral* addonInstance,
-                               unsigned int event_count,
-                               struct PERIPHERAL_EVENT* events);
-    bool(__cdecl* send_event)(const struct AddonInstance_Peripheral* addonInstance,
-                              const struct PERIPHERAL_EVENT* event);
-
-    /// @name Joystick operations
-    ///{
-    PERIPHERAL_ERROR(__cdecl* get_joystick_info)
-    (const struct AddonInstance_Peripheral* addonInstance,
-     unsigned int index,
-     struct JOYSTICK_INFO* info);
-    void(__cdecl* free_joystick_info)(const struct AddonInstance_Peripheral* addonInstance,
-                                      struct JOYSTICK_INFO* info);
-    PERIPHERAL_ERROR(__cdecl* get_features)
-    (const struct AddonInstance_Peripheral* addonInstance,
-     const struct JOYSTICK_INFO* joystick,
-     const char* controller_id,
-     unsigned int* feature_count,
-     struct JOYSTICK_FEATURE** features);
-    void(__cdecl* free_features)(const struct AddonInstance_Peripheral* addonInstance,
-                                 unsigned int feature_count,
-                                 struct JOYSTICK_FEATURE* features);
-    PERIPHERAL_ERROR(__cdecl* map_features)
-    (const struct AddonInstance_Peripheral* addonInstance,
-     const struct JOYSTICK_INFO* joystick,
-     const char* controller_id,
-     unsigned int feature_count,
-     const struct JOYSTICK_FEATURE* features);
-    PERIPHERAL_ERROR(__cdecl* get_ignored_primitives)
-    (const struct AddonInstance_Peripheral* addonInstance,
-     const struct JOYSTICK_INFO* joystick,
-     unsigned int* feature_count,
-     struct JOYSTICK_DRIVER_PRIMITIVE** primitives);
-    void(__cdecl* free_primitives)(const struct AddonInstance_Peripheral* addonInstance,
-                                   unsigned int,
-                                   struct JOYSTICK_DRIVER_PRIMITIVE* primitives);
-    PERIPHERAL_ERROR(__cdecl* set_ignored_primitives)
-    (const struct AddonInstance_Peripheral* addonInstance,
-     const struct JOYSTICK_INFO* joystick,
-     unsigned int primitive_count,
-     const struct JOYSTICK_DRIVER_PRIMITIVE* primitives);
-    void(__cdecl* save_button_map)(const struct AddonInstance_Peripheral* addonInstance,
-                                   const struct JOYSTICK_INFO* joystick);
-    void(__cdecl* revert_button_map)(const struct AddonInstance_Peripheral* addonInstance,
-                                     const struct JOYSTICK_INFO* joystick);
-    void(__cdecl* reset_button_map)(const struct AddonInstance_Peripheral* addonInstance,
-                                    const struct JOYSTICK_INFO* joystick,
-                                    const char* controller_id);
-    void(__cdecl* power_off_joystick)(const struct AddonInstance_Peripheral* addonInstance,
-                                      unsigned int index);
-    ///}
-  } KodiToAddonFuncTable_Peripheral;
-
-  typedef struct AddonInstance_Peripheral
-  {
-    struct AddonProps_Peripheral* props;
-    struct AddonToKodiFuncTable_Peripheral* toKodi;
-    struct KodiToAddonFuncTable_Peripheral* toAddon;
-  } AddonInstance_Peripheral;
+  ATTR_DLL_EXPORT void kodi_addon_peripheral_trigger_scan(KODI_ADDON_INSTANCE_BACKEND_HDL hdl)
+      __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT void kodi_addon_peripheral_refresh_button_maps(
+      KODI_ADDON_INSTANCE_BACKEND_HDL hdl, const char* device_name, const char* controller_id)
+      __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT unsigned int kodi_addon_peripheral_feature_count(
+      KODI_ADDON_INSTANCE_BACKEND_HDL hdl,
+      const char* controller_id,
+      enum JOYSTICK_FEATURE_TYPE type) __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT enum JOYSTICK_FEATURE_TYPE kodi_addon_peripheral_feature_type(
+      KODI_ADDON_INSTANCE_BACKEND_HDL hdl, const char* controller_id, const char* feature_name)
+      __INTRODUCED_IN_KODI(1);
 
 #ifdef __cplusplus
 } /* extern "C" */

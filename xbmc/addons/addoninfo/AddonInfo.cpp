@@ -34,7 +34,7 @@ typedef struct
 } TypeMapping;
 
 // clang-format off
-static constexpr const std::array<TypeMapping, 40> types =
+static constexpr const std::array<TypeMapping, 41> types =
   {{
    {"unknown",                           "", ADDON_UNKNOWN,                 0, AddonInstanceSupport::SUPPORT_NONE,      "" },
    {"xbmc.metadata.scraper.albums",      "", ADDON_SCRAPER_ALBUMS,      24016, AddonInstanceSupport::SUPPORT_NONE,      "DefaultAddonAlbumInfo.png" },
@@ -76,6 +76,7 @@ static constexpr const std::array<TypeMapping, 40> types =
    {"kodi.inputstream",                  "", ADDON_INPUTSTREAM,         24048, AddonInstanceSupport::SUPPORT_MANDATORY, "DefaultAddonInputstream.png" },
    {"kodi.vfs",                          "", ADDON_VFS,                 39013, AddonInstanceSupport::SUPPORT_MANDATORY, "DefaultAddonVfs.png" },
    {"kodi.imagedecoder",                 "", ADDON_IMAGEDECODER,        39015, AddonInstanceSupport::SUPPORT_MANDATORY, "DefaultAddonImageDecoder.png" },
+   {"kodi.web",                          "", ADDON_WEB_MANAGER,         29986, AddonInstanceSupport::SUPPORT_NONE,      "DefaultAddonWeb.png" },
   }};
 // clang-format on
 
@@ -169,7 +170,7 @@ CAddonInfo::CAddonInfo(std::string id, TYPE type)
 
 const CAddonType* CAddonInfo::Type(TYPE type) const
 {
-  static CAddonType dummy;
+  static CAddonType dummy(ADDON_UNKNOWN, AddonLanguage::Unknown);
 
   if (!m_types.empty())
   {

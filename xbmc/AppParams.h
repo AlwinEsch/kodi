@@ -28,6 +28,9 @@ public:
   bool IsStartFullScreen() const { return m_startFullScreen; }
   void SetStartFullScreen(bool startFullScreen) { m_startFullScreen = startFullScreen; }
 
+  bool IsNoSandbox() const { return m_noSandbox; }
+  void SetNoSandbox(bool noSandbox) { m_noSandbox = noSandbox; }
+
   bool IsStandAlone() const { return m_standAlone; }
   void SetStandAlone(bool standAlone) { m_standAlone = standAlone; }
 
@@ -74,6 +77,11 @@ private:
   int m_logLevel{LOG_LEVEL_NORMAL};
 
   bool m_startFullScreen{false};
+#ifndef KODI_INHIBIT_SHARED
+  bool m_noSandbox{false};
+#else
+  bool m_noSandbox{true};
+#endif
   bool m_standAlone{false};
   bool m_platformDirectories{true};
   bool m_testmode{false};

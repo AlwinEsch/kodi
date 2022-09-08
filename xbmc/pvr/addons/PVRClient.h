@@ -8,8 +8,8 @@
 
 #pragma once
 
-#include "addons/binary-addons/AddonInstanceHandler.h"
-#include "addons/kodi-dev-kit/include/kodi/c-api/addon-instance/pvr.h"
+#include "addons/interface/InstanceHandler.h"
+#include "addons/interface/api/addon-instance/pvr.h"
 #include "pvr/addons/PVRClientCapabilities.h"
 #include "threads/Event.h"
 
@@ -26,6 +26,7 @@ namespace PVR
 {
 class CPVRChannel;
 class CPVRChannelGroup;
+class CPVRChannelGroupMember;
 class CPVRChannelGroups;
 class CPVRProvider;
 class CPVRProvidersContainer;
@@ -47,7 +48,7 @@ class CPVRTimersContainer;
  *
  * Also translates Kodi's C++ structures to the add-on's C structures.
  */
-class CPVRClient : public ADDON::IAddonInstanceHandler
+class CPVRClient : public KODI::ADDONS::INTERFACE::IInstanceHandler
 {
 public:
   CPVRClient(const ADDON::AddonInfoPtr& addonInfo, ADDON::AddonInstanceId instanceId, int clientId);
@@ -342,6 +343,22 @@ public:
    */
   PVR_ERROR GetProviders(CPVRProvidersContainer& providers);
 
+  /*!
+   * @brief Get the signal quality of the stream that's currently open.
+   * @param channelUid Channel unique identifier
+   * @param qualityinfo The signal quality.
+   * @return PVR_ERROR_NO_ERROR on success, respective error code otherwise.
+   */
+  PVR_ERROR SignalQuality(int channelUid, PVR_SIGNAL_STATUS& qualityinfo);
+
+  /*!
+   * @brief Get the descramble information of the stream that's currently open.
+   * @param channelUid Channel unique identifier
+   * @param descrambleinfo The descramble information.
+   * @return PVR_ERROR_NO_ERROR on success, respective error code otherwise.
+   */
+  PVR_ERROR GetDescrambleInfo(int channelUid, PVR_DESCRAMBLE_INFO& descrambleinfo) const;
+
   //@}
   /** @name PVR recording methods */
   //@{
@@ -497,67 +514,6 @@ public:
   //@{
 
   /*!
-   * @brief Open a live stream on the server.
-   * @param channel The channel to stream.
-   * @return PVR_ERROR_NO_ERROR on success, respective error code otherwise.
-   */
-  PVR_ERROR OpenLiveStream(const std::shared_ptr<CPVRChannel>& channel);
-
-  /*!
-   * @brief Close an open live stream.
-   * @return PVR_ERROR_NO_ERROR on success, respective error code otherwise.
-   */
-  PVR_ERROR CloseLiveStream();
-
-  /*!
-   * @brief Read from an open live stream.
-   * @param lpBuf The buffer to store the data in.
-   * @param uiBufSize The amount of bytes to read.
-   * @param iRead The amount of bytes that were actually read from the stream.
-   * @return PVR_ERROR_NO_ERROR on success, respective error code otherwise.
-   */
-  PVR_ERROR ReadLiveStream(void* lpBuf, int64_t uiBufSize, int& iRead);
-
-  /*!
-   * @brief Seek in a live stream on a backend.
-   * @param iFilePosition The position to seek to.
-   * @param iWhence ?
-   * @param iPosition The new position or -1 on error.
-   * @return PVR_ERROR_NO_ERROR on success, respective error code otherwise.
-   */
-  PVR_ERROR SeekLiveStream(int64_t iFilePosition, int iWhence, int64_t& iPosition);
-
-  /*!
-   * @brief Get the length of the currently playing live stream, if any.
-   * @param iLength The total length of the stream that's currently being read or -1 on error.
-   * @return PVR_ERROR_NO_ERROR on success, respective error code otherwise.
-   */
-  PVR_ERROR GetLiveStreamLength(int64_t& iLength);
-
-  /*!
-   * @brief (Un)Pause a stream.
-   * @param bPaused True to pause the stream, false to unpause.
-   * @return PVR_ERROR_NO_ERROR on success, respective error code otherwise.
-   */
-  PVR_ERROR PauseStream(bool bPaused);
-
-  /*!
-   * @brief Get the signal quality of the stream that's currently open.
-   * @param channelUid Channel unique identifier
-   * @param qualityinfo The signal quality.
-   * @return PVR_ERROR_NO_ERROR on success, respective error code otherwise.
-   */
-  PVR_ERROR SignalQuality(int channelUid, PVR_SIGNAL_STATUS& qualityinfo);
-
-  /*!
-   * @brief Get the descramble information of the stream that's currently open.
-   * @param channelUid Channel unique identifier
-   * @param descrambleinfo The descramble information.
-   * @return PVR_ERROR_NO_ERROR on success, respective error code otherwise.
-   */
-  PVR_ERROR GetDescrambleInfo(int channelUid, PVR_DESCRAMBLE_INFO& descrambleinfo) const;
-
-  /*!
    * @brief Fill the given container with the properties required for playback of the given channel. Values are obtained from the PVR backend.
    * @param channel The channel.
    * @param props The container to be filled with the stream properties.
@@ -566,87 +522,9 @@ public:
   PVR_ERROR GetChannelStreamProperties(const std::shared_ptr<CPVRChannel>& channel,
                                        CPVRStreamProperties& props);
 
-  /*!
-   * @brief Check whether PVR backend supports pausing the currently playing stream
-   * @param bCanPause True if the stream can be paused, false otherwise.
-   * @return PVR_ERROR_NO_ERROR on success, respective error code otherwise.
-   */
-  PVR_ERROR CanPauseStream(bool& bCanPause) const;
-
-  /*!
-   * @brief Check whether PVR backend supports seeking for the currently playing stream
-   * @param bCanSeek True if the stream can be seeked, false otherwise.
-   * @return PVR_ERROR_NO_ERROR on success, respective error code otherwise.
-   */
-  PVR_ERROR CanSeekStream(bool& bCanSeek) const;
-
-  /*!
-   * @brief Notify the pvr addon/demuxer that Kodi wishes to seek the stream by time
-   * @param time The absolute time since stream start
-   * @param backwards True to seek to keyframe BEFORE time, else AFTER
-   * @param startpts can be updated to point to where display should start
-   * @return PVR_ERROR_NO_ERROR on success, respective error code otherwise.
-   * @remarks Optional, and only used if addon has its own demuxer.
-   */
-  PVR_ERROR SeekTime(double time, bool backwards, double* startpts);
-
-  /*!
-   * @brief Notify the pvr addon/demuxer that Kodi wishes to change playback speed
-   * @param speed The requested playback speed
-   * @return PVR_ERROR_NO_ERROR on success, respective error code otherwise.
-   * @remarks Optional, and only used if addon has its own demuxer.
-   */
-  PVR_ERROR SetSpeed(int speed);
-
-  /*!
-   * @brief Notify the pvr addon/demuxer that Kodi wishes to fill demux queue
-   * @param mode for setting on/off
-   * @return PVR_ERROR_NO_ERROR on success, respective error code otherwise.
-   * @remarks Optional, and only used if addon has its own demuxer.
-   */
-  PVR_ERROR FillBuffer(bool mode);
-
   //@}
   /** @name PVR recording stream methods */
   //@{
-
-  /*!
-   * @brief Open a recording on the server.
-   * @param recording The recording to open.
-   * @return PVR_ERROR_NO_ERROR on success, respective error code otherwise.
-   */
-  PVR_ERROR OpenRecordedStream(const std::shared_ptr<CPVRRecording>& recording);
-
-  /*!
-   * @brief Close an open recording stream.
-   * @return PVR_ERROR_NO_ERROR on success, respective error code otherwise.
-   */
-  PVR_ERROR CloseRecordedStream();
-
-  /*!
-   * @brief Read from an open recording stream.
-   * @param lpBuf The buffer to store the data in.
-   * @param uiBufSize The amount of bytes to read.
-   * @param iRead The amount of bytes that were actually read from the stream.
-   * @return PVR_ERROR_NO_ERROR on success, respective error code otherwise.
-   */
-  PVR_ERROR ReadRecordedStream(void* lpBuf, int64_t uiBufSize, int& iRead);
-
-  /*!
-   * @brief Seek in a recording stream on a backend.
-   * @param iFilePosition The position to seek to.
-   * @param iWhence ?
-   * @param iPosition The new position or -1 on error.
-   * @return PVR_ERROR_NO_ERROR on success, respective error code otherwise.
-   */
-  PVR_ERROR SeekRecordedStream(int64_t iFilePosition, int iWhence, int64_t& iPosition);
-
-  /*!
-   * @brief Get the length of the currently playing recording stream, if any.
-   * @param iLength The total length of the stream that's currently being read or -1 on error.
-   * @return PVR_ERROR_NO_ERROR on success, respective error code otherwise.
-   */
-  PVR_ERROR GetRecordedStreamLength(int64_t& iLength);
 
   /*!
    * @brief Fill the given container with the properties required for playback of the given recording. Values are obtained from the PVR backend.
@@ -658,49 +536,7 @@ public:
                                          CPVRStreamProperties& props);
 
   //@}
-  /** @name PVR demultiplexer methods */
-  //@{
 
-  /*!
-   * @brief Reset the demultiplexer in the add-on.
-   * @return PVR_ERROR_NO_ERROR on success, respective error code otherwise.
-   */
-  PVR_ERROR DemuxReset();
-
-  /*!
-   * @brief Abort the demultiplexer thread in the add-on.
-   * @return PVR_ERROR_NO_ERROR on success, respective error code otherwise.
-   */
-  PVR_ERROR DemuxAbort();
-
-  /*!
-   * @brief Flush all data that's currently in the demultiplexer buffer in the add-on.
-   * @return PVR_ERROR_NO_ERROR on success, respective error code otherwise.
-   */
-  PVR_ERROR DemuxFlush();
-
-  /*!
-   * @brief Read a packet from the demultiplexer.
-   * @param packet The packet read.
-   * @return PVR_ERROR_NO_ERROR on success, respective error code otherwise.
-   */
-  PVR_ERROR DemuxRead(DemuxPacket*& packet);
-
-  static const char* ToString(const PVR_ERROR error);
-
-  /*!
-   * @brief Check whether the currently playing stream, if any, is a real-time stream.
-   * @param bRealTime True if real-time, false otherwise.
-   * @return PVR_ERROR_NO_ERROR on success, respective error code otherwise.
-   */
-  PVR_ERROR IsRealTimeStream(bool& bRealTime) const;
-
-  /*!
-   * @brief Get Stream times for the currently playing stream, if any (will be moved to inputstream).
-   * @param times The stream times.
-   * @return PVR_ERROR_NO_ERROR on success, respective error code otherwise.
-   */
-  PVR_ERROR GetStreamTimes(PVR_STREAM_TIMES* times);
 
   /*!
    * @brief Get the client's menu hooks.
@@ -782,10 +618,171 @@ public:
   PVR_ERROR GetStreamReadChunkSize(int& iChunkSize);
 
   /*!
-   * @brief Get the interface table used between addon and Kodi.
-   * @todo This function will be removed after old callback library system is removed.
+   * @brief Callback functions from addon to kodi
    */
-  AddonInstance_PVR* GetInstanceInterface() { return m_ifc.pvr; }
+  //@{
+
+  int cb_get_epg_max_future_days();
+  /*---AUTO_GEN_PARSE<CB:kodi_addon_pvr_get_epg_max_future_days>---*/
+
+  int cb_get_epg_max_past_days();
+  /*---AUTO_GEN_PARSE<CB:kodi_addon_pvr_get_epg_max_past_days>---*/
+
+  /*!
+   * @brief Transfer a channel group from the add-on to Kodi. The group will be created if it doesn't exist.
+   * @param kodiInstance Pointer to Kodi's CPVRClient class
+   * @param handle The handle parameter that Kodi used when requesting the channel groups list
+   * @param entry The entry to transfer to Kodi
+   */
+  void cb_transfer_channel_group(const KODI_ADDON_PVR_TRANSFER_HDL handle,
+                                 const PVR_CHANNEL_GROUP* entry);
+  /*---AUTO_GEN_PARSE<CB:kodi_addon_pvr_transfer_channel_group>---*/
+
+  /*!
+   * @brief Transfer a channel group member entry from the add-on to Kodi. The channel will be added to the group if the group can be found.
+   * @param kodiInstance Pointer to Kodi's CPVRClient class
+   * @param handle The handle parameter that Kodi used when requesting the channel group members list
+   * @param entry The entry to transfer to Kodi
+   */
+  void cb_transfer_channel_group_member(const KODI_ADDON_PVR_TRANSFER_HDL handle,
+                                        const PVR_CHANNEL_GROUP_MEMBER* entry);
+  /*---AUTO_GEN_PARSE<CB:kodi_addon_pvr_transfer_channel_group_member>---*/
+
+  /*!
+   * @brief Transfer an EPG tag from the add-on to Kodi
+   * @param kodiInstance Pointer to Kodi's CPVRClient class
+   * @param handle The handle parameter that Kodi used when requesting the EPG data
+   * @param entry The entry to transfer to Kodi
+   */
+  void cb_transfer_epg_entry(const KODI_ADDON_PVR_TRANSFER_HDL handle, const EPG_TAG* entry);
+  /*---AUTO_GEN_PARSE<CB:kodi_addon_pvr_transfer_epg_entry>---*/
+
+  /*!
+   * @brief Transfer a channel entry from the add-on to Kodi
+   * @param kodiInstance Pointer to Kodi's CPVRClient class
+   * @param handle The handle parameter that Kodi used when requesting the channel list
+   * @param entry The entry to transfer to Kodi
+   */
+  void cb_transfer_channel_entry(const KODI_ADDON_PVR_TRANSFER_HDL handle,
+                                 const PVR_CHANNEL* entry);
+  /*---AUTO_GEN_PARSE<CB:kodi_addon_pvr_transfer_channel_entry>---*/
+
+  /*!
+   * @brief Transfer a provider entry from the add-on to Kodi
+   * @param kodiInstance Pointer to Kodi's CPVRClient class
+   * @param handle The handle parameter that Kodi used when requesting the channel list
+   * @param entry The entry to transfer to Kodi
+   */
+  void cb_transfer_provider_entry(const KODI_ADDON_PVR_TRANSFER_HDL handle,
+                                  const PVR_PROVIDER* entry);
+  /*---AUTO_GEN_PARSE<CB:kodi_addon_pvr_transfer_provider_entry>---*/
+
+  /*!
+   * @brief Transfer a timer entry from the add-on to Kodi
+   * @param kodiInstance Pointer to Kodi's CPVRClient class
+   * @param handle The handle parameter that Kodi used when requesting the timers list
+   * @param entry The entry to transfer to Kodi
+   */
+  void cb_transfer_timer_entry(const KODI_ADDON_PVR_TRANSFER_HDL handle, const PVR_TIMER* entry);
+  /*---AUTO_GEN_PARSE<CB:kodi_addon_pvr_transfer_timer_entry>---*/
+
+  /*!
+   * @brief Transfer a recording entry from the add-on to Kodi
+   * @param kodiInstance Pointer to Kodi's CPVRClient class
+   * @param handle The handle parameter that Kodi used when requesting the recordings list
+   * @param entry The entry to transfer to Kodi
+   */
+  void cb_transfer_recording_entry(const KODI_ADDON_PVR_TRANSFER_HDL handle,
+                                   const PVR_RECORDING* entry);
+  /*---AUTO_GEN_PARSE<CB:kodi_addon_pvr_transfer_recording_entry>---*/
+
+  /*!
+   * @brief Add or replace a menu hook for the context menu for this add-on
+   * @param kodiInstance Pointer to Kodi's CPVRClient class
+   * @param hook The hook to add.
+   */
+  void cb_add_menu_hook(const PVR_MENUHOOK* hook);
+  /*---AUTO_GEN_PARSE<CB:kodi_addon_pvr_add_menu_hook>---*/
+
+  /*!
+   * @brief Display a notification in Kodi that a recording started or stopped on the server
+   * @param kodiInstance Pointer to Kodi's CPVRClient class
+   * @param strName The name of the recording to display
+   * @param strFileName The filename of the recording
+   * @param bOnOff True when recording started, false when it stopped
+   */
+  void cb_recording_notification(const char* strName, const char* strFileName, bool bOnOff);
+  /*---AUTO_GEN_PARSE<CB:kodi_addon_pvr_recording_notification>---*/
+
+  /*!
+   * @brief Request Kodi to update it's list of channels
+   * @param kodiInstance Pointer to Kodi's CPVRClient class
+   */
+  void cb_trigger_channel_update();
+  /*---AUTO_GEN_PARSE<CB:kodi_addon_pvr_trigger_channel_update>---*/
+
+  /*!
+   * @brief Request Kodi to update it's list of providers
+   * @param kodiInstance Pointer to Kodi's CPVRClient class
+   */
+  void cb_trigger_provider_update();
+  /*---AUTO_GEN_PARSE<CB:kodi_addon_pvr_trigger_providers_update>---*/
+
+  /*!
+   * @brief Request Kodi to update it's list of timers
+   * @param kodiInstance Pointer to Kodi's CPVRClient class
+   */
+  void cb_trigger_timer_update();
+  /*---AUTO_GEN_PARSE<CB:kodi_addon_pvr_trigger_timer_update>---*/
+
+  /*!
+   * @brief Request Kodi to update it's list of recordings
+   * @param kodiInstance Pointer to Kodi's CPVRClient class
+   */
+  void cb_trigger_recording_update();
+  /*---AUTO_GEN_PARSE<CB:kodi_addon_pvr_trigger_recording_update>---*/
+
+  /*!
+   * @brief Request Kodi to update it's list of channel groups
+   * @param kodiInstance Pointer to Kodi's CPVRClient class
+   */
+  void cb_trigger_channel_groups_update();
+  /*---AUTO_GEN_PARSE<CB:kodi_addon_pvr_trigger_channel_groups_update>---*/
+
+  /*!
+   * @brief Schedule an EPG update for the given channel channel
+   * @param kodiInstance A pointer to the add-on
+   * @param iChannelUid The unique id of the channel for this add-on
+   */
+  void cb_trigger_epg_update(unsigned int iChannelUid);
+  /*---AUTO_GEN_PARSE<CB:kodi_addon_pvr_trigger_epg_update>---*/
+
+  /*!
+   * @brief Notify a state change for a PVR backend connection
+   * @param kodiInstance Pointer to Kodi's CPVRClient class
+   * @param strConnectionString The connection string reported by the backend that can be displayed in the UI.
+   * @param newState The new state.
+   * @param strMessage A localized addon-defined string representing the new state, that can be displayed
+   *        in the UI or NULL if the Kodi-defined default string for the new state shall be displayed.
+   */
+  void cb_connection_state_change(const char* strConnectionString,
+                                  PVR_CONNECTION_STATE newState,
+                                  const char* strMessage);
+  /*---AUTO_GEN_PARSE<CB:kodi_addon_pvr_connection_state_change>---*/
+
+  /*!
+   * @brief Notify a state change for an EPG event
+   * @param kodiInstance Pointer to Kodi's CPVRClient class
+   * @param tag The EPG event.
+   * @param newState The new state.
+   * @param newState The new state. For EPG_EVENT_CREATED and EPG_EVENT_UPDATED, tag must be filled with all available
+   *        event data, not just a delta. For EPG_EVENT_DELETED, it is sufficient to fill EPG_TAG.iUniqueBroadcastId
+   */
+  void cb_epg_event_state_change(EPG_TAG* tag, EPG_EVENT_STATE newState);
+  /*---AUTO_GEN_PARSE<CB:kodi_addon_pvr_epg_event_state_change>---*/
+  //@}
+
+  static const char* ToString(const PVR_ERROR error);
 
 private:
   /*!
@@ -860,198 +857,20 @@ private:
    * @param bCheckReadyToUse If true, this method will check whether this instance is ready for use and return PVR_ERROR_SERVER_ERROR if it is not.
    * @return PVR_ERROR_NO_ERROR on success, any other PVR_ERROR_* value otherwise.
    */
-  typedef AddonInstance_PVR AddonInstance;
   PVR_ERROR DoAddonCall(const char* strFunctionName,
-                        const std::function<PVR_ERROR(const AddonInstance*)>& function,
+                        const std::function<PVR_ERROR(const KODI_ADDON_PVR_HDL)>& function,
                         bool bIsImplemented = true,
                         bool bCheckReadyToUse = true) const;
 
   /*!
    * @brief Wraps an addon callback function call in order to do common pre and post function invocation actions.
    * @param strFunctionName The function name, for logging purposes.
-   * @param kodiInstance The addon instance pointer.
    * @param function The function to wrap. It must take one parameter of type CPVRClient*.
    * @param bForceCall If true, make the call, ignoring client's state.
    */
-  static void HandleAddonCallback(const char* strFunctionName,
-                                  void* kodiInstance,
-                                  const std::function<void(CPVRClient* client)>& function,
-                                  bool bForceCall = false);
-
-  /*!
-   * @brief Callback functions from addon to kodi
-   */
-  //@{
-
-  /*!
-   * @brief Transfer a channel group from the add-on to Kodi. The group will be created if it doesn't exist.
-   * @param kodiInstance Pointer to Kodi's CPVRClient class
-   * @param handle The handle parameter that Kodi used when requesting the channel groups list
-   * @param entry The entry to transfer to Kodi
-   */
-  static void cb_transfer_channel_group(void* kodiInstance,
-                                        const PVR_HANDLE handle,
-                                        const PVR_CHANNEL_GROUP* entry);
-
-  /*!
-   * @brief Transfer a channel group member entry from the add-on to Kodi. The channel will be added to the group if the group can be found.
-   * @param kodiInstance Pointer to Kodi's CPVRClient class
-   * @param handle The handle parameter that Kodi used when requesting the channel group members list
-   * @param entry The entry to transfer to Kodi
-   */
-  static void cb_transfer_channel_group_member(void* kodiInstance,
-                                               const PVR_HANDLE handle,
-                                               const PVR_CHANNEL_GROUP_MEMBER* entry);
-
-  /*!
-   * @brief Transfer an EPG tag from the add-on to Kodi
-   * @param kodiInstance Pointer to Kodi's CPVRClient class
-   * @param handle The handle parameter that Kodi used when requesting the EPG data
-   * @param entry The entry to transfer to Kodi
-   */
-  static void cb_transfer_epg_entry(void* kodiInstance,
-                                    const PVR_HANDLE handle,
-                                    const EPG_TAG* entry);
-
-  /*!
-   * @brief Transfer a channel entry from the add-on to Kodi
-   * @param kodiInstance Pointer to Kodi's CPVRClient class
-   * @param handle The handle parameter that Kodi used when requesting the channel list
-   * @param entry The entry to transfer to Kodi
-   */
-  static void cb_transfer_channel_entry(void* kodiInstance,
-                                        const PVR_HANDLE handle,
-                                        const PVR_CHANNEL* entry);
-
-  /*!
-   * @brief Transfer a provider entry from the add-on to Kodi
-   * @param kodiInstance Pointer to Kodi's CPVRClient class
-   * @param handle The handle parameter that Kodi used when requesting the channel list
-   * @param entry The entry to transfer to Kodi
-   */
-  static void cb_transfer_provider_entry(void* kodiInstance,
-                                         const PVR_HANDLE handle,
-                                         const PVR_PROVIDER* entry);
-
-  /*!
-   * @brief Transfer a timer entry from the add-on to Kodi
-   * @param kodiInstance Pointer to Kodi's CPVRClient class
-   * @param handle The handle parameter that Kodi used when requesting the timers list
-   * @param entry The entry to transfer to Kodi
-   */
-  static void cb_transfer_timer_entry(void* kodiInstance,
-                                      const PVR_HANDLE handle,
-                                      const PVR_TIMER* entry);
-
-  /*!
-   * @brief Transfer a recording entry from the add-on to Kodi
-   * @param kodiInstance Pointer to Kodi's CPVRClient class
-   * @param handle The handle parameter that Kodi used when requesting the recordings list
-   * @param entry The entry to transfer to Kodi
-   */
-  static void cb_transfer_recording_entry(void* kodiInstance,
-                                          const PVR_HANDLE handle,
-                                          const PVR_RECORDING* entry);
-
-  /*!
-   * @brief Add or replace a menu hook for the context menu for this add-on
-   * @param kodiInstance Pointer to Kodi's CPVRClient class
-   * @param hook The hook to add.
-   */
-  static void cb_add_menu_hook(void* kodiInstance, const PVR_MENUHOOK* hook);
-
-  /*!
-   * @brief Display a notification in Kodi that a recording started or stopped on the server
-   * @param kodiInstance Pointer to Kodi's CPVRClient class
-   * @param strName The name of the recording to display
-   * @param strFileName The filename of the recording
-   * @param bOnOff True when recording started, false when it stopped
-   */
-  static void cb_recording_notification(void* kodiInstance,
-                                        const char* strName,
-                                        const char* strFileName,
-                                        bool bOnOff);
-
-  /*!
-   * @brief Request Kodi to update it's list of channels
-   * @param kodiInstance Pointer to Kodi's CPVRClient class
-   */
-  static void cb_trigger_channel_update(void* kodiInstance);
-
-  /*!
-   * @brief Request Kodi to update it's list of providers
-   * @param kodiInstance Pointer to Kodi's CPVRClient class
-   */
-  static void cb_trigger_provider_update(void* kodiInstance);
-
-  /*!
-   * @brief Request Kodi to update it's list of timers
-   * @param kodiInstance Pointer to Kodi's CPVRClient class
-   */
-  static void cb_trigger_timer_update(void* kodiInstance);
-
-  /*!
-   * @brief Request Kodi to update it's list of recordings
-   * @param kodiInstance Pointer to Kodi's CPVRClient class
-   */
-  static void cb_trigger_recording_update(void* kodiInstance);
-
-  /*!
-   * @brief Request Kodi to update it's list of channel groups
-   * @param kodiInstance Pointer to Kodi's CPVRClient class
-   */
-  static void cb_trigger_channel_groups_update(void* kodiInstance);
-
-  /*!
-   * @brief Schedule an EPG update for the given channel channel
-   * @param kodiInstance A pointer to the add-on
-   * @param iChannelUid The unique id of the channel for this add-on
-   */
-  static void cb_trigger_epg_update(void* kodiInstance, unsigned int iChannelUid);
-
-  /*!
-   * @brief Free a packet that was allocated with AllocateDemuxPacket
-   * @param kodiInstance Pointer to Kodi's CPVRClient class
-   * @param pPacket The packet to free.
-   */
-  static void cb_free_demux_packet(void* kodiInstance, DEMUX_PACKET* pPacket);
-
-  /*!
-   * @brief Allocate a demux packet. Free with FreeDemuxPacket
-   * @param kodiInstance Pointer to Kodi's CPVRClient class.
-   * @param iDataSize The size of the data that will go into the packet
-   * @return The allocated packet.
-   */
-  static DEMUX_PACKET* cb_allocate_demux_packet(void* kodiInstance, int iDataSize = 0);
-
-  /*!
-   * @brief Notify a state change for a PVR backend connection
-   * @param kodiInstance Pointer to Kodi's CPVRClient class
-   * @param strConnectionString The connection string reported by the backend that can be displayed in the UI.
-   * @param newState The new state.
-   * @param strMessage A localized addon-defined string representing the new state, that can be displayed
-   *        in the UI or NULL if the Kodi-defined default string for the new state shall be displayed.
-   */
-  static void cb_connection_state_change(void* kodiInstance,
-                                         const char* strConnectionString,
-                                         PVR_CONNECTION_STATE newState,
-                                         const char* strMessage);
-
-  /*!
-   * @brief Notify a state change for an EPG event
-   * @param kodiInstance Pointer to Kodi's CPVRClient class
-   * @param tag The EPG event.
-   * @param newState The new state.
-   * @param newState The new state. For EPG_EVENT_CREATED and EPG_EVENT_UPDATED, tag must be filled with all available
-   *        event data, not just a delta. For EPG_EVENT_DELETED, it is sufficient to fill EPG_TAG.iUniqueBroadcastId
-   */
-  static void cb_epg_event_state_change(void* kodiInstance, EPG_TAG* tag, EPG_EVENT_STATE newState);
-
-  /*! @todo remove the use complete from them, or add as generl function?!
-   * Returns the ffmpeg codec id from given ffmpeg codec string name
-   */
-  static PVR_CODEC cb_get_codec_by_name(const void* kodiInstance, const char* strCodecName);
-  //@}
+  void HandleAddonCallback(const char* strFunctionName,
+                           const std::function<void()>& function,
+                           bool bForceCall = false);
 
   const int m_iClientId; /*!< unique ID of the client */
   std::atomic<bool>

@@ -54,9 +54,7 @@ namespace OK
 ///
 inline void ATTR_DLL_LOCAL ShowAndGetInput(const std::string& heading, const std::string& text)
 {
-  using namespace ::kodi::addon;
-  CPrivateBase::m_interface->toKodi->kodi_gui->dialogOK->show_and_get_input_single_text(
-      CPrivateBase::m_interface->toKodi->kodiBase, heading.c_str(), text.c_str());
+  kodi::dl::api.kodi_gui_dialogs_ok_show_and_get_input_single_text(heading.c_str(), text.c_str());
 }
 //------------------------------------------------------------------------------
 
@@ -85,10 +83,8 @@ inline void ATTR_DLL_LOCAL ShowAndGetInput(const std::string& heading,
                                            const std::string& line1,
                                            const std::string& line2)
 {
-  using namespace ::kodi::addon;
-  CPrivateBase::m_interface->toKodi->kodi_gui->dialogOK->show_and_get_input_line_text(
-      CPrivateBase::m_interface->toKodi->kodiBase, heading.c_str(), line0.c_str(), line1.c_str(),
-      line2.c_str());
+  kodi::dl::api.kodi_gui_dialogs_ok_show_and_get_input_line_text(heading.c_str(), line0.c_str(),
+                                                                 line1.c_str(), line2.c_str());
 }
 //------------------------------------------------------------------------------
 } // namespace OK

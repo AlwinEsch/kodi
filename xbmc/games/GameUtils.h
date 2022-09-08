@@ -67,12 +67,12 @@ public:
 
 private:
   static void GetGameClients(const CFileItem& file,
-                             GameClientVector& candidates,
-                             GameClientVector& installable,
+                             GameClientInfoVector& candidates,
+                             GameClientInfoVector& installable,
                              bool& bHasVfsGameClient);
-  static void GetGameClients(const ADDON::VECADDONS& addons,
+  static void GetGameClients(const GameClientInfoVector& gameClients,
                              const CURL& translatedUrl,
-                             GameClientVector& candidates,
+                             GameClientInfoVector& candidates,
                              bool& bHasVfsGameClient);
 
   /*!

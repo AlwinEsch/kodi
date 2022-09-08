@@ -407,18 +407,20 @@ void CApplicationPowerHandling::ActivateScreenSaver(bool forceType /*= false */)
       m_screensaverIdInUse = "screensaver.xbmc.builtin.dim";
   }
 
+  ADDON::AddonPtr screenSaver;
   if (m_screensaverIdInUse == "screensaver.xbmc.builtin.dim" ||
       m_screensaverIdInUse == "screensaver.xbmc.builtin.black" || m_screensaverIdInUse.empty())
   {
     return;
   }
-  else if (CServiceBroker::GetAddonMgr().GetAddon(m_screensaverIdInUse, m_pythonScreenSaver,
+  else if (CServiceBroker::GetAddonMgr().GetAddon(m_screensaverIdInUse, screenSaver,
                                                   ADDON::ADDON_SCREENSAVER,
                                                   ADDON::OnlyEnabled::CHOICE_YES))
   {
-    std::string libPath = m_pythonScreenSaver->LibPath();
+    std::string libPath = screenSaver->LibPath();
     if (CScriptInvocationManager::GetInstance().HasLanguageInvoker(libPath))
     {
+      m_pythonScreenSaver = screenSaver;
       CLog::Log(LOGDEBUG, "using python screensaver add-on {}", m_screensaverIdInUse);
 
       // Don't allow a previously-scheduled alarm to kill our new screensaver

@@ -7,6 +7,7 @@
  */
 
 #include "network/Network.h"
+#include "CompileInfo.h"
 #include "URIUtils.h"
 #include "FileItem.h"
 #include "filesystem/MultiPathDirectory.h"
@@ -29,6 +30,7 @@
 #include <cassert>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <regex>
 
 using namespace PVR;
 using namespace XFILE;
@@ -277,7 +279,7 @@ bool URIUtils::HasParentInHostname(const CURL& url)
 {
   return url.IsProtocol("zip") || url.IsProtocol("apk") || url.IsProtocol("bluray") ||
          url.IsProtocol("udf") || url.IsProtocol("iso9660") || url.IsProtocol("xbt") ||
-         (CServiceBroker::IsBinaryAddonCacheUp() &&
+         (CServiceBroker::IsAddonInterfaceUp() &&
           CServiceBroker::GetFileExtensionProvider().EncodedHostName(url.GetProtocol()));
 }
 
@@ -1475,4 +1477,27 @@ bool URIUtils::UpdateUrlEncoding(std::string &strFilename)
 
   strFilename = newFilename;
   return true;
+}
+
+bool URIUtils::IsWeb(const std::string& strFile)
+{
+  return IsProtocol(strFile, "web");
+}
+
+bool URIUtils::IsSharedLibrarySuffix(const std::string& strFile)
+{
+  try
+  {
+    // linux is different and has the version number after the suffix
+    static const std::regex libRegex("^.*" + CCompileInfo::CCompileInfo::GetSharedLibrarySuffix() +
+                                     "\\.?[0-9]*\\.?[0-9]*\\.?[0-9]*$");
+    if (std::regex_match(strFile, libRegex))
+      return true;
+  }
+  catch (const std::regex_error& e)
+  {
+    CLog::Log(LOGERROR, "URIUtils::{}: Regex error caught: {}", __func__, e.what());
+  }
+
+  return false;
 }

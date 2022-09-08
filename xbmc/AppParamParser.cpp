@@ -40,6 +40,8 @@ Arguments:
   --debug               Enable debug logging
   --version             Print version information
   --test                Enable test mode. [FILE] required.
+  -ns or --nosandbox    If set, do not run the installed addons in independent processes. They are then
+                        performed within Kodi itself.
   --settings=<filename> Loads specified file after advancedsettings.xml replacing any settings specified
                         specified file must exist in special://xbmc/system/
 )""";
@@ -92,6 +94,8 @@ void CAppParamParser::ParseArg(const std::string &arg)
 {
   if (arg == "-fs" || arg == "--fullscreen")
     m_params->SetStartFullScreen(true);
+  else if (arg == "-ns" || arg == "--nosandbox")
+    m_params->SetNoSandbox(true);
   else if (arg == "-h" || arg == "--help")
   {
     DisplayHelp();

@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2005-2018 Team Kodi
+ *  Copyright (C) 2005-2020 Team Kodi
  *  This file is part of Kodi - https://kodi.tv
  *
  *  SPDX-License-Identifier: GPL-2.0-or-later
@@ -9,7 +9,7 @@
 #ifndef C_API_GENERAL_H
 #define C_API_GENERAL_H
 
-#include <stdbool.h>
+#include "addon_base.h"
 
 #ifdef __cplusplus
 extern "C"
@@ -69,56 +69,53 @@ extern "C"
   } LangFormats;
   //----------------------------------------------------------------------------
 
-  /*
-   * For interface between add-on and kodi.
-   *
-   * This structure defines the addresses of functions stored inside Kodi which
-   * are then available for the add-on to call
-   *
-   * All function pointers there are used by the C++ interface functions below.
-   * You find the set of them on xbmc/addons/interfaces/General.cpp
-   *
-   * Note: For add-on development itself this is not needed
-   */
+  typedef enum DigestType
+  {
+    DIGEST_MD5,
+    DIGEST_SHA1,
+    DIGEST_SHA256,
+    DIGEST_SHA512
+  } DigestType;
+
   typedef struct AddonKeyboardKeyTable
   {
     char* keys[STD_KB_BUTTONS_MAX_ROWS][STD_KB_BUTTONS_PER_ROW];
   } AddonKeyboardKeyTable;
-  typedef struct AddonToKodiFuncTable_kodi
-  {
-    char* (*unknown_to_utf8)(void* kodiBase, const char* source, bool* ret, bool failOnBadChar);
-    char* (*get_language)(void* kodiBase, int format, bool region);
-    bool (*queue_notification)(void* kodiBase,
-                               int type,
-                               const char* header,
-                               const char* message,
-                               const char* imageFile,
-                               unsigned int displayTime,
-                               bool withSound,
-                               unsigned int messageTime);
-    void (*get_md5)(void* kodiBase, const char* text, char* md5);
-    char* (*get_region)(void* kodiBase, const char* id);
-    void (*get_free_mem)(void* kodiBase, long* free, long* total, bool as_bytes);
-    int (*get_global_idle_time)(void* kodiBase);
-    bool (*is_addon_avilable)(void* kodiBase, const char* id, char** version, bool* enabled);
-    void (*kodi_version)(void* kodiBase,
-                         char** compile_name,
-                         int* major,
-                         int* minor,
-                         char** revision,
-                         char** tag,
-                         char** tagversion);
-    char* (*get_current_skin_id)(void* kodiBase);
-    bool (*get_keyboard_layout)(void* kodiBase,
-                                char** layout_name,
-                                int modifier_key,
-                                struct AddonKeyboardKeyTable* layout);
-    bool (*change_keyboard_layout)(void* kodiBase, char** layout_name);
-  } AddonToKodiFuncTable_kodi;
 
+  ATTR_DLL_EXPORT char* kodi_get_localized_string(long label_id) __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT void kodi_get_free_mem(long* free, long* total, bool as_bytes)
+      __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT char* kodi_unknown_to_utf8(const char* source, bool* ret, bool failOnBadChar)
+      __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT char* kodi_get_language(enum LangFormats format, bool region)
+      __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT void kodi_queue_notification(enum QueueMsg type,
+                                               const char* header,
+                                               const char* message,
+                                               const char* imageFile,
+                                               unsigned int displayTime,
+                                               bool withSound,
+                                               unsigned int messageTime) __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT char* kodi_get_digest(enum DigestType type, const char* text)
+      __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT char* kodi_get_region(const char* id) __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT int kodi_get_global_idle_time() __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT bool kodi_is_addon_avilable(const char* id, char** version, bool* enabled)
+      __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT void kodi_version(
+      char** compile_name, int* major, int* minor, char** revision, char** tag, char** tagversion)
+      __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT char* kodi_get_current_skin_id() __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT bool kodi_get_keyboard_layout(int modifier_key,
+                                                char** layout_name,
+                                                struct AddonKeyboardKeyTable* layout)
+      __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT bool kodi_change_keyboard_layout(char** layout_name) __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT void kodi_play_sfx(const char* filename, bool use_cached) __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT void kodi_stop_sfx() __INTRODUCED_IN_KODI(1);
 
 #ifdef __cplusplus
-} /* extern "C" */
+}
 #endif /* __cplusplus */
 
 #endif /* !C_API_GENERAL_H */

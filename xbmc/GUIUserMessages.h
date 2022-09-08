@@ -140,3 +140,28 @@ constexpr const int GUI_MSG_PLAYBACK_AVSTARTED      = GUI_MSG_USER + 44;
 // Sent to notify system sleep/wake
 constexpr const int GUI_MSG_SYSTEM_SLEEP  			= GUI_MSG_USER + 45;
 constexpr const int GUI_MSG_SYSTEM_WAKE 			= GUI_MSG_USER + 46;
+
+/*! Web control messages */
+//@{
+// Sent to tell that web addon control is ready and related processes can be done
+constexpr const int GUI_MSG_WEB_ADDON_READY = GUI_MSG_USER + 50;
+// Sent to tell that control is already open and was only inactive
+constexpr const int GUI_MSG_WEB_CONTROL_REOPEN = GUI_MSG_USER + 51;
+// Sent to change on URL entry field the active string
+constexpr const int GUI_MSG_WEB_UPDATE_ADDRESS = GUI_MSG_USER + 52;
+constexpr const int GUI_MSG_WEB_UPDATE_NAME = GUI_MSG_USER + 53;
+constexpr const int GUI_MSG_WEB_UPDATE_ICON = GUI_MSG_USER + 54;
+constexpr const int GUI_MSG_WEB_NEW_TAB = GUI_MSG_USER + 55;
+constexpr const int GUI_MSG_WEB_OPEN_TAB = GUI_MSG_USER + 56;
+
+/*!
+ * GUI messages send to add-on to handle steps inside control
+ */
+constexpr const int GUI_MSG_WEB_CONTROL_GO_BACK = GUI_MSG_USER + 60;
+constexpr const int GUI_MSG_WEB_CONTROL_GO_FWD = GUI_MSG_USER + 61;
+constexpr const int GUI_MSG_WEB_CONTROL_LOAD = GUI_MSG_USER + 62;
+constexpr const int GUI_MSG_WEB_CONTROL_RELOAD = GUI_MSG_USER + 63;
+constexpr const int GUI_MSG_WEB_CONTROL_HOME = GUI_MSG_USER + 64;
+constexpr const int GUI_MSG_WEB_CONTROL_SETTINGS = GUI_MSG_USER + 65;
+constexpr const int GUI_MSG_WEB_CONTROL_ADD_TO_FAVOURITES = GUI_MSG_USER + 66;
+//@}

@@ -18,6 +18,29 @@ static const std::set<TYPE> dependencyTypes = {
     ADDON_SCRIPT_LIBRARY,
     ADDON_SCRIPT_MODULE,
 };
+
+typedef struct
+{
+  AddonLanguage language;
+  std::string name;
+  int localizedStringID;
+} LanguageMapping;
+
+// clang-format off
+static const LanguageMapping languages[] =
+  {{ AddonLanguage::Unknown,    "unknown",    2300 },
+   { AddonLanguage::C,          "C",          2301 },
+   { AddonLanguage::CPP,        "C++",        2302 },
+   { AddonLanguage::Groovy,     "Groovy",     2303 },
+   { AddonLanguage::Java,       "Java",       2304 },
+   { AddonLanguage::JavaScript, "JavaScript", 2305 },
+   { AddonLanguage::Python3,    "Python3",    2306 },
+   { AddonLanguage::Ruby,       "Ruby",       2307 },
+   { AddonLanguage::Skin,       "Skin",       2308 },
+   { AddonLanguage::XML,        "XML",        2309 }
+  };
+// clang-format on
+
 } /* namespace ADDON */
 
 using namespace ADDON;
@@ -27,6 +50,31 @@ std::string CAddonType::LibPath() const
   if (m_libname.empty())
     return "";
   return URIUtils::AddFileToFolder(m_path, m_libname);
+}
+
+const std::string& CAddonType::LanguageName() const
+{
+  for (const LanguageMapping& map : languages)
+  {
+    if (map.language == m_language)
+      return map.name;
+  }
+  return languages[0].name;
+}
+
+int CAddonType::LanguageLocalizedStringID() const
+{
+  for (const LanguageMapping& map : languages)
+  {
+    if (map.language == m_language)
+      return map.localizedStringID;
+  }
+  return languages[0].localizedStringID;
+}
+
+void CAddonType::SetType(TYPE type)
+{
+  m_type = type;
 }
 
 void CAddonType::SetProvides(const std::string& content)
@@ -50,6 +98,24 @@ void CAddonType::SetProvides(const std::string& content)
         m_providedSubContent.insert(content);
     }
   }
+}
+
+void CAddonType::SetLanguage(const std::string& name)
+{
+  for (const LanguageMapping& map : languages)
+  {
+    if (StringUtils::EqualsNoCase(map.name, name))
+    {
+      m_language = map.language;
+      return;
+    }
+  }
+  m_language = AddonLanguage::Unknown;
+}
+
+void CAddonType::SetLanguage(AddonLanguage lang)
+{
+  m_language = lang;
 }
 
 bool CAddonType::IsDependencyType(TYPE type)

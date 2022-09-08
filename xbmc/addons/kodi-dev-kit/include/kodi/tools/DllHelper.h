@@ -10,11 +10,13 @@
 
 #ifdef __cplusplus
 
+#include "../AddonBase.h"
+#include "../Filesystem.h"
+#include "../General.h"
+
 #include <string>
 
 #include <dlfcn.h>
-#include <kodi/AddonBase.h>
-#include <kodi/Filesystem.h>
 
 //==============================================================================
 /// @ingroup cpp_kodi_tools_CDllHelper

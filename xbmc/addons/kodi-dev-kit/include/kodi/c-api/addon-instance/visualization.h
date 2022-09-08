@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2005-2020 Team Kodi
+ *  Copyright (C) 2005-2018 Team Kodi
  *  This file is part of Kodi - https://kodi.tv
  *
  *  SPDX-License-Identifier: GPL-2.0-or-later
@@ -11,31 +11,25 @@
 
 #include "../addon_base.h"
 
-#define VIZ_LYRICS_SIZE 32768
-
 #ifdef __cplusplus
 extern "C"
 {
 #endif /* __cplusplus */
 
-  struct VIS_INFO
-  {
-    bool bWantsFreq;
-    int iSyncDelay;
-  };
+  typedef KODI_ADDON_INSTANCE_HDL KODI_ADDON_VISUALIZATION_HDL;
 
-  struct VIS_TRACK
+  struct KODI_ADDON_VISUALIZATION_TRACK
   {
-    const char *title;
-    const char *artist;
-    const char *album;
-    const char *albumArtist;
-    const char *genre;
-    const char *comment;
-    const char *lyrics;
+    const char* title;
+    const char* artist;
+    const char* album;
+    const char* albumArtist;
+    const char* genre;
+    const char* comment;
+    const char* lyrics;
 
-    const char *reserved1;
-    const char *reserved2;
+    const char* reserved1;
+    const char* reserved2;
 
     int trackNumber;
     int discNumber;
@@ -47,7 +41,7 @@ extern "C"
     int reserved4;
   };
 
-  typedef struct AddonProps_Visualization
+  struct KODI_ADDON_VISUALIZATION_PROPS
   {
     ADDON_HARDWARE_CONTEXT device;
     int x;
@@ -55,63 +49,90 @@ extern "C"
     int width;
     int height;
     float pixelRatio;
-    const char* name;
-    const char* presets;
-    const char* profile;
-  } AddonProps_Visualization;
+  };
 
-  typedef struct AddonToKodiFuncTable_Visualization
+  typedef bool(ATTR_APIENTRYP PFN_KODI_ADDON_VISUALIZATION_START_V1)(
+      const KODI_ADDON_VISUALIZATION_HDL hdl,
+      int channels,
+      int samples_per_sec,
+      int bits_per_sample,
+      const char* song_name);
+  typedef void(ATTR_APIENTRYP PFN_KODI_ADDON_VISUALIZATION_STOP_V1)(
+      const KODI_ADDON_VISUALIZATION_HDL hdl);
+
+  typedef int(ATTR_APIENTRYP PFN_KODI_ADDON_VISUALIZATION_GET_SYNC_DELAY_V1)(
+      const KODI_ADDON_VISUALIZATION_HDL hdl);
+
+  typedef void(ATTR_APIENTRYP PFN_KODI_ADDON_VISUALIZATION_AUDIO_DATA_V1)(
+      const KODI_ADDON_VISUALIZATION_HDL hdl,
+      const float* audio_data,
+      size_t audio_data_length);
+  typedef bool(ATTR_APIENTRYP PFN_KODI_ADDON_VISUALIZATION_IS_DIRTY_V1)(
+      const KODI_ADDON_VISUALIZATION_HDL hdl);
+  typedef void(ATTR_APIENTRYP PFN_KODI_ADDON_VISUALIZATION_RENDER_V1)(
+      const KODI_ADDON_VISUALIZATION_HDL hdl);
+
+  typedef unsigned int(ATTR_APIENTRYP PFN_KODI_ADDON_VISUALIZATION_GET_PRESETS_V1)(
+      const KODI_ADDON_VISUALIZATION_HDL hdl);
+  typedef int(ATTR_APIENTRYP PFN_KODI_ADDON_VISUALIZATION_GET_ACTIVE_PRESET_V1)(
+      const KODI_ADDON_VISUALIZATION_HDL hdl);
+  typedef bool(ATTR_APIENTRYP PFN_KODI_ADDON_VISUALIZATION_PREV_PRESET_V1)(
+      const KODI_ADDON_VISUALIZATION_HDL hdl);
+  typedef bool(ATTR_APIENTRYP PFN_KODI_ADDON_VISUALIZATION_NEXT_PRESET_V1)(
+      const KODI_ADDON_VISUALIZATION_HDL hdl);
+  typedef bool(ATTR_APIENTRYP PFN_KODI_ADDON_VISUALIZATION_LOAD_PRESET_V1)(
+      const KODI_ADDON_VISUALIZATION_HDL hdl, int select);
+  typedef bool(ATTR_APIENTRYP PFN_KODI_ADDON_VISUALIZATION_RANDOM_PRESET_V1)(
+      const KODI_ADDON_VISUALIZATION_HDL hdl);
+  typedef bool(ATTR_APIENTRYP PFN_KODI_ADDON_VISUALIZATION_LOCK_PRESET_V1)(
+      const KODI_ADDON_VISUALIZATION_HDL hdl);
+  typedef bool(ATTR_APIENTRYP PFN_KODI_ADDON_VISUALIZATION_RATE_PRESET_V1)(
+      const KODI_ADDON_VISUALIZATION_HDL hdl, bool plus_minus);
+  typedef bool(ATTR_APIENTRYP PFN_KODI_ADDON_VISUALIZATION_IS_LOCKED_V1)(
+      const KODI_ADDON_VISUALIZATION_HDL hdl);
+
+  typedef bool(ATTR_APIENTRYP PFN_KODI_ADDON_VISUALIZATION_UPDATE_ALBUMART_V1)(
+      const KODI_ADDON_VISUALIZATION_HDL hdl, const char* albumart);
+  typedef bool(ATTR_APIENTRYP PFN_KODI_ADDON_VISUALIZATION_UPDATE_TRACK_V1)(
+      const KODI_ADDON_VISUALIZATION_HDL hdl, const struct KODI_ADDON_VISUALIZATION_TRACK* track);
+
+  typedef struct KODI_ADDON_VISUALIZATION_FUNC
   {
-    KODI_HANDLE kodiInstance;
-    void(__cdecl* transfer_preset)(KODI_HANDLE kodiInstance, const char* preset);
-    void(__cdecl* clear_presets)(KODI_HANDLE kodiInstance);
-  } AddonToKodiFuncTable_Visualization;
+    PFN_KODI_ADDON_INSTANCE_CREATE_V1 create;
+    PFN_KODI_ADDON_INSTANCE_DESTROY_V1 destroy;
+    PFN_KODI_ADDON_VISUALIZATION_START_V1 start;
+    PFN_KODI_ADDON_VISUALIZATION_STOP_V1 stop;
 
-  struct AddonInstance_Visualization;
+    PFN_KODI_ADDON_VISUALIZATION_GET_SYNC_DELAY_V1 get_sync_delay;
 
-  typedef struct KodiToAddonFuncTable_Visualization
-  {
-    KODI_HANDLE addonInstance;
-    bool(__cdecl* start)(const struct AddonInstance_Visualization* instance,
-                         int channels,
-                         int samples_per_sec,
-                         int bits_per_sample,
-                         const char* song_name);
-    void(__cdecl* stop)(const struct AddonInstance_Visualization* instance);
+    PFN_KODI_ADDON_VISUALIZATION_AUDIO_DATA_V1 audio_data;
+    PFN_KODI_ADDON_VISUALIZATION_IS_DIRTY_V1 is_dirty;
+    PFN_KODI_ADDON_VISUALIZATION_RENDER_V1 render;
 
-    void(__cdecl* get_info)(const struct AddonInstance_Visualization* instance,
-                            struct VIS_INFO* info);
+    PFN_KODI_ADDON_VISUALIZATION_GET_PRESETS_V1 get_presets;
+    PFN_KODI_ADDON_VISUALIZATION_GET_ACTIVE_PRESET_V1 get_active_preset;
+    PFN_KODI_ADDON_VISUALIZATION_PREV_PRESET_V1 prev_preset;
+    PFN_KODI_ADDON_VISUALIZATION_NEXT_PRESET_V1 next_preset;
+    PFN_KODI_ADDON_VISUALIZATION_LOAD_PRESET_V1 load_preset;
+    PFN_KODI_ADDON_VISUALIZATION_RANDOM_PRESET_V1 random_preset;
+    PFN_KODI_ADDON_VISUALIZATION_LOCK_PRESET_V1 lock_preset;
+    PFN_KODI_ADDON_VISUALIZATION_RATE_PRESET_V1 rate_preset;
+    PFN_KODI_ADDON_VISUALIZATION_IS_LOCKED_V1 is_locked;
 
-    void(__cdecl* audio_data)(const struct AddonInstance_Visualization* instance,
-                              const float* audio_data,
-                              int audio_data_length,
-                              float* freq_data,
-                              int freq_data_length);
-    bool(__cdecl* is_dirty)(const struct AddonInstance_Visualization* instance);
-    void(__cdecl* render)(const struct AddonInstance_Visualization* instance);
+    PFN_KODI_ADDON_VISUALIZATION_UPDATE_ALBUMART_V1 update_albumart;
+    PFN_KODI_ADDON_VISUALIZATION_UPDATE_TRACK_V1 update_track;
+  } KODI_ADDON_VISUALIZATION_FUNC;
+  /*---AUTO_GEN_PARSE<OVERRIDE;USE_OFFSCREEN_RENDER=KODI_ADDON_SCREENSAVER_FUNC(start,stop,render;CVisualization)>---*/
 
-    unsigned int(__cdecl* get_presets)(const struct AddonInstance_Visualization* instance);
-    int(__cdecl* get_active_preset)(const struct AddonInstance_Visualization* instance);
-    bool(__cdecl* prev_preset)(const struct AddonInstance_Visualization* instance);
-    bool(__cdecl* next_preset)(const struct AddonInstance_Visualization* instance);
-    bool(__cdecl* load_preset)(const struct AddonInstance_Visualization* instance, int select);
-    bool(__cdecl* random_preset)(const struct AddonInstance_Visualization* instance);
-    bool(__cdecl* lock_preset)(const struct AddonInstance_Visualization* instance);
-    bool(__cdecl* rate_preset)(const struct AddonInstance_Visualization* instance, bool plus_minus);
-    bool(__cdecl* is_locked)(const struct AddonInstance_Visualization* instance);
+  ATTR_DLL_EXPORT void kodi_addon_visualization_get_properties(const KODI_ADDON_INSTANCE_BACKEND_HDL hdl,
+                                                               struct KODI_ADDON_VISUALIZATION_PROPS* props)
+      __INTRODUCED_IN_KODI(1);
 
-    bool(__cdecl* update_albumart)(const struct AddonInstance_Visualization* instance,
-                                   const char* albumart);
-    bool(__cdecl* update_track)(const struct AddonInstance_Visualization* instance,
-                                const struct VIS_TRACK* track);
-  } KodiToAddonFuncTable_Visualization;
-
-  typedef struct AddonInstance_Visualization
-  {
-    struct AddonProps_Visualization* props;
-    struct AddonToKodiFuncTable_Visualization* toKodi;
-    struct KodiToAddonFuncTable_Visualization* toAddon;
-  } AddonInstance_Visualization;
+  ATTR_DLL_EXPORT void kodi_addon_visualization_transfer_preset(const KODI_ADDON_INSTANCE_BACKEND_HDL hdl,
+                                                                const char* preset)
+      __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT void kodi_addon_visualization_clear_presets(const KODI_ADDON_INSTANCE_BACKEND_HDL hdl)
+      __INTRODUCED_IN_KODI(1);
 
 #ifdef __cplusplus
 } /* extern "C" */

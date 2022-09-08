@@ -15,8 +15,6 @@
 namespace ADDON
 {
 class CAddonMgr;
-class CBinaryAddonManager;
-class CBinaryAddonCache;
 class CVFSAddonCache;
 class CServiceAddonManager;
 class CRepositoryUpdater;
@@ -52,6 +50,7 @@ class CApplicationMessenger;
 
 class CAppParams;
 class CContextMenuManager;
+
 class XBPython;
 class CDataCacheCore;
 class IAE;
@@ -85,10 +84,19 @@ class IWSDiscovery;
 
 namespace KODI
 {
+
 namespace ADDONS
 {
+
 class CExtsMimeSupportList;
-}
+
+namespace INTERFACE
+{
+class CController;
+} /* namespace INTERFACE */
+
+} /* namespace ADDONS */
+
 
 namespace GAME
 {
@@ -100,6 +108,12 @@ namespace RETRO
 {
 class CGUIGameRenderManager;
 }
+
+namespace WEB
+{
+class CWebManager;
+}
+
 } // namespace KODI
 
 namespace PERIPHERALS
@@ -132,10 +146,9 @@ public:
   static void UnregisterAnnouncementManager();
 
   static ADDON::CAddonMgr& GetAddonMgr();
-  static ADDON::CBinaryAddonManager& GetBinaryAddonManager();
-  static ADDON::CBinaryAddonCache& GetBinaryAddonCache();
   static KODI::ADDONS::CExtsMimeSupportList& GetExtsMimeSupportList();
   static ADDON::CVFSAddonCache& GetVFSAddonCache();
+  static KODI::ADDONS::INTERFACE::CController& GetAddonIfcCtrl();
   static XBPython& GetXBPython();
   static WSDiscovery::IWSDiscovery& GetWSDiscovery();
   static MEDIA_DETECT::CDetectDVDMedia& GetDetectDVDMedia();
@@ -153,7 +166,8 @@ public:
   static ADDON::CRepositoryUpdater& GetRepositoryUpdater();
   static CInputManager& GetInputManager();
   static CFileExtensionProvider& GetFileExtensionProvider();
-  static bool IsBinaryAddonCacheUp();
+  static KODI::WEB::CWebManager& GetWEBManager();
+  static bool IsAddonInterfaceUp();
   static bool IsServiceManagerUp();
   static CNetworkBase& GetNetwork();
   static CPowerManager& GetPowerManager();

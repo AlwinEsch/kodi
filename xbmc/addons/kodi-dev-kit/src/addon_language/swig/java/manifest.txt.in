@@ -1,0 +1,7 @@
+Manifest-version: 1.0
+
+Name: kodidevkit/
+Specification-Title: kodidevkit
+Specification-Version: @VERSION_SHORT@
+Package-Title: kodidevkit
+Package-Version: @VERSION_SHORT@

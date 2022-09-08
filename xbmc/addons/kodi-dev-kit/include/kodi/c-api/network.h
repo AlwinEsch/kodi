@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2005-2018 Team Kodi
+ *  Copyright (C) 2005-2020 Team Kodi
  *  This file is part of Kodi - https://kodi.tv
  *
  *  SPDX-License-Identifier: GPL-2.0-or-later
@@ -9,38 +9,29 @@
 #ifndef C_API_NETWORK_H
 #define C_API_NETWORK_H
 
-#include <stdbool.h>
+#include "addon_base.h"
 
 #ifdef __cplusplus
 extern "C"
 {
 #endif /* __cplusplus */
 
-  /*
-   * For interface between add-on and kodi.
-   *
-   * This structure defines the addresses of functions stored inside Kodi which
-   * are then available for the add-on to call
-   *
-   * All function pointers there are used by the C++ interface functions below.
-   * You find the set of them on xbmc/addons/interfaces/General.cpp
-   *
-   * Note: For add-on development itself this is not needed
-   */
-  typedef struct AddonToKodiFuncTable_kodi_network
-  {
-    bool (*wake_on_lan)(void* kodiBase, const char* mac);
-    char* (*get_ip_address)(void* kodiBase);
-    char* (*dns_lookup)(void* kodiBase, const char* url, bool* ret);
-    char* (*url_encode)(void* kodiBase, const char* url);
-    char* (*get_hostname)(void* kodiBase);
-    bool (*is_local_host)(void* kodiBase, const char* hostname);
-    bool (*is_host_on_lan)(void* kodiBase, const char* hostname, bool offLineCheck);
-    char* (*get_user_agent)(void* kodiBase);
-  } AddonToKodiFuncTable_kodi_network;
+#if __KODI_API__ >= 1
+
+  ATTR_DLL_EXPORT bool kodi_network_wake_on_lan(const char* mac) __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT char* kodi_network_get_ip_address() __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT char* kodi_network_dns_lookup(const char* url, bool* ret) __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT char* kodi_network_url_encode(const char* url) __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT char* kodi_network_get_hostname() __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT bool kodi_network_is_local_host(const char* hostname) __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT bool kodi_network_is_host_on_lan(const char* hostname, bool offLineCheck)
+      __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT char* kodi_network_get_user_agent() __INTRODUCED_IN_KODI(1);
+
+#endif /* __KODI_API__ >= 1 */
 
 #ifdef __cplusplus
-} /* extern "C" */
+}
 #endif /* __cplusplus */
 
-#endif /* C_API_NETWORK_H */
+#endif /* !C_API_NETWORK_H */

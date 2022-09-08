@@ -80,29 +80,271 @@
 					<font>Mono26</font>
 				</control>
 			</control>
-			<control type="textbox" id="30">
-				<left>420</left>
-				<right>50</right>
-				<top>30</top>
-				<bottom>347</bottom>
-				<pagecontrol>60</pagecontrol>
-				<autoscroll delay="5000" repeat="7500" time="5000">!Control.HasFocus(60)</autoscroll>
+			<control type="group">
+				<control type="textbox" id="30">
+					<left>420</left>
+					<right>50</right>
+					<top>30</top>
+					<bottom>347</bottom>
+					<pagecontrol>60</pagecontrol>
+					<autoscroll delay="5000" repeat="7500" time="5000">!Control.HasFocus(60)</autoscroll>
+				</control>
+				<control type="scrollbar" id="60">
+					<right>0</right>
+					<top>0</top>
+					<width>12</width>
+					<bottom>340</bottom>
+					<orientation>vertical</orientation>
+					<texturesliderbackground />
+					<animation effect="slide" end="6,0" time="300" tween="sine" easing="inout" condition="!Control.HasFocus(60)">conditional</animation>
+					<onleft>30</onleft>
+					<onright>9000</onright>
+					<visible>Control.IsVisible(30)</visible>
+					<animation effect="fade" start="0" end="100" time="200" delay="300">Visible</animation>
+					<animation effect="fade" start="100" end="0" time="200">Hidden</animation>
+					<animation effect="fade" start="0" end="100" delay="300" time="320">WindowOpen</animation>
+					<animation effect="fade" start="100" end="0" time="150">WindowClose</animation>
+				</control>
 			</control>
-			<control type="scrollbar" id="60">
-				<right>0</right>
-				<top>0</top>
-				<width>12</width>
-				<bottom>340</bottom>
-				<orientation>vertical</orientation>
-				<texturesliderbackground />
-				<animation effect="slide" end="6,0" time="300" tween="sine" easing="inout" condition="!Control.HasFocus(60)">conditional</animation>
-				<onleft>9000</onleft>
-				<onright>9000</onright>
-				<visible>Control.IsVisible(30)</visible>
-				<animation effect="fade" start="0" end="100" time="200" delay="300">Visible</animation>
-				<animation effect="fade" start="100" end="0" time="200">Hidden</animation>
-				<animation effect="fade" start="0" end="100" delay="300" time="320">WindowOpen</animation>
-				<animation effect="fade" start="100" end="0" time="150">WindowClose</animation>
+			<control type="group">
+				<control type="list" id="29">
+					<left>420</left>
+					<right>40</right>
+					<top>30</top>
+					<bottom>347</bottom>
+					<onleft>9000</onleft>
+					<onright>61</onright>
+					<pagecontrol>61</pagecontrol>
+					<orientation>vertical</orientation>
+					<itemlayout height="120">
+						<control type="image">
+							<left>10</left>
+							<top>10</top>
+							<width>100</width>
+							<height>100</height>
+							<texture colordiffuse="77FFFFFF">$INFO[ListItem.Art(icon)]</texture>
+						</control>
+						<control type="label">
+							<left>130</left>
+							<top>10</top>
+							<right>20</right>
+							<height>35</height>
+							<aligny>center</aligny>
+							<textcolor>white</textcolor>
+							<selectedcolor>green</selectedcolor>
+							<info>ListItem.Label</info>
+						</control>
+						<control type="label">
+							<description>CPU Text</description>
+							<left>130</left>
+							<top>50</top>
+							<width>auto</width>
+							<height>35</height>
+							<label>$LOCALIZE[13254] $INFO[ListItem.Property(cpuusagetext)]</label>
+							<aligny>center</aligny>
+							<shadowcolor>black</shadowcolor>
+							<font>font12</font>
+							<visible>System.SupportsCPUUsage</visible>
+						</control>
+						<control type="label">
+							<description>Threads Text</description>
+							<left>110</left>
+							<top>50</top>
+							<width>610</width>
+							<height>35</height>
+							<label>$LOCALIZE[13258] $INFO[ListItem.Property(threads)]</label>
+							<aligny>center</aligny>
+							<align>right</align>
+							<shadowcolor>black</shadowcolor>
+							<font>font12</font>
+							<visible>System.SupportsCPUUsage</visible>
+						</control>
+						<control type="progress">
+							<description>CPU BAR</description>
+							<left>120</left>
+							<top>85</top>
+							<width>610</width>
+							<height>16</height>
+							<info>ListItem.Property(cpuusage)</info>
+							<visible>System.SupportsCPUUsage</visible>
+						</control>
+						<control type="label">
+							<description>Physical Memory Text</description>
+							<left>800</left>
+							<top>10</top>
+							<width>auto</width>
+							<height>35</height>
+							<label>$LOCALIZE[13255][TABS]1[/TABS]$INFO[ListItem.Property(physicalmemoryusage)]</label>
+							<aligny>center</aligny>
+							<shadowcolor>black</shadowcolor>
+							<font>font12</font>
+							<visible>System.SupportsCPUUsage</visible>
+						</control>
+						<control type="label">
+							<description>Virtual Memory Text</description>
+							<left>800</left>
+							<top>45</top>
+							<width>auto</width>
+							<height>35</height>
+							<label>$LOCALIZE[13256][TABS]1[/TABS]$INFO[ListItem.Property(virtualmemoryusage)]</label>
+							<aligny>center</aligny>
+							<shadowcolor>black</shadowcolor>
+							<font>font12</font>
+							<visible>System.SupportsCPUUsage</visible>
+						</control>
+						<control type="label">
+							<description>Shared Memory Text</description>
+							<left>800</left>
+							<top>80</top>
+							<width>auto</width>
+							<height>35</height>
+							<label>$LOCALIZE[13257][TABS]1[/TABS]$INFO[ListItem.Property(sharedmemoryusage)]</label>
+							<aligny>center</aligny>
+							<shadowcolor>black</shadowcolor>
+							<font>font12</font>
+							<visible>System.SupportsCPUUsage</visible>
+						</control>
+						<control type="label">
+							<description>Addon Process Id</description>
+							<right>230</right>
+							<top>10</top>
+							<width>auto</width>
+							<height>35</height>
+							<label>$LOCALIZE[13259] $INFO[ListItem.Property(pid)]</label>
+							<aligny>center</aligny>
+							<align>right</align>
+							<shadowcolor>black</shadowcolor>
+							<font>font12</font>
+							<visible>System.SupportsCPUUsage</visible>
+						</control>
+					</itemlayout>
+					<focusedlayout height="120">
+						<control type="image">
+							<left>0</left>
+							<top>0</top>
+							<right>0</right>
+							<bottom>0</bottom>
+							<texture colordiffuse="button_focus">lists/focus.png</texture>
+							<visible>Control.HasFocus(29)</visible>
+						</control>
+						<control type="image">
+							<left>10</left>
+							<top>10</top>
+							<width>100</width>
+							<height>100</height>
+							<texture>$INFO[ListItem.Art(icon)]</texture>
+						</control>
+						<control type="label">
+							<left>130</left>
+							<top>10</top>
+							<right>20</right>
+							<height>35</height>
+							<aligny>center</aligny>
+							<textcolor>white</textcolor>
+							<selectedcolor>green</selectedcolor>
+							<info>ListItem.Label</info>
+						</control>
+						<control type="label">
+							<description>CPU Text</description>
+							<left>130</left>
+							<top>50</top>
+							<width>auto</width>
+							<height>35</height>
+							<label>$LOCALIZE[13254] $INFO[ListItem.Property(cpuusagetext)]</label>
+							<aligny>center</aligny>
+							<shadowcolor>black</shadowcolor>
+							<font>font12</font>
+							<visible>System.SupportsCPUUsage</visible>
+						</control>
+						<control type="label">
+							<description>Threads Text</description>
+							<left>110</left>
+							<top>50</top>
+							<width>610</width>
+							<height>35</height>
+							<label>$LOCALIZE[13258] $INFO[ListItem.Property(threads)]</label>
+							<aligny>center</aligny>
+							<align>right</align>
+							<shadowcolor>black</shadowcolor>
+							<font>font12</font>
+							<visible>System.SupportsCPUUsage</visible>
+						</control>
+						<control type="progress">
+							<description>CPU BAR</description>
+							<left>120</left>
+							<top>85</top>
+							<width>610</width>
+							<height>16</height>
+							<info>ListItem.Property(cpuusage)</info>
+							<visible>System.SupportsCPUUsage</visible>
+						</control>
+						<control type="label">
+							<description>Physical Memory Text</description>
+							<left>800</left>
+							<top>10</top>
+							<width>auto</width>
+							<height>35</height>
+							<label>$LOCALIZE[13255][TABS]1[/TABS]$INFO[ListItem.Property(physicalmemoryusage)]</label>
+							<aligny>center</aligny>
+							<shadowcolor>black</shadowcolor>
+							<font>font12</font>
+							<visible>System.SupportsCPUUsage</visible>
+						</control>
+						<control type="label">
+							<description>Virtual Memory Text</description>
+							<left>800</left>
+							<top>45</top>
+							<width>auto</width>
+							<height>35</height>
+							<label>$LOCALIZE[13256][TABS]1[/TABS]$INFO[ListItem.Property(virtualmemoryusage)]</label>
+							<aligny>center</aligny>
+							<shadowcolor>black</shadowcolor>
+							<font>font12</font>
+							<visible>System.SupportsCPUUsage</visible>
+						</control>
+						<control type="label">
+							<description>Shared Memory Text</description>
+							<left>800</left>
+							<top>80</top>
+							<width>auto</width>
+							<height>35</height>
+							<label>$LOCALIZE[13257][TABS]1[/TABS]$INFO[ListItem.Property(sharedmemoryusage)]</label>
+							<aligny>center</aligny>
+							<shadowcolor>black</shadowcolor>
+							<font>font12</font>
+							<visible>System.SupportsCPUUsage</visible>
+						</control>
+						<control type="label">
+							<description>Addon Process Id</description>
+							<right>230</right>
+							<top>10</top>
+							<width>auto</width>
+							<height>35</height>
+							<label>$LOCALIZE[13259] $INFO[ListItem.Property(pid)]</label>
+							<aligny>center</aligny>
+							<align>right</align>
+							<shadowcolor>black</shadowcolor>
+							<font>font12</font>
+							<visible>System.SupportsCPUUsage</visible>
+						</control>
+					</focusedlayout>
+				</control>
+				<control type="scrollbar" id="61">
+					<right>0</right>
+					<top>0</top>
+					<width>12</width>
+					<bottom>340</bottom>
+					<orientation>vertical</orientation>
+					<texturesliderbackground />
+					<animation effect="slide" end="6,0" time="300" tween="sine" easing="inout" condition="!Control.HasFocus(61)">conditional</animation>
+					<onleft>29</onleft>
+					<onright>9000</onright>
+					<visible>Control.IsVisible(29)</visible>
+					<animation effect="fade" start="0" end="100" time="200" delay="300">Visible</animation>
+					<animation effect="fade" start="100" end="0" time="200">Hidden</animation>
+					<animation effect="fade" start="0" end="100" delay="300" time="320">WindowOpen</animation>
+					<animation effect="fade" start="100" end="0" time="150">WindowClose</animation>
+				</control>
 			</control>
 			<control type="image">
 				<left>380</left>
@@ -167,6 +409,15 @@
 					</include>
 					<width>420</width>
 					<label>$LOCALIZE[13281]</label>
+				</control>
+				<control type="button" id="101">
+					<description>Button Addons</description>
+					<onright>29</onright>
+					<include content="DefaultSettingButton">
+						<param name="height" value="85" />
+					</include>
+					<width>420</width>
+					<label>$LOCALIZE[13282]</label>
 				</control>
 				<control type="button" id="99">
 					<description>Button PVR</description>

@@ -1126,7 +1126,7 @@ bool CFileItem::IsFileFolder(EFileFolderType types) const
     return true;
   }
 
-  if (CServiceBroker::IsBinaryAddonCacheUp() &&
+  if (CServiceBroker::IsAddonInterfaceUp() &&
       IsType(CServiceBroker::GetFileExtensionProvider().GetFileFolderExtensions().c_str()) &&
       CServiceBroker::GetFileExtensionProvider().CanOperateExtension(m_strPath))
     return true;
@@ -1256,6 +1256,11 @@ bool CFileItem::IsRSS() const
 bool CFileItem::IsAndroidApp() const
 {
   return URIUtils::IsAndroidApp(m_strPath);
+}
+
+bool CFileItem::IsWeb() const
+{
+  return URIUtils::IsWeb(m_strPath);
 }
 
 bool CFileItem::IsStack() const

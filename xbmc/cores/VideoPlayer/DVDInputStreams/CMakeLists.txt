@@ -8,10 +8,7 @@ set(SOURCES BlurayStateSerializer.cpp
             DVDInputStreamStack.cpp
             DVDStateSerializer.cpp
             InputStreamAddon.cpp
-            InputStreamMultiSource.cpp
-            InputStreamPVRBase.cpp
-            InputStreamPVRChannel.cpp
-            InputStreamPVRRecording.cpp)
+            InputStreamMultiSource.cpp)
 
 set(HEADERS BlurayStateSerializer.h
             DVDFactoryInputStream.h
@@ -25,10 +22,7 @@ set(HEADERS BlurayStateSerializer.h
             DllDvdNav.h
             InputStreamAddon.h
             InputStreamMultiStreams.h
-            InputStreamMultiSource.h
-            InputStreamPVRBase.h
-            InputStreamPVRChannel.h
-            InputStreamPVRRecording.h)
+            InputStreamMultiSource.h)
 
 if(BLURAY_FOUND)
   list(APPEND SOURCES DVDInputStreamBluray.cpp)

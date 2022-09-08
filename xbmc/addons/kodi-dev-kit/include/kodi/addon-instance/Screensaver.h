@@ -13,6 +13,7 @@
 #include "../gui/renderHelper.h"
 
 #ifdef __cplusplus
+
 namespace kodi
 {
 namespace addon
@@ -194,14 +195,8 @@ public:
   /// Used by an add-on that only supports screensavers.
   ///
   CInstanceScreensaver()
-    : IAddonInstance(IInstanceInfo(CPrivateBase::m_interface->firstKodiInstance))
   {
-    if (CPrivateBase::m_interface->globalSingleInstance != nullptr)
-      throw std::logic_error("kodi::addon::CInstanceScreensaver: Creation of more as one in single "
-                             "instance way is not allowed!");
-
-    SetAddonStruct(CPrivateBase::m_interface->firstKodiInstance);
-    CPrivateBase::m_interface->globalSingleInstance = this;
+    kodi_addon_screensaver_get_properties(m_kodi, &m_props);
   }
   //----------------------------------------------------------------------------
 
@@ -248,11 +243,7 @@ public:
   ///
   explicit CInstanceScreensaver(const IInstanceInfo& instance) : IAddonInstance(instance)
   {
-    if (CPrivateBase::m_interface->globalSingleInstance != nullptr)
-      throw std::logic_error("kodi::addon::CInstanceScreensaver: Creation of multiple together "
-                             "with single instance way is not allowed!");
-
-    SetAddonStruct(instance);
+    kodi_addon_screensaver_get_properties(m_kodi, &m_props);
   }
   //----------------------------------------------------------------------------
 
@@ -370,14 +361,12 @@ public:
   ///@}
 
 private:
-  void SetAddonStruct(KODI_ADDON_INSTANCE_STRUCT* instance)
+  void SetAddonStruct(KODI_ADDON_INSTANCE_STRUCT* instance) override
   {
     instance->hdl = this;
-    instance->screensaver->toAddon->start = ADDON_start;
-    instance->screensaver->toAddon->stop = ADDON_stop;
-    instance->screensaver->toAddon->render = ADDON_render;
-
-    instance->screensaver->toKodi->get_properties(instance->info->kodi, &m_props);
+    instance->screensaver->start = ADDON_start;
+    instance->screensaver->stop = ADDON_stop;
+    instance->screensaver->render = ADDON_render;
   }
 
   inline static bool ADDON_start(const KODI_ADDON_SCREENSAVER_HDL hdl)

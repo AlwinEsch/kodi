@@ -15,8 +15,6 @@
 namespace ADDON
 {
 class CAddonMgr;
-class CBinaryAddonManager;
-class CBinaryAddonCache;
 class CVFSAddonCache;
 class CServiceAddonManager;
 class CRepositoryUpdater;
@@ -51,10 +49,18 @@ class CWeatherManager;
 
 namespace KODI
 {
+
 namespace ADDONS
 {
+
 class CExtsMimeSupportList;
-}
+
+namespace INTERFACE
+{
+class CController;
+} /* namespace INTERFACE */
+
+} /* namespace ADDONS */
 
 namespace GAME
 {
@@ -66,6 +72,12 @@ namespace RETRO
 {
 class CGUIGameRenderManager;
 }
+
+namespace WEB
+{
+class CWebManager;
+}
+
 } // namespace KODI
 
 namespace MEDIA_DETECT
@@ -102,12 +114,11 @@ public:
   void DeinitStageOne();
 
   ADDON::CAddonMgr& GetAddonMgr();
-  ADDON::CBinaryAddonManager& GetBinaryAddonManager();
-  ADDON::CBinaryAddonCache& GetBinaryAddonCache();
   KODI::ADDONS::CExtsMimeSupportList& GetExtsMimeSupportList();
   ADDON::CVFSAddonCache& GetVFSAddonCache();
   ADDON::CServiceAddonManager& GetServiceAddons();
   ADDON::CRepositoryUpdater& GetRepositoryUpdater();
+  KODI::ADDONS::INTERFACE::CController& GetAddonIfcCtrl();
   CNetworkBase& GetNetwork();
 #ifdef HAS_PYTHON
   XBPython& GetXBPython();
@@ -125,6 +136,7 @@ public:
   KODI::GAME::CGameServices& GetGameServices();
   KODI::RETRO::CGUIGameRenderManager& GetGameRenderManager();
   PERIPHERALS::CPeripherals& GetPeripherals();
+  KODI::WEB::CWebManager& GetWEBManager();
 
   PLAYLIST::CPlayListPlayer& GetPlaylistPlayer();
   int init_level = 0;
@@ -164,12 +176,11 @@ protected:
   };
 
   std::unique_ptr<ADDON::CAddonMgr> m_addonMgr;
-  std::unique_ptr<ADDON::CBinaryAddonManager> m_binaryAddonManager;
-  std::unique_ptr<ADDON::CBinaryAddonCache> m_binaryAddonCache;
   std::unique_ptr<KODI::ADDONS::CExtsMimeSupportList> m_extsMimeSupportList;
   std::unique_ptr<ADDON::CVFSAddonCache> m_vfsAddonCache;
   std::unique_ptr<ADDON::CServiceAddonManager> m_serviceAddons;
   std::unique_ptr<ADDON::CRepositoryUpdater> m_repositoryUpdater;
+  std::unique_ptr<KODI::ADDONS::INTERFACE::CController> m_addonIfcCtrl;
 #if defined(HAS_FILESYSTEM_SMB)
   std::unique_ptr<WSDiscovery::IWSDiscovery> m_WSDiscovery;
 #endif
@@ -194,6 +205,7 @@ protected:
   std::unique_ptr<CPlayerCoreFactory> m_playerCoreFactory;
   std::unique_ptr<CDatabaseManager> m_databaseManager;
   std::unique_ptr<CMediaManager> m_mediaManager;
+  std::unique_ptr<KODI::WEB::CWebManager> m_webManager;
 #if !defined(TARGET_WINDOWS) && defined(HAS_DVD_DRIVE)
   std::unique_ptr<MEDIA_DETECT::CDetectDVDMedia> m_DetectDVDType;
 #endif

@@ -9,23 +9,29 @@
 #ifndef C_API_GUI_CONTROLS_TEXT_BOX_H
 #define C_API_GUI_CONTROLS_TEXT_BOX_H
 
-#include "../definitions.h"
+#include "../../addon_base.h"
 
 #ifdef __cplusplus
 extern "C"
 {
 #endif /* __cplusplus */
 
-  typedef struct AddonToKodiFuncTable_kodi_gui_control_text_box
-  {
-    void (*set_visible)(KODI_HANDLE kodiBase, KODI_GUI_CONTROL_HANDLE handle, bool visible);
-    void (*reset)(KODI_HANDLE kodiBase, KODI_GUI_CONTROL_HANDLE handle);
-    void (*set_text)(KODI_HANDLE kodiBase, KODI_GUI_CONTROL_HANDLE handle, const char* text);
-    char* (*get_text)(KODI_HANDLE kodiBase, KODI_GUI_CONTROL_HANDLE handle);
-    void (*scroll)(KODI_HANDLE kodiBase, KODI_GUI_CONTROL_HANDLE handle, unsigned int scroll);
-    void (*set_auto_scrolling)(
-        KODI_HANDLE kodiBase, KODI_GUI_CONTROL_HANDLE handle, int delay, int time, int repeat);
-  } AddonToKodiFuncTable_kodi_gui_control_text_box;
+  typedef void* KODI_GUI_CONTROL_HANDLE;
+
+  ATTR_DLL_EXPORT void kodi_gui_controls_text_box_set_visible(KODI_GUI_CONTROL_HANDLE handle,
+                                                              bool visible) __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT void kodi_gui_controls_text_box_reset(KODI_GUI_CONTROL_HANDLE handle)
+      __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT void kodi_gui_controls_text_box_set_text(KODI_GUI_CONTROL_HANDLE handle,
+                                                           const char* text)
+      __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT char* kodi_gui_controls_text_box_get_text(KODI_GUI_CONTROL_HANDLE handle)
+      __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT void kodi_gui_controls_text_box_scroll(KODI_GUI_CONTROL_HANDLE handle,
+                                                         unsigned int position)
+      __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT void kodi_gui_controls_text_box_set_auto_scrolling(
+      KODI_GUI_CONTROL_HANDLE handle, int delay, int time, int repeat) __INTRODUCED_IN_KODI(1);
 
 #ifdef __cplusplus
 } /* extern "C" */

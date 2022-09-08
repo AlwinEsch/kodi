@@ -9,24 +9,21 @@
 #ifndef C_API_GUI_GENERAL_H
 #define C_API_GUI_GENERAL_H
 
-#include "definitions.h"
+#include "../addon_base.h"
 
 #ifdef __cplusplus
 extern "C"
 {
 #endif /* __cplusplus */
 
-  typedef struct AddonToKodiFuncTable_kodi_gui_general
-  {
-    void (*lock)();
-    void (*unlock)();
-    int (*get_screen_height)(KODI_HANDLE kodiBase);
-    int (*get_screen_width)(KODI_HANDLE kodiBase);
-    int (*get_video_resolution)(KODI_HANDLE kodiBase);
-    int (*get_current_window_dialog_id)(KODI_HANDLE kodiBase);
-    int (*get_current_window_id)(KODI_HANDLE kodiBase);
-    ADDON_HARDWARE_CONTEXT (*get_hw_context)(KODI_HANDLE kodiBase);
-  } AddonToKodiFuncTable_kodi_gui_general;
+  ATTR_DLL_EXPORT void kodi_gui_lock() __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT void kodi_gui_unlock() __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT int kodi_gui_get_screen_height() __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT int kodi_gui_get_screen_width() __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT float kodi_gui_get_video_resolution() __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT int kodi_gui_get_current_window_dialog_id() __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT int kodi_gui_get_current_window_id() __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT ADDON_HARDWARE_CONTEXT kodi_gui_get_hw_context() __INTRODUCED_IN_KODI(1);
 
 #ifdef __cplusplus
 } /* extern "C" */

@@ -35,8 +35,8 @@ public:
    *         was selected
    */
   static std::string ShowAndGetGameClient(const std::string& gamePath,
-                                          const GameClientVector& candidates,
-                                          const GameClientVector& installable);
+                                          const GameClientInfoVector& candidates,
+                                          const GameClientInfoVector& installable);
 
 private:
   /*!
@@ -54,8 +54,8 @@ private:
    *
    * Other than logging, this has no side effects.
    */
-  static void LogGameClients(const GameClientVector& candidates,
-                             const GameClientVector& installable);
+  static void LogGameClients(const GameClientInfoVector& candidates,
+                             const GameClientInfoVector& installable);
 };
 } // namespace GAME
 } // namespace KODI

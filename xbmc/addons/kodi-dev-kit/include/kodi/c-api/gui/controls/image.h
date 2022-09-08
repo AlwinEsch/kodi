@@ -9,24 +9,23 @@
 #ifndef C_API_GUI_CONTROLS_IMAGE_H
 #define C_API_GUI_CONTROLS_IMAGE_H
 
-#include "../definitions.h"
+#include "../../addon_base.h"
 
 #ifdef __cplusplus
 extern "C"
 {
 #endif /* __cplusplus */
 
-  typedef struct AddonToKodiFuncTable_kodi_gui_control_image
-  {
-    void (*set_visible)(KODI_HANDLE kodiBase, KODI_GUI_CONTROL_HANDLE handle, bool visible);
-    void (*set_filename)(KODI_HANDLE kodiBase,
-                         KODI_GUI_CONTROL_HANDLE handle,
-                         const char* filename,
-                         bool use_cache);
-    void (*set_color_diffuse)(KODI_HANDLE kodiBase,
-                              KODI_GUI_CONTROL_HANDLE handle,
-                              uint32_t color_diffuse);
-  } AddonToKodiFuncTable_kodi_gui_control_image;
+  typedef void* KODI_GUI_CONTROL_HANDLE;
+
+  ATTR_DLL_EXPORT void kodi_gui_controls_image_set_visible(KODI_GUI_CONTROL_HANDLE handle,
+                                                           bool visible) __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT void kodi_gui_controls_image_set_filename(KODI_GUI_CONTROL_HANDLE handle,
+                                                            const char* filename,
+                                                            bool use_cache) __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT void kodi_gui_controls_image_set_color_diffuse(KODI_GUI_CONTROL_HANDLE handle,
+                                                                 uint32_t color_diffuse)
+      __INTRODUCED_IN_KODI(1);
 
 #ifdef __cplusplus
 } /* extern "C" */

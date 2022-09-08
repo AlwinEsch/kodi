@@ -16,6 +16,7 @@
 #include "interfaces/IAnnouncer.h"
 #include "threads/CriticalSection.h"
 #include "utils/Job.h"
+#include "web/WebEvent.h"
 
 #include <string>
 #include <vector>
@@ -94,6 +95,7 @@ private:
   void OnAddonEvent(const ADDON::AddonEvent& event);
   void OnAddonRepositoryEvent(const ADDON::CRepositoryUpdater::RepositoryUpdated& event);
   void OnPVRManagerEvent(const PVR::PVREvent& event);
+  void OnWebManagerEvent(const KODI::WEB::WebEvent& event);
   void OnFavouritesEvent(const CFavouritesService::FavouritesUpdated& event);
   std::string GetTarget(const CFileItem& item) const;
 };

@@ -202,3 +202,6 @@ endif()
 
 # Atomic library
 list(APPEND PLATFORM_REQUIRED_DEPS Atomic)
+
+# Additional libraries
+list(APPEND DEPLIBS rt) # Shared dev kit interface

@@ -7,7 +7,13 @@
 
 #include "AudioDecoder.h"
 
-#include "addons/interfaces/AudioEngine.h"
+// Devkit API interface
+#include "interface/api/audio_engine.h"
+
+// Kodi
+#include "FileItem.h"
+#include "ServiceBroker.h"
+#include "addons/AddonManager.h"
 #include "cores/AudioEngine/Utils/AEUtil.h"
 #include "filesystem/File.h"
 #include "music/tags/MusicInfoTag.h"
@@ -18,53 +24,38 @@
 
 using namespace ADDON;
 using namespace KODI::ADDONS;
+using namespace KODI::ADDONS::INTERFACE;
 
 CAudioDecoder::CAudioDecoder(const AddonInfoPtr& addonInfo)
-  : IAddonInstanceHandler(ADDON_INSTANCE_AUDIODECODER, addonInfo)
+  : IInstanceHandler(this, ADDON_INSTANCE_AUDIODECODER, addonInfo)
 {
   m_CodecName = addonInfo->Type(ADDON_AUDIODECODER)->GetValue("@name").asString();
   m_strExt = m_CodecName + KODI_ADDON_AUDIODECODER_TRACK_EXT;
   m_hasTags = addonInfo->Type(ADDON_AUDIODECODER)->GetValue("@tags").asBoolean();
-
-  // Create all interface parts independent to make API changes easier if
-  // something is added
-  m_ifc.audiodecoder = new AddonInstance_AudioDecoder;
-  m_ifc.audiodecoder->toAddon = new KodiToAddonFuncTable_AudioDecoder();
-  m_ifc.audiodecoder->toKodi = new AddonToKodiFuncTable_AudioDecoder();
-  m_ifc.audiodecoder->toKodi->kodiInstance = this;
 }
 
 CAudioDecoder::~CAudioDecoder()
 {
   DestroyInstance();
-
-  delete m_ifc.audiodecoder->toKodi;
-  delete m_ifc.audiodecoder->toAddon;
-  delete m_ifc.audiodecoder;
 }
 
 bool CAudioDecoder::CreateDecoder()
 {
-  if (CreateInstance() != ADDON_STATUS_OK)
-    return false;
-
-  return true;
+  return CreateInstance() == ADDON_STATUS_OK;
 }
 
 bool CAudioDecoder::SupportsFile(const std::string& filename)
 {
   // Create in case not available, possible as this done by IAddonSupportCheck
-  if ((!m_ifc.hdl && !CreateDecoder()) || !m_ifc.audiodecoder->toAddon->supports_file)
+  if ((!m_instance && !CreateDecoder()))
     return false;
 
-  return m_ifc.audiodecoder->toAddon->supports_file(m_ifc.hdl, filename.c_str());
+  const auto ifc = m_ifc->kodi_addoninstance_audiodecoder_h;
+  return ifc->kodi_addon_audiodecoder_supports_file_v1(m_instance, filename.c_str());
 }
 
 bool CAudioDecoder::Init(const CFileItem& file, unsigned int filecache)
 {
-  if (!m_ifc.audiodecoder->toAddon->init)
-    return false;
-
   /// for replaygain
   /// @todo About audio decoder in most cases Kodi's one not work, add fallback
   /// to use addon if this fails. Need API change about addons music info tag!
@@ -76,9 +67,10 @@ bool CAudioDecoder::Init(const CFileItem& file, unsigned int filecache)
   AudioEngineDataFormat addonFormat = AUDIOENGINE_FMT_INVALID;
   AudioEngineChannel channelList[AUDIOENGINE_CH_MAX] = {AUDIOENGINE_CH_NULL};
 
-  bool ret = m_ifc.audiodecoder->toAddon->init(m_ifc.hdl, file.GetDynPath().c_str(), filecache,
-                                               &channels, &sampleRate, &m_bitsPerSample,
-                                               &m_TotalTime, &m_bitRate, &addonFormat, channelList);
+  const auto ifc = m_ifc->kodi_addoninstance_audiodecoder_h;
+  bool ret = ifc->kodi_addon_audiodecoder_init_v1(
+      m_instance, file.GetDynPath().c_str(), filecache, &channels, &sampleRate, &m_bitsPerSample,
+      &m_TotalTime, &m_bitRate, &addonFormat, channelList);
   if (ret)
   {
     if (channels <= 0 || sampleRate <= 0 || addonFormat == AUDIOENGINE_FMT_INVALID)
@@ -89,7 +81,7 @@ bool CAudioDecoder::Init(const CFileItem& file, unsigned int filecache)
       return false;
     }
 
-    m_format.m_dataFormat = Interface_AudioEngine::TranslateAEFormatToKodi(addonFormat);
+    m_format.m_dataFormat = TranslateAEFormatToKodi(addonFormat);
     m_format.m_sampleRate = sampleRate;
     if (channelList[0] != AUDIOENGINE_CH_NULL)
     {
@@ -98,7 +90,7 @@ bool CAudioDecoder::Init(const CFileItem& file, unsigned int filecache)
       {
         if (channel == AUDIOENGINE_CH_NULL)
           break;
-        layout += Interface_AudioEngine::TranslateAEChannelToKodi(channel);
+        layout += TranslateAEChannelToKodi(channel);
       }
 
       m_format.m_channelLayout = layout;
@@ -112,18 +104,14 @@ bool CAudioDecoder::Init(const CFileItem& file, unsigned int filecache)
 
 int CAudioDecoder::ReadPCM(uint8_t* buffer, size_t size, size_t* actualsize)
 {
-  if (!m_ifc.audiodecoder->toAddon->read_pcm)
-    return 0;
-
-  return m_ifc.audiodecoder->toAddon->read_pcm(m_ifc.hdl, buffer, size, actualsize);
+  const auto ifc = m_ifc->kodi_addoninstance_audiodecoder_h;
+  return ifc->kodi_addon_audiodecoder_read_pcm_v1(m_instance, buffer, size, actualsize);
 }
 
 bool CAudioDecoder::Seek(int64_t time)
 {
-  if (!m_ifc.audiodecoder->toAddon->seek)
-    return false;
-
-  m_ifc.audiodecoder->toAddon->seek(m_ifc.hdl, time);
+  const auto ifc = m_ifc->kodi_addoninstance_audiodecoder_h;
+  ifc->kodi_addon_audiodecoder_seek_v1(m_instance, time);
   return true;
 }
 
@@ -131,11 +119,9 @@ bool CAudioDecoder::Load(const std::string& fileName,
                          MUSIC_INFO::CMusicInfoTag& tag,
                          EmbeddedArt* art)
 {
-  if (!m_ifc.audiodecoder->toAddon->read_tag)
-    return false;
-
   KODI_ADDON_AUDIODECODER_INFO_TAG ifcTag = {};
-  bool ret = m_ifc.audiodecoder->toAddon->read_tag(m_ifc.hdl, fileName.c_str(), &ifcTag);
+  const auto ifc = m_ifc->kodi_addoninstance_audiodecoder_h;
+  bool ret = ifc->kodi_addon_audiodecoder_read_tag_v1(m_instance, fileName.c_str(), &ifcTag);
   if (ret)
   {
     if (ifcTag.title)
@@ -234,11 +220,8 @@ bool CAudioDecoder::Load(const std::string& fileName,
 
 int CAudioDecoder::GetTrackCount(const std::string& strPath)
 {
-  if (!m_ifc.audiodecoder->toAddon->track_count)
-    return 0;
-
-  int result = m_ifc.audiodecoder->toAddon->track_count(m_ifc.hdl, strPath.c_str());
-
+  const auto ifc = m_ifc->kodi_addoninstance_audiodecoder_h;
+  int result = ifc->kodi_addon_audiodecoder_track_count_v1(m_instance, strPath.c_str());
   if (result > 1)
   {
     if (m_hasTags)
