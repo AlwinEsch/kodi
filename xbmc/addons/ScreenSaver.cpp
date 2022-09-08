@@ -8,6 +8,7 @@
 
 #include "ScreenSaver.h"
 
+#include "addons/interface/api/addon-instance/screensaver.h"
 #include "filesystem/SpecialProtocol.h"
 #include "utils/log.h"
 #include "windowing/GraphicContext.h"
@@ -16,24 +17,9 @@
 using namespace ADDON;
 using namespace KODI::ADDONS;
 
-namespace
-{
-void get_properties(const KODI_HANDLE hdl, struct KODI_ADDON_SCREENSAVER_PROPS* props)
-{
-  if (hdl)
-    static_cast<CScreenSaver*>(hdl)->GetProperties(props);
-}
-} // namespace
-
 CScreenSaver::CScreenSaver(const AddonInfoPtr& addonInfo)
-  : IAddonInstanceHandler(ADDON_INSTANCE_SCREENSAVER, addonInfo)
+  : IInstanceHandler(this, ADDON_INSTANCE_SCREENSAVER, addonInfo)
 {
-  m_ifc.screensaver = new AddonInstance_Screensaver;
-  m_ifc.screensaver->toAddon = new KodiToAddonFuncTable_Screensaver();
-  m_ifc.screensaver->toKodi = new AddonToKodiFuncTable_Screensaver();
-  m_ifc.screensaver->toKodi->get_properties = get_properties;
-
-  /* Open the class "kodi::addon::CInstanceScreensaver" on add-on side */
   if (CreateInstance() != ADDON_STATUS_OK)
     CLog::Log(LOGFATAL, "Screensaver: failed to create instance for '{}' and not usable!", ID());
 }
@@ -42,29 +28,39 @@ CScreenSaver::~CScreenSaver()
 {
   /* Destroy the class "kodi::addon::CInstanceScreensaver" on add-on side */
   DestroyInstance();
-
-  delete m_ifc.screensaver->toAddon;
-  delete m_ifc.screensaver->toKodi;
-  delete m_ifc.screensaver;
 }
 
 bool CScreenSaver::Start()
 {
-  if (m_ifc.screensaver->toAddon->start)
-    return m_ifc.screensaver->toAddon->start(m_ifc.hdl);
-  return false;
+  const auto ifc = m_ifc->kodi_addoninstance_screensaver_h;
+  return ifc->kodi_addon_screensaver_start_v1(this, m_instance);
 }
 
 void CScreenSaver::Stop()
 {
-  if (m_ifc.screensaver->toAddon->stop)
-    m_ifc.screensaver->toAddon->stop(m_ifc.hdl);
+  const auto ifc = m_ifc->kodi_addoninstance_screensaver_h;
+  return ifc->kodi_addon_screensaver_stop_v1(this, m_instance);
 }
 
 void CScreenSaver::Render()
 {
-  if (m_ifc.screensaver->toAddon->render)
-    m_ifc.screensaver->toAddon->render(m_ifc.hdl);
+  const auto ifc = m_ifc->kodi_addoninstance_screensaver_h;
+  return ifc->kodi_addon_screensaver_render_v1(this, m_instance);
+}
+
+bool CScreenSaver::GetOffscreenRenderInfos(int& x, int& y, int& width, int& height, ADDON_HARDWARE_CONTEXT& context)
+{
+  const auto winSystem = CServiceBroker::GetWinSystem();
+  if (!winSystem)
+    return false;
+
+  x = 0;
+  y = 0;
+  context = winSystem->GetHWContext();
+  width = winSystem->GetGfxContext().GetWidth();
+  height = winSystem->GetGfxContext().GetHeight();
+
+  return true;
 }
 
 void CScreenSaver::GetProperties(struct KODI_ADDON_SCREENSAVER_PROPS* props)

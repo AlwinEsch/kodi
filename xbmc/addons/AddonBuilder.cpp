@@ -21,7 +21,6 @@
 #include "addons/Skin.h"
 #include "addons/UISoundsResource.h"
 #include "addons/Webinterface.h"
-#include "games/addons/GameClient.h"
 #include "games/controllers/Controller.h"
 #include "pvr/addons/PVRClient.h"
 #include "utils/StringUtils.h"
@@ -55,13 +54,14 @@ AddonPtr CAddonBuilder::Generate(const AddonInfoPtr& info, TYPE type)
   {
     // built in audio encoder
     if (StringUtils::StartsWithNoCase(info->ID(), "audioencoder.kodi.builtin."))
-      return std::make_shared<CAddonDll>(info, type);
+      return std::make_shared<CAddon>(info, type);
   }
 
   switch (type)
   {
   case ADDON_AUDIODECODER:
   case ADDON_AUDIOENCODER:
+  case ADDON_GAMEDLL:
   case ADDON_IMAGEDECODER:
   case ADDON_INPUTSTREAM:
   case ADDON_PERIPHERALDLL:
@@ -69,9 +69,8 @@ AddonPtr CAddonBuilder::Generate(const AddonInfoPtr& info, TYPE type)
   case ADDON_VFS:
   case ADDON_VIZ:
   case ADDON_SCREENSAVER:
-    return std::make_shared<CAddonDll>(info, type);
-  case ADDON_GAMEDLL:
-    return std::make_shared<GAME::CGameClient>(info);
+  case ADDON_WEB_MANAGER:
+    return std::make_shared<CAddon>(info, type);
   case ADDON_PLUGIN:
   case ADDON_SCRIPT:
     return std::make_shared<CPluginSource>(info, type);

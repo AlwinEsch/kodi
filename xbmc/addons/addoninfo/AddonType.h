@@ -18,6 +18,20 @@ class TiXmlElement;
 namespace ADDON
 {
 
+enum class AddonLanguage
+{
+  Unknown,
+  C,
+  CPP,
+  Groovy,
+  Java,
+  JavaScript,
+  Python3,
+  Ruby,
+  XML,
+  Skin
+};
+
 typedef enum
 {
   ADDON_UNKNOWN,
@@ -56,6 +70,7 @@ typedef enum
   ADDON_SCRIPT_MODULE,
   ADDON_GAME_CONTROLLER,
   ADDON_VIDEOCODEC,
+  ADDON_WEB_MANAGER,
 
   /**
     * @brief virtual addon types
@@ -77,11 +92,14 @@ class CAddonDatabaseSerializer;
 class CAddonType : public CAddonExtensions
 {
 public:
-  CAddonType(TYPE type = ADDON_UNKNOWN) : m_type(type) {}
+  CAddonType(TYPE type, AddonLanguage lang) : m_type(type), m_language(lang) {}
 
   TYPE Type() const { return m_type; }
   std::string LibPath() const;
   const std::string& LibName() const { return m_libname; }
+  AddonLanguage Language() const { return m_language; }
+  const std::string& LanguageName() const;
+  int LanguageLocalizedStringID() const;
 
   bool ProvidesSubContent(const TYPE& content) const
   {
@@ -111,9 +129,13 @@ private:
   friend class CAddonInfoBuilder;
   friend class CAddonDatabaseSerializer;
 
+  void SetType(TYPE type);
   void SetProvides(const std::string& content);
+  void SetLanguage(const std::string& name);
+  void SetLanguage(AddonLanguage lang);
 
   TYPE m_type;
+  AddonLanguage m_language;
   std::string m_path;
   std::string m_libname;
   std::set<TYPE> m_providedSubContent;

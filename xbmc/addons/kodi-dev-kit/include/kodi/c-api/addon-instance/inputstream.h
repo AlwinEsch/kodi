@@ -6,6 +6,8 @@
  *  See LICENSES/README.md for more information.
  */
 
+/*---AUTO_GEN_PARSE<OVERRIDE;USE_DIRECT_API_ONLY>---*/
+
 #ifndef C_API_ADDONINSTANCE_INPUTSTREAM_H
 #define C_API_ADDONINSTANCE_INPUTSTREAM_H
 
@@ -31,6 +33,8 @@
 extern "C"
 {
 #endif /* __cplusplus */
+
+  typedef void* KODI_ADDON_INPUTSTREAM_HDL;
 
   //==============================================================================
   /// @ingroup cpp_kodi_addon_inputstream_Defs_Interface_InputstreamCapabilities
@@ -597,104 +601,147 @@ extern "C"
     double ptsEnd;
   };
 
-  /*!
-   * @brief "C" ABI Structures to transfer the methods from this to Kodi
-   */
+  typedef KODI_ADDON_INSTANCE_BACKEND_HDL (*PFN_CB_KODI_ADDON_INPUTSTREAM_TRANSFER_STREAM)(
+      KODI_ADDON_INSTANCE_BACKEND_HDL handle, int streamId, struct INPUTSTREAM_INFO* stream);
 
-  // this are properties given to the addon on create
-  // at this time we have no parameters for the addon
-  typedef struct AddonProps_InputStream /* internal */
+  typedef KODI_ADDON_INPUTSTREAM_HDL(ATTR_APIENTRYP PFN_KODI_ADDON_INPUTSTREAM_CREATE_V1)(
+      KODI_ADDON_INSTANCE_BACKEND_HDL kodi_hdl);
+  typedef void(ATTR_APIENTRYP PFN_KODI_ADDON_INPUTSTREAM_DESTROY_V1)(
+      KODI_ADDON_INPUTSTREAM_HDL hdl);
+
+  typedef bool(ATTR_APIENTRYP PFN_KODI_ADDON_INPUTSTREAM_OPEN_V1)(
+      const KODI_ADDON_INPUTSTREAM_HDL hdl, struct INPUTSTREAM_PROPERTY* props);
+  typedef void(ATTR_APIENTRYP PFN_KODI_ADDON_INPUTSTREAM_CLOSE_V1)(
+      const KODI_ADDON_INPUTSTREAM_HDL hdl);
+  typedef const char*(ATTR_APIENTRYP PFN_KODI_ADDON_INPUTSTREAM_GET_PATH_LIST_V1)(
+      const KODI_ADDON_INPUTSTREAM_HDL hdl);
+  typedef void(ATTR_APIENTRYP PFN_KODI_ADDON_INPUTSTREAM_GET_CAPABILITIES_V1)(
+      const KODI_ADDON_INPUTSTREAM_HDL hdl, struct INPUTSTREAM_CAPABILITIES* capabilities);
+
+  // IDemux
+  typedef bool(ATTR_APIENTRYP PFN_KODI_ADDON_INPUTSTREAM_GET_STREAM_IDS_V1)(
+      const KODI_ADDON_INPUTSTREAM_HDL hdl, struct INPUTSTREAM_IDS* ids);
+  typedef bool(ATTR_APIENTRYP PFN_KODI_ADDON_INPUTSTREAM_GET_STREAM_V1)(
+      const KODI_ADDON_INPUTSTREAM_HDL hdl,
+      int streamid,
+      struct INPUTSTREAM_INFO* info,
+      KODI_OWN_HDL* demuxStream,
+      PFN_CB_KODI_ADDON_INPUTSTREAM_TRANSFER_STREAM transfer_stream);
+  typedef void(ATTR_APIENTRYP PFN_KODI_ADDON_INPUTSTREAM_ENABLE_STREAM_V1)(
+      const KODI_ADDON_INPUTSTREAM_HDL hdl, int streamid, bool enable);
+  typedef bool(ATTR_APIENTRYP PFN_KODI_ADDON_INPUTSTREAM_OPEN_STREAM_V1)(
+      const KODI_ADDON_INPUTSTREAM_HDL hdl, int streamid);
+  typedef void(ATTR_APIENTRYP PFN_KODI_ADDON_INPUTSTREAM_DEMUX_RESET_V1)(
+      const KODI_ADDON_INPUTSTREAM_HDL hdl);
+  typedef void(ATTR_APIENTRYP PFN_KODI_ADDON_INPUTSTREAM_DEMUX_ABORT_V1)(
+      const KODI_ADDON_INPUTSTREAM_HDL hdl);
+  typedef void(ATTR_APIENTRYP PFN_KODI_ADDON_INPUTSTREAM_DEMUX_FLUSH_V1)(
+      const KODI_ADDON_INPUTSTREAM_HDL hdl);
+  typedef struct DEMUX_PACKET*(ATTR_APIENTRYP PFN_KODI_ADDON_INPUTSTREAM_DEMUX_READ_V1)(
+      const KODI_ADDON_INPUTSTREAM_HDL hdl);
+  typedef bool(ATTR_APIENTRYP PFN_KODI_ADDON_INPUTSTREAM_DEMUX_SEEK_TIME_V1)(
+      const KODI_ADDON_INPUTSTREAM_HDL hdl, double time, bool backwards, double* startpts);
+  typedef void(ATTR_APIENTRYP PFN_KODI_ADDON_INPUTSTREAM_DEMUX_SET_SPEED_V1)(
+      const KODI_ADDON_INPUTSTREAM_HDL hdl, int speed);
+  typedef void(ATTR_APIENTRYP PFN_KODI_ADDON_INPUTSTREAM_SET_VIDEO_RESOLUTION_V1)(
+      const KODI_ADDON_INPUTSTREAM_HDL hdl, int width, int height);
+
+  // IDisplayTime
+  typedef int(ATTR_APIENTRYP PFN_KODI_ADDON_INPUTSTREAM_GET_TOTAL_TIME_V1)(
+      const KODI_ADDON_INPUTSTREAM_HDL hdl);
+  typedef int(ATTR_APIENTRYP PFN_KODI_ADDON_INPUTSTREAM_GET_TIME_V1)(
+      const KODI_ADDON_INPUTSTREAM_HDL hdl);
+
+  // ITime
+  typedef bool(ATTR_APIENTRYP PFN_KODI_ADDON_INPUTSTREAM_GET_TIMES_V1)(
+      const KODI_ADDON_INPUTSTREAM_HDL hdl, struct INPUTSTREAM_TIMES* times);
+
+  // IPosTime
+  typedef bool(ATTR_APIENTRYP PFN_KODI_ADDON_INPUTSTREAM_POS_TIME_V1)(
+      const KODI_ADDON_INPUTSTREAM_HDL hdl, int ms);
+
+  typedef int(ATTR_APIENTRYP PFN_KODI_ADDON_INPUTSTREAM_READ_STREAM_V1)(
+      const KODI_ADDON_INPUTSTREAM_HDL hdl, uint8_t* buffer, unsigned int bufferSize);
+  typedef int64_t(ATTR_APIENTRYP PFN_KODI_ADDON_INPUTSTREAM_SEEK_STREAM_V1)(
+      const KODI_ADDON_INPUTSTREAM_HDL hdl, int64_t position, int whence);
+  typedef int64_t(ATTR_APIENTRYP PFN_KODI_ADDON_INPUTSTREAM_POSITION_STREAM_V1)(
+      const KODI_ADDON_INPUTSTREAM_HDL hdl);
+  typedef int64_t(ATTR_APIENTRYP PFN_KODI_ADDON_INPUTSTREAM_LENGTH_STREAM_V1)(
+      const KODI_ADDON_INPUTSTREAM_HDL hdl);
+  typedef bool(ATTR_APIENTRYP PFN_KODI_ADDON_INPUTSTREAM_IS_REAL_TIME_STREAM_V1)(
+      const KODI_ADDON_INPUTSTREAM_HDL hdl);
+
+  // IChapter
+  typedef int(ATTR_APIENTRYP PFN_KODI_ADDON_INPUTSTREAM_GET_CHAPTER_V1)(
+      const KODI_ADDON_INPUTSTREAM_HDL hdl);
+  typedef int(ATTR_APIENTRYP PFN_KODI_ADDON_INPUTSTREAM_GET_CHAPTER_COUNT_V1)(
+      const KODI_ADDON_INPUTSTREAM_HDL hdl);
+  typedef const char*(ATTR_APIENTRYP PFN_KODI_ADDON_INPUTSTREAM_GET_CHAPTER_NAME_V1)(
+      const KODI_ADDON_INPUTSTREAM_HDL hdl, int ch);
+  typedef int64_t(ATTR_APIENTRYP PFN_KODI_ADDON_INPUTSTREAM_GET_CHAPTER_POS_V1)(
+      const KODI_ADDON_INPUTSTREAM_HDL hdl, int ch);
+  typedef bool(ATTR_APIENTRYP PFN_KODI_ADDON_INPUTSTREAM_SEEK_CHAPTER_V1)(
+      const KODI_ADDON_INPUTSTREAM_HDL hdl, int ch);
+
+  typedef int(ATTR_APIENTRYP PFN_KODI_ADDON_INPUTSTREAM_BLOCK_SIZE_STREAM_V1)(
+      const KODI_ADDON_INPUTSTREAM_HDL hdl);
+
+  typedef struct KODI_ADDON_INPUTSTREAM_FUNC
   {
-    int dummy;
-  } AddonProps_InputStream;
+    PFN_KODI_ADDON_INPUTSTREAM_CREATE_V1 create;
+    PFN_KODI_ADDON_INPUTSTREAM_DESTROY_V1 destroy;
 
-  typedef struct AddonToKodiFuncTable_InputStream /* internal */
-  {
-    KODI_HANDLE kodiInstance;
-    struct DEMUX_PACKET* (*allocate_demux_packet)(void* kodiInstance, int data_size);
-    struct DEMUX_PACKET* (*allocate_encrypted_demux_packet)(void* kodiInstance,
-                                                            unsigned int data_size,
-                                                            unsigned int encrypted_subsample_count);
-    void (*free_demux_packet)(void* kodiInstance, struct DEMUX_PACKET* packet);
-  } AddonToKodiFuncTable_InputStream;
-
-  struct AddonInstance_InputStream;
-  typedef struct KodiToAddonFuncTable_InputStream /* internal */
-  {
-    KODI_HANDLE addonInstance;
-
-    bool(__cdecl* open)(const struct AddonInstance_InputStream* instance,
-                        struct INPUTSTREAM_PROPERTY* props);
-    void(__cdecl* close)(const struct AddonInstance_InputStream* instance);
-    const char*(__cdecl* get_path_list)(const struct AddonInstance_InputStream* instance);
-    void(__cdecl* get_capabilities)(const struct AddonInstance_InputStream* instance,
-                                    struct INPUTSTREAM_CAPABILITIES* capabilities);
+    PFN_KODI_ADDON_INPUTSTREAM_OPEN_V1 open;
+    PFN_KODI_ADDON_INPUTSTREAM_CLOSE_V1 close;
+    PFN_KODI_ADDON_INPUTSTREAM_GET_PATH_LIST_V1 get_path_list;
+    PFN_KODI_ADDON_INPUTSTREAM_GET_CAPABILITIES_V1 get_capabilities;
 
     // IDemux
-    bool(__cdecl* get_stream_ids)(const struct AddonInstance_InputStream* instance,
-                                  struct INPUTSTREAM_IDS* ids);
-    bool(__cdecl* get_stream)(const struct AddonInstance_InputStream* instance,
-                              int streamid,
-                              struct INPUTSTREAM_INFO* info,
-                              KODI_HANDLE* demuxStream,
-                              KODI_HANDLE (*transfer_stream)(KODI_HANDLE handle,
-                                                             int streamId,
-                                                             struct INPUTSTREAM_INFO* stream));
-    void(__cdecl* enable_stream)(const struct AddonInstance_InputStream* instance,
-                                 int streamid,
-                                 bool enable);
-    bool(__cdecl* open_stream)(const struct AddonInstance_InputStream* instance, int streamid);
-    void(__cdecl* demux_reset)(const struct AddonInstance_InputStream* instance);
-    void(__cdecl* demux_abort)(const struct AddonInstance_InputStream* instance);
-    void(__cdecl* demux_flush)(const struct AddonInstance_InputStream* instance);
-    struct DEMUX_PACKET*(__cdecl* demux_read)(const struct AddonInstance_InputStream* instance);
-    bool(__cdecl* demux_seek_time)(const struct AddonInstance_InputStream* instance,
-                                   double time,
-                                   bool backwards,
-                                   double* startpts);
-    void(__cdecl* demux_set_speed)(const struct AddonInstance_InputStream* instance, int speed);
-    void(__cdecl* set_video_resolution)(const struct AddonInstance_InputStream* instance,
-                                        int width,
-                                        int height);
+    PFN_KODI_ADDON_INPUTSTREAM_GET_STREAM_IDS_V1 get_stream_ids;
+    PFN_KODI_ADDON_INPUTSTREAM_GET_STREAM_V1 get_stream;
+    PFN_KODI_ADDON_INPUTSTREAM_ENABLE_STREAM_V1 enable_stream;
+    PFN_KODI_ADDON_INPUTSTREAM_OPEN_STREAM_V1 open_stream;
+    PFN_KODI_ADDON_INPUTSTREAM_DEMUX_RESET_V1 demux_reset;
+    PFN_KODI_ADDON_INPUTSTREAM_DEMUX_ABORT_V1 demux_abort;
+    PFN_KODI_ADDON_INPUTSTREAM_DEMUX_FLUSH_V1 demux_flush;
+    PFN_KODI_ADDON_INPUTSTREAM_DEMUX_READ_V1 demux_read;
+    PFN_KODI_ADDON_INPUTSTREAM_DEMUX_SEEK_TIME_V1 demux_seek_time;
+    PFN_KODI_ADDON_INPUTSTREAM_DEMUX_SET_SPEED_V1 demux_set_speed;
+    PFN_KODI_ADDON_INPUTSTREAM_SET_VIDEO_RESOLUTION_V1 set_video_resolution;
 
     // IDisplayTime
-    int(__cdecl* get_total_time)(const struct AddonInstance_InputStream* instance);
-    int(__cdecl* get_time)(const struct AddonInstance_InputStream* instance);
+    PFN_KODI_ADDON_INPUTSTREAM_GET_TOTAL_TIME_V1 get_total_time;
+    PFN_KODI_ADDON_INPUTSTREAM_GET_TIME_V1 get_time;
 
     // ITime
-    bool(__cdecl* get_times)(const struct AddonInstance_InputStream* instance,
-                             struct INPUTSTREAM_TIMES* times);
+    PFN_KODI_ADDON_INPUTSTREAM_GET_TIMES_V1 get_times;
 
     // IPosTime
-    bool(__cdecl* pos_time)(const struct AddonInstance_InputStream* instance, int ms);
-
-    int(__cdecl* read_stream)(const struct AddonInstance_InputStream* instance,
-                              uint8_t* buffer,
-                              unsigned int bufferSize);
-    int64_t(__cdecl* seek_stream)(const struct AddonInstance_InputStream* instance,
-                                  int64_t position,
-                                  int whence);
-    int64_t(__cdecl* position_stream)(const struct AddonInstance_InputStream* instance);
-    int64_t(__cdecl* length_stream)(const struct AddonInstance_InputStream* instance);
-    bool(__cdecl* is_real_time_stream)(const struct AddonInstance_InputStream* instance);
+    PFN_KODI_ADDON_INPUTSTREAM_POS_TIME_V1 pos_time;
+    PFN_KODI_ADDON_INPUTSTREAM_READ_STREAM_V1 read_stream;
+    PFN_KODI_ADDON_INPUTSTREAM_SEEK_STREAM_V1 seek_stream;
+    PFN_KODI_ADDON_INPUTSTREAM_POSITION_STREAM_V1 position_stream;
+    PFN_KODI_ADDON_INPUTSTREAM_LENGTH_STREAM_V1 length_stream;
+    PFN_KODI_ADDON_INPUTSTREAM_IS_REAL_TIME_STREAM_V1 is_real_time_stream;
 
     // IChapter
-    int(__cdecl* get_chapter)(const struct AddonInstance_InputStream* instance);
-    int(__cdecl* get_chapter_count)(const struct AddonInstance_InputStream* instance);
-    const char*(__cdecl* get_chapter_name)(const struct AddonInstance_InputStream* instance,
-                                           int ch);
-    int64_t(__cdecl* get_chapter_pos)(const struct AddonInstance_InputStream* instance, int ch);
-    bool(__cdecl* seek_chapter)(const struct AddonInstance_InputStream* instance, int ch);
+    PFN_KODI_ADDON_INPUTSTREAM_GET_CHAPTER_V1 get_chapter;
+    PFN_KODI_ADDON_INPUTSTREAM_GET_CHAPTER_COUNT_V1 get_chapter_count;
+    PFN_KODI_ADDON_INPUTSTREAM_GET_CHAPTER_NAME_V1 get_chapter_name;
+    PFN_KODI_ADDON_INPUTSTREAM_GET_CHAPTER_POS_V1 get_chapter_pos;
+    PFN_KODI_ADDON_INPUTSTREAM_SEEK_CHAPTER_V1 seek_chapter;
+    PFN_KODI_ADDON_INPUTSTREAM_BLOCK_SIZE_STREAM_V1 block_size_stream;
+  } KODI_ADDON_INPUTSTREAM_FUNC;
 
-    int(__cdecl* block_size_stream)(const struct AddonInstance_InputStream* instance);
-  } KodiToAddonFuncTable_InputStream;
-
-  typedef struct AddonInstance_InputStream /* internal */
-  {
-    struct AddonProps_InputStream* props;
-    struct AddonToKodiFuncTable_InputStream* toKodi;
-    struct KodiToAddonFuncTable_InputStream* toAddon;
-  } AddonInstance_InputStream;
+  ATTR_DLL_EXPORT struct DEMUX_PACKET* kodi_addon_inputstream_allocate_demux_packet(
+      KODI_ADDON_INSTANCE_BACKEND_HDL hdl, int data_size) __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT struct DEMUX_PACKET* kodi_addon_inputstream_allocate_encrypted_demux_packet(
+      KODI_ADDON_INSTANCE_BACKEND_HDL hdl,
+      unsigned int data_size,
+      unsigned int encrypted_subsample_count) __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT void kodi_addon_inputstream_free_demux_packet(KODI_ADDON_INSTANCE_BACKEND_HDL hdl,
+                                                                struct DEMUX_PACKET* packet)
+      __INTRODUCED_IN_KODI(1);
 
 #ifdef __cplusplus
 } /* extern "C" */

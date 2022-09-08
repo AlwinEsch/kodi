@@ -9,17 +9,15 @@
 #ifndef C_API_GUI_DIALOGS_TEXT_VIEWER_H
 #define C_API_GUI_DIALOGS_TEXT_VIEWER_H
 
-#include "../definitions.h"
+#include "../../addon_base.h"
 
 #ifdef __cplusplus
 extern "C"
 {
 #endif /* __cplusplus */
 
-  typedef struct AddonToKodiFuncTable_kodi_gui_dialogTextViewer
-  {
-    void (*open)(KODI_HANDLE kodiBase, const char* heading, const char* text);
-  } AddonToKodiFuncTable_kodi_gui_dialogTextViewer;
+  ATTR_DLL_EXPORT void kodi_gui_dialogs_text_viewer_show(const char* heading, const char* text)
+      __INTRODUCED_IN_KODI(1);
 
 #ifdef __cplusplus
 } /* extern "C" */

@@ -13,10 +13,13 @@
 #include "games/addons/GameClient.h"
 
 using namespace KODI;
+using namespace KODI::ADDONS::INTERFACE;
 using namespace GAME;
 
-CGameClientCheevos::CGameClientCheevos(CGameClient& gameClient, AddonInstance_Game& addonStruct)
-  : m_gameClient(gameClient), m_struct(addonStruct)
+CGameClientCheevos::CGameClientCheevos(CGameClient& gameClient,
+                                       CHdl_kodi_addoninstance_game_h& gameClientIfc,
+                                       const KODI_ADDON_GAME_HDL gameClientHdl)
+  : m_gameClient(gameClient), m_gameClientIfc(gameClientIfc), m_gameClientHdl(gameClientHdl)
 {
 }
 
@@ -30,8 +33,8 @@ bool CGameClientCheevos::RCGenerateHashFromFile(std::string& hash,
   try
   {
     m_gameClient.LogError(
-        error = m_struct.toAddon->RCGenerateHashFromFile(
-            &m_struct, &_hash, static_cast<unsigned int>(consoleID), filePath.c_str()),
+        error = m_gameClientIfc.kodi_addon_game_rc_generate_hash_from_file_v1(
+            m_gameClientHdl, &_hash, static_cast<unsigned int>(consoleID), filePath.c_str()),
         "RCGenerateHashFromFile()");
   }
   catch (...)
@@ -42,7 +45,7 @@ bool CGameClientCheevos::RCGenerateHashFromFile(std::string& hash,
   if (_hash)
   {
     hash = _hash;
-    m_struct.toAddon->FreeString(&m_struct, _hash);
+    free(_hash);
   }
 
   return error == GAME_ERROR_NO_ERROR;
@@ -55,7 +58,7 @@ bool CGameClientCheevos::RCGetGameIDUrl(std::string& url, const std::string& has
 
   try
   {
-    m_gameClient.LogError(error = m_struct.toAddon->RCGetGameIDUrl(&m_struct, &_url, hash.c_str()),
+    m_gameClient.LogError(error = m_gameClientIfc.kodi_addon_game_rc_get_game_id_url_v1(m_gameClientHdl, &_url, hash.c_str()),
                           "RCGetGameIDUrl()");
   }
   catch (...)
@@ -66,7 +69,7 @@ bool CGameClientCheevos::RCGetGameIDUrl(std::string& url, const std::string& has
   if (_url)
   {
     url = _url;
-    m_struct.toAddon->FreeString(&m_struct, _url);
+    free(_url);
   }
 
   return error == GAME_ERROR_NO_ERROR;
@@ -82,8 +85,8 @@ bool CGameClientCheevos::RCGetPatchFileUrl(std::string& url,
 
   try
   {
-    m_gameClient.LogError(error = m_struct.toAddon->RCGetPatchFileUrl(
-                              &m_struct, &_url, username.c_str(), token.c_str(), gameID),
+    m_gameClient.LogError(error = m_gameClientIfc.kodi_addon_game_rc_get_patch_file_url_v1(
+                              m_gameClientHdl, &_url, username.c_str(), token.c_str(), gameID),
                           "RCGetPatchFileUrl()");
   }
   catch (...)
@@ -94,7 +97,7 @@ bool CGameClientCheevos::RCGetPatchFileUrl(std::string& url,
   if (_url)
   {
     url = _url;
-    m_struct.toAddon->FreeString(&m_struct, _url);
+    free(_url);
   }
 
   return error == GAME_ERROR_NO_ERROR;
@@ -113,8 +116,8 @@ bool CGameClientCheevos::RCPostRichPresenceUrl(std::string& url,
 
   try
   {
-    m_gameClient.LogError(error = m_struct.toAddon->RCPostRichPresenceUrl(
-                              &m_struct, &_url, &_postData, username.c_str(), token.c_str(), gameID,
+    m_gameClient.LogError(error = m_gameClientIfc.kodi_addon_game_rc_post_rich_presence_url_v1(
+                              m_gameClientHdl, &_url, &_postData, username.c_str(), token.c_str(), gameID,
                               richPresence.c_str()),
                           "RCPostRichPresenceUrl()");
   }
@@ -126,12 +129,12 @@ bool CGameClientCheevos::RCPostRichPresenceUrl(std::string& url,
   if (_url)
   {
     url = _url;
-    m_struct.toAddon->FreeString(&m_struct, _url);
+    free(_url);
   }
   if (_postData)
   {
     postData = _postData;
-    m_struct.toAddon->FreeString(&m_struct, _postData);
+    free(_postData);
   }
 
   return error == GAME_ERROR_NO_ERROR;
@@ -143,7 +146,7 @@ void CGameClientCheevos::RCEnableRichPresence(const std::string& script)
 
   try
   {
-    m_gameClient.LogError(error = m_struct.toAddon->RCEnableRichPresence(&m_struct, script.c_str()),
+    m_gameClient.LogError(error = m_gameClientIfc.kodi_addon_game_rc_enable_rich_presence_v1(m_gameClientHdl, script.c_str()),
                           "RCEnableRichPresence()");
   }
   catch (...)
@@ -160,14 +163,14 @@ void CGameClientCheevos::RCGetRichPresenceEvaluation(std::string& evaluation,
 
   try
   {
-    m_gameClient.LogError(error = m_struct.toAddon->RCGetRichPresenceEvaluation(
-                              &m_struct, &_evaluation, static_cast<unsigned int>(consoleID)),
+    m_gameClient.LogError(error = m_gameClientIfc.kodi_addon_game_rc_get_rich_presence_evaluation_v1(
+                              m_gameClientHdl, &_evaluation, static_cast<unsigned int>(consoleID)),
                           "RCGetRichPresenceEvaluation()");
 
     if (_evaluation)
     {
       evaluation = _evaluation;
-      m_struct.toAddon->FreeString(&m_struct, _evaluation);
+      free(_evaluation);
     }
   }
   catch (...)
@@ -182,7 +185,7 @@ void CGameClientCheevos::RCResetRuntime()
 
   try
   {
-    m_gameClient.LogError(error = m_struct.toAddon->RCResetRuntime(&m_struct), "RCResetRuntime()");
+    m_gameClient.LogError(error = m_gameClientIfc.kodi_addon_game_rc_reset_runtime_v1(m_gameClientHdl), "RCResetRuntime()");
   }
   catch (...)
   {

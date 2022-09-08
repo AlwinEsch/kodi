@@ -12,6 +12,9 @@
 #include "peripheral/PeripheralUtils.h"
 
 #ifdef __cplusplus
+
+#include <stdexcept>
+
 namespace kodi
 {
 namespace addon
@@ -215,16 +218,7 @@ public:
   ///
   /// Used by an add-on that only supports peripheral.
   ///
-  CInstancePeripheral()
-    : IAddonInstance(IInstanceInfo(CPrivateBase::m_interface->firstKodiInstance))
-  {
-    if (CPrivateBase::m_interface->globalSingleInstance != nullptr)
-      throw std::logic_error("kodi::addon::CInstancePeripheral: Creation of more as one in single "
-                             "instance way is not allowed!");
-
-    SetAddonStruct(CPrivateBase::m_interface->firstKodiInstance);
-    CPrivateBase::m_interface->globalSingleInstance = this;
-  }
+  CInstancePeripheral() = default;
   //----------------------------------------------------------------------------
 
   //============================================================================
@@ -263,11 +257,7 @@ public:
   ///
   explicit CInstancePeripheral(const IInstanceInfo& instance) : IAddonInstance(instance)
   {
-    if (CPrivateBase::m_interface->globalSingleInstance != nullptr)
-      throw std::logic_error("kodi::addon::CInstancePeripheral: Creation of multiple together with "
-                             "single instance way is not allowed!");
-
-    SetAddonStruct(instance);
+    m_kodi = instance.GetKodiHdl();
   }
   //----------------------------------------------------------------------------
 
@@ -523,7 +513,7 @@ public:
   ///
   /// @return The add-on installation path
   ///
-  const std::string AddonPath() const { return m_instanceData->props->addon_path; }
+  const std::string AddonPath() const { return kodi::addon::GetAddonPath(); }
   //----------------------------------------------------------------------------
 
   //============================================================================
@@ -535,7 +525,7 @@ public:
   ///
   /// @return Path to the user profile
   ///
-  const std::string UserPath() const { return m_instanceData->props->user_path; }
+  const std::string UserPath() const { return kodi::addon::GetUserPath(); }
   //----------------------------------------------------------------------------
 
   //============================================================================
@@ -543,10 +533,7 @@ public:
   ///
   /// The add-on calls this if a change in hardware is detected.
   ///
-  void TriggerScan(void)
-  {
-    return m_instanceData->toKodi->trigger_scan(m_instanceData->toKodi->kodiInstance);
-  }
+  void TriggerScan(void) { return kodi_addon_peripheral_trigger_scan(m_kodi); }
   //----------------------------------------------------------------------------
 
   //============================================================================
@@ -559,8 +546,8 @@ public:
   ///
   void RefreshButtonMaps(const std::string& deviceName = "", const std::string& controllerId = "")
   {
-    return m_instanceData->toKodi->refresh_button_maps(m_instanceData->toKodi->kodiInstance,
-                                                       deviceName.c_str(), controllerId.c_str());
+    return kodi_addon_peripheral_refresh_button_maps(m_kodi, deviceName.c_str(),
+                                                     controllerId.c_str());
   }
   //----------------------------------------------------------------------------
 
@@ -576,8 +563,7 @@ public:
   unsigned int FeatureCount(const std::string& controllerId,
                             JOYSTICK_FEATURE_TYPE type = JOYSTICK_FEATURE_TYPE_UNKNOWN)
   {
-    return m_instanceData->toKodi->feature_count(m_instanceData->toKodi->kodiInstance,
-                                                 controllerId.c_str(), type);
+    return kodi_addon_peripheral_feature_count(m_kodi, controllerId.c_str(), type);
   }
   //----------------------------------------------------------------------------
 
@@ -591,64 +577,60 @@ public:
   ///
   JOYSTICK_FEATURE_TYPE FeatureType(const std::string& controllerId, const std::string& featureName)
   {
-    return m_instanceData->toKodi->feature_type(m_instanceData->toKodi->kodiInstance,
-                                                controllerId.c_str(), featureName.c_str());
+    return kodi_addon_peripheral_feature_type(m_kodi, controllerId.c_str(), featureName.c_str());
   }
   //----------------------------------------------------------------------------
 
   ///@}
 
 private:
-  void SetAddonStruct(KODI_ADDON_INSTANCE_STRUCT* instance)
+  friend class CAddonBase;
+
+  void SetAddonStruct(KODI_ADDON_INSTANCE_STRUCT* instance) override
   {
     instance->hdl = this;
 
-    instance->peripheral->toAddon->get_capabilities = ADDON_GetCapabilities;
-    instance->peripheral->toAddon->perform_device_scan = ADDON_PerformDeviceScan;
-    instance->peripheral->toAddon->free_scan_results = ADDON_FreeScanResults;
-    instance->peripheral->toAddon->get_events = ADDON_GetEvents;
-    instance->peripheral->toAddon->free_events = ADDON_FreeEvents;
-    instance->peripheral->toAddon->send_event = ADDON_SendEvent;
+    instance->peripheral->get_capabilities = ADDON_GetCapabilities;
+    instance->peripheral->perform_device_scan = ADDON_PerformDeviceScan;
+    instance->peripheral->free_scan_results = ADDON_FreeScanResults;
+    instance->peripheral->get_events = ADDON_GetEvents;
+    instance->peripheral->free_events = ADDON_FreeEvents;
+    instance->peripheral->send_event = ADDON_SendEvent;
 
-    instance->peripheral->toAddon->get_joystick_info = ADDON_GetJoystickInfo;
-    instance->peripheral->toAddon->free_joystick_info = ADDON_FreeJoystickInfo;
-    instance->peripheral->toAddon->get_features = ADDON_GetFeatures;
-    instance->peripheral->toAddon->free_features = ADDON_FreeFeatures;
-    instance->peripheral->toAddon->map_features = ADDON_MapFeatures;
-    instance->peripheral->toAddon->get_ignored_primitives = ADDON_GetIgnoredPrimitives;
-    instance->peripheral->toAddon->free_primitives = ADDON_FreePrimitives;
-    instance->peripheral->toAddon->set_ignored_primitives = ADDON_SetIgnoredPrimitives;
-    instance->peripheral->toAddon->save_button_map = ADDON_SaveButtonMap;
-    instance->peripheral->toAddon->revert_button_map = ADDON_RevertButtonMap;
-    instance->peripheral->toAddon->reset_button_map = ADDON_ResetButtonMap;
-    instance->peripheral->toAddon->power_off_joystick = ADDON_PowerOffJoystick;
-
-    m_instanceData = instance->peripheral;
-    m_instanceData->toAddon->addonInstance = this;
+    instance->peripheral->get_joystick_info = ADDON_GetJoystickInfo;
+    instance->peripheral->free_joystick_info = ADDON_FreeJoystickInfo;
+    instance->peripheral->get_features = ADDON_GetFeatures;
+    instance->peripheral->free_features = ADDON_FreeFeatures;
+    instance->peripheral->map_features = ADDON_MapFeatures;
+    instance->peripheral->get_ignored_primitives = ADDON_GetIgnoredPrimitives;
+    instance->peripheral->free_primitives = ADDON_FreePrimitives;
+    instance->peripheral->set_ignored_primitives = ADDON_SetIgnoredPrimitives;
+    instance->peripheral->save_button_map = ADDON_SaveButtonMap;
+    instance->peripheral->revert_button_map = ADDON_RevertButtonMap;
+    instance->peripheral->reset_button_map = ADDON_ResetButtonMap;
+    instance->peripheral->power_off_joystick = ADDON_PowerOffJoystick;
   }
 
-  inline static void ADDON_GetCapabilities(const AddonInstance_Peripheral* addonInstance,
+private:
+  inline static void ADDON_GetCapabilities(KODI_ADDON_PERIPHERAL_HDL hdl,
                                            PERIPHERAL_CAPABILITIES* capabilities)
   {
-    if (!addonInstance || !capabilities)
+    if (!hdl || !capabilities)
       return;
 
     kodi::addon::PeripheralCapabilities peripheralCapabilities(capabilities);
-    static_cast<CInstancePeripheral*>(addonInstance->toAddon->addonInstance)
-        ->GetCapabilities(peripheralCapabilities);
+    static_cast<CInstancePeripheral*>(hdl)->GetCapabilities(peripheralCapabilities);
   }
 
-  inline static PERIPHERAL_ERROR ADDON_PerformDeviceScan(
-      const AddonInstance_Peripheral* addonInstance,
-      unsigned int* peripheral_count,
-      PERIPHERAL_INFO** scan_results)
+  inline static PERIPHERAL_ERROR ADDON_PerformDeviceScan(KODI_ADDON_PERIPHERAL_HDL hdl,
+                                                         PERIPHERAL_INFO** scan_results,
+                                                         size_t* peripheral_count)
   {
-    if (!addonInstance || !peripheral_count || !scan_results)
+    if (!hdl || !peripheral_count || !scan_results)
       return PERIPHERAL_ERROR_INVALID_PARAMETERS;
 
     std::vector<std::shared_ptr<kodi::addon::Peripheral>> peripherals;
-    PERIPHERAL_ERROR err = static_cast<CInstancePeripheral*>(addonInstance->toAddon->addonInstance)
-                               ->PerformDeviceScan(peripherals);
+    PERIPHERAL_ERROR err = static_cast<CInstancePeripheral*>(hdl)->PerformDeviceScan(peripherals);
     if (err == PERIPHERAL_NO_ERROR)
     {
       *peripheral_count = static_cast<unsigned int>(peripherals.size());
@@ -658,26 +640,25 @@ private:
     return err;
   }
 
-  inline static void ADDON_FreeScanResults(const AddonInstance_Peripheral* addonInstance,
-                                           unsigned int peripheral_count,
-                                           PERIPHERAL_INFO* scan_results)
+  inline static void ADDON_FreeScanResults(KODI_ADDON_PERIPHERAL_HDL hdl,
+                                           PERIPHERAL_INFO* scan_results,
+                                           size_t peripheral_count)
   {
-    if (!addonInstance)
+    if (!hdl)
       return;
 
-    kodi::addon::Peripherals::FreeStructs(peripheral_count, scan_results);
+    kodi::addon::Peripherals::FreeStructs(scan_results, peripheral_count);
   }
 
-  inline static PERIPHERAL_ERROR ADDON_GetEvents(const AddonInstance_Peripheral* addonInstance,
-                                                 unsigned int* event_count,
-                                                 PERIPHERAL_EVENT** events)
+  inline static PERIPHERAL_ERROR ADDON_GetEvents(KODI_ADDON_PERIPHERAL_HDL hdl,
+                                                 PERIPHERAL_EVENT** events,
+                                                 size_t* event_count)
   {
-    if (!addonInstance || !event_count || !events)
+    if (!hdl || !event_count || !events)
       return PERIPHERAL_ERROR_INVALID_PARAMETERS;
 
     std::vector<kodi::addon::PeripheralEvent> peripheralEvents;
-    PERIPHERAL_ERROR err = static_cast<CInstancePeripheral*>(addonInstance->toAddon->addonInstance)
-                               ->GetEvents(peripheralEvents);
+    PERIPHERAL_ERROR err = static_cast<CInstancePeripheral*>(hdl)->GetEvents(peripheralEvents);
     if (err == PERIPHERAL_NO_ERROR)
     {
       *event_count = static_cast<unsigned int>(peripheralEvents.size());
@@ -687,35 +668,34 @@ private:
     return err;
   }
 
-  inline static void ADDON_FreeEvents(const AddonInstance_Peripheral* addonInstance,
-                                      unsigned int event_count,
-                                      PERIPHERAL_EVENT* events)
+  inline static void ADDON_FreeEvents(KODI_ADDON_PERIPHERAL_HDL hdl,
+                                      PERIPHERAL_EVENT* events,
+                                      size_t event_count)
   {
-    if (!addonInstance)
+    if (!hdl)
       return;
 
-    kodi::addon::PeripheralEvents::FreeStructs(event_count, events);
+    kodi::addon::PeripheralEvents::FreeStructs(events, event_count);
   }
 
-  inline static bool ADDON_SendEvent(const AddonInstance_Peripheral* addonInstance,
-                                     const PERIPHERAL_EVENT* event)
+  inline static bool ADDON_SendEvent(KODI_ADDON_PERIPHERAL_HDL hdl, const PERIPHERAL_EVENT* event)
   {
-    if (!addonInstance || !event)
+    if (!hdl || !event)
       return false;
-    return static_cast<CInstancePeripheral*>(addonInstance->toAddon->addonInstance)
-        ->SendEvent(kodi::addon::PeripheralEvent(*event));
+    return static_cast<CInstancePeripheral*>(hdl)->SendEvent(kodi::addon::PeripheralEvent(*event));
   }
 
 
-  inline static PERIPHERAL_ERROR ADDON_GetJoystickInfo(
-      const AddonInstance_Peripheral* addonInstance, unsigned int index, JOYSTICK_INFO* info)
+  inline static PERIPHERAL_ERROR ADDON_GetJoystickInfo(KODI_ADDON_PERIPHERAL_HDL hdl,
+                                                       unsigned int index,
+                                                       JOYSTICK_INFO* info)
   {
-    if (!addonInstance || !info)
+    if (!hdl || !info)
       return PERIPHERAL_ERROR_INVALID_PARAMETERS;
 
     kodi::addon::Joystick addonInfo;
-    PERIPHERAL_ERROR err = static_cast<CInstancePeripheral*>(addonInstance->toAddon->addonInstance)
-                               ->GetJoystickInfo(index, addonInfo);
+    PERIPHERAL_ERROR err =
+        static_cast<CInstancePeripheral*>(hdl)->GetJoystickInfo(index, addonInfo);
     if (err == PERIPHERAL_NO_ERROR)
     {
       addonInfo.ToStruct(*info);
@@ -724,29 +704,28 @@ private:
     return err;
   }
 
-  inline static void ADDON_FreeJoystickInfo(const AddonInstance_Peripheral* addonInstance,
-                                            JOYSTICK_INFO* info)
+  inline static void ADDON_FreeJoystickInfo(KODI_ADDON_PERIPHERAL_HDL hdl, JOYSTICK_INFO* info)
   {
-    if (!addonInstance)
+    if (!hdl)
       return;
 
     kodi::addon::Joystick::FreeStruct(*info);
   }
 
-  inline static PERIPHERAL_ERROR ADDON_GetFeatures(const AddonInstance_Peripheral* addonInstance,
+  inline static PERIPHERAL_ERROR ADDON_GetFeatures(KODI_ADDON_PERIPHERAL_HDL hdl,
                                                    const JOYSTICK_INFO* joystick,
                                                    const char* controller_id,
-                                                   unsigned int* feature_count,
-                                                   JOYSTICK_FEATURE** features)
+                                                   JOYSTICK_FEATURE** features,
+                                                   size_t* feature_count)
   {
-    if (!addonInstance || !joystick || !controller_id || !feature_count || !features)
+    if (!hdl || !joystick || !controller_id || !feature_count || !features)
       return PERIPHERAL_ERROR_INVALID_PARAMETERS;
 
     kodi::addon::Joystick addonJoystick(*joystick);
     std::vector<kodi::addon::JoystickFeature> featuresVector;
 
-    PERIPHERAL_ERROR err = static_cast<CInstancePeripheral*>(addonInstance->toAddon->addonInstance)
-                               ->GetFeatures(addonJoystick, controller_id, featuresVector);
+    PERIPHERAL_ERROR err = static_cast<CInstancePeripheral*>(hdl)->GetFeatures(
+        addonJoystick, controller_id, featuresVector);
     if (err == PERIPHERAL_NO_ERROR)
     {
       *feature_count = static_cast<unsigned int>(featuresVector.size());
@@ -756,23 +735,23 @@ private:
     return err;
   }
 
-  inline static void ADDON_FreeFeatures(const AddonInstance_Peripheral* addonInstance,
-                                        unsigned int feature_count,
-                                        JOYSTICK_FEATURE* features)
+  inline static void ADDON_FreeFeatures(KODI_ADDON_PERIPHERAL_HDL hdl,
+                                        JOYSTICK_FEATURE* features,
+                                        size_t feature_count)
   {
-    if (!addonInstance)
+    if (!hdl)
       return;
 
-    kodi::addon::JoystickFeatures::FreeStructs(feature_count, features);
+    kodi::addon::JoystickFeatures::FreeStructs(features, feature_count);
   }
 
-  inline static PERIPHERAL_ERROR ADDON_MapFeatures(const AddonInstance_Peripheral* addonInstance,
+  inline static PERIPHERAL_ERROR ADDON_MapFeatures(KODI_ADDON_PERIPHERAL_HDL hdl,
                                                    const JOYSTICK_INFO* joystick,
                                                    const char* controller_id,
-                                                   unsigned int feature_count,
-                                                   const JOYSTICK_FEATURE* features)
+                                                   const JOYSTICK_FEATURE* features,
+                                                   size_t feature_count)
   {
-    if (!addonInstance || !joystick || !controller_id || (feature_count > 0 && !features))
+    if (!hdl || !joystick || !controller_id || (feature_count > 0 && !features))
       return PERIPHERAL_ERROR_INVALID_PARAMETERS;
 
     kodi::addon::Joystick addonJoystick(*joystick);
@@ -781,24 +760,23 @@ private:
     for (unsigned int i = 0; i < feature_count; i++)
       primitiveVector.emplace_back(*(features + i));
 
-    return static_cast<CInstancePeripheral*>(addonInstance->toAddon->addonInstance)
-        ->MapFeatures(addonJoystick, controller_id, primitiveVector);
+    return static_cast<CInstancePeripheral*>(hdl)->MapFeatures(addonJoystick, controller_id,
+                                                               primitiveVector);
   }
 
-  inline static PERIPHERAL_ERROR ADDON_GetIgnoredPrimitives(
-      const AddonInstance_Peripheral* addonInstance,
-      const JOYSTICK_INFO* joystick,
-      unsigned int* primitive_count,
-      JOYSTICK_DRIVER_PRIMITIVE** primitives)
+  inline static PERIPHERAL_ERROR ADDON_GetIgnoredPrimitives(KODI_ADDON_PERIPHERAL_HDL hdl,
+                                                            const JOYSTICK_INFO* joystick,
+                                                            JOYSTICK_DRIVER_PRIMITIVE** primitives,
+                                                            size_t* primitive_count)
   {
-    if (!addonInstance || !joystick || !primitive_count || !primitives)
+    if (!hdl || !joystick || !primitive_count || !primitives)
       return PERIPHERAL_ERROR_INVALID_PARAMETERS;
 
     kodi::addon::Joystick addonJoystick(*joystick);
     std::vector<kodi::addon::DriverPrimitive> primitiveVector;
 
-    PERIPHERAL_ERROR err = static_cast<CInstancePeripheral*>(addonInstance->toAddon->addonInstance)
-                               ->GetIgnoredPrimitives(addonJoystick, primitiveVector);
+    PERIPHERAL_ERROR err = static_cast<CInstancePeripheral*>(hdl)->GetIgnoredPrimitives(
+        addonJoystick, primitiveVector);
     if (err == PERIPHERAL_NO_ERROR)
     {
       *primitive_count = static_cast<unsigned int>(primitiveVector.size());
@@ -808,23 +786,23 @@ private:
     return err;
   }
 
-  inline static void ADDON_FreePrimitives(const AddonInstance_Peripheral* addonInstance,
-                                          unsigned int primitive_count,
-                                          JOYSTICK_DRIVER_PRIMITIVE* primitives)
+  inline static void ADDON_FreePrimitives(KODI_ADDON_PERIPHERAL_HDL hdl,
+                                          JOYSTICK_DRIVER_PRIMITIVE* primitives,
+                                          size_t primitive_count)
   {
-    if (!addonInstance)
+    if (!hdl)
       return;
 
-    kodi::addon::DriverPrimitives::FreeStructs(primitive_count, primitives);
+    kodi::addon::DriverPrimitives::FreeStructs(primitives, primitive_count);
   }
 
   inline static PERIPHERAL_ERROR ADDON_SetIgnoredPrimitives(
-      const AddonInstance_Peripheral* addonInstance,
+      KODI_ADDON_PERIPHERAL_HDL hdl,
       const JOYSTICK_INFO* joystick,
-      unsigned int primitive_count,
-      const JOYSTICK_DRIVER_PRIMITIVE* primitives)
+      const JOYSTICK_DRIVER_PRIMITIVE* primitives,
+      size_t primitive_count)
   {
-    if (!addonInstance || !joystick || (primitive_count > 0 && !primitives))
+    if (!hdl || !joystick || (primitive_count > 0 && !primitives))
       return PERIPHERAL_ERROR_INVALID_PARAMETERS;
 
     kodi::addon::Joystick addonJoystick(*joystick);
@@ -833,55 +811,50 @@ private:
     for (unsigned int i = 0; i < primitive_count; i++)
       primitiveVector.emplace_back(*(primitives + i));
 
-    return static_cast<CInstancePeripheral*>(addonInstance->toAddon->addonInstance)
-        ->SetIgnoredPrimitives(addonJoystick, primitiveVector);
+    return static_cast<CInstancePeripheral*>(hdl)->SetIgnoredPrimitives(addonJoystick,
+                                                                        primitiveVector);
   }
 
-  inline static void ADDON_SaveButtonMap(const AddonInstance_Peripheral* addonInstance,
+  inline static void ADDON_SaveButtonMap(KODI_ADDON_PERIPHERAL_HDL hdl,
                                          const JOYSTICK_INFO* joystick)
   {
-    if (!addonInstance || !joystick)
+    if (!hdl || !joystick)
       return;
 
     kodi::addon::Joystick addonJoystick(*joystick);
-    static_cast<CInstancePeripheral*>(addonInstance->toAddon->addonInstance)
-        ->SaveButtonMap(addonJoystick);
+    static_cast<CInstancePeripheral*>(hdl)->SaveButtonMap(addonJoystick);
   }
 
-  inline static void ADDON_RevertButtonMap(const AddonInstance_Peripheral* addonInstance,
+  inline static void ADDON_RevertButtonMap(KODI_ADDON_PERIPHERAL_HDL hdl,
                                            const JOYSTICK_INFO* joystick)
   {
-    if (!addonInstance || !joystick)
+    if (!hdl || !joystick)
       return;
 
     kodi::addon::Joystick addonJoystick(*joystick);
-    static_cast<CInstancePeripheral*>(addonInstance->toAddon->addonInstance)
-        ->RevertButtonMap(addonJoystick);
+    static_cast<CInstancePeripheral*>(hdl)->RevertButtonMap(addonJoystick);
   }
 
-  inline static void ADDON_ResetButtonMap(const AddonInstance_Peripheral* addonInstance,
+  inline static void ADDON_ResetButtonMap(KODI_ADDON_PERIPHERAL_HDL hdl,
                                           const JOYSTICK_INFO* joystick,
                                           const char* controller_id)
   {
-    if (!addonInstance || !joystick || !controller_id)
+    if (!hdl || !joystick || !controller_id)
       return;
 
     kodi::addon::Joystick addonJoystick(*joystick);
-    static_cast<CInstancePeripheral*>(addonInstance->toAddon->addonInstance)
-        ->ResetButtonMap(addonJoystick, controller_id);
+    static_cast<CInstancePeripheral*>(hdl)->ResetButtonMap(addonJoystick, controller_id);
   }
 
-  inline static void ADDON_PowerOffJoystick(const AddonInstance_Peripheral* addonInstance,
-                                            unsigned int index)
+  inline static void ADDON_PowerOffJoystick(KODI_ADDON_PERIPHERAL_HDL hdl, unsigned int index)
   {
-    if (!addonInstance)
+    if (!hdl)
       return;
 
-    static_cast<CInstancePeripheral*>(addonInstance->toAddon->addonInstance)
-        ->PowerOffJoystick(index);
+    static_cast<CInstancePeripheral*>(hdl)->PowerOffJoystick(index);
   }
 
-  AddonInstance_Peripheral* m_instanceData;
+  KODI_ADDON_INSTANCE_BACKEND_HDL m_kodi;
 };
 
 } /* namespace addon */

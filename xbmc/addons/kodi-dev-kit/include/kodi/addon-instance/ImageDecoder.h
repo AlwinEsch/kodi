@@ -13,21 +13,12 @@
 
 #ifdef __cplusplus
 
-#include <stdexcept>
-
 namespace kodi
 {
 namespace addon
 {
 
-//##############################################################################
-/// @defgroup cpp_kodi_addon_imagedecoder_Defs Definitions, structures and enumerators
-/// @ingroup cpp_kodi_addon_imagedecoder
-/// @brief **Image decoder add-on general variables**
-///
-/// Used to exchange the available options between Kodi and addon.
-///
-///
+using ImageFormat = ADDON_IMG_FMT;
 
 //==============================================================================
 /// @defgroup cpp_kodi_addon_imagedecoder_Defs_ImageDecoderInfoTag class ImageDecoderInfoTag
@@ -546,11 +537,6 @@ public:
   ///
   explicit CInstanceImageDecoder(const IInstanceInfo& instance) : IAddonInstance(instance)
   {
-    if (CPrivateBase::m_interface->globalSingleInstance != nullptr)
-      throw std::logic_error("kodi::addon::CInstanceImageDecoder: Creation of multiple together "
-                             "with single instance way is not allowed!");
-
-    SetAddonStruct(instance);
   }
   //----------------------------------------------------------------------------
 
@@ -621,17 +607,17 @@ public:
                       unsigned int width,
                       unsigned int height,
                       unsigned int pitch,
-                      ADDON_IMG_FMT format) = 0;
+                      kodi::addon::ImageFormat format) = 0;
   //----------------------------------------------------------------------------
 
 private:
-  void SetAddonStruct(KODI_ADDON_INSTANCE_STRUCT* instance)
+  void SetAddonStruct(KODI_ADDON_INSTANCE_STRUCT* instance) override
   {
     instance->hdl = this;
-    instance->imagedecoder->toAddon->supports_file = ADDON_supports_file;
-    instance->imagedecoder->toAddon->read_tag = ADDON_read_tag;
-    instance->imagedecoder->toAddon->load_image_from_memory = ADDON_load_image_from_memory;
-    instance->imagedecoder->toAddon->decode = ADDON_decode;
+    instance->imagedecoder->supports_file = ADDON_supports_file;
+    instance->imagedecoder->read_tag = ADDON_read_tag;
+    instance->imagedecoder->load_image_from_memory = ADDON_load_image_from_memory;
+    instance->imagedecoder->decode = ADDON_decode;
   }
 
   inline static bool ADDON_supports_file(const KODI_ADDON_IMAGEDECODER_HDL hdl, const char* file)

@@ -19,6 +19,7 @@
 #include "Util.h"
 #include "addons/Skin.h"
 #include "addons/VFSEntry.h"
+#include "addons/interface/Controller.h"
 #include "cores/AudioEngine/Engines/ActiveAE/ActiveAE.h"
 #include "cores/IPlayer.h"
 #include "cores/playercorefactory/PlayerCoreFactory.h"
@@ -137,14 +138,16 @@
 #include "pvr/PVRManager.h"
 #include "pvr/guilib/PVRGUIActions.h"
 
-#include "dialogs/GUIDialogCache.h"
-#include "utils/URIUtils.h"
-#include "utils/XMLUtils.h"
+#include "CompileInfo.h"
 #include "addons/AddonInstaller.h"
 #include "addons/AddonManager.h"
 #include "addons/RepositoryUpdater.h"
+#include "dialogs/GUIDialogCache.h"
 #include "music/tags/MusicInfoTag.h"
-#include "CompileInfo.h"
+#include "utils/URIUtils.h"
+#include "utils/XMLUtils.h"
+#include "video/dialogs/GUIDialogFullScreenInfo.h"
+#include "web/WebManager.h"
 
 #ifdef TARGET_WINDOWS
 #include "win32util.h"
@@ -2001,6 +2004,9 @@ bool CApplication::Stop(int exitCode)
 
   bool success = true;
 
+  CLog::Log(LOGINFO, "Stopping webbrowser");
+  CServiceBroker::GetWEBManager().Deinit();
+
   CLog::Log(LOGINFO, "Stopping player");
   m_appPlayer.ClosePlayer();
 
@@ -2871,14 +2877,17 @@ bool CApplication::ExecuteXBMCAction(std::string actionStr, const CGUIListItemPt
       return true;
     }
     CFileItem item(actionStr, false);
+    if (item.IsWeb())
+    {
+      CServiceBroker::GetWEBManager().ExecuteItem(item);
+    }
 #ifdef HAS_PYTHON
-    if (item.IsPythonScript())
+    else if (item.IsPythonScript())
     { // a python script
       CScriptInvocationManager::GetInstance().ExecuteAsync(item.GetPath());
     }
-    else
 #endif
-    if (item.IsAudio() || item.IsVideo() || item.IsGame())
+    else if (item.IsAudio() || item.IsVideo() || item.IsGame())
     { // an audio or video file
       PlayFile(item, "");
     }
@@ -2996,6 +3005,15 @@ void CApplication::Process()
     CScriptInvocationManager::GetInstance().Process();
     m_frameMoveGuard.lock();
   }
+
+  // The Chromium-based web browser addon needs the main thread in all
+  // circumstances, without massive error messages and uncontrollable
+  // crashes. Furthermore, processing the render information between
+  // different threads causes further problems.
+  //
+  // Unfortunately, this is due to the Chromium system, which was not
+  // constructed directly as a library, but as an independent exe.
+  CServiceBroker::GetWEBManager().MainLoop();
 
   // process messages, even if a movie is playing
   CServiceBroker::GetAppMessenger()->ProcessMessages();

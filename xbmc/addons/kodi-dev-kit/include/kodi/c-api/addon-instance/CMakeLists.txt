@@ -11,8 +11,9 @@ set(HEADERS
   pvr.h
   screensaver.h
   vfs.h
-  video_codec.h
+  videocodec.h
   visualization.h
+  web.h
 )
 
 if(HEADERS)

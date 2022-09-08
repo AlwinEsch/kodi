@@ -8,24 +8,28 @@
 
 #pragma once
 
-#include "addons/binary-addons/AddonInstanceHandler.h"
-#include "addons/kodi-dev-kit/include/kodi/addon-instance/Visualization.h"
+#include "addons/kodi-dev-kit/include/kodi/c-api/addon-instance/visualization.h"
+#include "interface/IOffscreenRenderProcess.h"
+#include "interface/InstanceHandler.h"
 
-namespace ADDON
+namespace KODI
+{
+namespace ADDONS
 {
 
-class CVisualization : public IAddonInstanceHandler
+class CVisualization : public KODI::ADDONS::INTERFACE::IInstanceHandler,
+                       public KODI::ADDONS::INTERFACE::IOffscreenRenderProcess
 {
 public:
-  CVisualization(const AddonInfoPtr& addonInfo, float x, float y, float w, float h);
+  CVisualization(const ADDON::AddonInfoPtr& addonInfo, float x, float y, float w, float h);
   ~CVisualization() override;
 
   bool Start(int channels, int samplesPerSec, int bitsPerSample, const std::string& songName);
   void Stop();
-  void AudioData(const float* audioData, int audioDataLength, float *freqData, int freqDataLength);
+  void AudioData(const float* audioData, int audioDataLength);
   bool IsDirty();
   void Render();
-  void GetInfo(VIS_INFO *info);
+  int GetSyncDelay();
   bool NextPreset();
   bool PrevPreset();
   bool LoadPreset(int select);
@@ -33,22 +37,27 @@ public:
   bool LockPreset();
   bool RatePreset(bool plus_minus);
   bool UpdateAlbumart(const char* albumart);
-  bool UpdateTrack(const VIS_TRACK* track);
+  bool UpdateTrack(const KODI_ADDON_VISUALIZATION_TRACK* track);
   bool HasPresets();
   bool GetPresetList(std::vector<std::string>& vecpresets);
   int GetActivePreset();
   std::string GetActivePresetName();
   bool IsLocked();
 
-private:
-  std::string m_name; /*!< To add-on sended name */
-  std::string m_presetsPath; /*!< To add-on sended preset path */
-  std::string m_profilePath; /*!< To add-on sended profile path */
-  std::vector<std::string> m_presets; /*!< cached preset list */
+  void get_properties(KODI_ADDON_VISUALIZATION_PROPS* props);
+  /*---AUTO_GEN_PARSE<CB:kodi_addon_visualization_get_properties>---*/
+  void transfer_preset(const char* preset);
+  /*---AUTO_GEN_PARSE<CB:kodi_addon_visualization_transfer_preset>---*/
+  void clear_presets();
+  /*---AUTO_GEN_PARSE<CB:kodi_addon_visualization_clear_presets>---*/
 
-  // Static function to transfer data from add-on to kodi
-  static void transfer_preset(void* kodiInstance, const char* preset);
-  static void clear_presets(void* kodiInstance);
+protected:
+  bool GetOffscreenRenderInfos(
+      int& x, int& y, int& width, int& height, ADDON_HARDWARE_CONTEXT& context) override;
+
+private:
+  std::vector<std::string> m_presets; /*!< cached preset list */
 };
 
-} /* namespace ADDON */
+} /* namespace ADDONS */
+} /* namespace KODI */

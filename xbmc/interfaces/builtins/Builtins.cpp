@@ -11,26 +11,26 @@
 #include "ApplicationBuiltins.h"
 #include "CECBuiltins.h"
 #include "GUIBuiltins.h"
-#include "GUIControlBuiltins.h"
 #include "GUIContainerBuiltins.h"
+#include "GUIControlBuiltins.h"
 #include "LibraryBuiltins.h"
 #include "OpticalBuiltins.h"
+#include "PVRBuiltins.h"
 #include "PictureBuiltins.h"
 #include "PlayerBuiltins.h"
 #include "ProfileBuiltins.h"
-#include "PVRBuiltins.h"
+#include "ServiceBroker.h"
 #include "SkinBuiltins.h"
 #include "SystemBuiltins.h"
+#include "Util.h"
 #include "WeatherBuiltins.h"
-
-#include "ServiceBroker.h"
+#include "WebBuiltins.h"
 #include "input/InputManager.h"
 #include "powermanagement/PowerTypes.h"
 #include "settings/Settings.h"
 #include "settings/SettingsComponent.h"
-#include "Util.h"
-#include "utils/log.h"
 #include "utils/StringUtils.h"
+#include "utils/log.h"
 
 #if defined(TARGET_ANDROID)
 #include "AndroidBuiltins.h"
@@ -56,6 +56,7 @@ CBuiltins::CBuiltins()
   RegisterCommands<CSkinBuiltins>();
   RegisterCommands<CSystemBuiltins>();
   RegisterCommands<CWeatherBuiltins>();
+  RegisterCommands<CWebBuiltins>();
 
 #if defined(HAVE_LIBCEC)
   RegisterCommands<CCECBuiltins>();

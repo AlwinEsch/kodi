@@ -90,7 +90,7 @@ public:
    * ~~~~~~~~~~~~~
    *
    */
-  const CAddonType* Type(TYPE type) const { return m_addonInfo->Type(type); }
+  const CAddonType* Type(TYPE type) const override { return m_addonInfo->Type(type); }
 
   std::string ID() const override { return m_addonInfo->ID(); }
   std::string Name() const override { return m_addonInfo->Name(); }
@@ -396,6 +396,8 @@ public:
   void OnPostInstall(bool update, bool modal) override{};
   void OnPreUnInstall() override{};
   void OnPostUnInstall() override{};
+
+  AddonInfoPtr GetAddonInfo() override { return m_addonInfo; }
 
 protected:
   /*!

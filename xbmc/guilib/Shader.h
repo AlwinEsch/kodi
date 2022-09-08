@@ -153,6 +153,8 @@ namespace Shaders {
                        , const std::string& frag);
     ~CGLSLShaderProgram() override;
 
+    bool LoadShaderFiles(const std::string& vert, const std::string& frag);
+
     // enable the shader
     bool Enable() override;
 

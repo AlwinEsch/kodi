@@ -259,11 +259,6 @@ public:
   ///
   explicit CInstanceVideoCodec(const IInstanceInfo& instance) : IAddonInstance(instance)
   {
-    if (CPrivateBase::m_interface->globalSingleInstance != nullptr)
-      throw std::logic_error("kodi::addon::CInstanceVideoCodec: Creation of multiple together with "
-                             "single instance way is not allowed!");
-
-    SetAddonStruct(instance);
   }
   //----------------------------------------------------------------------------
 

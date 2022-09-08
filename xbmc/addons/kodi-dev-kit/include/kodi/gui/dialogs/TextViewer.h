@@ -94,9 +94,7 @@ namespace TextViewer
 ///
 inline void ATTR_DLL_LOCAL Show(const std::string& heading, const std::string& text)
 {
-  using namespace ::kodi::addon;
-  CPrivateBase::m_interface->toKodi->kodi_gui->dialogTextViewer->open(
-      CPrivateBase::m_interface->toKodi->kodiBase, heading.c_str(), text.c_str());
+  kodi::dl::api.kodi_gui_dialogs_text_viewer_show(heading.c_str(), text.c_str());
 }
 //------------------------------------------------------------------------------
 }; // namespace TextViewer

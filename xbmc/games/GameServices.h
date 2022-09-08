@@ -11,9 +11,16 @@
 #include "controllers/ControllerTypes.h"
 
 #include <memory>
+#include <set>
 #include <string>
+#include <vector>
 
 class CProfileManager;
+
+namespace ADDON
+{
+class CAddonInfo;
+}
 
 namespace PERIPHERALS
 {
@@ -30,6 +37,7 @@ class CGUIGameRenderManager;
 namespace GAME
 {
 class CControllerManager;
+class CGameClientController;
 class CGameSettings;
 
 class CGameServices
@@ -41,6 +49,8 @@ public:
                 const CProfileManager& profileManager);
   ~CGameServices();
 
+  bool Init();
+
   ControllerPtr GetController(const std::string& controllerId);
   ControllerPtr GetDefaultController();
   ControllerPtr GetDefaultKeyboard();
@@ -50,6 +60,7 @@ public:
   std::string GetSavestatesFolder() const;
 
   CGameSettings& GameSettings() { return *m_gameSettings; }
+  CGameClientController& GameClientController() { return *m_gameClientController; }
 
   RETRO::CGUIGameRenderManager& GameRenderManager() { return m_gameRenderManager; }
 
@@ -61,6 +72,9 @@ private:
 
   // Game services
   std::unique_ptr<CGameSettings> m_gameSettings;
+
+  // Game clients control
+  std::unique_ptr<CGameClientController> m_gameClientController;
 };
 } // namespace GAME
 } // namespace KODI

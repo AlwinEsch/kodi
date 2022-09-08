@@ -1,13 +1,8 @@
 xbmc                                            xbmc
 xbmc/addons                                     addons
 xbmc/addons/addoninfo                           addons_addoninfo
-xbmc/addons/binary-addons                       addons_binary-addons
 xbmc/addons/gui                                 addons_gui
 xbmc/addons/gui/skin                            addons_gui_skin
-xbmc/addons/interfaces                          addons_interfaces
-xbmc/addons/interfaces/gui                      addons_interfaces_gui
-xbmc/addons/interfaces/gui/controls             addons_interfaces_gui_controls
-xbmc/addons/interfaces/gui/dialogs              addons_interfaces_gui_dialogs
 xbmc/addons/settings                            addons_settings
 xbmc/application                                application
 xbmc/commons                                    commons
@@ -42,5 +37,8 @@ xbmc/threads                                    threads
 xbmc/utils                                      utils
 xbmc/view                                       view
 xbmc/weather                                    weather
+xbmc/web                                        webaddons
+xbmc/web/dialogs                                webaddons_dialogs
+xbmc/web/windows                                webaddons_windows
 xbmc/windowing                                  windowing
 xbmc/windows                                    windows

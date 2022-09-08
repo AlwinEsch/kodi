@@ -12,12 +12,12 @@
 
 #ifdef __cplusplus
 
+#include "../../AddonBase.h"
+#include "../../Filesystem.h"
+
 #include <stdio.h>
 #include <string>
 #include <vector>
-
-#include <kodi/AddonBase.h>
-#include <kodi/Filesystem.h>
 
 #define LOG_SIZE 1024
 #define GLchar char
@@ -51,7 +51,7 @@ public:
                 file.c_str());
       return false;
     }
-    size_t len = source.Read(buffer, sizeof(buffer));
+    size_t len = source.Read(reinterpret_cast<uint8_t*>(buffer), sizeof(buffer));
     m_source.assign(buffer);
     m_source[len] = 0;
     source.Close();

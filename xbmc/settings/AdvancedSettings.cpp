@@ -417,6 +417,8 @@ void CAdvancedSettings::Initialize()
 
   m_addonPackageFolderSize = 200;
 
+  m_addonsSimulateBinaryLibAsExe = true;
+
   m_jsonOutputCompact = true;
   m_jsonTcpPort = 9090;
 
@@ -947,6 +949,12 @@ void CAdvancedSettings::ParseSettingsFile(const std::string &file)
   XMLUtils::GetBoolean(pRootElement,"virtualshares", m_bVirtualShares);
   XMLUtils::GetUInt(pRootElement, "packagefoldersize", m_addonPackageFolderSize);
 
+  pElement = pRootElement->FirstChildElement("addons");
+  if (pElement)
+  {
+    XMLUtils::GetBoolean(pElement, "simulatebinarylibasexe", m_addonsSimulateBinaryLibAsExe);
+  }
+
   // EPG
   pElement = pRootElement->FirstChildElement("epg");
   if (pElement)
@@ -1229,6 +1237,23 @@ void CAdvancedSettings::ParseSettingsFile(const std::string &file)
     XMLUtils::GetString(pDatabase, "capath", m_databaseEpg.capath);
     XMLUtils::GetString(pDatabase, "ciphers", m_databaseEpg.ciphers);
     XMLUtils::GetBoolean(pDatabase, "compression", m_databaseEpg.compression);
+  }
+
+  pDatabase = pRootElement->FirstChildElement("webdatabase");
+  if (pDatabase)
+  {
+    XMLUtils::GetString(pDatabase, "type", m_databaseWeb.type);
+    XMLUtils::GetString(pDatabase, "host", m_databaseWeb.host);
+    XMLUtils::GetString(pDatabase, "port", m_databaseWeb.port);
+    XMLUtils::GetString(pDatabase, "user", m_databaseWeb.user);
+    XMLUtils::GetString(pDatabase, "pass", m_databaseWeb.pass);
+    XMLUtils::GetString(pDatabase, "name", m_databaseWeb.name);
+    XMLUtils::GetString(pDatabase, "key", m_databaseWeb.key);
+    XMLUtils::GetString(pDatabase, "cert", m_databaseWeb.cert);
+    XMLUtils::GetString(pDatabase, "ca", m_databaseWeb.ca);
+    XMLUtils::GetString(pDatabase, "capath", m_databaseWeb.capath);
+    XMLUtils::GetString(pDatabase, "ciphers", m_databaseWeb.ciphers);
+    XMLUtils::GetBoolean(pDatabase, "compression", m_databaseWeb.compression);
   }
 
   pElement = pRootElement->FirstChildElement("enablemultimediakeys");

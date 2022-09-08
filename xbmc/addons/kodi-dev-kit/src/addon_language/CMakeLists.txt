@@ -1,0 +1,48 @@
+cmake_minimum_required(VERSION 3.12)
+project(kodi_addon_language)
+
+option(BUILDSWIG "Build swig modules." ON)
+option(BUILDSWIGPYTHON3 "Build swig python 3 modules." ON)
+option(BUILDSWIGPYTHON4 "Build swig python 4 modules." ON)
+option(BUILDSWIGNODE "Build swig node modules." ON)
+option(BUILDSWIGJAVA "Build Java API." ON)
+option(BUILDSWIGLUA "Build Lua API." ON)
+
+if(NOT BUILDSWIG)
+  set(BUILDSWIGPYTHON3 OFF)
+  set(BUILDSWIGPYTHON4 OFF)
+  set(BUILDSWIGNODE OFF)
+  set(BUILDSWIGJAVA OFF)
+  set(BUILDSWIGLUA OFF)
+endif()
+
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${PROJECT_SOURCE_DIR}/../../cmake)
+
+include_directories(${PROJECT_SOURCE_DIR}/src
+                    ${PROJECT_SOURCE_DIR}/../../include/kodi)
+
+if(BUILDSWIG)
+  cmake_policy(SET CMP0078 NEW)
+  cmake_policy(SET CMP0086 NEW)
+  find_package(SWIG REQUIRED)
+  include("${SWIG_USE_FILE}")
+
+  if(SWIG_FOUND)
+    add_definitions(-DSWIG)
+    SET(CMAKE_SWIG_FLAGS -c++)
+
+    set_source_files_properties(kodidevkit.i PROPERTIES SWIG_FLAGS "-I${CMAKE_BINARY_DIR}/swig")
+    if(BUILDSWIGPYTHON)
+      add_subdirectory(swig/python)
+    endif()
+    if(BUILDSWIGJAVA)
+      add_subdirectory(swig/java)
+    endif()
+    if(BUILDSWIGLUA)
+      add_subdirectory(swig/lua)
+    endif()
+    if(BUILDSWIGNODE)
+      add_subdirectory(swig/javascript)
+    endif()
+  endif()
+endif()

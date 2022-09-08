@@ -14,11 +14,13 @@
 #include "addons/Addon.h"
 #include "addons/AddonInstaller.h"
 #include "addons/AddonManager.h"
-#include "addons/BinaryAddonCache.h"
 #include "cores/RetroPlayer/savestates/ISavestate.h"
 #include "cores/RetroPlayer/savestates/SavestateDatabase.h"
 #include "filesystem/SpecialProtocol.h"
+#include "games/GameServices.h"
 #include "games/addons/GameClient.h"
+#include "games/addons/GameClientController.h"
+#include "games/addons/GameClientInfo.h"
 #include "games/dialogs/GUIDialogSelectGameClient.h"
 #include "games/dialogs/GUIDialogSelectSavestate.h"
 #include "games/tags/GameInfoTag.h"
@@ -58,8 +60,8 @@ bool CGameUtils::FillInGameClient(CFileItem& item, std::string& savestatePath)
       else
       {
         // No game client specified, need to ask the user
-        GameClientVector candidates;
-        GameClientVector installable;
+        GameClientInfoVector candidates;
+        GameClientInfoVector installable;
         bool bHasVfsGameClient;
         GetGameClients(item, candidates, installable, bHasVfsGameClient);
 
@@ -112,8 +114,8 @@ bool CGameUtils::FillInGameClient(CFileItem& item, std::string& savestatePath)
 }
 
 void CGameUtils::GetGameClients(const CFileItem& file,
-                                GameClientVector& candidates,
-                                GameClientVector& installable,
+                                GameClientInfoVector& candidates,
+                                GameClientInfoVector& installable,
                                 bool& bHasVfsGameClient)
 {
   using namespace ADDON;
@@ -123,26 +125,16 @@ void CGameUtils::GetGameClients(const CFileItem& file,
   // Try to resolve path to a local file, as not all game clients support VFS
   CURL translatedUrl(CSpecialProtocol::TranslatePath(file.GetPath()));
 
-  // Get local candidates
-  VECADDONS localAddons;
-  CBinaryAddonCache& addonCache = CServiceBroker::GetBinaryAddonCache();
-  addonCache.GetAddons(localAddons, ADDON_GAMEDLL);
-
-  bool bVfs = false;
-  GetGameClients(localAddons, translatedUrl, candidates, bVfs);
-  bHasVfsGameClient |= bVfs;
-
-  // Get remote candidates
-  VECADDONS remoteAddons;
-  if (CServiceBroker::GetAddonMgr().GetInstallableAddons(remoteAddons, ADDON_GAMEDLL))
-  {
-    GetGameClients(remoteAddons, translatedUrl, installable, bVfs);
-    bHasVfsGameClient |= bVfs;
-  }
+  // Get local and remote candidates
+  GameClientInfoVector gameClients;
+  if (CServiceBroker::GetGameServices().GameClientController().GetAvailableGameClients(gameClients, GameInfoSelection::INSTALLED))
+    GetGameClients(gameClients, translatedUrl, candidates, bHasVfsGameClient);
+  if (CServiceBroker::GetGameServices().GameClientController().GetAvailableGameClients(gameClients, GameInfoSelection::INSTALLABLE))
+    GetGameClients(gameClients, translatedUrl, installable, bHasVfsGameClient);
 
   // Sort by name
   //! @todo Move to presentation code
-  auto SortByName = [](const GameClientPtr& lhs, const GameClientPtr& rhs) {
+  auto SortByName = [](const GameClientInfoPtr& lhs, const GameClientInfoPtr& rhs) {
     std::string lhsName = lhs->Name();
     std::string rhsName = rhs->Name();
 
@@ -156,9 +148,9 @@ void CGameUtils::GetGameClients(const CFileItem& file,
   std::sort(installable.begin(), installable.end(), SortByName);
 }
 
-void CGameUtils::GetGameClients(const ADDON::VECADDONS& addons,
+void CGameUtils::GetGameClients(const GameClientInfoVector& gameClients,
                                 const CURL& translatedUrl,
-                                GameClientVector& candidates,
+                                GameClientInfoVector& candidates,
                                 bool& bHasVfsGameClient)
 {
   bHasVfsGameClient = false;
@@ -168,22 +160,20 @@ void CGameUtils::GetGameClients(const ADDON::VECADDONS& addons,
   const bool bIsLocalFile =
       (translatedUrl.GetProtocol() == "file" || translatedUrl.GetProtocol().empty());
 
-  for (auto& addon : addons)
+  for (auto& client : gameClients)
   {
-    GameClientPtr gameClient = std::static_pointer_cast<CGameClient>(addon);
-
     // Filter by extension
-    if (!gameClient->IsExtensionValid(extension))
+    if (!client->IsExtensionValid(extension))
       continue;
 
     // Filter by VFS
-    if (!bIsLocalFile && !gameClient->SupportsVFS())
+    if (!bIsLocalFile && !client->SupportsVFS())
     {
       bHasVfsGameClient = true;
       continue;
     }
 
-    candidates.push_back(gameClient);
+    candidates.emplace_back(client);
   }
 }
 
@@ -206,24 +196,12 @@ bool CGameUtils::HasGameExtension(const std::string& path)
   StringUtils::ToLower(extension);
 
   // Look for a game client that supports this extension
-  VECADDONS gameClients;
-  CBinaryAddonCache& addonCache = CServiceBroker::GetBinaryAddonCache();
-  addonCache.GetInstalledAddons(gameClients, ADDON_GAMEDLL);
-  for (auto& gameClient : gameClients)
-  {
-    GameClientPtr gc(std::static_pointer_cast<CGameClient>(gameClient));
-    if (gc->IsExtensionValid(extension))
-      return true;
-  }
-
-  // Check remote add-ons
-  gameClients.clear();
-  if (CServiceBroker::GetAddonMgr().GetInstallableAddons(gameClients, ADDON_GAMEDLL))
+  GameClientInfoVector gameClients;
+  if (CServiceBroker::GetGameServices().GameClientController().GetAvailableGameClients(gameClients, GameInfoSelection::ALL))
   {
     for (auto& gameClient : gameClients)
     {
-      GameClientPtr gc(std::static_pointer_cast<CGameClient>(gameClient));
-      if (gc->IsExtensionValid(extension))
+      if (gameClient->IsExtensionValid(extension))
         return true;
     }
   }
@@ -237,23 +215,12 @@ std::set<std::string> CGameUtils::GetGameExtensions()
 
   std::set<std::string> extensions;
 
-  VECADDONS gameClients;
-  CBinaryAddonCache& addonCache = CServiceBroker::GetBinaryAddonCache();
-  addonCache.GetAddons(gameClients, ADDON_GAMEDLL);
-  for (auto& gameClient : gameClients)
-  {
-    GameClientPtr gc(std::static_pointer_cast<CGameClient>(gameClient));
-    extensions.insert(gc->GetExtensions().begin(), gc->GetExtensions().end());
-  }
-
-  // Check remote add-ons
-  gameClients.clear();
-  if (CServiceBroker::GetAddonMgr().GetInstallableAddons(gameClients, ADDON_GAMEDLL))
+  GameClientInfoVector gameClients;
+  if (CServiceBroker::GetGameServices().GameClientController().GetAvailableGameClients(gameClients, GameInfoSelection::ALL))
   {
     for (auto& gameClient : gameClients)
     {
-      GameClientPtr gc(std::static_pointer_cast<CGameClient>(gameClient));
-      extensions.insert(gc->GetExtensions().begin(), gc->GetExtensions().end());
+      extensions.insert(gameClient->GetExtensions().begin(), gameClient->GetExtensions().end());
     }
   }
 
@@ -268,7 +235,10 @@ bool CGameUtils::IsStandaloneGame(const ADDON::AddonPtr& addon)
   {
     case ADDON_GAMEDLL:
     {
-      return std::static_pointer_cast<GAME::CGameClient>(addon)->SupportsStandalone();
+      auto client = CServiceBroker::GetGameServices().GameClientController().GetGameClient(addon->ID());
+      if (client)
+        return client->SupportsStandalone();
+      return false;
     }
     case ADDON_SCRIPT:
     {

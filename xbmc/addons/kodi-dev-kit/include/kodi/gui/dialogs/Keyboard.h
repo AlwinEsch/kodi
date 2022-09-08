@@ -13,6 +13,8 @@
 
 #ifdef __cplusplus
 
+#include <cstring>
+
 namespace kodi
 {
 namespace gui
@@ -77,17 +79,13 @@ inline bool ATTR_DLL_LOCAL ShowAndGetInput(std::string& text,
                                            bool hiddenInput = false,
                                            unsigned int autoCloseMs = 0)
 {
-  using namespace ::kodi::addon;
   char* retString = nullptr;
-  bool ret =
-      CPrivateBase::m_interface->toKodi->kodi_gui->dialogKeyboard->show_and_get_input_with_head(
-          CPrivateBase::m_interface->toKodi->kodiBase, text.c_str(), &retString, heading.c_str(),
-          allowEmptyResult, hiddenInput, autoCloseMs);
+  bool ret = kodi::dl::api.kodi_gui_dialogs_keyboard_show_and_get_input_with_head(
+      text.c_str(), &retString, heading.c_str(), allowEmptyResult, hiddenInput, autoCloseMs);
   if (retString != nullptr)
   {
     text = retString;
-    CPrivateBase::m_interface->toKodi->free_string(CPrivateBase::m_interface->toKodi->kodiBase,
-                                                   retString);
+    free(retString);
   }
   return ret;
 }
@@ -111,16 +109,13 @@ inline bool ATTR_DLL_LOCAL ShowAndGetInput(std::string& text,
                                            bool allowEmptyResult,
                                            unsigned int autoCloseMs = 0)
 {
-  using namespace ::kodi::addon;
   char* retString = nullptr;
-  bool ret = CPrivateBase::m_interface->toKodi->kodi_gui->dialogKeyboard->show_and_get_input(
-      CPrivateBase::m_interface->toKodi->kodiBase, text.c_str(), &retString, allowEmptyResult,
-      autoCloseMs);
+  bool ret = kodi::dl::api.kodi_gui_dialogs_keyboard_show_and_get_input(
+      text.c_str(), &retString, allowEmptyResult, autoCloseMs);
   if (retString != nullptr)
   {
     text = retString;
-    CPrivateBase::m_interface->toKodi->free_string(CPrivateBase::m_interface->toKodi->kodiBase,
-                                                   retString);
+    free(retString);
   }
   return ret;
 }
@@ -145,17 +140,14 @@ inline bool ATTR_DLL_LOCAL ShowAndGetNewPassword(std::string& newPassword,
                                                  bool allowEmptyResult,
                                                  unsigned int autoCloseMs = 0)
 {
-  using namespace ::kodi::addon;
+  ;
   char* retString = nullptr;
-  bool ret = CPrivateBase::m_interface->toKodi->kodi_gui->dialogKeyboard
-                 ->show_and_get_new_password_with_head(
-                     CPrivateBase::m_interface->toKodi->kodiBase, newPassword.c_str(), &retString,
-                     heading.c_str(), allowEmptyResult, autoCloseMs);
+  bool ret = kodi::dl::api.kodi_gui_dialogs_keyboard_show_and_get_new_password_with_head(
+      newPassword.c_str(), &retString, heading.c_str(), allowEmptyResult, autoCloseMs);
   if (retString != nullptr)
   {
     newPassword = retString;
-    CPrivateBase::m_interface->toKodi->free_string(CPrivateBase::m_interface->toKodi->kodiBase,
-                                                   retString);
+    free(retString);
   }
   return ret;
 }
@@ -176,15 +168,13 @@ inline bool ATTR_DLL_LOCAL ShowAndGetNewPassword(std::string& newPassword,
 inline bool ATTR_DLL_LOCAL ShowAndGetNewPassword(std::string& newPassword,
                                                  unsigned int autoCloseMs = 0)
 {
-  using namespace ::kodi::addon;
   char* retString = nullptr;
-  bool ret = CPrivateBase::m_interface->toKodi->kodi_gui->dialogKeyboard->show_and_get_new_password(
-      CPrivateBase::m_interface->toKodi->kodiBase, newPassword.c_str(), &retString, autoCloseMs);
+  bool ret = kodi::dl::api.kodi_gui_dialogs_keyboard_show_and_get_new_password(
+      newPassword.c_str(), &retString, autoCloseMs);
   if (retString != nullptr)
   {
     newPassword = retString;
-    CPrivateBase::m_interface->toKodi->free_string(CPrivateBase::m_interface->toKodi->kodiBase,
-                                                   retString);
+    free(retString);
   }
   return ret;
 }
@@ -251,17 +241,13 @@ inline bool ATTR_DLL_LOCAL ShowAndVerifyNewPassword(std::string& newPassword,
                                                     bool allowEmptyResult,
                                                     unsigned int autoCloseMs = 0)
 {
-  using namespace ::kodi::addon;
   char* retString = nullptr;
-  bool ret = CPrivateBase::m_interface->toKodi->kodi_gui->dialogKeyboard
-                 ->show_and_verify_new_password_with_head(
-                     CPrivateBase::m_interface->toKodi->kodiBase, &retString, heading.c_str(),
-                     allowEmptyResult, autoCloseMs);
+  bool ret = kodi::dl::api.kodi_gui_dialogs_keyboard_show_and_verify_new_password_with_head(
+      &retString, heading.c_str(), allowEmptyResult, autoCloseMs);
   if (retString != nullptr)
   {
     newPassword = retString;
-    CPrivateBase::m_interface->toKodi->free_string(CPrivateBase::m_interface->toKodi->kodiBase,
-                                                   retString);
+    free(retString);
   }
   return ret;
 }
@@ -282,16 +268,13 @@ inline bool ATTR_DLL_LOCAL ShowAndVerifyNewPassword(std::string& newPassword,
 inline bool ATTR_DLL_LOCAL ShowAndVerifyNewPassword(std::string& newPassword,
                                                     unsigned int autoCloseMs = 0)
 {
-  using namespace ::kodi::addon;
   char* retString = nullptr;
   bool ret =
-      CPrivateBase::m_interface->toKodi->kodi_gui->dialogKeyboard->show_and_verify_new_password(
-          CPrivateBase::m_interface->toKodi->kodiBase, &retString, autoCloseMs);
+      kodi::dl::api.kodi_gui_dialogs_keyboard_show_and_verify_new_password(&retString, autoCloseMs);
   if (retString != nullptr)
   {
     newPassword = retString;
-    CPrivateBase::m_interface->toKodi->free_string(CPrivateBase::m_interface->toKodi->kodiBase,
-                                                   retString);
+    free(retString);
   }
   return ret;
 }
@@ -316,16 +299,13 @@ inline int ATTR_DLL_LOCAL ShowAndVerifyPassword(std::string& password,
                                                 int retries,
                                                 unsigned int autoCloseMs = 0)
 {
-  using namespace ::kodi::addon;
   char* retString = nullptr;
-  int ret = CPrivateBase::m_interface->toKodi->kodi_gui->dialogKeyboard->show_and_verify_password(
-      CPrivateBase::m_interface->toKodi->kodiBase, password.c_str(), &retString, heading.c_str(),
-      retries, autoCloseMs);
+  int ret = kodi::dl::api.kodi_gui_dialogs_keyboard_show_and_verify_password(
+      password.c_str(), &retString, heading.c_str(), retries, autoCloseMs);
   if (retString != nullptr)
   {
     password = retString;
-    CPrivateBase::m_interface->toKodi->free_string(CPrivateBase::m_interface->toKodi->kodiBase,
-                                                   retString);
+    free(retString);
   }
   return ret;
 }
@@ -350,16 +330,13 @@ inline bool ATTR_DLL_LOCAL ShowAndGetFilter(std::string& text,
                                             bool searching,
                                             unsigned int autoCloseMs = 0)
 {
-  using namespace ::kodi::addon;
   char* retString = nullptr;
-  bool ret = CPrivateBase::m_interface->toKodi->kodi_gui->dialogKeyboard->show_and_get_filter(
-      CPrivateBase::m_interface->toKodi->kodiBase, text.c_str(), &retString, searching,
-      autoCloseMs);
+  bool ret = kodi::dl::api.kodi_gui_dialogs_keyboard_show_and_get_filter(text.c_str(), &retString,
+                                                                         searching, autoCloseMs);
   if (retString != nullptr)
   {
     text = retString;
-    CPrivateBase::m_interface->toKodi->free_string(CPrivateBase::m_interface->toKodi->kodiBase,
-                                                   retString);
+    free(retString);
   }
   return ret;
 }
@@ -377,9 +354,8 @@ inline bool ATTR_DLL_LOCAL ShowAndGetFilter(std::string& text,
 inline bool ATTR_DLL_LOCAL SendTextToActiveKeyboard(const std::string& text,
                                                     bool closeKeyboard = false)
 {
-  using namespace ::kodi::addon;
-  return CPrivateBase::m_interface->toKodi->kodi_gui->dialogKeyboard->send_text_to_active_keyboard(
-      CPrivateBase::m_interface->toKodi->kodiBase, text.c_str(), closeKeyboard);
+  return kodi::dl::api.kodi_gui_dialogs_keyboard_send_text_to_active_keyboard(text.c_str(),
+                                                                              closeKeyboard);
 }
 //------------------------------------------------------------------------------
 
@@ -391,9 +367,7 @@ inline bool ATTR_DLL_LOCAL SendTextToActiveKeyboard(const std::string& text,
 ///
 inline bool ATTR_DLL_LOCAL IsKeyboardActivated()
 {
-  using namespace ::kodi::addon;
-  return CPrivateBase::m_interface->toKodi->kodi_gui->dialogKeyboard->is_keyboard_activated(
-      CPrivateBase::m_interface->toKodi->kodiBase);
+  return kodi::dl::api.kodi_gui_dialogs_keyboard_is_keyboard_activated();
 }
 //------------------------------------------------------------------------------
 }; // namespace Keyboard

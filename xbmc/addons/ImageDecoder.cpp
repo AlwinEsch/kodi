@@ -7,6 +7,10 @@
 
 #include "ImageDecoder.h"
 
+// Devkit API interface
+#include "interface/api/addon-instance/imagedecoder.h"
+
+// Kodi
 #include "guilib/TextureFormats.h"
 #include "pictures/PictureInfoTag.h"
 
@@ -25,14 +29,8 @@ constexpr std::array<std::tuple<unsigned int, ADDON_IMG_FMT, size_t>, 4> KodiToA
 } /* namespace */
 
 CImageDecoder::CImageDecoder(const AddonInfoPtr& addonInfo, const std::string& mimetype)
-  : IAddonInstanceHandler(ADDON_INSTANCE_IMAGEDECODER, addonInfo), m_mimetype(mimetype)
+  : IInstanceHandler(this, ADDON_INSTANCE_IMAGEDECODER, addonInfo), m_mimetype(mimetype)
 {
-  // Create all interface parts independent to make API changes easier if
-  // something is added
-  m_ifc.imagedecoder = new AddonInstance_ImageDecoder;
-  m_ifc.imagedecoder->toAddon = new KodiToAddonFuncTable_ImageDecoder();
-  m_ifc.imagedecoder->toKodi = new AddonToKodiFuncTable_ImageDecoder();
-
   if (CreateInstance() != ADDON_STATUS_OK)
     return;
 
@@ -42,28 +40,26 @@ CImageDecoder::CImageDecoder(const AddonInfoPtr& addonInfo, const std::string& m
 CImageDecoder::~CImageDecoder()
 {
   DestroyInstance();
-
-  delete m_ifc.imagedecoder->toKodi;
-  delete m_ifc.imagedecoder->toAddon;
-  delete m_ifc.imagedecoder;
 }
 
 bool CImageDecoder::SupportsFile(const std::string& filename)
 {
   // Create in case not available, possible as this done by IAddonSupportCheck
-  if (!m_created || !m_ifc.imagedecoder->toAddon->supports_file)
+  if (!m_created)
     return false;
 
-  return m_ifc.imagedecoder->toAddon->supports_file(m_ifc.hdl, filename.c_str());
+  return m_ifc->kodi_addoninstance_imagedecoder_h->kodi_addon_imagedecoder_supports_file_v1(
+      m_instance, filename.c_str());
 }
 
 bool CImageDecoder::LoadInfoTag(const std::string& fileName, CPictureInfoTag* tag)
 {
-  if (!m_created || !m_ifc.imagedecoder->toAddon->read_tag || !tag)
+  if (!m_created || !tag)
     return false;
 
   KODI_ADDON_IMAGEDECODER_INFO_TAG ifcTag = {};
-  bool ret = m_ifc.imagedecoder->toAddon->read_tag(m_ifc.hdl, fileName.c_str(), &ifcTag);
+  bool ret = m_ifc->kodi_addoninstance_imagedecoder_h->kodi_addon_imagedecoder_read_tag_v1(
+      m_instance, fileName.c_str(), &ifcTag);
   if (ret)
   {
     /*!
@@ -178,13 +174,14 @@ bool CImageDecoder::LoadImageFromMemory(unsigned char* buffer,
                                         unsigned int width,
                                         unsigned int height)
 {
-  if (!m_created || !m_ifc.imagedecoder->toAddon->load_image_from_memory)
+  if (!m_created)
     return false;
 
   m_width = width;
   m_height = height;
-  return m_ifc.imagedecoder->toAddon->load_image_from_memory(m_ifc.hdl, m_mimetype.c_str(), buffer,
-                                                             bufSize, &m_width, &m_height);
+  return m_ifc->kodi_addoninstance_imagedecoder_h
+      ->kodi_addon_imagedecoder_load_image_from_memory_v1(m_instance, m_mimetype.c_str(), buffer,
+                                                          bufSize, &m_width, &m_height);
 }
 
 bool CImageDecoder::Decode(unsigned char* const pixels,
@@ -193,7 +190,7 @@ bool CImageDecoder::Decode(unsigned char* const pixels,
                            unsigned int pitch,
                            unsigned int format)
 {
-  if (!m_created || !m_ifc.imagedecoder->toAddon->decode)
+  if (!m_created)
     return false;
 
   const auto it = std::find_if(KodiToAddonFormat.begin(), KodiToAddonFormat.end(),
@@ -203,8 +200,8 @@ bool CImageDecoder::Decode(unsigned char* const pixels,
 
   const ADDON_IMG_FMT addonFmt = std::get<1>(*it);
   const size_t size = width * height * std::get<2>(*it);
-  const bool result =
-      m_ifc.imagedecoder->toAddon->decode(m_ifc.hdl, pixels, size, width, height, pitch, addonFmt);
+  const bool result = m_ifc->kodi_addoninstance_imagedecoder_h->kodi_addon_imagedecoder_decode_v1(
+      m_instance, pixels, size, width, height, pitch, addonFmt);
   m_width = width;
   m_height = height;
 

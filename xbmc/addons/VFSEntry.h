@@ -7,11 +7,13 @@
 
 #pragma once
 
-#include "addons/binary-addons/AddonInstanceHandler.h"
-#include "addons/kodi-dev-kit/include/kodi/addon-instance/VFS.h"
+#include "FileItem.h"
+#include "addons/AddonEvents.h"
+#include "addons/kodi-dev-kit/include/kodi/c-api/addon-instance/vfs.h"
 #include "filesystem/IDirectory.h"
 #include "filesystem/IFile.h"
 #include "filesystem/IFileDirectory.h"
+#include "interface/InstanceHandler.h"
 
 #include <utility>
 
@@ -21,7 +23,7 @@ namespace ADDON
   class CVFSEntry;
   typedef std::shared_ptr<CVFSEntry> VFSEntryPtr;
 
-  class CVFSAddonCache : public CAddonDllInformer
+  class CVFSAddonCache //: public CAddonDllInformer
   {
   public:
     virtual ~CVFSAddonCache();
@@ -33,14 +35,14 @@ namespace ADDON
   protected:
     void Update(const std::string& id);
     void OnEvent(const AddonEvent& event);
-    bool IsInUse(const std::string& id) override;
+    bool IsInUse(const std::string& id); // override;
 
     CCriticalSection m_critSection;
     std::vector<VFSEntryPtr> m_addonsInstances;
   };
 
   //! \brief A virtual filesystem entry add-on.
-  class CVFSEntry : public IAddonInstanceHandler
+  class CVFSEntry : public KODI::ADDONS::INTERFACE::IInstanceHandler
   {
   public:
     //! \brief A structure encapsulating properties of supplied protocol.
@@ -82,7 +84,7 @@ namespace ADDON
     bool Delete(const CURL& url);
     bool Rename(const CURL& url, const CURL& url2);
 
-    bool GetDirectory(const CURL& url, CFileItemList& items, void* ctx);
+    bool GetDirectory(const CURL& url, CFileItemList& items, KODI_CTX_CB_HDL ctx);
     bool DirectoryExists(const CURL& url);
     bool RemoveDirectory(const CURL& url);
     bool CreateDirectory(const CURL& url);
@@ -98,6 +100,26 @@ namespace ADDON
     bool HasFileDirectories() const { return m_filedirectories; }
     const std::string& GetZeroconfType() const { return m_zeroconf; }
     const ProtocolInfo& GetProtocolInfo() const { return m_protocolInfo; }
+
+    //! \brief Helper for CVFSEntryIDirectoryWrapper doing a keyboard callback.
+    bool DoGetKeyboardInput(KODI_CTX_CB_HDL context,
+                            const char* heading,
+                            char** input,
+                            bool hidden_input);
+    /*---AUTO_GEN_PARSE<CB:kodi_addon_vfs_get_dir_cb__get_keyboard_input>---*/
+
+    //! \brief Static helper for displaying an error dialog.
+    void DoSetErrorDialog(KODI_CTX_CB_HDL ctx,
+                          const char* heading,
+                          const char* line1,
+                          const char* line2,
+                          const char* line3);
+    /*---AUTO_GEN_PARSE<CB:kodi_addon_vfs_get_dir_cb__set_error_dialog>---*/
+
+    //! \brief Static helper for requiring authentication.
+    void DoRequireAuthentication(KODI_CTX_CB_HDL ctx, const char* url);
+    /*---AUTO_GEN_PARSE<CB:kodi_addon_vfs_get_dir_cb__require_authentication>---*/
+
   protected:
     std::string m_protocols;  //!< Protocols for VFS entry.
     std::string m_extensions; //!< Extensions for VFS entry.
@@ -223,24 +245,13 @@ namespace ADDON
     //! \param[in] url URL to delete.
     bool Create(const CURL& url) override;
 
-    //! \brief Static helper for doing a keyboard callback.
-    static bool DoGetKeyboardInput(void* context, const char* heading,
-                                   char** input, bool hidden_input);
 
     //! \brief Get keyboard input.
     bool GetKeyboardInput2(const char* heading, char** input, bool hidden_input);
 
-    //! \brief Static helper for displaying an error dialog.
-    static void DoSetErrorDialog(void* ctx, const char* heading,
-                                 const char* line1, const char* line2,
-                                 const char* line3);
-
     //! \brief Show an error dialog.
     void SetErrorDialog2(const char* heading, const char* line1,
                          const char* line2, const char* line3);
-
-    //! \brief Static helper for requiring authentication.
-    static void DoRequireAuthentication(void* ctx, const char* url);
 
     //! \brief Require authentication.
     void RequireAuthentication2(const CURL& url);

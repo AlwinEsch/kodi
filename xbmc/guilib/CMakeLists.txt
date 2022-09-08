@@ -56,6 +56,7 @@ set(SOURCES DDSImage.cpp
             GUIToggleButtonControl.cpp
             GUIVideoControl.cpp
             GUIVisualisationControl.cpp
+            GUIWebAddonControl.cpp
             GUIWindow.cpp
             GUIWindowManager.cpp
             GUIWrappingListContainer.cpp
@@ -133,6 +134,7 @@ set(HEADERS DDSImage.h
             GUIToggleButtonControl.h
             GUIVideoControl.h
             GUIVisualisationControl.h
+            GUIWebAddonControl.h
             GUIWindow.h
             GUIWindowManager.h
             GUIWrappingListContainer.h

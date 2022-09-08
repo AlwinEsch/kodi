@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "addons/kodi-dev-kit/include/kodi/addon-instance/Game.h"
+#include "addons/interface/api/addon-instance/game.h"
 
 #include <string>
 
@@ -41,7 +41,9 @@ public:
    * \param addon The game client implementation.
    * \param dllStruct The emulator or game for which the in-game saves are processed.
    */
-  CGameClientInGameSaves(CGameClient* addon, const AddonInstance_Game* dllStruct);
+  CGameClientInGameSaves(CGameClient* addon,
+                         KODI::ADDONS::INTERFACE::CHdl_kodi_addoninstance_game_h* gameClientIfc,
+                         const KODI_ADDON_GAME_HDL gameClientHdl);
 
   /*!
    * \brief Load in-game data.
@@ -60,7 +62,8 @@ private:
   void Save(GAME_MEMORY memoryType);
 
   const CGameClient* const m_gameClient;
-  const AddonInstance_Game* const m_dllStruct;
+  KODI::ADDONS::INTERFACE::CHdl_kodi_addoninstance_game_h* const m_gameClientIfc;
+  const KODI_ADDON_GAME_HDL m_gameClientHdl;
 };
 } // namespace GAME
 } // namespace KODI

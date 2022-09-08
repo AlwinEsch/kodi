@@ -9,30 +9,43 @@
 #ifndef C_API_GUI_DIALOGS_EXTENDED_PROGRESS_H
 #define C_API_GUI_DIALOGS_EXTENDED_PROGRESS_H
 
-#include "../definitions.h"
+#include "../../addon_base.h"
 
 #ifdef __cplusplus
 extern "C"
 {
 #endif /* __cplusplus */
 
-  typedef struct AddonToKodiFuncTable_kodi_gui_dialogExtendedProgress
-  {
-    KODI_GUI_HANDLE (*new_dialog)(KODI_HANDLE kodiBase, const char* title);
-    void (*delete_dialog)(KODI_HANDLE kodiBase, KODI_GUI_HANDLE handle);
-    char* (*get_title)(KODI_HANDLE kodiBase, KODI_GUI_HANDLE handle);
-    void (*set_title)(KODI_HANDLE kodiBase, KODI_GUI_HANDLE handle, const char* title);
-    char* (*get_text)(KODI_HANDLE kodiBase, KODI_GUI_HANDLE handle);
-    void (*set_text)(KODI_HANDLE kodiBase, KODI_GUI_HANDLE handle, const char* text);
-    bool (*is_finished)(KODI_HANDLE kodiBase, KODI_GUI_HANDLE handle);
-    void (*mark_finished)(KODI_HANDLE kodiBase, KODI_GUI_HANDLE handle);
-    float (*get_percentage)(KODI_HANDLE kodiBase, KODI_GUI_HANDLE handle);
-    void (*set_percentage)(KODI_HANDLE kodiBase, KODI_GUI_HANDLE handle, float percentage);
-    void (*set_progress)(KODI_HANDLE kodiBase,
-                         KODI_GUI_HANDLE handle,
-                         int currentItem,
-                         int itemCount);
-  } AddonToKodiFuncTable_kodi_gui_dialogExtendedProgress;
+  typedef void* KODI_GUI_HANDLE;
+
+  ATTR_DLL_EXPORT KODI_GUI_HANDLE kodi_gui_dialogs_extended_progress_new_dialog(const char* title)
+      __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT void kodi_gui_dialogs_extended_progress_delete_dialog(KODI_GUI_HANDLE handle)
+      __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT char* kodi_gui_dialogs_extended_progress_get_title(KODI_GUI_HANDLE handle)
+      __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT void kodi_gui_dialogs_extended_progress_set_title(KODI_GUI_HANDLE handle,
+                                                                    const char* title)
+      __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT char* kodi_gui_dialogs_extended_progress_get_text(KODI_GUI_HANDLE handle)
+      __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT void kodi_gui_dialogs_extended_progress_set_text(KODI_GUI_HANDLE handle,
+                                                                   const char* text)
+      __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT bool kodi_gui_dialogs_extended_progress_is_finished(KODI_GUI_HANDLE handle)
+      __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT void kodi_gui_dialogs_extended_progress_mark_finished(KODI_GUI_HANDLE handle)
+      __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT float kodi_gui_dialogs_extended_progress_get_percentage(KODI_GUI_HANDLE handle)
+      __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT void kodi_gui_dialogs_extended_progress_set_percentage(KODI_GUI_HANDLE handle,
+                                                                         float percentage)
+      __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT void kodi_gui_dialogs_extended_progress_set_progress(KODI_GUI_HANDLE handle,
+                                                                       int currentItem,
+                                                                       int itemCount)
+      __INTRODUCED_IN_KODI(1);
+
 
 #ifdef __cplusplus
 } /* extern "C" */

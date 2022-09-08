@@ -13,8 +13,6 @@
 
 #ifdef __cplusplus
 
-#include <stdexcept>
-
 namespace kodi
 {
 namespace addon
@@ -394,13 +392,9 @@ public:
   /// ~~~~~~~~~~~~~
   ///
   explicit CInstanceAudioEncoder(const kodi::addon::IInstanceInfo& instance)
-    : IAddonInstance(instance)
+    : IAddonInstance(instance),
+      m_kodi(instance.GetKodiHdl())
   {
-    if (CPrivateBase::m_interface->globalSingleInstance != nullptr)
-      throw std::logic_error("kodi::addon::CInstanceAudioEncoder: Creation of multiple together "
-                             "with single instance way is not allowed!");
-
-    SetAddonStruct(instance);
   }
   //----------------------------------------------------------------------------
 
@@ -446,7 +440,7 @@ public:
   ///
   ssize_t Write(const uint8_t* data, size_t length)
   {
-    return m_kodi->write(m_kodi->kodiInstance, data, length);
+    return kodi::dl::api.kodi_addon_audioencoder_write(m_kodi, data, length);
   }
   //----------------------------------------------------------------------------
 
@@ -473,18 +467,17 @@ public:
   ///
   ssize_t Seek(ssize_t position, int whence = SEEK_SET)
   {
-    return m_kodi->seek(m_kodi->kodiInstance, position, whence);
+    return kodi::dl::api.kodi_addon_audioencoder_seek(m_kodi, position, whence);
   }
   //----------------------------------------------------------------------------
 
 private:
-  void SetAddonStruct(KODI_ADDON_INSTANCE_STRUCT* instance)
+  void SetAddonStruct(KODI_ADDON_INSTANCE_STRUCT* instance) override
   {
     instance->hdl = this;
-    instance->audioencoder->toAddon->start = ADDON_start;
-    instance->audioencoder->toAddon->encode = ADDON_encode;
-    instance->audioencoder->toAddon->finish = ADDON_finish;
-    m_kodi = instance->audioencoder->toKodi;
+    instance->audioencoder->start = ADDON_start;
+    instance->audioencoder->encode = ADDON_encode;
+    instance->audioencoder->finish = ADDON_finish;
   }
 
   inline static bool ADDON_start(const KODI_ADDON_AUDIOENCODER_HDL hdl,
@@ -505,7 +498,7 @@ private:
     return static_cast<CInstanceAudioEncoder*>(hdl)->Finish();
   }
 
-  AddonToKodiFuncTable_AudioEncoder* m_kodi{nullptr};
+  const KODI_ADDON_INSTANCE_BACKEND_HDL m_kodi;
 };
 
 } /* namespace addon */

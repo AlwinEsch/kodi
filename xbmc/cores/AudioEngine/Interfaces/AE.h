@@ -34,10 +34,16 @@ class IAudioCallback;
 class IAEClockCallback;
 class CAEStreamInfo;
 
-namespace ADDON
+namespace KODI
 {
-struct Interface_AudioEngine;
-}
+namespace ADDONS
+{
+namespace INTERFACE
+{
+class CHdl_kodi_audio_engine_h;
+} // namespace INTERFACE
+} // namespace ADDONS
+} // namespace KODI
 
 /* sound options */
 #define AE_SOUND_OFF 0 /*! disable sounds */
@@ -269,7 +275,7 @@ public:
 private:
   friend class IAEStreamDeleter;
   friend class IAESoundDeleter;
-  friend struct ADDON::Interface_AudioEngine;
+  friend struct KODI::ADDONS::INTERFACE::CHdl_kodi_audio_engine_h;
 
   /*!
    * \brief This method will remove the specified stream from the engine.

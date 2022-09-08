@@ -9,24 +9,21 @@
 #ifndef C_API_GUI_DIALOGS_OK_H
 #define C_API_GUI_DIALOGS_OK_H
 
-#include "../definitions.h"
+#include "../../addon_base.h"
 
 #ifdef __cplusplus
 extern "C"
 {
 #endif /* __cplusplus */
 
-  typedef struct AddonToKodiFuncTable_kodi_gui_dialogOK
-  {
-    void (*show_and_get_input_single_text)(KODI_HANDLE kodiBase,
-                                           const char* heading,
-                                           const char* text);
-    void (*show_and_get_input_line_text)(KODI_HANDLE kodiBase,
-                                         const char* heading,
-                                         const char* line0,
-                                         const char* line1,
-                                         const char* line2);
-  } AddonToKodiFuncTable_kodi_gui_dialogOK;
+  ATTR_DLL_EXPORT void kodi_gui_dialogs_ok_show_and_get_input_single_text(const char* heading,
+                                                                          const char* text)
+      __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT void kodi_gui_dialogs_ok_show_and_get_input_line_text(const char* heading,
+                                                                        const char* line0,
+                                                                        const char* line1,
+                                                                        const char* line2)
+      __INTRODUCED_IN_KODI(1);
 
 #ifdef __cplusplus
 } /* extern "C" */

@@ -17,7 +17,9 @@
 #include "addons/gui/GUIWindowAddonBrowser.h"
 #include "cores/RetroPlayer/guibridge/GUIGameRenderManager.h"
 #include "cores/RetroPlayer/guibridge/GUIGameSettingsHandle.h"
+#include "games/GameServices.h"
 #include "games/addons/GameClient.h"
+#include "games/addons/GameClientController.h"
 #include "games/controllers/dialogs/ControllerInstaller.h"
 #include "games/controllers/dialogs/GUIDialogIgnoreInput.h"
 #include "guilib/GUIButtonControl.h"
@@ -221,11 +223,10 @@ void CGUIControllerWindow::OnInitWindow(void)
     auto gameSettingsHandle = CServiceBroker::GetGameRenderManager().RegisterGameSettingsDialog();
     if (gameSettingsHandle)
     {
-      ADDON::AddonPtr addon;
-      if (CServiceBroker::GetAddonMgr().GetAddon(gameSettingsHandle->GameClientID(), addon,
-                                                 ADDON::ADDON_GAMEDLL,
-                                                 ADDON::OnlyEnabled::CHOICE_YES))
-        gameClient = std::static_pointer_cast<CGameClient>(addon);
+      auto& controller = CServiceBroker::GetGameServices().GameClientController();
+      auto info = controller.GetGameClient(gameSettingsHandle->GameClientID());
+      if (info)
+        gameClient = info->GetActiveGameClient();
     }
   }
   m_gameClient = std::move(gameClient);

@@ -1291,6 +1291,12 @@ const infomap weather[] =        {{ "isfetched",        WEATHER_IS_FETCHED },
 ///     @return **True** if Kodi is running in standalone mode.
 ///     <p>
 ///   }
+///   \table_row3{   <b>`System.IsNoSandbox`</b>,
+///                  \anchor System_IsNoSandbox
+///                  _boolean_,
+///     @return **True** if do not run the installed addons in independent processes.
+///     <p>
+///   }
 ///   \table_row3{   <b>`System.IsFullscreen`</b>,
 ///                  \anchor System_IsFullscreen
 ///                  _boolean_,
@@ -1884,6 +1890,7 @@ const infomap system_labels[] = {
     {"ismaster", SYSTEM_ISMASTER},
     {"isfullscreen", SYSTEM_ISFULLSCREEN},
     {"isstandalone", SYSTEM_ISSTANDALONE},
+    {"isnosandbox", SYSTEM_ISNOSANDBOX},
     {"loggedon", SYSTEM_LOGGEDON},
     {"showexitbutton", SYSTEM_SHOW_EXIT_BUTTON},
     {"canpowerdown", SYSTEM_CAN_POWERDOWN},
@@ -4697,12 +4704,20 @@ const infomap container_str[]  = {{ "property",         CONTAINER_PROPERTY },
 ///     @skinning_v19 **[New Boolean Condition]** \link ListItem_Property_AddonIsUpdate `ListItem.Property(Addon.IsUpdate)`\endlink
 ///     <p>
 ///   }
+///   \table_row3{   <b>`ListItem.Property(Addon.ProgrammingLanguage)`</b>,
+///                  \anchor ListItem_Property_AddonProgrammingLanguage
+///                  _string_,
+///     @return The programming language of the selected add-on.
+///     <p><hr>
+///     @skinning_v19 **[New Infolabel]** \link ListItem_Property_ProgrammingLanguage `ListItem.Property(Addon.ProgrammingLanguage)`\endlink
+///     <p>
+///   }
 ///   \table_row3{   <b>`ListItem.Property(Addon.ValidUpdateOrigin)`</b>,
 ///                  \anchor ListItem_Property_ValidUpdateOrigin
 ///                  _string_,
 ///     @return The origin string of a valid update for the addon. Empty string if there is no valid update available.
 ///     <p><hr>
-///     @skinning_v19 **[New Infolabel]** \link ListItem_Property_ValidUpdateOrigin `ListItem.Property(Addon.ValidUpdateOrigin)`\endlink
+///     @skinning_v20 **[New Infolabel]** \link ListItem_Property_ValidUpdateOrigin `ListItem.Property(Addon.ValidUpdateOrigin)`\endlink
 ///     <p>
 ///   }
 ///   \table_row3{   <b>`ListItem.Property(Addon.ValidUpdateVersion)`</b>,
@@ -7517,6 +7532,96 @@ const infomap playlist[] =       {{ "length",           PLAYLIST_LENGTH },
                                   { "israndom",         PLAYLIST_ISRANDOM },
                                   { "isrepeat",         PLAYLIST_ISREPEAT },
                                   { "isrepeatone",      PLAYLIST_ISREPEATONE }};
+
+// clang-format off
+/// \page modules__infolabels_boolean_conditions
+/// \subsection modules__infolabels_boolean_conditions_Web Web
+/// \table_start
+///   \table_h3{ Labels, Type, Description }
+///   \table_row3{   <b>`Web.HasAddons`</b>,
+///                  \anchor Web_HasAddons
+///                  _integer_,
+///     @return **True** when the system is have a internet related addon present.
+///     <p>
+///   }
+///   \table_row3{   <b>`Web.HasBrowser`</b>,
+///                  \anchor Web_HasBrowser
+///                  _integer_,
+///     @return **True** when the system is have a web browser addon present.
+///     <p>
+///   }
+/// \table_end
+///
+/// -----------------------------------------------------------------------------
+const infomap web[] =            {{ "hasaddons",        WEB_HAS_ADDONS },
+                                  { "hasbrowser",       WEB_HAS_BROWSER }};
+// clang-format on
+
+// clang-format off
+/// \page modules__infolabels_boolean_conditions
+/// \subsection modules__infolabels_boolean_conditions_WebControl Web GUI control
+/// \table_start
+///   \table_h3{ Labels, Type, Description }
+///   \table_row3{   <b>`WebControl.OpenedAddress`</b>,
+///                  \anchor WebControl_OpenedAddress
+///                  _integer_,
+///     @return The currently on shown web control opened website address.
+///     <p>
+///   }
+///   \table_row3{   <b>`WebControl.OpenedTitle`</b>,
+///                  \anchor WebControl_OpenedTitle
+///                  _integer_,
+///     @return The currently on shown web control opened website title.
+///     <p>
+///   }
+///   \table_row3{   <b>`WebControl.IconURL`</b>,
+///                  \anchor WebControl_IconURL
+///                  _integer_,
+///     @return The icon URL of currently opened website.
+///     <p>
+///   }
+///   \table_row3{   <b>`WebControl.IsLoading`</b>,
+///                  \anchor WebControl_IsLoading
+///                  _integer_,
+///     @return **True** when the focused web control is loading.
+///     <p>
+///   }
+///   \table_row3{   <b>`WebControl.CanGoBack`</b>,
+///                  \anchor WebControl_CanGoBack
+///                  _integer_,
+///     @return **True** when the focused web site allow to go back.
+///     <p>
+///   }
+///   \table_row3{   <b>`WebControl.CanGoForward`</b>,
+///                  \anchor WebControl_CanGoForward
+///                  _integer_,
+///     @return **True** when the focused web site allow to go forward.
+///     <p>
+///   }
+///   \table_row3{   <b>`WebControl.ToolTip`</b>,
+///                  \anchor WebControl_ToolTip
+///                  _integer_,
+///     @return The website tooltip of currently focused website content.
+///     <p>
+///   }
+///   \table_row3{   <b>`WebControl.StatusMessage`</b>,
+///                  \anchor WebControl_StatusMessage
+///                  _integer_,
+///     @return The website status message of currently opened website.
+///     <p>
+///   }
+/// \table_end
+///
+/// -----------------------------------------------------------------------------
+const infomap webcontrol[] =     {{ "openedaddress",    WEB_CONTROL_OPENED_ADDRESS },
+                                  { "openedtitle",      WEB_CONTROL_OPENED_TITLE },
+                                  { "iconurl",          WEB_CONTROL_ICONURL },
+                                  { "isloading",        WEB_CONTROL_IS_LOADING },
+                                  { "cangoback",        WEB_CONTROL_CAN_GO_BACK },
+                                  { "cangoforward",     WEB_CONTROL_CAN_GO_FORWARD },
+                                  { "tooltip",          WEB_CONTROL_TOOLTIP },
+                                  { "statusmessage",    WEB_CONTROL_STATUS_MESSAGE }};
+// clang-format on
 
 /// \page modules__infolabels_boolean_conditions
 /// \subsection modules__infolabels_boolean_conditions_Pvr Pvr
@@ -10396,6 +10501,22 @@ int CGUIInfoManager::TranslateSingleString(const std::string &strCondition, bool
       {
         if (prop.name == rd.str)
           return rd.val;
+      }
+    }
+    else if (cat.name == "web")
+    {
+      for (const infomap& i : web)
+      {
+        if (prop.name == i.str)
+          return i.val;
+      }
+    }
+    else if (cat.name == "webcontrol")
+    {
+      for (const infomap& i : webcontrol)
+      {
+        if (prop.name == i.str)
+          return i.val;
       }
     }
   }

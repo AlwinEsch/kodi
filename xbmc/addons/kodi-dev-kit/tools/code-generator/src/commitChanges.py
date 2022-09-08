@@ -9,8 +9,12 @@
 # Own includes
 from code_generator import DEVKIT_DIR, KODI_DIR
 from .generateCMake__CMAKE_TREEDATA_COMMON_addon_dev_kit_txt import *
+from .generateCMake__CMAKE_TREEDATA_COMMON_addon_interface_txt import *
+from .generateCMake__XBMC_ADDONS_INTERFACE_allfiles import *
 from .generateCMake__XBMC_ADDONS_KODIDEVKIT_INCLUDE_KODI_allfiles import *
-from .helper_Log import *
+from .generateSource__XBMC_ADDONS_KODIDEVKIT_SRC_SHARED_directdata_h import *
+from .generateSource__XBMC_ADDONS_KODIDEVKIT_SRC_SHARED_sharedgroups_h import *
+from .tools.helper_Log import *
 
 # Global includes
 import importlib, os, subprocess
@@ -44,15 +48,31 @@ def CommitChanges(options):
 
     r = Repo(KODI_DIR)
     for x in r.index.diff("HEAD"):
-        if GenerateCMake__XBMC_ADDONS_KODIDEVKIT_INCLUDE_KODI_all_files_RelatedCheck(
-            x.b_path
-        ):
-            Log.PrintBegin(" - Changed file {}".format(x.b_path))
-            contains_devkit_change = True
-            changes_list.append(x.b_path)
-            Log.PrintResult(Result.NEW if x.new_file else Result.UPDATE)
-        elif GenerateCMake__CMAKE_TREEDATA_COMMON_addon_dev_kit_txt_RelatedCheck(
-            x.b_path
+        if (
+            GenerateCMake__XBMC_ADDONS_KODIDEVKIT_INCLUDE_KODI_all_files_RelatedCheck(
+                x.b_path
+            )
+            or GenerateCMake__XBMC_ADDONS_KODIDEVKIT_SRC_ADDON_all_files_RelatedCheck(
+                x.b_path
+            )
+            or GenerateCMake__XBMC_ADDONS_INTERFACE_all_files_RelatedCheck(
+                x.b_path
+            )
+            or GenerateCMake__CMAKE_TREEDATA_COMMON_addon_dev_kit_txt_RelatedCheck(
+                x.b_path
+            )
+            or GenerateCMake__CMAKE_TREEDATA_COMMON_addon_interface_txt_RelatedCheck(
+                x.b_path
+            )
+            or GenerateCMake__XBMC_ADDONS_KODIDEVKIT_SRC_SHARED_cmakelists_txt_RelatedCheck(
+                x.b_path
+            )
+            or GenerateSource__XBMC_ADDONS_KODIDEVKIT_SRC_SHARED_directdata_h_RelatedCheck(
+                x.b_path
+            )
+            or GenerateSource__XBMC_ADDONS_KODIDEVKIT_SRC_SHARED_sharedgroups_h_RelatedCheck(
+                x.b_path
+            )
         ):
             Log.PrintBegin(" - Changed file {}".format(x.b_path))
             contains_devkit_change = True

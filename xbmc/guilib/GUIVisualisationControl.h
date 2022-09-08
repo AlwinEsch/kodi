@@ -11,7 +11,6 @@
 #include "GUIControl.h"
 #include "addons/Visualization.h"
 #include "cores/AudioEngine/Interfaces/IAudioCallback.h"
-#include "utils/rfft.h"
 
 #include <list>
 #include <string>
@@ -79,10 +78,7 @@ private:
 
   std::list<std::unique_ptr<CAudioBuffer>> m_vecBuffers;
   unsigned int m_numBuffers; /*!< Number of Audio buffers */
-  bool m_wantsFreq;
-  float m_freq[AUDIO_BUFFER_SIZE]; /*!< Frequency data */
   std::vector<std::string> m_presets; /*!< cached preset list */
-  std::unique_ptr<RFFT> m_transform;
 
   /* values set from "OnInitialize" IAudioCallback  */
   int m_channels;
@@ -94,5 +90,5 @@ private:
   std::string m_presetsPath; /*!< To add-on sended preset path */
   std::string m_profilePath; /*!< To add-on sended profile path */
 
-  ADDON::CVisualization* m_instance;
+  KODI::ADDONS::CVisualization* m_instance;
 };

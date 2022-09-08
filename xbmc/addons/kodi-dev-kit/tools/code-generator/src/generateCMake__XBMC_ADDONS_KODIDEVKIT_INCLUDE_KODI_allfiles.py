@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-#   Copyright (C) 2021 Team Kodi
+#   Copyright (C) 2021-2022 Team Kodi
 #   This file is part of Kodi - https://kodi.tv
 #
 #   SPDX-License-Identifier: GPL-2.0-or-later
@@ -8,7 +8,7 @@
 
 # Own includes
 from code_generator import DEVKIT_DIR, KODI_DIR
-from .helper_Log import *
+from .tools.helper_Log import *
 
 # Global includes
 import glob, os, re

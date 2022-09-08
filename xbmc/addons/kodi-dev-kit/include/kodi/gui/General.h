@@ -35,7 +35,7 @@ namespace gui
 inline void ATTR_DLL_LOCAL Lock()
 {
   using namespace ::kodi::addon;
-  CPrivateBase::m_interface->toKodi->kodi_gui->general->lock();
+  CPrivateBase::ifc.toKodi->kodi_gui->general->lock();
 }
 //------------------------------------------------------------------------------
 
@@ -46,7 +46,7 @@ inline void ATTR_DLL_LOCAL Lock()
 inline void ATTR_DLL_LOCAL Unlock()
 {
   using namespace ::kodi::addon;
-  CPrivateBase::m_interface->toKodi->kodi_gui->general->unlock();
+  CPrivateBase::ifc.toKodi->kodi_gui->general->unlock();
 }
 //------------------------------------------------------------------------------
 
@@ -59,8 +59,8 @@ inline void ATTR_DLL_LOCAL Unlock()
 inline int ATTR_DLL_LOCAL GetScreenHeight()
 {
   using namespace ::kodi::addon;
-  return CPrivateBase::m_interface->toKodi->kodi_gui->general->get_screen_height(
-      CPrivateBase::m_interface->toKodi->kodiBase);
+  return CPrivateBase::ifc.toKodi->kodi_gui->general->get_screen_height(
+      CPrivateBase::ifc.toKodi->kodiBase);
 }
 //------------------------------------------------------------------------------
 
@@ -73,8 +73,8 @@ inline int ATTR_DLL_LOCAL GetScreenHeight()
 inline int ATTR_DLL_LOCAL GetScreenWidth()
 {
   using namespace ::kodi::addon;
-  return CPrivateBase::m_interface->toKodi->kodi_gui->general->get_screen_width(
-      CPrivateBase::m_interface->toKodi->kodiBase);
+  return CPrivateBase::ifc.toKodi->kodi_gui->general->get_screen_width(
+      CPrivateBase::ifc.toKodi->kodiBase);
 }
 //------------------------------------------------------------------------------
 
@@ -87,8 +87,8 @@ inline int ATTR_DLL_LOCAL GetScreenWidth()
 inline int ATTR_DLL_LOCAL GetVideoResolution()
 {
   using namespace ::kodi::addon;
-  return CPrivateBase::m_interface->toKodi->kodi_gui->general->get_video_resolution(
-      CPrivateBase::m_interface->toKodi->kodiBase);
+  return CPrivateBase::ifc.toKodi->kodi_gui->general->get_video_resolution(
+      CPrivateBase::ifc.toKodi->kodiBase);
 }
 //------------------------------------------------------------------------------
 
@@ -111,8 +111,8 @@ inline int ATTR_DLL_LOCAL GetVideoResolution()
 inline int ATTR_DLL_LOCAL GetCurrentWindowDialogId()
 {
   using namespace ::kodi::addon;
-  return CPrivateBase::m_interface->toKodi->kodi_gui->general->get_current_window_dialog_id(
-      CPrivateBase::m_interface->toKodi->kodiBase);
+  return CPrivateBase::ifc.toKodi->kodi_gui->general->get_current_window_dialog_id(
+      CPrivateBase::ifc.toKodi->kodiBase);
 }
 //------------------------------------------------------------------------------
 
@@ -135,8 +135,8 @@ inline int ATTR_DLL_LOCAL GetCurrentWindowDialogId()
 inline int ATTR_DLL_LOCAL GetCurrentWindowId()
 {
   using namespace ::kodi::addon;
-  return CPrivateBase::m_interface->toKodi->kodi_gui->general->get_current_window_id(
-      CPrivateBase::m_interface->toKodi->kodiBase);
+  return CPrivateBase::ifc.toKodi->kodi_gui->general->get_current_window_id(
+      CPrivateBase::ifc.toKodi->kodiBase);
 }
 //------------------------------------------------------------------------------
 
@@ -165,8 +165,8 @@ inline int ATTR_DLL_LOCAL GetCurrentWindowId()
 inline kodi::HardwareContext GetHWContext()
 {
   using namespace ::kodi::addon;
-  return CPrivateBase::m_interface->toKodi->kodi_gui->general->get_hw_context(
-      CPrivateBase::m_interface->toKodi->kodiBase);
+  return CPrivateBase::ifc.toKodi->kodi_gui->general->get_hw_context(
+      CPrivateBase::ifc.toKodi->kodiBase);
 }
 //------------------------------------------------------------------------------
 

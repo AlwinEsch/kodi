@@ -4,13 +4,9 @@
 set(HEADERS
   ChannelGroups.h
   Channels.h
-  EDL.h
   EPG.h
-  General.h
-  MenuHook.h
   Providers.h
   Recordings.h
-  Stream.h
   Timers.h
 )
 

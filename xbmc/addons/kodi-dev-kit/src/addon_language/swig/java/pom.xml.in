@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>tv.kodi.javaaddon</groupId>
+  <artifactId>kodidevkit</artifactId>
+  <version>@VERSION_SHORT@</version>
+  <packaging>jar</packaging>
+
+  <name>kodidevkit</name>
+  <description>Library who bring interface between a addon and Kodi</description>
+  <url></url>
+
+  <licenses>
+    <license>
+      <name>GPL2</name>
+      <url></url>
+    </license>
+  </licenses>
+
+  <developers>
+    <developer>
+      <name></name>
+      <email></email>
+      <organization>Kodi - Open Source Home Theater Software</organization>
+      <organizationUrl>https://kodi.tv</organizationUrl>
+    </developer>
+  </developers>
+
+  <scm>
+    <connection></connection>
+    <developerConnection></developerConnection>
+    <url></url>
+  </scm>
+
+</project>

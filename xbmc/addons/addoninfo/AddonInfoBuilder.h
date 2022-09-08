@@ -98,6 +98,7 @@ private:
   static bool GetTextList(const TiXmlElement* element, const std::string& tag, std::unordered_map<std::string, std::string>& translatedValues);
   static const char* GetPlatformLibraryName(const TiXmlElement* element);
   static bool PlatformSupportsAddon(const AddonInfoPtr& addon);
+  static AddonLanguage DetectAddonLanguage(const std::string& library);
 };
 
 }

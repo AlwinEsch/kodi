@@ -26,8 +26,6 @@
 #include "utils/URIUtils.h"
 #include "utils/log.h"
 
-using namespace ADDON;
-
 #define LABEL_ROW1 10
 #define LABEL_ROW2 11
 #define LABEL_ROW3 12
@@ -161,7 +159,9 @@ void CGUIVisualisationControl::Process(unsigned int currentTime, CDirtyRegionLis
     }
     else if (m_callStart && m_instance)
     {
-      CServiceBroker::GetWinSystem()->GetGfxContext().CaptureStateBlock();
+      auto& context = CServiceBroker::GetWinSystem()->GetGfxContext();
+
+      context.CaptureStateBlock();
       if (m_alreadyStarted)
       {
         m_instance->Stop();
@@ -173,7 +173,7 @@ void CGUIVisualisationControl::Process(unsigned int currentTime, CDirtyRegionLis
       if (tag && !tag->GetTitle().empty())
         songTitle = tag->GetTitle();
       m_alreadyStarted = m_instance->Start(m_channels, m_samplesPerSec, m_bitsPerSample, songTitle);
-      CServiceBroker::GetWinSystem()->GetGfxContext().ApplyStateBlock();
+      context.ApplyStateBlock();
       m_callStart = false;
       m_updateTrack = true;
     }
@@ -195,16 +195,18 @@ void CGUIVisualisationControl::Render()
 {
   if (m_instance && m_alreadyStarted)
   {
+    auto& context = CServiceBroker::GetWinSystem()->GetGfxContext();
+
     /*
      * set the viewport - note: We currently don't have any control over how
      * the addon renders, so the best we can do is attempt to define
      * a viewport??
      */
-    CServiceBroker::GetWinSystem()->GetGfxContext().SetViewPort(m_posX, m_posY, m_width, m_height);
-    CServiceBroker::GetWinSystem()->GetGfxContext().CaptureStateBlock();
+    context.SetViewPort(m_posX, m_posY, m_width, m_height);
+    context.CaptureStateBlock();
     m_instance->Render();
-    CServiceBroker::GetWinSystem()->GetGfxContext().ApplyStateBlock();
-    CServiceBroker::GetWinSystem()->GetGfxContext().RestoreViewPort();
+    context.ApplyStateBlock();
+    context.RestoreViewPort();
   }
 
   CGUIControl::Render();
@@ -249,7 +251,6 @@ void CGUIVisualisationControl::OnAudioData(const float* audioData, unsigned int 
   // Save our audio data in the buffers
   std::unique_ptr<CAudioBuffer> pBuffer(new CAudioBuffer(audioDataLength));
   pBuffer->Set(audioData, audioDataLength);
-  //m_vecBuffers.push_back(pBuffer.release());
   m_vecBuffers.emplace_back(std::move(pBuffer));
 
   if (m_vecBuffers.size() < m_numBuffers)
@@ -258,23 +259,8 @@ void CGUIVisualisationControl::OnAudioData(const float* audioData, unsigned int 
   std::unique_ptr<CAudioBuffer> ptrAudioBuffer = std::move(m_vecBuffers.front());
   m_vecBuffers.pop_front();
 
-  // Fourier transform the data if the vis wants it...
-  if (m_wantsFreq)
-  {
-    const float *psAudioData = ptrAudioBuffer->Get();
-
-    if (!m_transform)
-      m_transform.reset(new RFFT(AUDIO_BUFFER_SIZE/2, false)); // half due to stereo
-
-    m_transform->calc(psAudioData, m_freq);
-
-    // Transfer data to our visualisation
-    m_instance->AudioData(psAudioData, ptrAudioBuffer->Size(), m_freq, AUDIO_BUFFER_SIZE/2); // half due to complex-conjugate
-  }
-  else
-  { // Transfer data to our visualisation
-    m_instance->AudioData(ptrAudioBuffer->Get(), ptrAudioBuffer->Size(), nullptr, 0);
-  }
+  // Transfer data to our visualisation
+  m_instance->AudioData(ptrAudioBuffer->Get(), ptrAudioBuffer->Size());
 }
 
 void CGUIVisualisationControl::UpdateTrack()
@@ -299,7 +285,7 @@ void CGUIVisualisationControl::UpdateTrack()
   std::string albumArtist(tag->GetAlbumArtistString());
   std::string genre(StringUtils::Join(tag->GetGenre(), CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->m_musicItemSeparator));
 
-  VIS_TRACK track = {};
+  KODI_ADDON_VISUALIZATION_TRACK track = {};
   track.title       = tag->GetTitle().c_str();
   track.artist      = artist.c_str();
   track.album       = tag->GetAlbum().c_str();
@@ -364,6 +350,11 @@ bool CGUIVisualisationControl::GetPresetList(std::vector<std::string> &vecpreset
 
 bool CGUIVisualisationControl::InitVisualization()
 {
+  IAE* ae = CServiceBroker::GetActiveAE();
+  CWinSystemBase* const winSystem = CServiceBroker::GetWinSystem();
+  if (!ae || !winSystem)
+    return false;
+
   const std::string addon = CServiceBroker::GetSettingsComponent()->GetSettings()->GetString(
       CSettings::SETTING_MUSICPLAYER_VISUALISATION);
   const ADDON::AddonInfoPtr addonBase =
@@ -371,34 +362,40 @@ bool CGUIVisualisationControl::InitVisualization()
   if (!addonBase)
     return false;
 
-  CServiceBroker::GetActiveAE()->RegisterAudioCallback(this);
+  ae->RegisterAudioCallback(this);
 
-  CServiceBroker::GetWinSystem()->GetGfxContext().CaptureStateBlock();
+  auto& context = CServiceBroker::GetWinSystem()->GetGfxContext();
 
-  float x = CServiceBroker::GetWinSystem()->GetGfxContext().ScaleFinalXCoord(GetXPosition(), GetYPosition());
-  float y = CServiceBroker::GetWinSystem()->GetGfxContext().ScaleFinalYCoord(GetXPosition(), GetYPosition());
-  float w = CServiceBroker::GetWinSystem()->GetGfxContext().ScaleFinalXCoord(GetXPosition() + GetWidth(), GetYPosition() + GetHeight()) - x;
-  float h = CServiceBroker::GetWinSystem()->GetGfxContext().ScaleFinalYCoord(GetXPosition() + GetWidth(), GetYPosition() + GetHeight()) - y;
+  context.CaptureStateBlock();
+
+  float x = context.ScaleFinalXCoord(GetXPosition(), GetYPosition());
+  float y = context.ScaleFinalYCoord(GetXPosition(), GetYPosition());
+  float w = context.ScaleFinalXCoord(GetXPosition() + GetWidth(), GetYPosition() + GetHeight()) - x;
+  float h = context.ScaleFinalYCoord(GetXPosition() + GetWidth(), GetYPosition() + GetHeight()) - y;
   if (x < 0)
     x = 0;
   if (y < 0)
     y = 0;
-  if (x + w > CServiceBroker::GetWinSystem()->GetGfxContext().GetWidth())
-    w = CServiceBroker::GetWinSystem()->GetGfxContext().GetWidth() - x;
-  if (y + h > CServiceBroker::GetWinSystem()->GetGfxContext().GetHeight())
-    h = CServiceBroker::GetWinSystem()->GetGfxContext().GetHeight() - y;
+  if (x + w > context.GetWidth())
+    w = context.GetWidth() - x;
+  if (y + h > context.GetHeight())
+    h = context.GetHeight() - y;
 
-  m_instance = new ADDON::CVisualization(addonBase, x, y, w, h);
+  m_instance = new KODI::ADDONS::CVisualization(addonBase, x, y, w, h);
   CreateBuffers();
 
   m_alreadyStarted = false;
-  CServiceBroker::GetWinSystem()->GetGfxContext().ApplyStateBlock();
+  context.ApplyStateBlock();
   return true;
 }
 
 void CGUIVisualisationControl::DeInitVisualization()
 {
   if (!m_attemptedLoad)
+    return;
+
+  CWinSystemBase* const winSystem = CServiceBroker::GetWinSystem();
+  if (!winSystem)
     return;
 
   IAE * ae = CServiceBroker::GetActiveAE();
@@ -416,9 +413,11 @@ void CGUIVisualisationControl::DeInitVisualization()
   {
     if (m_alreadyStarted)
     {
-      CServiceBroker::GetWinSystem()->GetGfxContext().CaptureStateBlock();
+      auto& context = winSystem->GetGfxContext();
+
+      context.CaptureStateBlock();
       m_instance->Stop();
-      CServiceBroker::GetWinSystem()->GetGfxContext().ApplyStateBlock();
+      context.ApplyStateBlock();
       m_alreadyStarted = false;
     }
 
@@ -433,14 +432,9 @@ void CGUIVisualisationControl::CreateBuffers()
 {
   ClearBuffers();
 
-  // Get the number of buffers from the current vis
-  VIS_INFO info { false, 0 };
-
+  m_numBuffers = 1;
   if (m_instance)
-    m_instance->GetInfo(&info);
-
-  m_numBuffers = info.iSyncDelay + 1;
-  m_wantsFreq = info.bWantsFreq;
+    m_numBuffers += m_instance->GetSyncDelay();
   if (m_numBuffers > MAX_AUDIO_BUFFERS)
     m_numBuffers = MAX_AUDIO_BUFFERS;
   if (m_numBuffers < 1)
@@ -449,15 +443,6 @@ void CGUIVisualisationControl::CreateBuffers()
 
 void CGUIVisualisationControl::ClearBuffers()
 {
-  m_wantsFreq = false;
   m_numBuffers = 0;
   m_vecBuffers.clear();
-
-  for (float& freq : m_freq)
-  {
-    freq = 0.0f;
-  }
-
-  if (m_transform)
-    m_transform.reset();
 }

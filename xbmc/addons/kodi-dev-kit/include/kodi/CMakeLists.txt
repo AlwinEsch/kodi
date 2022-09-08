@@ -6,8 +6,8 @@ set(HEADERS
   AudioEngine.h
   Filesystem.h
   General.h
+  Monitor.h
   Network.h
-  versions.h
 )
 
 if(HEADERS)

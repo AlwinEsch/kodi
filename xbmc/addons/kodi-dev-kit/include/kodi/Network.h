@@ -40,8 +40,8 @@ inline bool ATTR_DLL_LOCAL WakeOnLan(const std::string& mac)
 {
   using namespace ::kodi::addon;
 
-  return CPrivateBase::m_interface->toKodi->kodi_network->wake_on_lan(
-      CPrivateBase::m_interface->toKodi->kodiBase, mac.c_str());
+  return CPrivateBase::ifc.toKodi->kodi_network->wake_on_lan(CPrivateBase::ifc.toKodi->kodiBase,
+                                                             mac.c_str());
 }
 //----------------------------------------------------------------------------
 
@@ -68,13 +68,12 @@ inline std::string ATTR_DLL_LOCAL GetIPAddress()
   using namespace ::kodi::addon;
 
   std::string ip;
-  char* string = CPrivateBase::m_interface->toKodi->kodi_network->get_ip_address(
-      CPrivateBase::m_interface->toKodi->kodiBase);
+  char* string =
+      CPrivateBase::ifc.toKodi->kodi_network->get_ip_address(CPrivateBase::ifc.toKodi->kodiBase);
   if (string != nullptr)
   {
     ip = string;
-    CPrivateBase::m_interface->toKodi->free_string(CPrivateBase::m_interface->toKodi->kodiBase,
-                                                   string);
+    CPrivateBase::ifc.toKodi->free_string(CPrivateBase::ifc.toKodi->kodiBase, string);
   }
   return ip;
 }
@@ -103,13 +102,12 @@ inline std::string ATTR_DLL_LOCAL GetHostname()
   using namespace ::kodi::addon;
 
   std::string ip;
-  char* string = CPrivateBase::m_interface->toKodi->kodi_network->get_hostname(
-      CPrivateBase::m_interface->toKodi->kodiBase);
+  char* string =
+      CPrivateBase::ifc.toKodi->kodi_network->get_hostname(CPrivateBase::ifc.toKodi->kodiBase);
   if (string != nullptr)
   {
     ip = string;
-    CPrivateBase::m_interface->toKodi->free_string(CPrivateBase::m_interface->toKodi->kodiBase,
-                                                   string);
+    CPrivateBase::ifc.toKodi->free_string(CPrivateBase::ifc.toKodi->kodiBase, string);
   }
   return ip;
 }
@@ -139,13 +137,12 @@ inline std::string ATTR_DLL_LOCAL GetUserAgent()
   using namespace ::kodi::addon;
 
   std::string agent;
-  char* string = CPrivateBase::m_interface->toKodi->kodi_network->get_user_agent(
-      CPrivateBase::m_interface->toKodi->kodiBase);
+  char* string =
+      CPrivateBase::ifc.toKodi->kodi_network->get_user_agent(CPrivateBase::ifc.toKodi->kodiBase);
   if (string != nullptr)
   {
     agent = string;
-    CPrivateBase::m_interface->toKodi->free_string(CPrivateBase::m_interface->toKodi->kodiBase,
-                                                   string);
+    CPrivateBase::ifc.toKodi->free_string(CPrivateBase::ifc.toKodi->kodiBase, string);
   }
   return agent;
 }
@@ -174,8 +171,8 @@ inline bool ATTR_DLL_LOCAL IsLocalHost(const std::string& hostname)
 {
   using namespace ::kodi::addon;
 
-  return CPrivateBase::m_interface->toKodi->kodi_network->is_local_host(
-      CPrivateBase::m_interface->toKodi->kodiBase, hostname.c_str());
+  return CPrivateBase::ifc.toKodi->kodi_network->is_local_host(CPrivateBase::ifc.toKodi->kodiBase,
+                                                               hostname.c_str());
 }
 //----------------------------------------------------------------------------
 
@@ -191,8 +188,8 @@ inline bool ATTR_DLL_LOCAL IsHostOnLAN(const std::string& hostname, bool offLine
 {
   using namespace kodi::addon;
 
-  return CPrivateBase::m_interface->toKodi->kodi_network->is_host_on_lan(
-      CPrivateBase::m_interface->toKodi->kodiBase, hostname.c_str(), offLineCheck);
+  return CPrivateBase::ifc.toKodi->kodi_network->is_host_on_lan(CPrivateBase::ifc.toKodi->kodiBase,
+                                                                hostname.c_str(), offLineCheck);
 }
 //------------------------------------------------------------------------------
 
@@ -226,13 +223,12 @@ inline std::string ATTR_DLL_LOCAL URLEncode(const std::string& url)
   using namespace ::kodi::addon;
 
   std::string retString;
-  char* string = CPrivateBase::m_interface->toKodi->kodi_network->url_encode(
-      CPrivateBase::m_interface->toKodi->kodiBase, url.c_str());
+  char* string = CPrivateBase::ifc.toKodi->kodi_network->url_encode(
+      CPrivateBase::ifc.toKodi->kodiBase, url.c_str());
   if (string != nullptr)
   {
     retString = string;
-    CPrivateBase::m_interface->toKodi->free_string(CPrivateBase::m_interface->toKodi->kodiBase,
-                                                   string);
+    CPrivateBase::ifc.toKodi->free_string(CPrivateBase::ifc.toKodi->kodiBase, string);
   }
   return retString;
 }
@@ -269,13 +265,12 @@ inline bool ATTR_DLL_LOCAL DNSLookup(const std::string& hostName, std::string& i
   using namespace ::kodi::addon;
 
   bool ret = false;
-  char* string = CPrivateBase::m_interface->toKodi->kodi_network->dns_lookup(
-      CPrivateBase::m_interface->toKodi->kodiBase, hostName.c_str(), &ret);
+  char* string = CPrivateBase::ifc.toKodi->kodi_network->dns_lookup(
+      CPrivateBase::ifc.toKodi->kodiBase, hostName.c_str(), &ret);
   if (string != nullptr)
   {
     ipAddress = string;
-    CPrivateBase::m_interface->toKodi->free_string(CPrivateBase::m_interface->toKodi->kodiBase,
-                                                   string);
+    CPrivateBase::ifc.toKodi->free_string(CPrivateBase::ifc.toKodi->kodiBase, string);
   }
   return ret;
 }

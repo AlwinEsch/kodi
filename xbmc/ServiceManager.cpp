@@ -12,11 +12,10 @@
 #include "DatabaseManager.h"
 #include "PlayListPlayer.h"
 #include "addons/AudioDecoder.h"
-#include "addons/BinaryAddonCache.h"
 #include "addons/ExtsMimeSupportList.h"
 #include "addons/RepositoryUpdater.h"
 #include "addons/VFSEntry.h"
-#include "addons/binary-addons/BinaryAddonManager.h"
+#include "addons/interface/Controller.h"
 #include "cores/DataCacheCore.h"
 #include "cores/RetroPlayer/guibridge/GUIGameRenderManager.h"
 #include "cores/playercorefactory/PlayerCoreFactory.h"
@@ -46,6 +45,7 @@
 #include "utils/FileExtensionProvider.h"
 #include "utils/log.h"
 #include "weather/WeatherManager.h"
+#include "web/WebManager.h"
 
 using namespace KODI;
 
@@ -67,11 +67,17 @@ bool CServiceManager::InitForTesting()
 
   m_databaseManager.reset(new CDatabaseManager);
 
-  m_binaryAddonManager.reset(new ADDON::CBinaryAddonManager());
   m_addonMgr.reset(new ADDON::CAddonMgr());
   if (!m_addonMgr->Init())
   {
     CLog::Log(LOGFATAL, "CServiceManager::{}: Unable to start CAddonMgr", __FUNCTION__);
+    return false;
+  }
+  m_addonIfcCtrl.reset(new KODI::ADDONS::INTERFACE::CController(*m_addonMgr));
+  if (!m_addonIfcCtrl->Init())
+  {
+    CLog::Log(LOGFATAL, "CServiceManager::{}: Unable to start KODI::ADDONS::INTERFACE::CController",
+              __func__);
     return false;
   }
 
@@ -87,7 +93,6 @@ void CServiceManager::DeinitTesting()
   init_level = 0;
   m_fileExtensionProvider.reset();
   m_extsMimeSupportList.reset();
-  m_binaryAddonManager.reset();
   m_addonMgr.reset();
   m_databaseManager.reset();
   m_network.reset();
@@ -118,13 +123,18 @@ bool CServiceManager::InitStageTwo(const std::string& profilesUserDataFolder)
   // Initialize the addon database (must be before the addon manager is init'd)
   m_databaseManager.reset(new CDatabaseManager);
 
-  m_binaryAddonManager.reset(
-      new ADDON::
-          CBinaryAddonManager()); /* Need to constructed before, GetRunningInstance() of binary CAddonDll need to call them */
   m_addonMgr.reset(new ADDON::CAddonMgr());
   if (!m_addonMgr->Init())
   {
     CLog::Log(LOGFATAL, "CServiceManager::{}: Unable to start CAddonMgr", __FUNCTION__);
+    return false;
+  }
+
+  m_addonIfcCtrl.reset(new KODI::ADDONS::INTERFACE::CController(*m_addonMgr));
+  if (!m_addonIfcCtrl->Init())
+  {
+    CLog::Log(LOGFATAL, "CServiceManager::{}: Unable to start KODI::ADDONS::INTERFACE::CController",
+              __func__);
     return false;
   }
 
@@ -139,8 +149,7 @@ bool CServiceManager::InitStageTwo(const std::string& profilesUserDataFolder)
 
   m_dataCacheCore.reset(new CDataCacheCore());
 
-  m_binaryAddonCache.reset(new ADDON::CBinaryAddonCache());
-  m_binaryAddonCache->Init();
+  m_webManager.reset(new WEB::CWebManager());
 
   m_favouritesService.reset(new CFavouritesService(profilesUserDataFolder));
 
@@ -193,12 +202,16 @@ bool CServiceManager::InitStageThree(const std::shared_ptr<CProfileManager>& pro
 
   m_gameServices.reset(new GAME::CGameServices(*m_gameControllerManager, *m_gameRenderManager,
                                                *m_peripherals, *profileManager));
+  m_gameServices->Init();
 
   m_contextMenuManager->Init();
 
   // Init PVR manager after login, not already on login screen
   if (!profileManager->UsingLoginScreen())
+  {
     m_PVRManager->Init();
+    m_webManager->Init();
+  }
 
   m_playerCoreFactory.reset(new CPlayerCoreFactory(*profileManager));
 
@@ -233,6 +246,8 @@ void CServiceManager::DeinitStageTwo()
   m_WSDiscovery.reset();
 #endif
 
+  m_webManager->Deinit();
+
   m_weatherManager.reset();
   m_powerManager.reset();
   m_fileExtensionProvider.reset();
@@ -243,13 +258,13 @@ void CServiceManager::DeinitStageTwo()
   m_contextMenuManager.reset();
   m_serviceAddons.reset();
   m_favouritesService.reset();
-  m_binaryAddonCache.reset();
   m_dataCacheCore.reset();
+  m_webManager.reset();
   m_PVRManager.reset();
   m_extsMimeSupportList.reset();
   m_vfsAddonCache.reset();
   m_repositoryUpdater.reset();
-  m_binaryAddonManager.reset();
+  m_addonIfcCtrl.reset();
   m_addonMgr.reset();
   m_databaseManager.reset();
 
@@ -291,16 +306,6 @@ ADDONS::CExtsMimeSupportList& CServiceManager::GetExtsMimeSupportList()
   return *m_extsMimeSupportList;
 }
 
-ADDON::CBinaryAddonCache& CServiceManager::GetBinaryAddonCache()
-{
-  return *m_binaryAddonCache;
-}
-
-ADDON::CBinaryAddonManager& CServiceManager::GetBinaryAddonManager()
-{
-  return *m_binaryAddonManager;
-}
-
 ADDON::CVFSAddonCache& CServiceManager::GetVFSAddonCache()
 {
   return *m_vfsAddonCache;
@@ -314,6 +319,11 @@ ADDON::CServiceAddonManager& CServiceManager::GetServiceAddons()
 ADDON::CRepositoryUpdater& CServiceManager::GetRepositoryUpdater()
 {
   return *m_repositoryUpdater;
+}
+
+KODI::ADDONS::INTERFACE::CController& CServiceManager::GetAddonIfcCtrl()
+{
+  return *m_addonIfcCtrl;
 }
 
 #ifdef HAS_PYTHON
@@ -393,6 +403,11 @@ CFileExtensionProvider& CServiceManager::GetFileExtensionProvider()
 CPowerManager& CServiceManager::GetPowerManager()
 {
   return *m_powerManager;
+}
+
+WEB::CWebManager& CServiceManager::GetWEBManager()
+{
+  return *m_webManager;
 }
 
 // deleters for unique_ptr

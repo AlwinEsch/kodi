@@ -8,9 +8,8 @@
 #pragma once
 
 #include "addons/IAddonSupportCheck.h"
-#include "addons/binary-addons/AddonInstanceHandler.h"
-#include "addons/kodi-dev-kit/include/kodi/addon-instance/ImageDecoder.h"
 #include "guilib/iimage.h"
+#include "interface/InstanceHandler.h"
 
 class CPictureInfoTag;
 
@@ -19,7 +18,7 @@ namespace KODI
 namespace ADDONS
 {
 
-class CImageDecoder : public ADDON::IAddonInstanceHandler,
+class CImageDecoder : public KODI::ADDONS::INTERFACE::IInstanceHandler,
                       public KODI::ADDONS::IAddonSupportCheck,
                       public IImage
 {

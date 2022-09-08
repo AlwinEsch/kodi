@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "addons/binary-addons/AddonInstanceHandler.h"
+#include "addons/interface/InstanceHandler.h"
 #include "addons/kodi-dev-kit/include/kodi/addon-instance/Peripheral.h"
 #include "input/joysticks/JoystickTypes.h"
 #include "peripherals/PeripheralTypes.h"
@@ -39,7 +39,7 @@ class CPeripherals;
 typedef std::vector<kodi::addon::DriverPrimitive> PrimitiveVector;
 typedef std::map<KODI::JOYSTICK::FeatureName, kodi::addon::JoystickFeature> FeatureMap;
 
-class CPeripheralAddon : public ADDON::IAddonInstanceHandler
+class CPeripheralAddon : public KODI::ADDONS::INTERFACE::IInstanceHandler
 {
 public:
   explicit CPeripheralAddon(const ADDON::AddonInfoPtr& addonInfo, CPeripherals& manager);
@@ -109,15 +109,23 @@ public:
         .asBoolean();
   }
 
-private:
-  void UnregisterButtonMap(CPeripheral* device);
-
-  // Binary add-on callbacks
+  /*!
+   * @brief Callback functions from addon to kodi
+   */
+  //@{
   void TriggerDeviceScan();
-  void RefreshButtonMaps(const std::string& strDeviceName = "");
+  /*---AUTO_GEN_PARSE<CB:kodi_addon_peripheral_trigger_scan>---*/
+  void RefreshButtonMaps(const std::string& strDeviceName, const std::string& controllerId = "");
+  /*---AUTO_GEN_PARSE<CB:kodi_addon_peripheral_refresh_button_maps>---*/
   unsigned int FeatureCount(const std::string& controllerId, JOYSTICK_FEATURE_TYPE type) const;
+  /*---AUTO_GEN_PARSE<CB:kodi_addon_peripheral_feature_count>---*/
   JOYSTICK_FEATURE_TYPE FeatureType(const std::string& controllerId,
                                     const std::string& featureName) const;
+  /*---AUTO_GEN_PARSE<CB:kodi_addon_peripheral_feature_type>---*/
+  //@}
+
+private:
+  void UnregisterButtonMap(CPeripheral* device);
 
   /*!
    * @brief Helper functions
@@ -127,11 +135,6 @@ private:
   static void GetJoystickInfo(const CPeripheral* device, kodi::addon::Joystick& joystickInfo);
   static void SetJoystickInfo(CPeripheralJoystick& joystick,
                               const kodi::addon::Joystick& joystickInfo);
-
-  /*!
-   * @brief Reset all class members to their defaults. Called by the constructors
-   */
-  void ResetProperties(void);
 
   /*!
    * @brief Retrieve add-on properties from the add-on
@@ -145,26 +148,6 @@ private:
 
   // Construction parameters
   CPeripherals& m_manager;
-
-  /* @brief Cache for const char* members in PERIPHERAL_PROPERTIES */
-  std::string m_strUserPath; /*!< @brief translated path to the user profile */
-  std::string m_strClientPath; /*!< @brief translated path to this add-on */
-
-  /*!
-   * @brief Callback functions from addon to kodi
-   */
-  //@{
-  static void cb_trigger_scan(void* kodiInstance);
-  static void cb_refresh_button_maps(void* kodiInstance,
-                                     const char* deviceName,
-                                     const char* controllerId);
-  static unsigned int cb_feature_count(void* kodiInstance,
-                                       const char* controllerId,
-                                       JOYSTICK_FEATURE_TYPE type);
-  static JOYSTICK_FEATURE_TYPE cb_feature_type(void* kodiInstance,
-                                               const char* controllerId,
-                                               const char* featureName);
-  //@}
 
   /* @brief Add-on properties */
   bool m_bProvidesJoysticks;

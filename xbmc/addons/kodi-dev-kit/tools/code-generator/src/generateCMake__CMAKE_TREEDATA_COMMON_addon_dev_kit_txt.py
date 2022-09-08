@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-#   Copyright (C) 2021 Team Kodi
+#   Copyright (C) 2021-2022 Team Kodi
 #   This file is part of Kodi - https://kodi.tv
 #
 #   SPDX-License-Identifier: GPL-2.0-or-later
@@ -8,7 +8,8 @@
 
 # Own includes
 from code_generator import DEVKIT_DIR, KODI_DIR
-from .helper_Log import *
+from .tools.helper_Log import *
+from .tools.sub_file_hdl import *
 
 # Global includes
 import glob, os, re
@@ -46,6 +47,10 @@ def GenerateCMake__CMAKE_TREEDATA_COMMON_addon_dev_kit_txt(options):
                         cmake_dir, m.group(1)
                     )
                     break
+    parts += 'xbmc/addons/kodi-dev-kit/src/shared devkit_shared # Hardcoded entry, edit script for change!\n'
+    parts += 'xbmc/addons/kodi-dev-kit/src/addon kodidevkit # Hardcoded entry, edit script for change!\n'
+    parts += 'xbmc/addons/kodi-dev-kit/src/addon_runner addon_runner # Hardcoded entry, edit script for change!\n'
+    #parts += 'xbmc/addons/kodi-dev-kit/src/addon_language addon_language # Hardcoded entry, edit script for change!\n'
     file = "{}{}".format(KODI_DIR, gen_file)
     present = os.path.isfile(file)
     if not present or parts != open(file).read() or options.force:

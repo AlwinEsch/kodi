@@ -8,15 +8,17 @@
 
 #pragma once
 
-#include "addons/binary-addons/AddonInstanceHandler.h"
-#include "addons/kodi-dev-kit/include/kodi/addon-instance/Screensaver.h"
+#include "addons/kodi-dev-kit/include/kodi/c-api/addon-instance/screensaver.h"
+#include "interface/InstanceHandler.h"
+#include "interface/IOffscreenRenderProcess.h"
 
 namespace KODI
 {
 namespace ADDONS
 {
 
-class CScreenSaver : public ADDON::IAddonInstanceHandler
+class CScreenSaver : public KODI::ADDONS::INTERFACE::IInstanceHandler,
+                     public KODI::ADDONS::INTERFACE::IOffscreenRenderProcess
 {
 public:
   explicit CScreenSaver(const ADDON::AddonInfoPtr& addonInfo);
@@ -28,6 +30,10 @@ public:
 
   // Addon callback functions
   void GetProperties(struct KODI_ADDON_SCREENSAVER_PROPS* props);
+  /*---AUTO_GEN_PARSE<CB:kodi_addon_screensaver_get_properties>---*/
+
+protected:
+  bool GetOffscreenRenderInfos(int& x, int& y, int& width, int& height, ADDON_HARDWARE_CONTEXT& context) override;
 };
 
 } /* namespace ADDONS */

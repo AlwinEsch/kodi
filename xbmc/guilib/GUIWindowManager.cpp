@@ -18,11 +18,13 @@
 #include "WindowIDs.h"
 #include "addons/Skin.h"
 #include "addons/gui/GUIWindowAddonBrowser.h"
-#include "addons/interfaces/gui/Window.h"
+#include "addons/interface/api/gui/window.h"
+#include "addons/interface/gui/GUIDialogCrashReporter.h"
 #include "events/windows/GUIWindowEventLog.h"
 #include "favourites/GUIDialogFavourites.h"
 #include "input/Key.h"
 #include "messaging/ApplicationMessenger.h"
+#include "messaging/helpers/DialogCrashReporter.h"
 #include "messaging/helpers/DialogHelper.h"
 #include "music/dialogs/GUIDialogInfoProviderSettings.h"
 #include "music/dialogs/GUIDialogMusicInfo.h"
@@ -128,14 +130,18 @@
 #include "pvr/windows/GUIWindowPVRTimerRules.h"
 #include "pvr/windows/GUIWindowPVRTimers.h"
 
-#include "video/dialogs/GUIDialogTeletext.h"
-#include "dialogs/GUIDialogSlider.h"
-#include "dialogs/GUIDialogPlayEject.h"
+/* Web related include Files */
 #include "dialogs/GUIDialogMediaFilter.h"
-#include "video/dialogs/GUIDialogSubtitles.h"
-
-#include "peripherals/dialogs/GUIDialogPeripherals.h"
+#include "dialogs/GUIDialogPlayEject.h"
+#include "dialogs/GUIDialogSlider.h"
 #include "peripherals/dialogs/GUIDialogPeripheralSettings.h"
+#include "peripherals/dialogs/GUIDialogPeripherals.h"
+#include "video/dialogs/GUIDialogSubtitles.h"
+#include "video/dialogs/GUIDialogTeletext.h"
+#include "web/WebManager.h"
+#include "web/dialogs/GUIDialogFavourites.h"
+#include "web/windows/GUIWindowWebBrowser.h"
+#include "web/windows/GUIWindowWebBrowserFullScreen.h"
 
 /* Game related include files */
 #include "cores/RetroPlayer/guiwindows/GameWindowFullScreen.h"
@@ -232,6 +238,7 @@ void CGUIWindowManager::CreateWindows()
   Add(new CGUIDialogPictureInfo);
   Add(new CGUIDialogAddonInfo);
   Add(new CGUIDialogAddonSettings);
+  Add(new KODI::ADDONS::INTERFACE::CGUIDialogCrashReporter);
 
   Add(new CGUIDialogLockSettings);
 
@@ -279,6 +286,11 @@ void CGUIWindowManager::CreateWindows()
   Add(new CGUIDialogPVRRecordingSettings);
   Add(new CGUIDialogPVRClientPriorities);
   Add(new CGUIDialogPVRGuideControls);
+
+  /* Load web related Windows and Dialogs */
+  Add(new WEB::CGUIWindowWebBrowser);
+  Add(new WEB::CGUIWindowWebBrowserFullScreen);
+  Add(new WEB::CGUIDialogWebFavourites);
 
   Add(new CGUIDialogSelect);
   Add(new CGUIDialogColorPicker);
@@ -359,6 +371,7 @@ bool CGUIWindowManager::DestroyWindows()
     DestroyWindow(WINDOW_DIALOG_SMART_PLAYLIST_RULE);
     DestroyWindow(WINDOW_DIALOG_BUSY);
     DestroyWindow(WINDOW_DIALOG_BUSY_NOCANCEL);
+    DestroyWindow(WINDOW_DIALOG_ADDON_CRASH_REPORTER);
     DestroyWindow(WINDOW_DIALOG_PICTURE_INFO);
     DestroyWindow(WINDOW_DIALOG_ADDON_INFO);
     DestroyWindow(WINDOW_DIALOG_ADDON_SETTINGS);
@@ -395,6 +408,11 @@ bool CGUIWindowManager::DestroyWindows()
     DestroyWindow(WINDOW_DIALOG_PVR_RECORDING_SETTING);
     DestroyWindow(WINDOW_DIALOG_PVR_CLIENT_PRIORITIES);
     DestroyWindow(WINDOW_DIALOG_PVR_GUIDE_CONTROLS);
+
+    /* Delete web relatated windows and dialogs */
+    DestroyWindow(WINDOW_WEB_BROWSER);
+    DestroyWindow(WINDOW_WEB_BROWSER_FULLSCREEN);
+    DestroyWindow(WINDOW_DIALOG_WEB_FAVOURITES);
 
     DestroyWindow(WINDOW_DIALOG_TEXT_VIEWER);
     DestroyWindow(WINDOW_DIALOG_PLAY_EJECT);
@@ -1005,7 +1023,8 @@ void CGUIWindowManager::OnApplicationMessage(ThreadMessage* pMsg)
   {
     if (pMsg->lpVoid)
     {
-      static_cast<ADDON::CGUIAddonWindowDialog*>(pMsg->lpVoid)->Show_Internal(pMsg->param2 > 0);
+      static_cast<KODI::ADDONS::INTERFACE::CGUIAddonWindowDialog*>(pMsg->lpVoid)
+          ->Show_Internal(pMsg->param2 > 0);
     }
   }
   break;
@@ -1094,6 +1113,22 @@ void CGUIWindowManager::OnApplicationMessage(ThreadMessage* pMsg)
       dialogOK->ShowAndGetInput(options);
     }
     pMsg->SetResult(static_cast<int>(dialogOK->IsConfirmed()));
+  }
+  break;
+
+  case TMSG_GUI_DIALOG_ADDON_CRASH_REPORT:
+  {
+
+    if (!pMsg->lpVoid)
+      return;
+
+    using namespace KODI::ADDONS::INTERFACE;
+
+    auto dialogCrashReport = static_cast<CGUIDialogCrashReporter*>(GetWindow(WINDOW_DIALOG_ADDON_CRASH_REPORTER));
+    if (!dialogCrashReport)
+      return;
+
+    dialogCrashReport->ReportCrash(static_cast<HELPERS::DialogCrashReportMessage*>(pMsg->lpVoid));
   }
   break;
   }

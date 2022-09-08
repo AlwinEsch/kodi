@@ -11,6 +11,7 @@
 #include "dialogs/GUIDialogSelect.h"
 #include "filesystem/AddonsDirectory.h"
 #include "games/addons/GameClient.h"
+#include "games/addons/GameClientInfo.h"
 #include "guilib/GUIComponent.h"
 #include "guilib/GUIWindowManager.h"
 #include "guilib/LocalizeStrings.h"
@@ -24,12 +25,12 @@ using namespace KODI::MESSAGING;
 using namespace GAME;
 
 std::string CGUIDialogSelectGameClient::ShowAndGetGameClient(const std::string& gamePath,
-                                                             const GameClientVector& candidates,
-                                                             const GameClientVector& installable)
+                                                             const GameClientInfoVector& candidates,
+                                                             const GameClientInfoVector& installables)
 {
   std::string gameClient;
 
-  LogGameClients(candidates, installable);
+  LogGameClients(candidates, installables);
 
   std::string extension = URIUtils::GetExtension(gamePath);
 
@@ -43,13 +44,23 @@ std::string CGUIDialogSelectGameClient::ShowAndGetGameClient(const std::string& 
     CFileItemList installableItems;
     for (const auto& candidate : candidates)
     {
-      CFileItemPtr item(XFILE::CAddonsDirectory::FileItemFromAddon(candidate, candidate->ID()));
+      ADDON::AddonPtr addon;
+      if (!CServiceBroker::GetAddonMgr().GetAddon(candidate->ID(), addon,
+                                                  ADDON::ADDON_GAMEDLL,
+                                                  ADDON::OnlyEnabled::CHOICE_YES))
+        continue;
+
+      CFileItemPtr item(XFILE::CAddonsDirectory::FileItemFromAddon(addon, candidate->ID()));
       item->SetLabel2(g_localizeStrings.Get(35257)); // "Installed"
       items.Add(std::move(item));
     }
-    for (const auto& addon : installable)
+    for (const auto& installable : installables)
     {
-      CFileItemPtr item(XFILE::CAddonsDirectory::FileItemFromAddon(addon, addon->ID()));
+      ADDON::AddonPtr addon;
+      if (!CServiceBroker::GetAddonMgr().FindInstallableById(installable->ID(), addon))
+        continue;
+
+      CFileItemPtr item(XFILE::CAddonsDirectory::FileItemFromAddon(addon, installable->ID()));
       installableItems.Add(std::move(item));
     }
     items.Sort(SortByLabel, SortOrderAscending);
@@ -102,8 +113,8 @@ CGUIDialogSelect* CGUIDialogSelectGameClient::GetDialog(const std::string& title
   return dialog;
 }
 
-void CGUIDialogSelectGameClient::LogGameClients(const GameClientVector& candidates,
-                                                const GameClientVector& installable)
+void CGUIDialogSelectGameClient::LogGameClients(const GameClientInfoVector& candidates,
+                                                const GameClientInfoVector& installable)
 {
   CLog::Log(LOGDEBUG, "Select game client dialog: Found {} candidates",
             static_cast<unsigned int>(candidates.size()));

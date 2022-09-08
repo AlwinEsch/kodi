@@ -1,0 +1,14 @@
+# Auto generated cmake/treedata/common/addon_interface.txt.
+# See xbmc/addons/kodi-dev-kit/tools/code-generator.py.
+
+xbmc/addons/interface addons_interface
+xbmc/addons/interface/renderer addons_interface_renderer
+xbmc/addons/interface/gui addons_interface_gui
+xbmc/addons/interface/tools addons_interface_tools
+xbmc/addons/interface/api addons_interface_api
+xbmc/addons/interface/api/addon-instance addons_interface_api_addon-instance
+xbmc/addons/interface/api/gui addons_interface_api_gui
+xbmc/addons/interface/api/gui/dialogs addons_interface_api_gui_dialogs
+xbmc/addons/interface/api/gui/controls addons_interface_api_gui_controls
+xbmc/addons/interface/launcher addons_interface_launcher
+xbmc/addons/interface/processinfo addons_interface_processinfo

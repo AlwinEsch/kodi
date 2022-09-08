@@ -19,6 +19,7 @@
 #include "utils/log.h"
 #include "video/VideoDatabase.h"
 #include "view/ViewDatabase.h"
+#include "web/WebDatabase.h"
 
 #include <mutex>
 
@@ -56,6 +57,10 @@ void CDatabaseManager::Initialize()
   { CVideoDatabase db; UpdateDatabase(db, &advancedSettings->m_databaseVideo); }
   { CPVRDatabase db; UpdateDatabase(db, &advancedSettings->m_databaseTV); }
   { CPVREpgDatabase db; UpdateDatabase(db, &advancedSettings->m_databaseEpg); }
+  {
+    KODI::WEB::CWebDatabase db;
+    UpdateDatabase(db, &advancedSettings->m_databaseWeb);
+  }
 
   CLog::Log(LOGDEBUG, "{}, updating databases... DONE", __FUNCTION__);
 

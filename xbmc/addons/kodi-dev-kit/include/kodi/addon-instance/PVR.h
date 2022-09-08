@@ -456,15 +456,7 @@ public:
   /// ADDONCREATOR(CPVRExample)
   /// ~~~~~~~~~~~~~
   ///
-  CInstancePVRClient() : IAddonInstance(IInstanceInfo(CPrivateBase::m_interface->firstKodiInstance))
-  {
-    if (CPrivateBase::m_interface->globalSingleInstance != nullptr)
-      throw std::logic_error("kodi::addon::CInstancePVRClient: Creation of more as one in single "
-                             "instance way is not allowed!");
-
-    SetAddonStruct(CPrivateBase::m_interface->firstKodiInstance);
-    CPrivateBase::m_interface->globalSingleInstance = this;
-  }
+  CInstancePVRClient() = default;
   //----------------------------------------------------------------------------
 
   //============================================================================
@@ -502,11 +494,6 @@ public:
   ///
   explicit CInstancePVRClient(const IInstanceInfo& instance) : IAddonInstance(instance)
   {
-    if (CPrivateBase::m_interface->globalSingleInstance != nullptr)
-      throw std::logic_error("kodi::addon::CInstancePVRClient: Creation of multiple together with "
-                             "single instance way is not allowed!");
-
-    SetAddonStruct(instance);
   }
   //----------------------------------------------------------------------------
 

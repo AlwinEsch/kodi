@@ -82,14 +82,9 @@ ADDON::CAddonMgr& CServiceBroker::GetAddonMgr()
   return g_application.m_ServiceManager->GetAddonMgr();
 }
 
-ADDON::CBinaryAddonManager& CServiceBroker::GetBinaryAddonManager()
+KODI::ADDONS::INTERFACE::CController& CServiceBroker::GetAddonIfcCtrl()
 {
-  return g_application.m_ServiceManager->GetBinaryAddonManager();
-}
-
-ADDON::CBinaryAddonCache& CServiceBroker::GetBinaryAddonCache()
-{
-  return g_application.m_ServiceManager->GetBinaryAddonCache();
+  return g_application.m_ServiceManager->GetAddonIfcCtrl();
 }
 
 ADDONS::CExtsMimeSupportList& CServiceBroker::GetExtsMimeSupportList()
@@ -213,7 +208,12 @@ CNetworkBase& CServiceBroker::GetNetwork()
   return g_application.m_ServiceManager->GetNetwork();
 }
 
-bool CServiceBroker::IsBinaryAddonCacheUp()
+WEB::CWebManager& CServiceBroker::GetWEBManager()
+{
+  return g_application.m_ServiceManager->GetWEBManager();
+}
+
+bool CServiceBroker::IsAddonInterfaceUp()
 {
   return g_application.m_ServiceManager && g_application.m_ServiceManager->init_level > 1;
 }

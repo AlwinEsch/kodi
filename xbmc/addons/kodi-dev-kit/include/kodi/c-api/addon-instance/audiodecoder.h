@@ -45,10 +45,12 @@ extern "C"
 {
 #endif /* __cplusplus */
 
-  typedef void* KODI_ADDON_AUDIODECODER_HDL;
+#if __KODI_API__ >= 1
+
+  typedef KODI_ADDON_INSTANCE_HDL KODI_ADDON_AUDIODECODER_HDL;
 
   //============================================================================
-  /// @defgroup cpp_kodi_addon_audiodecoder_Defs_AUDIODECODER_READ_RETURN enum AUDIODECODER_READ_RETURN
+  /// @defgroup cpp_kodi_addon_audiodecoder_Defs_KODI_ADDON_AUDIODECODER_READ_RETURN enum KODI_ADDON_AUDIODECODER_READ_RETURN
   /// @ingroup cpp_kodi_addon_audiodecoder_Defs
   /// @brief **Return value about** @ref kodi::addon::CInstanceAudioDecoder::ReadPCM()
   ///
@@ -60,7 +62,7 @@ extern "C"
   /// |   1   | @ref AUDIODECODER_READ_ERROR   | on failure
   ///
   ///@{
-  typedef enum AUDIODECODER_READ_RETURN
+  typedef enum KODI_ADDON_AUDIODECODER_READ_RETURN
   {
     /// @brief On end of stream
     AUDIODECODER_READ_EOF = -1,
@@ -70,7 +72,7 @@ extern "C"
 
     /// @brief On failure
     AUDIODECODER_READ_ERROR = 1
-  } AUDIODECODER_READ_RETURN;
+  } KODI_ADDON_AUDIODECODER_READ_RETURN;
   ///@}
   //----------------------------------------------------------------------------
 
@@ -123,26 +125,19 @@ extern "C"
   typedef int(ATTR_APIENTRYP PFN_KODI_ADDON_AUDIODECODER_TRACK_COUNT_V1)(
       const KODI_ADDON_AUDIODECODER_HDL hdl, const char* file);
 
-  typedef struct AddonToKodiFuncTable_AudioDecoder
+  typedef struct KODI_ADDON_AUDIODECODER_FUNC
   {
-    KODI_HANDLE kodiInstance;
-  } AddonToKodiFuncTable_AudioDecoder;
-
-  typedef struct KodiToAddonFuncTable_AudioDecoder
-  {
+    PFN_KODI_ADDON_INSTANCE_CREATE_V1 create;
+    PFN_KODI_ADDON_INSTANCE_DESTROY_V1 destroy;
     PFN_KODI_ADDON_AUDIODECODER_SUPPORTS_FILE_V1 supports_file;
     PFN_KODI_ADDON_AUDIODECODER_INIT_V1 init;
     PFN_KODI_ADDON_AUDIODECODER_READ_PCM_V1 read_pcm;
     PFN_KODI_ADDON_AUDIODECODER_SEEK_V1 seek;
     PFN_KODI_ADDON_AUDIODECODER_READ_TAG_V1 read_tag;
     PFN_KODI_ADDON_AUDIODECODER_TRACK_COUNT_V1 track_count;
-  } KodiToAddonFuncTable_AudioDecoder;
+  } KODI_ADDON_AUDIODECODER_FUNC;
 
-  typedef struct AddonInstance_AudioDecoder
-  {
-    struct AddonToKodiFuncTable_AudioDecoder* toKodi;
-    struct KodiToAddonFuncTable_AudioDecoder* toAddon;
-  } AddonInstance_AudioDecoder;
+#endif /* __KODI_API__ >= 1 */
 
 #ifdef __cplusplus
 } /* extern "C" */

@@ -13,6 +13,9 @@
 
 #ifdef __cplusplus
 
+#include <cstring>
+#include <vector>
+
 namespace kodi
 {
 namespace gui
@@ -72,17 +75,14 @@ inline bool ATTR_DLL_LOCAL ShowAndGetDirectory(const std::string& shares,
                                                std::string& path,
                                                bool writeOnly = false)
 {
-  using namespace ::kodi::addon;
   char* retString = nullptr;
-  bool ret = CPrivateBase::m_interface->toKodi->kodi_gui->dialogFileBrowser->show_and_get_directory(
-      CPrivateBase::m_interface->toKodi->kodiBase, shares.c_str(), heading.c_str(), path.c_str(),
-      &retString, writeOnly);
+  bool ret = kodi::dl::api.kodi_gui_dialogs_file_browser_show_and_get_directory(
+      shares.c_str(), heading.c_str(), path.c_str(), &retString, writeOnly);
   if (retString != nullptr)
   {
     if (std::strlen(retString))
       path = retString;
-    CPrivateBase::m_interface->toKodi->free_string(CPrivateBase::m_interface->toKodi->kodiBase,
-                                                   retString);
+    free(retString);
   }
   return ret;
 }
@@ -109,17 +109,15 @@ inline bool ATTR_DLL_LOCAL ShowAndGetFile(const std::string& shares,
                                           bool useThumbs = false,
                                           bool useFileDirectories = false)
 {
-  using namespace ::kodi::addon;
   char* retString = nullptr;
-  bool ret = CPrivateBase::m_interface->toKodi->kodi_gui->dialogFileBrowser->show_and_get_file(
-      CPrivateBase::m_interface->toKodi->kodiBase, shares.c_str(), mask.c_str(), heading.c_str(),
-      path.c_str(), &retString, useThumbs, useFileDirectories);
+  bool ret = kodi::dl::api.kodi_gui_dialogs_file_browser_show_and_get_file(
+      shares.c_str(), mask.c_str(), heading.c_str(), path.c_str(), &retString, useThumbs,
+      useFileDirectories);
   if (retString != nullptr)
   {
     if (std::strlen(retString))
       path = retString;
-    CPrivateBase::m_interface->toKodi->free_string(CPrivateBase::m_interface->toKodi->kodiBase,
-                                                   retString);
+    free(retString);
   }
   return ret;
 }
@@ -149,18 +147,15 @@ inline bool ATTR_DLL_LOCAL ShowAndGetFileFromDir(const std::string& directory,
                                                  bool useFileDirectories = false,
                                                  bool singleList = false)
 {
-  using namespace ::kodi::addon;
   char* retString = nullptr;
-  bool ret =
-      CPrivateBase::m_interface->toKodi->kodi_gui->dialogFileBrowser->show_and_get_file_from_dir(
-          CPrivateBase::m_interface->toKodi->kodiBase, directory.c_str(), mask.c_str(),
-          heading.c_str(), path.c_str(), &retString, useThumbs, useFileDirectories, singleList);
+  bool ret = kodi::dl::api.kodi_gui_dialogs_file_browser_show_and_get_file_from_dir(
+      directory.c_str(), mask.c_str(), heading.c_str(), path.c_str(), &retString, useThumbs,
+      useFileDirectories, singleList);
   if (retString != nullptr)
   {
     if (std::strlen(retString))
       path = retString;
-    CPrivateBase::m_interface->toKodi->free_string(CPrivateBase::m_interface->toKodi->kodiBase,
-                                                   retString);
+    free(retString);
   }
   return ret;
 }
@@ -186,18 +181,16 @@ inline bool ATTR_DLL_LOCAL ShowAndGetFileList(const std::string& shares,
                                               bool useThumbs = false,
                                               bool useFileDirectories = false)
 {
-  using namespace ::kodi::addon;
   char** list = nullptr;
-  unsigned int listSize = 0;
-  bool ret = CPrivateBase::m_interface->toKodi->kodi_gui->dialogFileBrowser->show_and_get_file_list(
-      CPrivateBase::m_interface->toKodi->kodiBase, shares.c_str(), mask.c_str(), heading.c_str(),
-      &list, &listSize, useThumbs, useFileDirectories);
+  size_t listSize = 0;
+  bool ret = kodi::dl::api.kodi_gui_dialogs_file_browser_show_and_get_file_list(
+      shares.c_str(), mask.c_str(), heading.c_str(), &list, &listSize, useThumbs,
+      useFileDirectories);
   if (ret)
   {
-    for (unsigned int i = 0; i < listSize; ++i)
+    for (size_t i = 0; i < listSize; ++i)
       fileList.emplace_back(list[i]);
-    CPrivateBase::m_interface->toKodi->kodi_gui->dialogFileBrowser->clear_file_list(
-        CPrivateBase::m_interface->toKodi->kodiBase, &list, listSize);
+    kodi::dl::api.kodi_gui_dialogs_file_browser_clear_file_list(&list, listSize);
   }
   return ret;
 }
@@ -220,17 +213,14 @@ inline bool ATTR_DLL_LOCAL ShowAndGetSource(std::string& path,
                                             const std::string& additionalShare = "",
                                             const std::string& type = "")
 {
-  using namespace ::kodi::addon;
   char* retString = nullptr;
-  bool ret = CPrivateBase::m_interface->toKodi->kodi_gui->dialogFileBrowser->show_and_get_source(
-      CPrivateBase::m_interface->toKodi->kodiBase, path.c_str(), &retString, allowNetworkShares,
-      additionalShare.c_str(), type.c_str());
+  bool ret = kodi::dl::api.kodi_gui_dialogs_file_browser_show_and_get_source(
+      path.c_str(), &retString, allowNetworkShares, additionalShare.c_str(), type.c_str());
   if (retString != nullptr)
   {
     if (std::strlen(retString))
       path = retString;
-    CPrivateBase::m_interface->toKodi->free_string(CPrivateBase::m_interface->toKodi->kodiBase,
-                                                   retString);
+    free(retString);
   }
   return ret;
 }
@@ -249,17 +239,14 @@ inline bool ATTR_DLL_LOCAL ShowAndGetImage(const std::string& shares,
                                            const std::string& heading,
                                            std::string& path)
 {
-  using namespace ::kodi::addon;
   char* retString = nullptr;
-  bool ret = CPrivateBase::m_interface->toKodi->kodi_gui->dialogFileBrowser->show_and_get_image(
-      CPrivateBase::m_interface->toKodi->kodiBase, shares.c_str(), heading.c_str(), path.c_str(),
-      &retString);
+  bool ret = kodi::dl::api.kodi_gui_dialogs_file_browser_show_and_get_image(
+      shares.c_str(), heading.c_str(), path.c_str(), &retString);
   if (retString != nullptr)
   {
     if (std::strlen(retString))
       path = retString;
-    CPrivateBase::m_interface->toKodi->free_string(CPrivateBase::m_interface->toKodi->kodiBase,
-                                                   retString);
+    free(retString);
   }
   return ret;
 }
@@ -278,24 +265,22 @@ inline bool ATTR_DLL_LOCAL ShowAndGetImageList(const std::string& shares,
                                                const std::string& heading,
                                                std::vector<std::string>& file_list)
 {
-  using namespace ::kodi::addon;
   char** list = nullptr;
-  unsigned int listSize = 0;
-  bool ret =
-      CPrivateBase::m_interface->toKodi->kodi_gui->dialogFileBrowser->show_and_get_image_list(
-          CPrivateBase::m_interface->toKodi->kodiBase, shares.c_str(), heading.c_str(), &list,
-          &listSize);
+  size_t listSize = 0;
+  bool ret = kodi::dl::api.kodi_gui_dialogs_file_browser_show_and_get_image_list(
+      shares.c_str(), heading.c_str(), &list, &listSize);
   if (ret)
   {
-    for (unsigned int i = 0; i < listSize; ++i)
+    for (size_t i = 0; i < listSize; ++i)
       file_list.emplace_back(list[i]);
-    CPrivateBase::m_interface->toKodi->kodi_gui->dialogFileBrowser->clear_file_list(
-        CPrivateBase::m_interface->toKodi->kodiBase, &list, listSize);
+    kodi::dl::api.kodi_gui_dialogs_file_browser_clear_file_list(&list, listSize);
   }
   return ret;
 }
 //------------------------------------------------------------------------------
-}; // namespace FileBrowser
+
+
+} /* namespace FileBrowser */
 
 } /* namespace dialogs */
 } /* namespace gui */

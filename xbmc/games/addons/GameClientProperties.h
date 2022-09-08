@@ -9,13 +9,13 @@
 #pragma once
 
 #include "addons/Addon.h"
-#include "addons/kodi-dev-kit/include/kodi/addon-instance/Game.h"
+#include "addons/kodi-dev-kit/include/kodi/c-api/addon-instance/game.h"
 #include "games/GameTypes.h"
 
 #include <string>
 #include <vector>
 
-struct AddonProps_Game;
+struct GAME_PROPS;
 
 namespace KODI
 {
@@ -33,10 +33,12 @@ class CGameClient;
 class CGameClientProperties
 {
 public:
-  CGameClientProperties(const CGameClient& parent, AddonProps_Game& props);
+  CGameClientProperties(const CGameClient& parent);
   ~CGameClientProperties(void) { ReleaseResources(); }
 
   bool InitializeProperties(void);
+
+  GAME_PROPS& GetProperties() { return m_properties; }
 
 private:
   // Release mutable resources
@@ -68,12 +70,12 @@ private:
 
   // Helper functions
   bool GetProxyAddons(ADDON::VECADDONS& addons);
-  void AddProxyDll(const GameClientPtr& gameClient);
+  void AddProxyDll(const std::string& strLibPath);
   bool HasProxyDll(const std::string& strLibPath) const;
 
   // Construction parameters
   const CGameClient& m_parent;
-  AddonProps_Game& m_properties;
+  GAME_PROPS m_properties;
 
   // Buffers to hold the strings
   std::string m_strLibraryPath;

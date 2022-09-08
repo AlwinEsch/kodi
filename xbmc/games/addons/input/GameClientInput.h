@@ -44,7 +44,8 @@ class CGameClientInput : protected CGameClientSubsystem, public Observer
 {
 public:
   CGameClientInput(CGameClient& gameClient,
-                   AddonInstance_Game& addonStruct,
+                   KODI::ADDONS::INTERFACE::CHdl_kodi_addoninstance_game_h& gameClientIfc,
+                   const KODI_ADDON_GAME_HDL gameClientHdl,
                    CCriticalSection& clientAccess);
   ~CGameClientInput() override;
 

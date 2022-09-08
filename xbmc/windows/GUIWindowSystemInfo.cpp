@@ -8,8 +8,10 @@
 
 #include "GUIWindowSystemInfo.h"
 
+#include "FileItem.h"
 #include "GUIInfoManager.h"
 #include "ServiceBroker.h"
+#include "addons/interface/Controller.h"
 #include "guilib/GUIComponent.h"
 #include "guilib/GUIMessage.h"
 #include "guilib/LocalizeStrings.h"
@@ -20,8 +22,10 @@
 #include "utils/CPUInfo.h"
 #include "utils/StringUtils.h"
 #include "utils/SystemInfo.h"
+#include "utils/Variant.h"
 
 #define CONTROL_TB_POLICY   30
+#define CONTROL_TB_ADDONS 29
 #define CONTROL_BT_STORAGE  94
 #define CONTROL_BT_DEFAULT  95
 #define CONTROL_BT_NETWORK  96
@@ -29,18 +33,23 @@
 #define CONTROL_BT_HARDWARE 98
 #define CONTROL_BT_PVR      99
 #define CONTROL_BT_POLICY   100
+#define CONTROL_BT_ADDONS 101
 
 #define CONTROL_START       CONTROL_BT_STORAGE
-#define CONTROL_END         CONTROL_BT_POLICY
+#define CONTROL_END CONTROL_BT_ADDONS
 
-CGUIWindowSystemInfo::CGUIWindowSystemInfo(void) :
-    CGUIWindow(WINDOW_SYSTEM_INFORMATION, "SettingsSystemInfo.xml")
+CGUIWindowSystemInfo::CGUIWindowSystemInfo(void)
+  : CGUIWindow(WINDOW_SYSTEM_INFORMATION, "SettingsSystemInfo.xml"),
+    m_addonProcessInfo(new CFileItemList)
 {
   m_section = CONTROL_BT_DEFAULT;
   m_loadType = KEEP_IN_MEMORY;
 }
 
-CGUIWindowSystemInfo::~CGUIWindowSystemInfo(void) = default;
+CGUIWindowSystemInfo::~CGUIWindowSystemInfo(void)
+{
+  delete m_addonProcessInfo;
+}
 
 bool CGUIWindowSystemInfo::OnMessage(CGUIMessage& message)
 {
@@ -74,12 +83,21 @@ bool CGUIWindowSystemInfo::OnMessage(CGUIMessage& message)
         m_section = focusedControl;
       }
       if (m_section >= CONTROL_BT_STORAGE && m_section <= CONTROL_BT_PVR)
+      {
+        SET_CONTROL_HIDDEN(CONTROL_TB_ADDONS);
         SET_CONTROL_HIDDEN(CONTROL_TB_POLICY);
+      }
       else if (m_section == CONTROL_BT_POLICY)
       {
+        SET_CONTROL_HIDDEN(CONTROL_TB_ADDONS);
         SET_CONTROL_LABEL(CONTROL_TB_POLICY, CServiceBroker::GetGUI()->GetInfoManager().GetLabel(
                                                  SYSTEM_PRIVACY_POLICY, INFO::DEFAULT_CONTEXT));
         SET_CONTROL_VISIBLE(CONTROL_TB_POLICY);
+      }
+      else if (m_section == CONTROL_BT_ADDONS)
+      {
+        SET_CONTROL_HIDDEN(CONTROL_TB_POLICY);
+        SET_CONTROL_VISIBLE(CONTROL_TB_ADDONS);
       }
       return true;
     }
@@ -235,6 +253,11 @@ void CGUIWindowSystemInfo::FrameMove()
     SetControlLabel(i++, "{}: {}", 19025, PVR_BACKEND_TIMERS);
   }
 
+  else if (m_section == CONTROL_BT_ADDONS)
+  {
+    UpdateAddonProcessInfos();
+  }
+
   else if (m_section == CONTROL_BT_POLICY)
   {
     SET_CONTROL_LABEL(40, g_localizeStrings.Get(12389));
@@ -257,4 +280,115 @@ void CGUIWindowSystemInfo::SetControlLabel(int id, const char *format, int label
       format, g_localizeStrings.Get(label),
       CServiceBroker::GetGUI()->GetInfoManager().GetLabel(info, INFO::DEFAULT_CONTEXT));
   SET_CONTROL_LABEL(id, tmpStr);
+}
+
+void CGUIWindowSystemInfo::OnInitWindow()
+{
+  UpdateAddonProcessInfos();
+  CGUIWindow::OnInitWindow();
+}
+
+void CGUIWindowSystemInfo::OnWindowLoaded()
+{
+  CGUIWindow::OnWindowLoaded();
+  m_viewControl.Reset();
+  m_viewControl.SetParentWindow(GetID());
+  m_viewControl.AddView(GetControl(CONTROL_TB_ADDONS));
+}
+
+void CGUIWindowSystemInfo::OnDeinitWindow(int nextWindowID)
+{
+  m_viewControl.Clear();
+  m_addonProcessInfo->Clear();
+  CGUIWindow::OnDeinitWindow(nextWindowID);
+}
+
+void CGUIWindowSystemInfo::OnWindowUnload()
+{
+  m_viewControl.Reset();
+
+  CGUIWindow::OnWindowUnload();
+}
+
+void CGUIWindowSystemInfo::UpdateAddonProcessInfos()
+{
+  using namespace KODI::ADDONS::INTERFACE;
+
+  /*
+   * Get info about running processes
+   */
+  auto data = CServiceBroker::GetAddonIfcCtrl().GetProcessInfoData();
+
+  bool changed = false;
+
+  /*
+   * Check now the active file list contains no more present addon processes,
+   * if yes remove them.
+   */
+  for (int i = 0; i < m_addonProcessInfo->Size(); i++)
+  {
+    const std::string addonId = m_addonProcessInfo->Get(i)->GetLabel();
+    auto it = std::find_if(data.begin(), data.end(),
+                           [addonId](const ProcessInfoData& data)
+                           { return addonId == data.m_addon->ID(); });
+    if (it == data.end())
+    {
+      m_addonProcessInfo->Remove(i);
+      --i; // don't confuse loop
+      changed = true;
+    }
+  }
+
+  /*
+   * Now update the list of active processes to show in GUI.
+   */
+  for (const auto& entry : data)
+  {
+    const std::string addonId = entry.m_addon->ID();
+    CFileItemPtr item = FindAddonProcess(addonId);
+    if (!item)
+    {
+      item = std::make_shared<CFileItem>(addonId);
+
+      item->SetProperty("addon_id", addonId);
+      const std::string icon = entry.m_addon->Icon();
+      if (!icon.empty())
+        item->SetArt("icon", entry.m_addon->Icon());
+      else
+        item->SetArt("icon", "DefaultFile.png");
+
+      m_addonProcessInfo->Add(item);
+      changed = true;
+    }
+
+    item->SetLabel2(entry.m_addon->Name());
+    item->SetProperty("cpuusagetext", StringUtils::Format("{} %", entry.m_usedCPUPercentage));
+    item->SetProperty("cpuusage", entry.m_usedCPUPercentage);
+    item->SetProperty("physicalmemoryusage",
+                      StringUtils::FormatFileSize(entry.m_usedPhysicalMemoryAmount));
+    item->SetProperty("virtualmemoryusage",
+                      StringUtils::FormatFileSize(entry.m_usedVirtualMemoryAmount));
+    item->SetProperty("sharedmemoryusage",
+                      StringUtils::FormatFileSize(entry.m_usedSharedMemoryAmount));
+    item->SetProperty("threads", entry.m_usedThreadsAmount);
+    item->SetProperty("pid", entry.m_pid);
+  }
+
+  if (changed)
+  {
+    m_viewControl.SetItems(*m_addonProcessInfo);
+    m_viewControl.SetCurrentView(CONTROL_TB_ADDONS, true);
+  }
+}
+
+CFileItemPtr CGUIWindowSystemInfo::FindAddonProcess(const std::string& addonId)
+{
+  for (int i = 0; i < m_addonProcessInfo->Size(); i++)
+  {
+    CFileItemPtr item = m_addonProcessInfo->Get(i);
+    if (item->GetLabel() == addonId)
+      return item;
+  }
+
+  return CFileItemPtr();
 }

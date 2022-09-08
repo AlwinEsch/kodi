@@ -11,8 +11,8 @@
 #include "DVDInputStream.h"
 #include "IVideoPlayer.h"
 #include "addons/AddonProvider.h"
-#include "addons/binary-addons/AddonInstanceHandler.h"
-#include "addons/kodi-dev-kit/include/kodi/addon-instance/Inputstream.h"
+#include "addons/interface/InstanceHandler.h"
+#include "addons/kodi-dev-kit/include/kodi/c-api/addon-instance/inputstream.h"
 
 #include <memory>
 #include <vector>
@@ -33,14 +33,13 @@ private:
 };
 
 //! \brief Input stream class
-class CInputStreamAddon
-  : public ADDON::IAddonInstanceHandler
-  , public CDVDInputStream
-  , public CDVDInputStream::IDisplayTime
-  , public CDVDInputStream::ITimes
-  , public CDVDInputStream::IPosTime
-  , public CDVDInputStream::IDemux
-  , public CDVDInputStream::IChapter
+class CInputStreamAddon : public KODI::ADDONS::INTERFACE::IInstanceHandler,
+                          public CDVDInputStream,
+                          public CDVDInputStream::IDisplayTime,
+                          public CDVDInputStream::ITimes,
+                          public CDVDInputStream::IPosTime,
+                          public CDVDInputStream::IDemux,
+                          public CDVDInputStream::IChapter
 {
 public:
   CInputStreamAddon(const ADDON::AddonInfoPtr& addonInfo,
@@ -100,19 +99,6 @@ public:
   int64_t GetChapterPos(int ch = -1) override;
   bool SeekChapter(int ch) override;
 
-protected:
-  static int ConvertVideoCodecProfile(STREAMCODEC_PROFILE profile);
-
-  IVideoPlayer* m_player;
-
-private:
-  std::vector<std::string> m_fileItemProps;
-  INPUTSTREAM_CAPABILITIES m_caps;
-
-  int m_streamCount = 0;
-
-  std::shared_ptr<CInputStreamProvider> m_subAddonProvider;
-
   /*!
    * Callbacks from add-on to kodi
    */
@@ -123,7 +109,8 @@ private:
    * @param iDataSize The size of the data that will go into the packet
    * @return The allocated packet.
    */
-  static DEMUX_PACKET* cb_allocate_demux_packet(void* kodiInstance, int iDataSize = 0);
+  DEMUX_PACKET* cb_allocate_demux_packet(int iDataSize = 0);
+  /*---AUTO_GEN_PARSE<CB:kodi_addon_inputstream_allocate_demux_packet>---*/
 
   /*!
   * @brief Allocate an encrypted demux packet. Free with FreeDemuxPacket
@@ -132,16 +119,17 @@ private:
   * @param encryptedSubsampleCount The number of subsample description blocks to allocate
   * @return The allocated packet.
   */
-  static DEMUX_PACKET* cb_allocate_encrypted_demux_packet(void* kodiInstance,
-                                                          unsigned int dataSize,
-                                                          unsigned int encryptedSubsampleCount);
+  DEMUX_PACKET* cb_allocate_encrypted_demux_packet(unsigned int dataSize,
+                                                   unsigned int encryptedSubsampleCount);
+  /*---AUTO_GEN_PARSE<CB:kodi_addon_inputstream_allocate_encrypted_demux_packet>---*/
 
   /*!
    * @brief Free a packet that was allocated with AllocateDemuxPacket
    * @param kodiInstance A pointer to the add-on.
    * @param pPacket The packet to free.
    */
-  static void cb_free_demux_packet(void* kodiInstance, DEMUX_PACKET* pPacket);
+  void cb_free_demux_packet(DEMUX_PACKET* pPacket);
+  /*---AUTO_GEN_PARSE<CB:kodi_addon_inputstream_free_demux_packet>---*/
 
   /*!
    * @brief Callback used by @ref GetStream to get the data
@@ -158,4 +146,17 @@ private:
                                             int streamId,
                                             INPUTSTREAM_INFO* stream);
   //@}
+
+protected:
+  static int ConvertVideoCodecProfile(STREAMCODEC_PROFILE profile);
+
+  IVideoPlayer* m_player;
+
+private:
+  std::vector<std::string> m_fileItemProps;
+  INPUTSTREAM_CAPABILITIES m_caps;
+
+  int m_streamCount = 0;
+
+  std::shared_ptr<CInputStreamProvider> m_subAddonProvider;
 };

@@ -33,6 +33,7 @@ addons/script.module.pil/*
 addons/script.module.pycryptodome/*
 addons/service.xbmc.versioncheck/*
 addons/webinterface.default/*
+addons/kodi.web/*
 addons/xbmc.addon/metadata.xsd
 addons/xbmc.addon/repository.xsd
 addons/xbmc.audioencoder/*

@@ -18,7 +18,8 @@
 #include "addons/PluginSource.h"
 #include "addons/RepositoryUpdater.h"
 #include "games/GameUtils.h"
-#include "games/addons/GameClient.h"
+#include "games/GameServices.h"
+#include "games/addons/GameClientController.h"
 #include "guilib/LocalizeStrings.h"
 #include "guilib/TextureManager.h"
 #include "interfaces/generic/ScriptInvocationManager.h"
@@ -110,7 +111,10 @@ static bool IsStandaloneGame(const AddonPtr& addon)
 
 static bool IsEmulator(const AddonPtr& addon)
 {
-  return addon->Type() == ADDON_GAMEDLL && std::static_pointer_cast<GAME::CGameClient>(addon)->SupportsPath();
+  if (addon->Type() != ADDON_GAMEDLL)
+    return false;
+  auto client = CServiceBroker::GetGameServices().GameClientController().GetGameClient(addon->ID());
+  return client->SupportsPath();
 }
 
 static bool IsGameProvider(const AddonPtr& addon)
@@ -125,9 +129,11 @@ static bool IsGameResource(const AddonPtr& addon)
 
 static bool IsGameSupportAddon(const AddonPtr& addon)
 {
-  return addon->Type() == ADDON_GAMEDLL &&
-         !std::static_pointer_cast<GAME::CGameClient>(addon)->SupportsPath() &&
-         !std::static_pointer_cast<GAME::CGameClient>(addon)->SupportsStandalone();
+  if (addon->Type() != ADDON_GAMEDLL)
+    return false;
+
+  auto client = CServiceBroker::GetGameServices().GameClientController().GetGameClient(addon->ID());
+  return !client->SupportsPath() && client->SupportsStandalone();
 }
 
 static bool IsGameAddon(const AddonPtr& addon)
@@ -688,6 +694,8 @@ bool CAddonsDirectory::GetDirectory(const CURL& url, CFileItemList &items)
       type = ADDON_PVRDLL;
     else if (path.GetFileName() == "kodi.vfs")
       type = ADDON_VFS;
+    else if (path.GetFileName() == "kodi.web")
+      type = ADDON_WEB_MANAGER;
     else
       type = ADDON_UNKNOWN;
 
@@ -819,6 +827,8 @@ void CAddonsDirectory::GenerateAddonListing(const CURL& path,
     pItem->SetProperty("Addon.ValidUpdateOrigin", validUpdateOrigin);
     pItem->SetProperty("Addon.IsFromOfficialRepo", fromOfficialRepo);
     pItem->SetProperty("Addon.IsBinary", addon->IsBinary());
+    const int programmingLanguage = addon->Type(addon->Type())->LanguageLocalizedStringID();
+    pItem->SetProperty("Addon.ProgrammingLanguage", g_localizeStrings.Get(programmingLanguage));
 
     if (installed)
       pItem->SetProperty("Addon.Status", g_localizeStrings.Get(305));

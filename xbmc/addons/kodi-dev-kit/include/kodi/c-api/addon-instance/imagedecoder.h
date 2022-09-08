@@ -6,15 +6,19 @@
  *  See LICENSES/README.md for more information.
  */
 
-#ifndef C_API_ADDONINSTANCE_IMAGE_DECODER_H
-#define C_API_ADDONINSTANCE_IMAGE_DECODER_H
+#ifndef C_API_ADDONINSTANCE_IMAGEDECODER_H
+#define C_API_ADDONINSTANCE_IMAGEDECODER_H
 
 #include "../addon_base.h"
+
+#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C"
 {
 #endif /* __cplusplus */
+
+#if __KODI_API__ >= 1
 
   typedef void* KODI_ADDON_IMAGEDECODER_HDL;
 
@@ -371,21 +375,21 @@ extern "C"
     int width;
     int height;
     float distance;
-    ADDON_IMG_ORIENTATION orientation;
-    ADDON_IMG_COLOR color;
-    ADDON_IMG_METERING_MODE metering_mode;
+    enum ADDON_IMG_ORIENTATION orientation;
+    enum ADDON_IMG_COLOR color;
+    enum ADDON_IMG_METERING_MODE metering_mode;
     float exposure_time;
     float exposure_bias;
-    ADDON_IMG_EXPOSURE_PROGRAM exposure_program;
-    ADDON_IMG_EXPOSURE_MODE exposure_mode;
+    enum ADDON_IMG_EXPOSURE_PROGRAM exposure_program;
+    enum ADDON_IMG_EXPOSURE_MODE exposure_mode;
     time_t time_created;
     float aperture_f_number;
-    ADDON_IMG_FLASH_TYPE flash_used;
+    enum ADDON_IMG_FLASH_TYPE flash_used;
     int focal_length;
     int focal_length_in_35mm_format;
     float digital_zoom_ratio;
     float iso_speed;
-    ADDON_IMG_LIGHT_SOURCE light_source;
+    enum ADDON_IMG_LIGHT_SOURCE light_source;
 
     bool gps_info_present;
     char latitude_ref;
@@ -424,27 +428,20 @@ extern "C"
       unsigned int pitch,
       enum ADDON_IMG_FMT format);
 
-  typedef struct KodiToAddonFuncTable_ImageDecoder
+  struct KODI_ADDON_IMAGEDECODER_FUNC
   {
+    PFN_KODI_ADDON_INSTANCE_CREATE_V1 create;
+    PFN_KODI_ADDON_INSTANCE_DESTROY_V1 destroy;
     PFN_KODI_ADDON_IMAGEDECODER_SUPPORTS_FILE_V1 supports_file;
     PFN_KODI_ADDON_IMAGEDECODER_READ_TAG_V1 read_tag;
     PFN_KODI_ADDON_IMAGEDECODER_LOAD_IMAGE_FROM_MEMORY_V1 load_image_from_memory;
     PFN_KODI_ADDON_IMAGEDECODER_DECODE_V1 decode;
-  } KodiToAddonFuncTable_ImageDecoder;
+  };
 
-  typedef struct AddonToKodiFuncTable_ImageDecoder
-  {
-    KODI_HANDLE kodi_instance;
-  } AddonToKodiFuncTable_ImageDecoder;
-
-  typedef struct AddonInstance_ImageDecoder
-  {
-    struct AddonToKodiFuncTable_ImageDecoder* toKodi;
-    struct KodiToAddonFuncTable_ImageDecoder* toAddon;
-  } AddonInstance_ImageDecoder;
+#endif /* __KODI_API__ >= 1 */
 
 #ifdef __cplusplus
 } /* extern "C" */
 #endif /* __cplusplus */
 
-#endif /* !C_API_ADDONINSTANCE_IMAGE_DECODER_H */
+#endif /* !C_API_ADDONINSTANCE_IMAGEDECODER_H */

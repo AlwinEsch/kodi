@@ -3,6 +3,7 @@
 
 xbmc/addons/kodi-dev-kit/include/kodi addons_kodi-dev-kit_include_kodi
 xbmc/addons/kodi-dev-kit/include/kodi/c-api addons_kodi-dev-kit_include_kodi_c-api
+xbmc/addons/kodi-dev-kit/include/kodi/c-api/dl addons_kodi-dev-kit_include_kodi_c-api_dl
 xbmc/addons/kodi-dev-kit/include/kodi/c-api/platform addons_kodi-dev-kit_include_kodi_c-api_platform
 xbmc/addons/kodi-dev-kit/include/kodi/c-api/platform/android addons_kodi-dev-kit_include_kodi_c-api_platform_android
 xbmc/addons/kodi-dev-kit/include/kodi/c-api/addon-instance addons_kodi-dev-kit_include_kodi_c-api_addon-instance
@@ -24,3 +25,6 @@ xbmc/addons/kodi-dev-kit/include/kodi/gui/controls addons_kodi-dev-kit_include_k
 xbmc/addons/kodi-dev-kit/include/kodi/gui/input addons_kodi-dev-kit_include_kodi_gui_input
 xbmc/addons/kodi-dev-kit/include/kodi/gui/gl addons_kodi-dev-kit_include_kodi_gui_gl
 xbmc/addons/kodi-dev-kit/include/kodi/tools addons_kodi-dev-kit_include_kodi_tools
+xbmc/addons/kodi-dev-kit/src/shared devkit_shared # Hardcoded entry, edit script for change!
+xbmc/addons/kodi-dev-kit/src/addon kodidevkit # Hardcoded entry, edit script for change!
+xbmc/addons/kodi-dev-kit/src/addon_runner addon_runner # Hardcoded entry, edit script for change!

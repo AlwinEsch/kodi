@@ -9,19 +9,21 @@
 #ifndef C_API_GUI_CONTROLS_LABEL_H
 #define C_API_GUI_CONTROLS_LABEL_H
 
-#include "../definitions.h"
+#include "../../addon_base.h"
 
 #ifdef __cplusplus
 extern "C"
 {
 #endif /* __cplusplus */
 
-  typedef struct AddonToKodiFuncTable_kodi_gui_control_label
-  {
-    void (*set_visible)(KODI_HANDLE kodiBase, KODI_GUI_CONTROL_HANDLE handle, bool visible);
-    void (*set_label)(KODI_HANDLE kodiBase, KODI_GUI_CONTROL_HANDLE handle, const char* text);
-    char* (*get_label)(KODI_HANDLE kodiBase, KODI_GUI_CONTROL_HANDLE handle);
-  } AddonToKodiFuncTable_kodi_gui_control_label;
+  typedef void* KODI_GUI_CONTROL_HANDLE;
+
+  ATTR_DLL_EXPORT void kodi_gui_controls_label_set_visible(KODI_GUI_CONTROL_HANDLE handle,
+                                                           bool visible) __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT void kodi_gui_controls_label_set_label(KODI_GUI_CONTROL_HANDLE handle,
+                                                         const char* text) __INTRODUCED_IN_KODI(1);
+  ATTR_DLL_EXPORT char* kodi_gui_controls_label_get_label(KODI_GUI_CONTROL_HANDLE handle)
+      __INTRODUCED_IN_KODI(1);
 
 #ifdef __cplusplus
 } /* extern "C" */
