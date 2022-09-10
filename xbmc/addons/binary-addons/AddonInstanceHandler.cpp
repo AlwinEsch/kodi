@@ -29,6 +29,7 @@ namespace ADDON
 CCriticalSection IAddonInstanceHandler::m_cdSec;
 
 IAddonInstanceHandler::IAddonInstanceHandler(
+    const KODI_ADDON_INSTANCE_BACKEND_HDL hdl,
     ADDON_TYPE type,
     const AddonInfoPtr& addonInfo,
     AddonInstanceId instanceId /* = ADDON_INSTANCE_ID_UNUSED */,
@@ -46,7 +47,7 @@ IAddonInstanceHandler::IAddonInstanceHandler(
   info->id = m_uniqueWorkID.c_str(); // @todo change within next big API change to "unique_work_id"
   info->version = kodi::addon::GetTypeVersion(m_type);
   info->type = m_type;
-  info->kodi = this;
+  info->kodi = hdl;
   info->parent = m_parentInstance;
   info->first_instance = m_addon && !m_addon->Initialized();
   info->functions = new KODI_ADDON_INSTANCE_FUNC_CB();

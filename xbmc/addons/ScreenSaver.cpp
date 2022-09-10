@@ -26,7 +26,7 @@ void get_properties(const KODI_HANDLE hdl, struct KODI_ADDON_SCREENSAVER_PROPS* 
 } // namespace
 
 CScreenSaver::CScreenSaver(const AddonInfoPtr& addonInfo)
-  : IAddonInstanceHandler(ADDON_INSTANCE_SCREENSAVER, addonInfo)
+  : IAddonInstanceHandler(this, ADDON_INSTANCE_SCREENSAVER, addonInfo)
 {
   m_ifc.screensaver = new AddonInstance_Screensaver;
   m_ifc.screensaver->toAddon = new KodiToAddonFuncTable_Screensaver();

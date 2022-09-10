@@ -11,7 +11,7 @@ using namespace ADDON;
 using namespace KODI::CDRIP;
 
 CEncoderAddon::CEncoderAddon(const AddonInfoPtr& addonInfo)
-  : IAddonInstanceHandler(ADDON_INSTANCE_AUDIOENCODER, addonInfo)
+  : IAddonInstanceHandler(this, ADDON_INSTANCE_AUDIOENCODER, addonInfo)
 {
   // Create "C" interface structures, used as own parts to prevent API problems on update
   m_ifc.audioencoder = new AddonInstance_AudioEncoder();

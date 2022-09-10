@@ -37,6 +37,7 @@ public:
    * @brief Class constructor for handling add-on instance processes, allowing
    * an add-on to handle multiple work simultaneously and independently.
    *
+   * @param[in] hdl Related add-on class pointer to pass to add-on about callbacks.
    * @param[in] type The associated add-on type which is processed in the running
    *                 instance.
    * @param[in] addonInfo Class for querying available add-on information (e.g.
@@ -58,7 +59,8 @@ public:
    * | @ref kodi::addon::CInstanceInputStream "Inputstream" | To transfer special values to inputstream using the property @ref STREAM_PROPERTY_INPUTSTREAM_INSTANCE_ID from external space, for example PVR add-on which also supports inputstream can exchange special values with it, e.g. select the necessary add-on processing class, since it is not known at the start what is being executed ( live TV, radio, recordings...) and add-on may use different classes.
    * | All other | The used class pointer of Kodi's @ref IAddonInstanceHandler is used as a value to have an individually different value.
    */
-  IAddonInstanceHandler(ADDON_TYPE type,
+  IAddonInstanceHandler(const KODI_ADDON_INSTANCE_BACKEND_HDL hdl,
+                        ADDON_TYPE type,
                         const AddonInfoPtr& addonInfo,
                         AddonInstanceId instanceId = ADDON_INSTANCE_ID_UNUSED,
                         KODI_HANDLE parentInstance = nullptr,
