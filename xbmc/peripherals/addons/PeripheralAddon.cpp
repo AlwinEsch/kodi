@@ -52,7 +52,7 @@ using namespace XFILE;
 #endif
 
 CPeripheralAddon::CPeripheralAddon(const ADDON::AddonInfoPtr& addonInfo, CPeripherals& manager)
-  : IAddonInstanceHandler(ADDON_INSTANCE_PERIPHERAL, addonInfo),
+  : IAddonInstanceHandler(this, ADDON_INSTANCE_PERIPHERAL, addonInfo),
     m_manager(manager)
 {
   m_bProvidesJoysticks =
