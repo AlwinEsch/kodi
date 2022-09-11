@@ -17,7 +17,7 @@
 namespace ADDON
 {
 
-  class IAddonInstanceHandler;
+  class IInstanceHandler;
 
   class CAddonInfo;
   using AddonInfoPtr = std::shared_ptr<CAddonInfo>;
@@ -32,8 +32,8 @@ namespace ADDON
 
     const std::string& ID() const;
 
-    AddonDllPtr GetAddon(IAddonInstanceHandler* handler);
-    void ReleaseAddon(IAddonInstanceHandler* handler);
+    AddonDllPtr GetAddon(IInstanceHandler* handler);
+    void ReleaseAddon(IInstanceHandler* handler);
     size_t UsedInstanceCount() const;
 
     AddonDllPtr GetActiveAddon();
@@ -48,7 +48,7 @@ namespace ADDON
 
     mutable CCriticalSection m_critSection;
     AddonDllPtr m_activeAddon;
-    std::unordered_set<IAddonInstanceHandler*> m_activeAddonHandlers;
+    std::unordered_set<IInstanceHandler*> m_activeAddonHandlers;
   };
 
 } /* namespace ADDON */

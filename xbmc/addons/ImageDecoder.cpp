@@ -26,7 +26,7 @@ constexpr std::array<std::tuple<unsigned int, ADDON_IMG_FMT, size_t>, 4> KodiToA
 } /* namespace */
 
 CImageDecoder::CImageDecoder(const AddonInfoPtr& addonInfo, const std::string& mimetype)
-  : IAddonInstanceHandler(this, ADDON_INSTANCE_IMAGEDECODER, addonInfo), m_mimetype(mimetype)
+  : IInstanceHandler(this, ADDON_INSTANCE_IMAGEDECODER, addonInfo), m_mimetype(mimetype)
 {
   // Create all interface parts independent to make API changes easier if
   // something is added

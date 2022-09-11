@@ -39,7 +39,7 @@ void clear_presets(const KODI_HANDLE hdl)
 } // namespace
 
 CVisualization::CVisualization(const AddonInfoPtr& addonInfo, float x, float y, float w, float h)
-  : IAddonInstanceHandler(this, ADDON_INSTANCE_VISUALIZATION, addonInfo),
+  : IInstanceHandler(this, ADDON_INSTANCE_VISUALIZATION, addonInfo),
     m_x(static_cast<int>(x)),
     m_y(static_cast<int>(y)),
     m_width(static_cast<int>(w)),

@@ -219,7 +219,7 @@ CVFSEntry::ProtocolInfo::ProtocolInfo(const AddonInfoPtr& addonInfo)
 }
 
 CVFSEntry::CVFSEntry(const AddonInfoPtr& addonInfo)
-  : IAddonInstanceHandler(this, ADDON_INSTANCE_VFS, addonInfo),
+  : IInstanceHandler(this, ADDON_INSTANCE_VFS, addonInfo),
     m_protocols(addonInfo->Type(AddonType::VFS)->GetValue("@protocols").asString()),
     m_extensions(addonInfo->Type(AddonType::VFS)->GetValue("@extensions").asString()),
     m_zeroconf(addonInfo->Type(AddonType::VFS)->GetValue("@zeroconf").asString()),

@@ -23,7 +23,7 @@ using namespace ADDON;
 using namespace KODI::ADDONS;
 
 CAudioDecoder::CAudioDecoder(const AddonInfoPtr& addonInfo)
-  : IAddonInstanceHandler(this, ADDON_INSTANCE_AUDIODECODER, addonInfo)
+  : IInstanceHandler(this, ADDON_INSTANCE_AUDIODECODER, addonInfo)
 {
   m_CodecName = addonInfo->Type(AddonType::AUDIODECODER)->GetValue("@name").asString();
   m_strExt = m_CodecName + KODI_ADDON_AUDIODECODER_TRACK_EXT;

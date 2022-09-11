@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "addons/binary-addons/AddonInstanceHandler.h"
+#include "addons/binary-addons/InstanceHandler.h"
 #include "addons/kodi-dev-kit/include/kodi/c-api/addon-instance/pvr.h"
 #include "pvr/addons/PVRClientCapabilities.h"
 #include "threads/Event.h"
@@ -49,7 +49,7 @@ class CPVRTimersContainer;
  *
  * Also translates Kodi's C++ structures to the add-on's C structures.
  */
-class CPVRClient : public ADDON::IAddonInstanceHandler
+class CPVRClient : public ADDON::IInstanceHandler
 {
 public:
   CPVRClient(const ADDON::AddonInfoPtr& addonInfo, ADDON::AddonInstanceId instanceId, int clientId);

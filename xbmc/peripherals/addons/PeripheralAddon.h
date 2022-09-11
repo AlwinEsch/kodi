@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "addons/binary-addons/AddonInstanceHandler.h"
+#include "addons/binary-addons/InstanceHandler.h"
 #include "addons/kodi-dev-kit/include/kodi/addon-instance/Peripheral.h"
 #include "input/joysticks/JoystickTypes.h"
 #include "peripherals/PeripheralTypes.h"
@@ -42,7 +42,7 @@ typedef std::map<KODI::JOYSTICK::FeatureName, kodi::addon::JoystickFeature> Feat
 /*!
 * \ingroup peripherals
 */
-class CPeripheralAddon : public ADDON::IAddonInstanceHandler
+class CPeripheralAddon : public ADDON::IInstanceHandler
 {
 public:
   explicit CPeripheralAddon(const ADDON::AddonInfoPtr& addonInfo, CPeripherals& manager);

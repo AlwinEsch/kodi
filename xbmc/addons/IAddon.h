@@ -49,7 +49,7 @@ constexpr AddonInstanceId ADDON_FIRST_INSTANCE_ID = 1;
 /*!
  * @brief Identifier denoting add-on instance id as unused.
  *
- * @sa ADDON::IAddonInstanceHandler
+ * @sa ADDON::IInstanceHandler
  */
 constexpr AddonInstanceId ADDON_INSTANCE_ID_UNUSED = ADDON_SINGLETON_INSTANCE_ID;
 

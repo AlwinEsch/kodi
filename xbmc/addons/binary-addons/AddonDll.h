@@ -28,9 +28,9 @@ using BinaryAddonBasePtr = std::shared_ptr<CBinaryAddonBase>;
  * addon instance. This class itself not accessed here.
  *
  * @todo As long game addon system use CAddonDll itself and not
- * IAddonInstanceHandler as parent, is the set of this as "void*" needed.
+ * IInstanceHandler as parent, is the set of this as "void*" needed.
  * After game system is changed should by this also changed to
- * "const IAddonInstanceHandler*" or direct in map below.
+ * "const IInstanceHandler*" or direct in map below.
  */
 using ADDON_INSTANCE_HANDLER = void*;
 

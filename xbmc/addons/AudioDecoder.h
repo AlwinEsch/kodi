@@ -9,7 +9,7 @@
 
 #include "addons/IAddonSupportCheck.h"
 #include "addons/IAddonSupportList.h"
-#include "addons/binary-addons/AddonInstanceHandler.h"
+#include "addons/binary-addons/InstanceHandler.h"
 #include "addons/kodi-dev-kit/include/kodi/addon-instance/AudioDecoder.h"
 #include "cores/paplayer/ICodec.h"
 #include "filesystem/MusicFileDirectory.h"
@@ -20,7 +20,7 @@ namespace KODI
 namespace ADDONS
 {
 
-class CAudioDecoder : public ADDON::IAddonInstanceHandler,
+class CAudioDecoder : public ADDON::IInstanceHandler,
                       public IAddonSupportCheck,
                       public ICodec,
                       public MUSIC_INFO::IMusicInfoTagLoader,

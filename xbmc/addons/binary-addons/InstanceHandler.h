@@ -30,7 +30,7 @@ using AddonInfoPtr = std::shared_ptr<CAddonInfo>;
 class CBinaryAddonBase;
 using BinaryAddonBasePtr = std::shared_ptr<CBinaryAddonBase>;
 
-class IAddonInstanceHandler
+class IInstanceHandler
 {
 public:
   /**
@@ -51,21 +51,21 @@ public:
    * | @ref kodi::addon::CInstanceInputStream | @ref kodi::addon::CInstanceVideoCodec | In order to be able to access the overlying input stream instance in the video codec created by Kodi on the add-on.
    * @param[in] uniqueWorkID *[opt]* Identification value intended to pass any special
    *                         values to the instance to be opened.
-   *                         If not used, the IAddonInstanceHandler class pointer
+   *                         If not used, the IInstanceHandler class pointer
    *                         is used as a string.\n\n
    *                         **Currently used values:**
    * | Add-on instance type | Description
    * |----------------------|---------------------
    * | @ref kodi::addon::CInstanceInputStream "Inputstream" | To transfer special values to inputstream using the property @ref STREAM_PROPERTY_INPUTSTREAM_INSTANCE_ID from external space, for example PVR add-on which also supports inputstream can exchange special values with it, e.g. select the necessary add-on processing class, since it is not known at the start what is being executed ( live TV, radio, recordings...) and add-on may use different classes.
-   * | All other | The used class pointer of Kodi's @ref IAddonInstanceHandler is used as a value to have an individually different value.
+   * | All other | The used class pointer of Kodi's @ref IInstanceHandler is used as a value to have an individually different value.
    */
-  IAddonInstanceHandler(const KODI_ADDON_INSTANCE_BACKEND_HDL hdl,
-                        ADDON_TYPE type,
-                        const AddonInfoPtr& addonInfo,
-                        AddonInstanceId instanceId = ADDON_INSTANCE_ID_UNUSED,
-                        KODI_HANDLE parentInstance = nullptr,
-                        const std::string& uniqueWorkID = "");
-  virtual ~IAddonInstanceHandler();
+  IInstanceHandler(const KODI_ADDON_INSTANCE_BACKEND_HDL hdl,
+                   ADDON_TYPE type,
+                   const AddonInfoPtr& addonInfo,
+                   AddonInstanceId instanceId = ADDON_INSTANCE_ID_UNUSED,
+                   KODI_HANDLE parentInstance = nullptr,
+                   const std::string& uniqueWorkID = "");
+  virtual ~IInstanceHandler();
 
   ADDON_TYPE UsedType() const { return m_type; }
   AddonInstanceId InstanceId() const { return m_instanceId; }

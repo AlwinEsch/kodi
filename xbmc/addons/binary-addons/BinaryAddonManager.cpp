@@ -18,7 +18,7 @@
 using namespace ADDON;
 
 BinaryAddonBasePtr CBinaryAddonManager::GetAddonBase(const AddonInfoPtr& addonInfo,
-                                                     IAddonInstanceHandler* handler,
+                                                     IInstanceHandler* handler,
                                                      AddonDllPtr& addon)
 {
   std::unique_lock<CCriticalSection> lock(m_critSection);
@@ -51,7 +51,7 @@ BinaryAddonBasePtr CBinaryAddonManager::GetAddonBase(const AddonInfoPtr& addonIn
 }
 
 void CBinaryAddonManager::ReleaseAddonBase(const BinaryAddonBasePtr& addonBase,
-                                           IAddonInstanceHandler* handler)
+                                           IInstanceHandler* handler)
 {
   const auto& addon = m_runningAddons.find(addonBase->ID());
   if (addon == m_runningAddons.end())

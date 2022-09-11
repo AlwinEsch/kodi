@@ -33,7 +33,7 @@ namespace ADDON
 {
 
 class IAddon;
-class IAddonInstanceHandler;
+class IInstanceHandler;
 
 class CAddonSettings : public CSettingControlCreator,
                        public CSettingCreator,

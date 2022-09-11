@@ -65,7 +65,7 @@ namespace PVR
 CPVRClient::CPVRClient(const ADDON::AddonInfoPtr& addonInfo,
                        ADDON::AddonInstanceId instanceId,
                        int clientId)
-  : IAddonInstanceHandler(this, ADDON_INSTANCE_PVR, addonInfo, instanceId), m_iClientId(clientId)
+  : IInstanceHandler(this, ADDON_INSTANCE_PVR, addonInfo, instanceId), m_iClientId(clientId)
 {
   // Create all interface parts independent to make API changes easier if
   // something is added

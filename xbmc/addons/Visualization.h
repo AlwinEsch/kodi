@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "addons/binary-addons/AddonInstanceHandler.h"
+#include "addons/binary-addons/InstanceHandler.h"
 #include "addons/kodi-dev-kit/include/kodi/addon-instance/Visualization.h"
 
 namespace KODI
@@ -16,7 +16,7 @@ namespace KODI
 namespace ADDONS
 {
 
-class CVisualization : public ADDON::IAddonInstanceHandler
+class CVisualization : public ADDON::IInstanceHandler
 {
 public:
   CVisualization(const ADDON::AddonInfoPtr& addonInfo, float x, float y, float w, float h);
