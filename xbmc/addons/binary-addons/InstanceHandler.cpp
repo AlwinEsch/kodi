@@ -23,8 +23,7 @@
 
 #include <mutex>
 
-namespace ADDON
-{
+using namespace ADDON;
 
 CCriticalSection IInstanceHandler::m_cdSec;
 
@@ -76,37 +75,37 @@ IInstanceHandler::~IInstanceHandler()
 
 std::string IInstanceHandler::ID() const
 {
-  return m_addon ? m_addon->ID() : "";
+  return m_addonInfo ? m_addonInfo->ID() : "";
 }
 
 std::string IInstanceHandler::Name() const
 {
-  return m_addon ? m_addon->Name() : "";
+  return m_addonInfo ? m_addonInfo->Name() : "";
 }
 
 std::string IInstanceHandler::Author() const
 {
-  return m_addon ? m_addon->Author() : "";
+  return m_addonInfo ? m_addonInfo->Author() : "";
 }
 
 std::string IInstanceHandler::Icon() const
 {
-  return m_addon ? m_addon->Icon() : "";
+  return m_addonInfo ? m_addonInfo->Icon() : "";
 }
 
 std::string IInstanceHandler::Path() const
 {
-  return m_addon ? m_addon->Path() : "";
+  return m_addonInfo ? m_addonInfo->Path() : "";
 }
 
 std::string IInstanceHandler::Profile() const
 {
-  return m_addon ? m_addon->Profile() : "";
+  return m_addonInfo ? m_addonInfo->Profile() : "";
 }
 
 CAddonVersion IInstanceHandler::Version() const
 {
-  return m_addon ? m_addon->Version() : CAddonVersion();
+  return m_addonInfo ? m_addonInfo->Version() : CAddonVersion();
 }
 
 ADDON_STATUS IInstanceHandler::CreateInstance()
@@ -381,5 +380,3 @@ bool IInstanceHandler::set_instance_setting_string(const KODI_ADDON_INSTANCE_BAC
 
   return true;
 }
-
-} /* namespace ADDON */
