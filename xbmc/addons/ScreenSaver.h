@@ -8,13 +8,13 @@
 
 #pragma once
 
-#include "addons/binary-addons/AddonInstanceHandler.h"
+#include "addons/binary-addons/InstanceHandler.h"
 #include "addons/kodi-dev-kit/include/kodi/addon-instance/Screensaver.h"
 
 namespace KODI::ADDONS
 {
 
-class CScreenSaver : public ADDON::IAddonInstanceHandler
+class CScreenSaver : public ADDON::IInstanceHandler
 {
 public:
   explicit CScreenSaver(const ADDON::AddonInfoPtr& addonInfo);

@@ -10,7 +10,7 @@
 #include "FileItem.h"
 #include "FileItemList.h"
 #include "addons/binary-addons/AddonDll.h"
-#include "addons/binary-addons/AddonInstanceHandler.h"
+#include "addons/binary-addons/InstanceHandler.h"
 #include "addons/kodi-dev-kit/include/kodi/addon-instance/VFS.h"
 #include "filesystem/IDirectory.h"
 #include "filesystem/IFile.h"
@@ -41,7 +41,7 @@ private:
 };
 
   //! \brief A virtual filesystem entry add-on.
-  class CVFSEntry : public IAddonInstanceHandler
+  class CVFSEntry : public IInstanceHandler
   {
   public:
     //! \brief A structure encapsulating properties of supplied protocol.

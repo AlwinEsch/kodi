@@ -10,14 +10,12 @@
 
 #include "DVDVideoCodec.h"
 #include "addons/AddonProvider.h"
-#include "addons/binary-addons/AddonInstanceHandler.h"
+#include "addons/binary-addons/InstanceHandler.h"
 #include "addons/kodi-dev-kit/include/kodi/addon-instance/VideoCodec.h"
 
 class BufferPool;
 
-class CAddonVideoCodec
-  : public CDVDVideoCodec
-  , public ADDON::IAddonInstanceHandler
+class CAddonVideoCodec : public CDVDVideoCodec, public ADDON::IInstanceHandler
 {
 public:
   CAddonVideoCodec(CProcessInfo& processInfo,

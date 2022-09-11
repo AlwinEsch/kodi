@@ -441,7 +441,7 @@ private:
 CPVRClient::CPVRClient(const ADDON::AddonInfoPtr& addonInfo,
                        ADDON::AddonInstanceId instanceId,
                        int clientId)
-  : IAddonInstanceHandler(this, ADDON_INSTANCE_PVR, addonInfo, instanceId),
+  : IInstanceHandler(this, ADDON_INSTANCE_PVR, addonInfo, instanceId),
     m_iClientId(clientId),
     m_instance(std::make_unique<CPVRAddonInstanceHolder>(m_ifc))
 {

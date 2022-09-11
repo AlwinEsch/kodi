@@ -16,7 +16,7 @@
 namespace ADDON
 {
 
-  class IAddonInstanceHandler;
+  class IInstanceHandler;
 
   class IAddon;
   using AddonPtr = std::shared_ptr<IAddon>;
@@ -45,11 +45,11 @@ namespace ADDON
      * @param[in] handler related instance handle class
      *
      * @warning This and @ref ReleaseAddonBase are only be called from
-     * @ref IAddonInstanceHandler, use nowhere else allowed!
+     * @ref IInstanceHandler, use nowhere else allowed!
      *
      */
     std::shared_ptr<CBinaryAddonBase> GetAddonBase(const AddonInfoPtr& addonInfo,
-                                                   IAddonInstanceHandler* handler,
+                                                   IInstanceHandler* handler,
                                                    std::shared_ptr<CAddonDll>& addon);
 
     /*!
@@ -63,7 +63,7 @@ namespace ADDON
      *
      */
     void ReleaseAddonBase(const std::shared_ptr<CBinaryAddonBase>& addonBase,
-                          IAddonInstanceHandler* handler);
+                          IInstanceHandler* handler);
 
     /*!
      * @brief Get running addon base class for a given addon id.

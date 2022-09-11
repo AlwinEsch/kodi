@@ -10,7 +10,7 @@
 
 #include "addons/addoninfo/AddonInfo.h"
 #include "addons/binary-addons/AddonDll.h"
-#include "addons/binary-addons/AddonInstanceHandler.h"
+#include "addons/binary-addons/InstanceHandler.h"
 #include "utils/log.h"
 
 #include <mutex>
@@ -22,7 +22,7 @@ const std::string& CBinaryAddonBase::ID() const
   return m_addonInfo->ID();
 }
 
-std::shared_ptr<CAddonDll> CBinaryAddonBase::GetAddon(IAddonInstanceHandler* handler)
+std::shared_ptr<CAddonDll> CBinaryAddonBase::GetAddon(IInstanceHandler* handler)
 {
   if (handler == nullptr)
   {
@@ -42,7 +42,7 @@ std::shared_ptr<CAddonDll> CBinaryAddonBase::GetAddon(IAddonInstanceHandler* han
   return m_activeAddon;
 }
 
-void CBinaryAddonBase::ReleaseAddon(IAddonInstanceHandler* handler)
+void CBinaryAddonBase::ReleaseAddon(IInstanceHandler* handler)
 {
   if (handler == nullptr)
   {
@@ -79,28 +79,28 @@ std::shared_ptr<CAddonDll> CBinaryAddonBase::GetActiveAddon()
 
 void CBinaryAddonBase::OnPreInstall() const
 {
-  const std::unordered_set<IAddonInstanceHandler*> activeAddonHandlers = m_activeAddonHandlers;
+  const std::unordered_set<IInstanceHandler*> activeAddonHandlers = m_activeAddonHandlers;
   for (const auto& instance : activeAddonHandlers)
     instance->OnPreInstall();
 }
 
 void CBinaryAddonBase::OnPostInstall(bool update, bool modal) const
 {
-  const std::unordered_set<IAddonInstanceHandler*> activeAddonHandlers = m_activeAddonHandlers;
+  const std::unordered_set<IInstanceHandler*> activeAddonHandlers = m_activeAddonHandlers;
   for (const auto& instance : activeAddonHandlers)
     instance->OnPostInstall(update, modal);
 }
 
 void CBinaryAddonBase::OnPreUnInstall() const
 {
-  const std::unordered_set<IAddonInstanceHandler*> activeAddonHandlers = m_activeAddonHandlers;
+  const std::unordered_set<IInstanceHandler*> activeAddonHandlers = m_activeAddonHandlers;
   for (const auto& instance : activeAddonHandlers)
     instance->OnPreUnInstall();
 }
 
 void CBinaryAddonBase::OnPostUnInstall() const
 {
-  const std::unordered_set<IAddonInstanceHandler*> activeAddonHandlers = m_activeAddonHandlers;
+  const std::unordered_set<IInstanceHandler*> activeAddonHandlers = m_activeAddonHandlers;
   for (const auto& instance : activeAddonHandlers)
     instance->OnPostUnInstall();
 }

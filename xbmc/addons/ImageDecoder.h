@@ -8,7 +8,7 @@
 #pragma once
 
 #include "addons/IAddonSupportCheck.h"
-#include "addons/binary-addons/AddonInstanceHandler.h"
+#include "addons/binary-addons/InstanceHandler.h"
 #include "addons/kodi-dev-kit/include/kodi/addon-instance/ImageDecoder.h"
 #include "guilib/iimage.h"
 
@@ -17,7 +17,7 @@ class CPictureInfoTag;
 namespace KODI::ADDONS
 {
 
-class CImageDecoder : public ADDON::IAddonInstanceHandler,
+class CImageDecoder : public ADDON::IInstanceHandler,
                       public KODI::ADDONS::IAddonSupportCheck,
                       public IImage
 {

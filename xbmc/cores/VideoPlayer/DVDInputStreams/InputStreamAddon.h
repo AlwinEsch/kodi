@@ -11,7 +11,7 @@
 #include "DVDInputStream.h"
 #include "IVideoPlayer.h"
 #include "addons/AddonProvider.h"
-#include "addons/binary-addons/AddonInstanceHandler.h"
+#include "addons/binary-addons/InstanceHandler.h"
 #include "addons/kodi-dev-kit/include/kodi/addon-instance/Inputstream.h"
 
 #include <memory>
@@ -33,14 +33,13 @@ private:
 };
 
 //! \brief Input stream class
-class CInputStreamAddon
-  : public ADDON::IAddonInstanceHandler
-  , public CDVDInputStream
-  , public CDVDInputStream::IDisplayTime
-  , public CDVDInputStream::ITimes
-  , public CDVDInputStream::IPosTime
-  , public CDVDInputStream::IDemux
-  , public CDVDInputStream::IChapter
+class CInputStreamAddon : public ADDON::IInstanceHandler,
+                          public CDVDInputStream,
+                          public CDVDInputStream::IDisplayTime,
+                          public CDVDInputStream::ITimes,
+                          public CDVDInputStream::IPosTime,
+                          public CDVDInputStream::IDemux,
+                          public CDVDInputStream::IChapter
 {
 public:
   CInputStreamAddon(const ADDON::AddonInfoPtr& addonInfo,

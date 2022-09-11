@@ -8,7 +8,7 @@
 #pragma once
 
 #include "Encoder.h"
-#include "addons/binary-addons/AddonInstanceHandler.h"
+#include "addons/binary-addons/InstanceHandler.h"
 #include "addons/kodi-dev-kit/include/kodi/addon-instance/AudioEncoder.h"
 
 namespace KODI
@@ -16,7 +16,7 @@ namespace KODI
 namespace CDRIP
 {
 
-class CEncoderAddon : public CEncoder, public ADDON::IAddonInstanceHandler
+class CEncoderAddon : public CEncoder, public ADDON::IInstanceHandler
 {
 public:
   explicit CEncoderAddon(const ADDON::AddonInfoPtr& addonInfo);

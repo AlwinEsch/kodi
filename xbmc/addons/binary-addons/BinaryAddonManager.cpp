@@ -19,7 +19,7 @@ using namespace ADDON;
 
 std::shared_ptr<CBinaryAddonBase> CBinaryAddonManager::GetAddonBase(
     const AddonInfoPtr& addonInfo,
-    IAddonInstanceHandler* handler,
+    IInstanceHandler* handler,
     std::shared_ptr<CAddonDll>& addon)
 {
   std::unique_lock lock(m_critSection);
@@ -51,7 +51,7 @@ std::shared_ptr<CBinaryAddonBase> CBinaryAddonManager::GetAddonBase(
 }
 
 void CBinaryAddonManager::ReleaseAddonBase(const std::shared_ptr<CBinaryAddonBase>& addonBase,
-                                           IAddonInstanceHandler* handler)
+  IInstanceHandler * handler)
 {
   const auto& addon = m_runningAddons.find(addonBase->ID());
   if (addon == m_runningAddons.end())

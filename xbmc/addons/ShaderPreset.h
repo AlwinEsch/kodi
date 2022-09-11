@@ -7,7 +7,7 @@
  */
 #pragma once
 
-#include "addons/binary-addons/AddonInstanceHandler.h"
+#include "addons/binary-addons/InstanceHandler.h"
 #include "addons/kodi-dev-kit/include/kodi/addon-instance/ShaderPreset.h"
 #include "cores/RetroPlayer/shaders/IShaderPresetLoader.h"
 #include "cores/RetroPlayer/shaders/ShaderTypes.h"
@@ -71,7 +71,7 @@ private:
 /*!
  * \brief Wrapper class that wraps the shader presets add-on
  */
-class CShaderPresetAddon : public IAddonInstanceHandler, public KODI::SHADER::IShaderPresetLoader
+class CShaderPresetAddon : public IInstanceHandler, public KODI::SHADER::IShaderPresetLoader
 {
 public:
   explicit CShaderPresetAddon(const AddonInfoPtr& addonInfo);

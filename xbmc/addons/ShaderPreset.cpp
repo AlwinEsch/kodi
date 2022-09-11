@@ -55,7 +55,7 @@ void CShaderPreset::FreeShaderPreset(video_shader& shader) const
 // --- CShaderPresetAddon ------------------------------------------------------
 
 CShaderPresetAddon::CShaderPresetAddon(const AddonInfoPtr& addonInfo)
-  : IAddonInstanceHandler(this, ADDON_INSTANCE_SHADERPRESET, addonInfo)
+  : IInstanceHandler(this, ADDON_INSTANCE_SHADERPRESET, addonInfo)
 {
   // Create "C" interface structures, used to prevent API problems on update
   m_ifc.shaderpreset = new AddonInstance_ShaderPreset;
