@@ -108,7 +108,7 @@ bool CEdl::ReadEdl(const std::string& strMovie, const float fFramesPerSecond)
   int iLine = 0;
   std::string strBuffer;
   strBuffer.resize(1024);
-  while (edlFile.ReadString(&strBuffer[0], 1024))
+  while (edlFile.ReadString(&strBuffer[0], 1024) >= 0)
   {
     // Log any errors from previous run in the loop
     if (bError)
@@ -298,7 +298,7 @@ bool CEdl::ReadComskip(const std::string& strMovie, const float fFramesPerSecond
   }
 
   char szBuffer[1024];
-  if (comskipFile.ReadString(szBuffer, 1023)
+  if (comskipFile.ReadString(szBuffer, 1023) >= 0
   &&  strncmp(szBuffer, COMSKIP_HEADER, strlen(COMSKIP_HEADER)) != 0) // Line 1.
   {
     CLog::Log(LOGERROR,
@@ -336,7 +336,7 @@ bool CEdl::ReadComskip(const std::string& strMovie, const float fFramesPerSecond
 
   bool bValid = true;
   int iLine = 2;
-  while (bValid && comskipFile.ReadString(szBuffer, 1023)) // Line 3 and onwards.
+  while (bValid && comskipFile.ReadString(szBuffer, 1023) >= 0) // Line 3 and onwards.
   {
     iLine++;
     double dStartFrame, dEndFrame;
@@ -398,7 +398,7 @@ bool CEdl::ReadVideoReDo(const std::string& strMovie)
   }
 
   char szBuffer[1024];
-  if (videoReDoFile.ReadString(szBuffer, 1023)
+  if (videoReDoFile.ReadString(szBuffer, 1023) >= 0
   &&  strncmp(szBuffer, VIDEOREDO_HEADER, strlen(VIDEOREDO_HEADER)) != 0)
   {
     CLog::Log(LOGERROR,
@@ -411,7 +411,7 @@ bool CEdl::ReadVideoReDo(const std::string& strMovie)
 
   int iLine = 1;
   bool bValid = true;
-  while (bValid && videoReDoFile.ReadString(szBuffer, 1023))
+  while (bValid && videoReDoFile.ReadString(szBuffer, 1023) >= 0)
   {
     iLine++;
     if (strncmp(szBuffer, VIDEOREDO_TAG_CUT, strlen(VIDEOREDO_TAG_CUT)) == 0) // Found the <Cut> tag

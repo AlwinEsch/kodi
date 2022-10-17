@@ -72,7 +72,7 @@ public:
    *         or undetectable error occur, -1 in case of any explicit error
    */
   ssize_t Read(void* bufPtr, size_t bufSize);
-  bool ReadString(char *szLine, int iLineLength);
+  int ReadString(char *szLine, int iLineLength);
   /**
    * Attempt to write bufSize bytes from buffer bufPtr into currently opened file.
    * @param bufPtr  pointer to buffer

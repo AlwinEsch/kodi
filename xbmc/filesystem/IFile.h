@@ -92,7 +92,7 @@ public:
    *         -1 in case of any explicit error
    */
   virtual ssize_t Write(const void* bufPtr, size_t bufSize) { return -1;}
-  virtual bool ReadString(char *szLine, int iLineLength);
+  virtual int ReadString(char *szLine, int iLineLength);
   virtual int64_t Seek(int64_t iFilePosition, int iWhence = SEEK_SET) = 0;
   virtual void Close() = 0;
   virtual int64_t GetPosition() = 0;

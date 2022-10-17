@@ -81,13 +81,23 @@ public:
   bool ReadLine(std::string &line) override
   {
     // Read the next line.
-    while (m_file.ReadString(m_szBuffer, 1023)) // Bigger than MAX_PATH_SIZE, for usage with relax!
+    int ret;
+    while ((ret = m_file.ReadString(m_szBuffer, sizeof(m_szBuffer) - 1)) >= 0)
     {
+      // If return was "0" the given buffer is to small and not end of line reached.
+      if (ret == 0)
+      {
+        // Remove the white space at the beginning and end of the line.
+        line += m_szBuffer;
+        continue;
+      }
+
       // Remove the white space at the beginning and end of the line.
       line = m_szBuffer;
       StringUtils::Trim(line);
       if (!line.empty())
         return true;
+
       // If we are here, we have an empty line so try the next line
     }
     return false;
@@ -105,7 +115,7 @@ public:
 private:
   CFile m_file;
   bool m_opened;
-  char m_szBuffer[1024];
+  char m_szBuffer[1024]; // Bigger than MAX_PATH_SIZE, for usage with relax!
 };
 
 class BufferReader

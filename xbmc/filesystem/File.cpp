@@ -764,10 +764,10 @@ int64_t CFile::GetPosition() const
 
 
 //*********************************************************************************************
-bool CFile::ReadString(char *szLine, int iLineLength)
+int CFile::ReadString(char *szLine, int iLineLength)
 {
   if (!m_pFile || !szLine)
-    return false;
+    return -1;
 
   if (m_pBuffer)
   {
@@ -775,7 +775,7 @@ bool CFile::ReadString(char *szLine, int iLineLength)
     CFileStreamBuffer::int_type aByte = m_pBuffer->sgetc();
 
     if(aByte == traits::eof())
-      return false;
+      return -2;
 
     while(iLineLength>0)
     {
@@ -805,11 +805,11 @@ bool CFile::ReadString(char *szLine, int iLineLength)
 
     // if we have no space for terminating character we failed
     if(iLineLength==0)
-      return false;
+      return 0;
 
     *szLine = 0;
 
-    return true;
+    return 1;
   }
 
   try
@@ -818,7 +818,7 @@ bool CFile::ReadString(char *szLine, int iLineLength)
   }
   XBMCCOMMONS_HANDLE_UNCHECKED
   catch (...) { CLog::Log(LOGERROR, "{} - Unhandled exception", __FUNCTION__); }
-  return false;
+  return -1;
 }
 
 ssize_t CFile::Write(const void* lpBuf, size_t uiBufSize)

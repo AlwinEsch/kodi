@@ -43,14 +43,14 @@ bool CPlayListURL::Load(const std::string& strFileName)
     return false;
   }
 
-  while (file.ReadString(szLine, 1024))
+  while (file.ReadString(szLine, 1024) >= 0)
   {
     strLine = szLine;
     StringUtils::RemoveCRLF(strLine);
 
     if (StringUtils::StartsWith(strLine, "[InternetShortcut]"))
     {
-      if (file.ReadString(szLine,1024))
+      if (file.ReadString(szLine,1024) >= 0)
       {
         strLine  = szLine;
         StringUtils::RemoveCRLF(strLine);

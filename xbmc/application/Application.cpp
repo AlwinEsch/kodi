@@ -384,6 +384,25 @@ bool CApplication::Create()
   CUtil::InitRandomSeed();
 
   m_lastRenderTime = std::chrono::steady_clock::now();
+
+
+    CFile tmpFile;
+    // create the file which will prevent this dialog from appearing in the future
+    tmpFile.Open("/home/alwin/test.txt");
+    char buffer[1025]{};
+    int ret;
+    ret = tmpFile.ReadString(buffer, 1024);
+    fprintf(stderr, "1 (%i): %s\n", ret, buffer);
+    ret = tmpFile.ReadString(buffer, 1024);
+    fprintf(stderr, "2 (%i): %s\n", ret, buffer);
+    ret = tmpFile.ReadString(buffer, 1024);
+    fprintf(stderr, "3 (%i): %s\n", ret, buffer);
+    ret = tmpFile.ReadString(buffer, 1024);
+    fprintf(stderr, "4 (%i): %s\n", ret, buffer);
+    ret = tmpFile.ReadString(buffer, 1024);
+    fprintf(stderr, "5 (%i): %s\n", ret, buffer);
+    tmpFile.Close();
+
   return true;
 }
 

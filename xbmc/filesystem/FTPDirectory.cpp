@@ -42,7 +42,8 @@ bool CFTPDirectory::GetDirectory(const CURL& url2, CFileItemList &items)
   bool serverNotUseUTF8 = url.GetProtocolOption("utf8") == "0";
 
   char buffer[MAX_PATH + 1024];
-  while( reader.ReadString(buffer, sizeof(buffer)) )
+  std::string strBuffer;
+  while(reader.ReadString(buffer, sizeof(buffer)) >= 0)
   {
     std::string strBuffer = buffer;
 

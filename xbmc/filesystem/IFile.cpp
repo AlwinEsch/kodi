@@ -33,14 +33,14 @@ int IFile::Stat(struct __stat64* buffer)
   errno = ENOENT;
   return -1;
 }
-bool IFile::ReadString(char *szLine, int iLineLength)
+int IFile::ReadString(char *szLine, int iLineLength)
 {
-  if(Seek(0, SEEK_CUR) < 0) return false;
+  if(Seek(0, SEEK_CUR) < 0) return -1;
 
   int64_t iFilePos = GetPosition();
   int iBytesRead = Read( (unsigned char*)szLine, iLineLength - 1);
   if (iBytesRead <= 0)
-    return false;
+    return -1;
 
   szLine[iBytesRead] = 0;
 
@@ -77,7 +77,7 @@ bool IFile::ReadString(char *szLine, int iLineLength)
       break;
     }
   }
-  return true;
+  return iBytesRead < iLineLength - 1;
 }
 
 CRedirectException::CRedirectException() :
