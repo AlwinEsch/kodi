@@ -152,13 +152,27 @@ bool CPlayListFactory::IsPlaylist(const CFileItem& item)
 
 bool CPlayListFactory::IsPlaylist(const CURL& url)
 {
-  return url.HasExtension(".m3u|.m3u8|.b4s|.pls|.strm|.wpl|.asx|.ram|.url|.pxml|.xspf");
+  static const std::vector<std::string> list = {
+    ".m3u",
+    ".m3u8",
+    ".b4s",
+    ".pls",
+    ".strm",
+    ".wpl",
+    ".asx",
+    ".ram",
+    ".url",
+    ".pxml",
+    ".xspf"
+  };
+  //TODO!!!!!!!!!!!!!!!!!! return url.HasExtension(list);
+  return URIUtils::HasExtension(url, list);
 }
 
 bool CPlayListFactory::IsPlaylist(const std::string& filename)
 {
-  return URIUtils::HasExtension(filename,
-                     ".m3u|.m3u8|.b4s|.pls|.strm|.wpl|.asx|.ram|.url|.pxml|.xspf");
+  const CURL curl(filename);
+  return IsPlaylist(curl);
 }
 
 } // namespace KODI::PLAYLIST

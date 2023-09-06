@@ -71,7 +71,11 @@ bool IsCUESheet(const CFileItem& item)
 
 bool IsLyrics(const CFileItem& item)
 {
-  return item.GetURL().HasExtension(".cdg|.lrc");
+  static const std::vector<std::string> extensions = {
+    ".cdg",
+    ".lrc"
+  };
+  return URIUtils::HasExtension(m_strPath, extensions);
 }
 
 bool IsMusicDb(const CFileItem& item)
