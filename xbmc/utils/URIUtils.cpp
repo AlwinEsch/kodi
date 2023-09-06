@@ -278,6 +278,34 @@ bool URIUtils::HasExtension(const std::string& path, std::string_view extensions
   return FindExtension(path, extensions, FindExtensions::ONLY_IN_LIST) != NO_EXTENSION;
 }
 
+bool URIUtils::HasExtension(const CURL& url, const std::vector<std::string>& extList)
+{
+  return HasExtension(url.GetFileName(), extList);
+}
+
+bool URIUtils::HasExtension(const std::string& path, const std::vector<std::string>& extList)
+{
+  if (IsURL(path))
+  {
+    const CURL url(path);
+    return HasExtension(url.GetFileName(), extList);
+  }
+
+  const size_t pos = path.find_last_of("./\\");
+  if (pos == std::string::npos || path[pos] != '.')
+    return false;
+
+  const std::string extension = path.substr(pos);
+
+  for (const auto& ext : extList)
+  {
+    if (StringUtils::EndsWithNoCase(ext, extension))
+      return true;
+  }
+
+  return false;
+}
+
 void URIUtils::RemoveExtension(std::string& path)
 {
   if (IsURL(path))
