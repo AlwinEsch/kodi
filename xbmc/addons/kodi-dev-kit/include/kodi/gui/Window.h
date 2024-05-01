@@ -11,7 +11,7 @@
 #include "../AddonBase.h"
 #include "../c-api/gui/window.h"
 #include "ListItem.h"
-#include "input/ActionIDs.h"
+#include "input/Action.h"
 
 #ifdef __cplusplus
 
@@ -41,6 +41,18 @@ namespace gui
 /// requested by the add-on for callbacks.
 ///
 using ClientHandle = KODI_GUI_CLIENT_HANDLE;
+//------------------------------------------------------------------------------
+
+//==============================================================================
+/// @ingroup cpp_kodi_gui_windows_window_Defs
+/// @brief **Handler for kodi-sided processing class**\n
+/// If the callback functions used by the window are not used directly in the
+/// @ref cpp_kodi_gui_windows_window "CWindow" class and are outside of it.
+///
+/// This value here corresponds to a <b>`void*`</b> and returns the address
+/// requested by the Kodi for callbacks.
+///
+using KodiHandle = KODI_GUI_HANDLE;
 //------------------------------------------------------------------------------
 
 class CListItem;
@@ -711,9 +723,9 @@ public:
   /// ~~~~~~~~~~~~~{.cpp}
   /// ..
   /// // Window used with parent / child way
-  /// bool cYOUR_CLASS::OnAction(ADDON_ACTION actionId)
+  /// bool cYOUR_CLASS::OnAction(const kodi::gui::input::CAction& action)
   /// {
-  ///   switch (action)
+  ///   switch (action.GetID())
   ///   {
   ///     case ADDON_ACTION_PREVIOUS_MENU:
   ///     case ADDON_ACTION_NAV_BACK:
@@ -737,9 +749,9 @@ public:
   /// ..
   /// ~~~~~~~~~~~~~
   ///
-  virtual bool OnAction(ADDON_ACTION actionId)
+  virtual bool OnAction(const kodi::gui::input::CAction& action)
   {
-    switch (actionId)
+    switch (action.GetID())
     {
       case ADDON_ACTION_PREVIOUS_MENU:
       case ADDON_ACTION_NAV_BACK:
@@ -748,7 +760,14 @@ public:
       default:
         break;
     }
-    return false;
+
+    if (action.m_actionHdl == nullptr)
+    {
+      kodi::Log(ADDON_LOG_FATAL, "kodi::gui::CWindow can't call OnAction(...) from parent without kodi::gui::input::CAction from parent!");
+      return false;
+    }
+
+    return m_interface->kodi_gui->window->on_action(m_interface->kodiBase, m_controlHandle, action.m_actionHdl);
   }
   //----------------------------------------------------------------------------
 
@@ -819,7 +838,7 @@ public:
   ///   return true;
   /// }
   ///
-  /// bool OnAction(kodi::gui::ClientHandle cbhdl, ADDON_ACTION actionId)
+  /// bool OnAction(kodi::gui::ClientHandle cbhdl, const kodi::gui::KodiHandle kodihdl, ADDON_ACTION actionId)
   /// {
   ///   ...
   ///   return true;
@@ -837,7 +856,7 @@ public:
                                bool (*CBOnFocus)(kodi::gui::ClientHandle cbhdl, int controlId),
                                bool (*CBOnClick)(kodi::gui::ClientHandle cbhdl, int controlId),
                                bool (*CBOnAction)(kodi::gui::ClientHandle cbhdl,
-                                                  ADDON_ACTION actionId),
+                                                  const struct kodi_gui_action* action),
                                void (*CBGetContextButtons)(kodi::gui::ClientHandle cbhdl,
                                                            int itemNumber,
                                                            gui_context_menu_pair* buttons,
@@ -873,11 +892,12 @@ private:
   static bool CBOnClick(KODI_GUI_CLIENT_HANDLE cbhdl, int controlId)
   {
     return static_cast<CWindow*>(cbhdl)->OnClick(controlId);
+
   }
 
-  static bool CBOnAction(KODI_GUI_CLIENT_HANDLE cbhdl, ADDON_ACTION actionId)
+  static bool CBOnAction(KODI_GUI_CLIENT_HANDLE cbhdl, const struct kodi_gui_action* action)
   {
-    return static_cast<CWindow*>(cbhdl)->OnAction(actionId);
+    return static_cast<CWindow*>(cbhdl)->OnAction(action);
   }
 
   static void CBGetContextButtons(KODI_GUI_CLIENT_HANDLE cbhdl,

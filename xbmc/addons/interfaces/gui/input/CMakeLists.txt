@@ -2,10 +2,12 @@
 # See xbmc/addons/kodi-dev-kit/tools/code-generator.py.
 
 set(HEADERS
-  action.h
-  action_ids.h
+  definitions.h
+  general.h
+  list_item.h
+  window.h
 )
 
 if(HEADERS)
-  core_add_devkit_header(kodi_c-api_gui_input)
+  core_add_devkit_header(kodi_gui_input)
 endif()

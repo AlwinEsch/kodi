@@ -10,7 +10,7 @@
 #define C_API_GUI_WINDOW_H
 
 #include "definitions.h"
-#include "input/action_ids.h"
+#include "input/action.h"
 
 #include <stddef.h>
 
@@ -45,7 +45,8 @@ extern "C"
                           bool (*CBInit)(KODI_GUI_CLIENT_HANDLE),
                           bool (*CBFocus)(KODI_GUI_CLIENT_HANDLE, int),
                           bool (*CBClick)(KODI_GUI_CLIENT_HANDLE, int),
-                          bool (*CBOnAction)(KODI_GUI_CLIENT_HANDLE, enum ADDON_ACTION),
+                          bool (*CBOnAction)(KODI_GUI_CLIENT_HANDLE,
+                                             const struct kodi_gui_action*),
                           void (*CBGetContextButtons)(
                               KODI_GUI_CLIENT_HANDLE, int, gui_context_menu_pair*, unsigned int*),
                           bool (*CBOnContextButton)(KODI_GUI_CLIENT_HANDLE, int, unsigned int));
@@ -124,6 +125,9 @@ extern "C"
     int (*get_current_container_id)(KODI_HANDLE kodiBase, KODI_GUI_WINDOW_HANDLE handle);
 
     /* Various functions */
+    bool (*on_action)(KODI_HANDLE kodiBase,
+                      KODI_GUI_WINDOW_HANDLE handle,
+                      const KODI_GUI_HANDLE action_handle);
     void (*mark_dirty_region)(KODI_HANDLE kodiBase, KODI_GUI_WINDOW_HANDLE handle);
 
     /* GUI control access functions */

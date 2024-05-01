@@ -59,7 +59,8 @@ extern "C"
                               bool (*CBInit)(KODI_GUI_CLIENT_HANDLE),
                               bool (*CBFocus)(KODI_GUI_CLIENT_HANDLE, int),
                               bool (*CBClick)(KODI_GUI_CLIENT_HANDLE, int),
-                              bool (*CBOnAction)(KODI_GUI_CLIENT_HANDLE, ADDON_ACTION),
+                              bool (*CBOnAction)(KODI_GUI_CLIENT_HANDLE,
+                                                 const struct kodi_gui_action*),
                               void (*CBGetContextButtons)(KODI_GUI_CLIENT_HANDLE,
                                                           int,
                                                           gui_context_menu_pair*,
@@ -147,6 +148,9 @@ extern "C"
     static int get_current_container_id(KODI_HANDLE kodiBase, KODI_GUI_WINDOW_HANDLE handle);
 
     /* Various functions */
+    static bool on_action(KODI_HANDLE kodiBase,
+                          KODI_GUI_WINDOW_HANDLE handle,
+                          const KODI_GUI_HANDLE action_handle);
     static void mark_dirty_region(KODI_HANDLE kodiBase, KODI_GUI_WINDOW_HANDLE handle);
 
     /* GUI control access functions */
@@ -213,6 +217,7 @@ extern "C"
     bool IsMediaWindow() const override { return m_isMedia; }
 
     /* Addon to Kodi call functions */
+    bool OnActionDefault(const KODI_GUI_HANDLE action_handle);
     void PulseActionEvent();
     void AddItem(CFileItemPtr* fileItem, int itemPosition);
     void RemoveItem(int itemPosition);
@@ -239,7 +244,8 @@ extern "C"
     bool (*CBOnInit)(KODI_GUI_CLIENT_HANDLE cbhdl) = nullptr;
     bool (*CBOnFocus)(KODI_GUI_CLIENT_HANDLE cbhdl, int controlId) = nullptr;
     bool (*CBOnClick)(KODI_GUI_CLIENT_HANDLE cbhdl, int controlId) = nullptr;
-    bool (*CBOnAction)(KODI_GUI_CLIENT_HANDLE cbhdl, ADDON_ACTION actionId) = nullptr;
+    bool (*CBOnAction)(KODI_GUI_CLIENT_HANDLE cbhdl,
+                       const struct kodi_gui_action* action) = nullptr;
     void (*CBGetContextButtons)(KODI_GUI_CLIENT_HANDLE cbhdl,
                                 int itemNumber,
                                 gui_context_menu_pair* buttons,

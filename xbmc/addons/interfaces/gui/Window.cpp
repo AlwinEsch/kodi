@@ -82,6 +82,7 @@ void Interface_GUIWindow::Init(AddonGlobalInterface* addonInterface)
   addonInterface->toKodi->kodi_gui->window->get_current_container_id = get_current_container_id;
 
   /* Various functions */
+  addonInterface->toKodi->kodi_gui->window->on_action = on_action;
   addonInterface->toKodi->kodi_gui->window->mark_dirty_region = mark_dirty_region;
 
   /* GUI control access functions */
@@ -250,7 +251,7 @@ void Interface_GUIWindow::set_callbacks(
     bool (*CBOnInit)(KODI_GUI_CLIENT_HANDLE),
     bool (*CBOnFocus)(KODI_GUI_CLIENT_HANDLE, int),
     bool (*CBOnClick)(KODI_GUI_CLIENT_HANDLE, int),
-    bool (*CBOnAction)(KODI_GUI_CLIENT_HANDLE, ADDON_ACTION),
+    bool (*CBOnAction)(KODI_GUI_CLIENT_HANDLE, const struct kodi_gui_action*),
     void (*CBGetContextButtons)(KODI_GUI_CLIENT_HANDLE, int, gui_context_menu_pair*, unsigned int*),
     bool (*CBOnContextButton)(KODI_GUI_CLIENT_HANDLE, int, unsigned int))
 {
@@ -1001,6 +1002,27 @@ int Interface_GUIWindow::get_current_container_id(KODI_HANDLE kodiBase,
  * Various functions
  */
 //@{
+bool Interface_GUIWindow::on_action(KODI_HANDLE kodiBase,
+                                    KODI_GUI_WINDOW_HANDLE handle,
+                                    const KODI_GUI_HANDLE action_handle)
+{
+  CAddonDll* addon = static_cast<CAddonDll*>(kodiBase);
+  CGUIAddonWindow* pAddonWindow = static_cast<CGUIAddonWindow*>(handle);
+  if (!addon || !pAddonWindow || !action_handle)
+  {
+    CLog::Log(LOGERROR,
+              "Interface_GUIWindow::{} - invalid handler data (kodiBase='{}', handle='{}', action_handle='{}') on "
+              "addon '{}'",
+              __func__, kodiBase, handle, action_handle, addon ? addon->ID() : "unknown");
+    return false;
+  }
+
+  Interface_GUIGeneral::lock();
+  pAddonWindow->OnActionDefault(action_handle);
+  Interface_GUIGeneral::unlock();
+  return true;
+}
+
 void Interface_GUIWindow::mark_dirty_region(KODI_HANDLE kodiBase, KODI_GUI_WINDOW_HANDLE handle)
 {
   CAddonDll* addon = static_cast<CAddonDll*>(kodiBase);
@@ -1216,11 +1238,28 @@ CGUIControl* CGUIAddonWindow::GetAddonControl(int controlId,
 
 bool CGUIAddonWindow::OnAction(const CAction& action)
 {
-  // Let addon decide whether it wants to handle action first
-  if (CBOnAction &&
-      CBOnAction(m_clientHandle, CAddonGUITranslator::TranslateActionIdToAddon(action.GetID())))
-    return true;
+  if (!CBOnAction)
+    return CGUIWindow::OnAction(action);
 
+  // Let addon decide whether it wants to handle action first
+  kodi_gui_action actionAddon;
+  actionAddon.id = CAddonGUITranslator::TranslateActionIdToAddon(action.GetID());
+  actionAddon.name = action.GetName().c_str();
+  actionAddon.repeat = action.GetRepeat();
+  actionAddon.hold_time = action.GetHoldTime();
+  actionAddon.button_code = action.GetButtonCode();
+  actionAddon.unicode = action.GetUnicode();
+  actionAddon.text = action.GetText().c_str();
+  actionAddon.action_hdl = const_cast<CAction*>(&action);
+  for (unsigned int i = 0; i < KODI_GUI_ACTION_MAX_AMOUNTS; i++)
+    actionAddon.amount[i] = action.GetAmount(i);
+
+  return CBOnAction(m_clientHandle, &actionAddon);
+}
+
+bool CGUIAddonWindow::OnActionDefault(const KODI_GUI_HANDLE action_handle)
+{
+  const CAction& action = *static_cast<CAction*>(action_handle);
   return CGUIWindow::OnAction(action);
 }
 
@@ -1292,9 +1331,13 @@ bool CGUIAddonWindow::OnMessage(CGUIMessage& message)
           {
             if (CBOnAction)
             {
+              const CAction action(ACTION_CONTEXT_MENU);
+              kodi_gui_action actionAddon = {};
+              actionAddon.id = CAddonGUITranslator::TranslateActionIdToAddon(action.GetID());
+
               // Check addon want to handle right click for a context menu, if
               // not used from addon becomes "GetContextButtons(...)" called.
-              if (CBOnAction(m_clientHandle, ADDON_ACTION_CONTEXT_MENU))
+              if (CBOnAction(m_clientHandle, &actionAddon))
                 return true;
             }
           }
@@ -1333,7 +1376,7 @@ void CGUIAddonWindow::AddItem(CFileItemPtr* fileItem, int itemPosition)
   {
     m_vecItems->Add(*fileItem);
   }
-  else if (itemPosition < -1 && !(itemPosition - 1 < m_vecItems->Size()))
+  else if (itemPosition < -1 && !(itemPosition *- 1 < m_vecItems->Size()))
   {
     m_vecItems->AddFront(*fileItem, 0);
   }
