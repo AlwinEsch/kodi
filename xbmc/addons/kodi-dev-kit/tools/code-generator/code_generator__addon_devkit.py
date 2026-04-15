@@ -14,9 +14,9 @@ DEVKIT_DIR = "xbmc/addons/kodi-dev-kit"
 from optparse import OptionParser
 
 # Own includes
-from src.commitChanges import *
-from src.generateCMake__CMAKE_TREEDATA_COMMON_addon_dev_kit_txt import *
-from src.generateCMake__XBMC_ADDONS_KODIDEVKIT_INCLUDE_KODI_allfiles import *
+from src.devkit.commitChanges import *
+from src.devkit.generateCMake__CMAKE_TREEDATA_COMMON_addon_dev_kit_txt import *
+from src.devkit.generateCMake__XBMC_ADDONS_KODIDEVKIT_INCLUDE_KODI_allfiles import *
 from src.helper_Log import *
 
 # ===============================================================================
