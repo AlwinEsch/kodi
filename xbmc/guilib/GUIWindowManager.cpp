@@ -138,11 +138,19 @@
 #ifdef HAS_OPTICAL_DRIVE
 #include "dialogs/GUIDialogPlayEject.h"
 #endif
-#include "dialogs/GUIDialogMediaFilter.h"
-#include "video/dialogs/GUIDialogSubtitles.h"
 
-#include "peripherals/dialogs/GUIDialogPeripherals.h"
+/* Web related include Files */
+#include "dialogs/GUIDialogMediaFilter.h"
+#include "dialogs/GUIDialogPlayEject.h"
+#include "dialogs/GUIDialogSlider.h"
 #include "peripherals/dialogs/GUIDialogPeripheralSettings.h"
+#include "peripherals/dialogs/GUIDialogPeripherals.h"
+#include "video/dialogs/GUIDialogSubtitles.h"
+#include "video/dialogs/GUIDialogTeletext.h"
+#include "web/WebManager.h"
+#include "web/dialogs/GUIDialogFavourites.h"
+#include "web/windows/GUIWindowWebBrowser.h"
+#include "web/windows/GUIWindowWebBrowserFullScreen.h"
 
 /* Game related include files */
 #include "cores/RetroPlayer/guiwindows/GameWindowFullScreen.h"
@@ -315,6 +323,11 @@ void CGUIWindowManager::CreateWindows()
   Add(new CGUIDialogPVRClientPriorities);
   Add(new CGUIDialogPVRGuideControls);
 
+  /* Load web related Windows and Dialogs */
+  Add(new WEB::CGUIWindowWebBrowser);
+  Add(new WEB::CGUIWindowWebBrowserFullScreen);
+  Add(new WEB::CGUIDialogWebFavourites);
+
   Add(new CGUIDialogSelect);
   Add(new CGUIDialogColorPicker);
   Add(new CGUIDialogMusicInfo);
@@ -446,6 +459,11 @@ bool CGUIWindowManager::DestroyWindows()
     DestroyWindow(WINDOW_DIALOG_PVR_RECORDING_SETTING);
     DestroyWindow(WINDOW_DIALOG_PVR_CLIENT_PRIORITIES);
     DestroyWindow(WINDOW_DIALOG_PVR_GUIDE_CONTROLS);
+
+    /* Delete web relatated windows and dialogs */
+    DestroyWindow(WINDOW_WEB_BROWSER);
+    DestroyWindow(WINDOW_WEB_BROWSER_FULLSCREEN);
+    DestroyWindow(WINDOW_DIALOG_WEB_FAVOURITES);
 
     DestroyWindow(WINDOW_DIALOG_TEXT_VIEWER);
 #ifdef HAS_OPTICAL_DRIVE

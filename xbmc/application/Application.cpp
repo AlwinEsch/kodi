@@ -28,6 +28,7 @@
 #include "TextureCache.h"
 #include "URL.h"
 #include "Util.h"
+#include "addons/AddonInstaller.h"
 #include "addons/AddonManager.h"
 #include "addons/AddonSystemSettings.h"
 #include "addons/RepositoryUpdater.h"
@@ -149,6 +150,8 @@
 #include "video/PlayerController.h"
 #include "video/VideoLibraryQueue.h"
 #include "video/dialogs/GUIDialogVideoBookmarks.h"
+#include "web/WebManager.h"
+
 #ifdef TARGET_WINDOWS
 #include "win32util.h"
 #endif
@@ -1750,6 +1753,9 @@ bool CApplication::Stop(int exitCode)
 
   bool success = true;
 
+  CLog::Log(LOGINFO, "Stopping webbrowser");
+  CServiceBroker::GetWEBManager().Deinit();
+
   CLog::Log(LOGINFO, "Stopping player");
   const auto appPlayer = GetComponent<CApplicationPlayer>();
   appPlayer->ClosePlayer();
@@ -2205,14 +2211,17 @@ bool CApplication::ExecuteXBMCAction(std::string actionStr,
       return true;
     }
     CFileItem item(actionStr, false);
+    if (item.IsWeb())
+    {
+      CServiceBroker::GetWEBManager().ExecuteItem(item);
+    }
 #ifdef HAS_PYTHON
-    if (item.IsPythonScript())
+    else if (item.IsPythonScript())
     { // a python script
       CScriptInvocationManager::GetInstance().ExecuteAsync(item.GetPath());
     }
-    else
 #endif
-        if (MUSIC::IsAudio(item) || VIDEO::IsVideo(item) || item.IsGame())
+    else if (MUSIC::IsAudio(item) || VIDEO::IsVideo(item) || item.IsGame())
     { // an audio or video file
       PlayFile(item, "");
     }
@@ -2328,6 +2337,15 @@ void CApplication::Process()
     CScriptInvocationManager::GetInstance().Process();
     m_frameMoveGuard.lock();
   }
+
+  // The Chromium-based web browser addon needs the main thread in all
+  // circumstances, without massive error messages and uncontrollable
+  // crashes. Furthermore, processing the render information between
+  // different threads causes further problems.
+  //
+  // Unfortunately, this is due to the Chromium system, which was not
+  // constructed directly as a library, but as an independent exe.
+  CServiceBroker::GetWEBManager().MainLoop();
 
   // process messages, even if a movie is playing
   CServiceBroker::GetAppMessenger()->ProcessMessages();

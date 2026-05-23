@@ -31,10 +31,12 @@ CGUIInfoProviders::CGUIInfoProviders()
   RegisterProvider(&m_systemGUIInfo);
   RegisterProvider(&m_visualisationGUIInfo);
   RegisterProvider(&m_skinGUIInfo);
+  RegisterProvider(&m_webGUIInfo);
 }
 
 CGUIInfoProviders::~CGUIInfoProviders()
 {
+  UnregisterProvider(&m_webGUIInfo);
   UnregisterProvider(&m_skinGUIInfo);
   UnregisterProvider(&m_visualisationGUIInfo);
   UnregisterProvider(&m_systemGUIInfo);

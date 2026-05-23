@@ -801,6 +801,22 @@ constexpr uint32_t ADDON_SETTING_STRING              = ADDON_INFOS_START;
 constexpr uint32_t ADDON_SETTING_BOOL                = ADDON_INFOS_START + 1;
 constexpr uint32_t ADDON_SETTING_INT                 = ADDON_INFOS_START + 2;
 
+constexpr int      WEB_CONDITIONS_START              = 1700;
+constexpr uint32_t WEB_HAS_ADDONS                    = WEB_CONDITIONS_START;
+constexpr uint32_t WEB_HAS_BROWSER                   = WEB_CONDITIONS_START + 10;
+constexpr int      WEB_CONDITIONS_END                = WEB_HAS_BROWSER;
+
+constexpr int      WEB_CONTROL_START                 = 1720;
+constexpr uint32_t WEB_CONTROL_OPENED_ADDRESS        = WEB_CONTROL_START;
+constexpr uint32_t WEB_CONTROL_OPENED_TITLE          = WEB_CONTROL_START + 1;
+constexpr uint32_t WEB_CONTROL_ICONURL               = WEB_CONTROL_START + 2;
+constexpr uint32_t WEB_CONTROL_IS_LOADING            = WEB_CONTROL_START + 3;
+constexpr uint32_t WEB_CONTROL_CAN_GO_BACK           = WEB_CONTROL_START + 4;
+constexpr uint32_t WEB_CONTROL_CAN_GO_FORWARD        = WEB_CONTROL_START + 5;
+constexpr uint32_t WEB_CONTROL_TOOLTIP               = WEB_CONTROL_START + 6;
+constexpr uint32_t WEB_CONTROL_STATUS_MESSAGE        = WEB_CONTROL_START + 7;
+constexpr int      WEB_CONTROL_END                   = WEB_CONTROL_STATUS_MESSAGE;
+
 constexpr uint32_t WINDOW_PROPERTY                   = 9993;
 // unused id 9994
 constexpr uint32_t WINDOW_IS_VISIBLE                 = 9995;

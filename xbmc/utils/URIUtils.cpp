@@ -1929,3 +1929,8 @@ CURL URIUtils::AddCredentials(CURL url)
     CPasswordManager::GetInstance().AuthenticateURL(url);
   return url;
 }
+
+bool URIUtils::IsWeb(const std::string& strFile)
+{
+  return IsProtocol(strFile, "web");
+}

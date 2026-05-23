@@ -75,7 +75,6 @@ struct InfoMap
 /// so we can use a link to point users when providing help
 ///
 
-
 /// \page modules__infolabels_boolean_conditions
 /// \section modules_list_infolabels_booleans List of Infolabels and Boolean conditions
 /// \subsection modules__infolabels_boolean_conditions_GlobalBools Global
@@ -8324,6 +8323,100 @@ constexpr std::array<InfoMap, 7> playlist = {{
 }};
 // clang-format on
 
+// clang-format off
+/// \page modules__infolabels_boolean_conditions
+/// \subsection modules__infolabels_boolean_conditions_Web Web
+/// \table_start
+///   \table_h3{ Labels, Type, Description }
+///   \table_row3{   <b>`Web.HasAddons`</b>,
+///                  \anchor Web_HasAddons
+///                  _integer_,
+///     @return **True** when the system is have a internet related addon present.
+///     <p>
+///   }
+///   \table_row3{   <b>`Web.HasBrowser`</b>,
+///                  \anchor Web_HasBrowser
+///                  _integer_,
+///     @return **True** when the system is have a web browser addon present.
+///     <p>
+///   }
+/// \table_end
+///
+/// -----------------------------------------------------------------------------
+constexpr std::array<InfoMap, 2> web = {{
+    {"hasaddons",        WEB_HAS_ADDONS},
+    {"hasbrowser",       WEB_HAS_BROWSER},
+}};
+// clang-format on
+
+// clang-format off
+/// \page modules__infolabels_boolean_conditions
+/// \subsection modules__infolabels_boolean_conditions_WebControl Web GUI control
+/// \table_start
+///   \table_h3{ Labels, Type, Description }
+///   \table_row3{   <b>`WebControl.OpenedAddress`</b>,
+///                  \anchor WebControl_OpenedAddress
+///                  _integer_,
+///     @return The currently on shown web control opened website address.
+///     <p>
+///   }
+///   \table_row3{   <b>`WebControl.OpenedTitle`</b>,
+///                  \anchor WebControl_OpenedTitle
+///                  _integer_,
+///     @return The currently on shown web control opened website title.
+///     <p>
+///   }
+///   \table_row3{   <b>`WebControl.IconURL`</b>,
+///                  \anchor WebControl_IconURL
+///                  _integer_,
+///     @return The icon URL of currently opened website.
+///     <p>
+///   }
+///   \table_row3{   <b>`WebControl.IsLoading`</b>,
+///                  \anchor WebControl_IsLoading
+///                  _integer_,
+///     @return **True** when the focused web control is loading.
+///     <p>
+///   }
+///   \table_row3{   <b>`WebControl.CanGoBack`</b>,
+///                  \anchor WebControl_CanGoBack
+///                  _integer_,
+///     @return **True** when the focused web site allow to go back.
+///     <p>
+///   }
+///   \table_row3{   <b>`WebControl.CanGoForward`</b>,
+///                  \anchor WebControl_CanGoForward
+///                  _integer_,
+///     @return **True** when the focused web site allow to go forward.
+///     <p>
+///   }
+///   \table_row3{   <b>`WebControl.ToolTip`</b>,
+///                  \anchor WebControl_ToolTip
+///                  _integer_,
+///     @return The website tooltip of currently focused website content.
+///     <p>
+///   }
+///   \table_row3{   <b>`WebControl.StatusMessage`</b>,
+///                  \anchor WebControl_StatusMessage
+///                  _integer_,
+///     @return The website status message of currently opened website.
+///     <p>
+///   }
+/// \table_end
+///
+/// -----------------------------------------------------------------------------
+constexpr std::array<InfoMap, 8> webcontrol = {{
+    {"openedaddress",    WEB_CONTROL_OPENED_ADDRESS},
+    {"openedtitle",      WEB_CONTROL_OPENED_TITLE},
+    {"iconurl",          WEB_CONTROL_ICONURL},
+    {"isloading",        WEB_CONTROL_IS_LOADING},
+    {"cangoback",        WEB_CONTROL_CAN_GO_BACK},
+    {"cangoforward",     WEB_CONTROL_CAN_GO_FORWARD},
+    {"tooltip",          WEB_CONTROL_TOOLTIP},
+    {"statusmessage",    WEB_CONTROL_STATUS_MESSAGE},
+}};
+// clang-format on
+
 /// \page modules__infolabels_boolean_conditions
 /// \subsection modules__infolabels_boolean_conditions_Pvr Pvr
 /// \table_start
@@ -10750,7 +10843,7 @@ void CGUIInfoManager::SplitInfoString(const std::string& infoString,
 
 /// \brief Translates a string as given by the skin into an int that we use for more
 /// efficient retrieval of data.
-int CGUIInfoManager::TranslateSingleString(const std::string &strCondition)
+int CGUIInfoManager::TranslateSingleString(const std::string& strCondition)
 {
   bool listItemDependent;
   return TranslateSingleString(strCondition, listItemDependent);
@@ -10784,7 +10877,7 @@ std::string TranslateListSeparator(const std::string& param)
 }
 } // unnamed namespace
 
-int CGUIInfoManager::TranslateSingleString(const std::string &strCondition, bool &listItemDependent)
+int CGUIInfoManager::TranslateSingleString(const std::string& strCondition, bool& listItemDependent)
 {
   /* We need to disable caching in INFO::InfoBool::Get if either of the following are true:
    *  1. if condition is between LISTITEM_START and LISTITEM_END
@@ -10795,13 +10888,13 @@ int CGUIInfoManager::TranslateSingleString(const std::string &strCondition, bool
   std::string strTest = strCondition;
   StringUtils::Trim(strTest);
 
-  std::vector< Property> info;
+  std::vector<Property> info;
   SplitInfoString(strTest, info);
 
   if (info.empty())
     return 0;
 
-  const Property &cat = info[0];
+  const Property& cat = info[0];
   if (info.size() == 1)
   { // single category
     if (cat.Name() == "false" || cat.Name() == "no")
@@ -10811,12 +10904,13 @@ int CGUIInfoManager::TranslateSingleString(const std::string &strCondition, bool
   }
   else if (info.size() == 2)
   {
-    const Property &prop = info[1];
+    const Property& prop = info[1];
     if (cat.Name() == "string")
     {
       if (prop.Name() == "isempty")
       {
-        return AddMultiInfo(CGUIInfo(STRING_IS_EMPTY, TranslateSingleString(prop.param(), listItemDependent)));
+        return AddMultiInfo(
+            CGUIInfo(STRING_IS_EMPTY, TranslateSingleString(prop.param(), listItemDependent)));
       }
       else if (prop.num_params() == 2)
       {
@@ -10951,7 +11045,7 @@ int CGUIInfoManager::TranslateSingleString(const std::string &strCondition, bool
       }
       if (prop.num_params() == 1)
       {
-        const std::string &param = prop.param();
+        const std::string& param = prop.param();
         if (prop.Name() == "getbool")
         {
           std::string paramCopy = param;
@@ -11019,11 +11113,14 @@ int CGUIInfoManager::TranslateSingleString(const std::string &strCondition, bool
         }
       }
       if (prop.Name() == "alarmlessorequal" && prop.num_params() == 2)
-        return AddMultiInfo(CGUIInfo(SYSTEM_ALARM_LESS_OR_EQUAL, prop.param(0), atoi(prop.param(1).c_str())));
+        return AddMultiInfo(
+            CGUIInfo(SYSTEM_ALARM_LESS_OR_EQUAL, prop.param(0), atoi(prop.param(1).c_str())));
       else if (prop.Name() == "date")
       {
         if (prop.num_params() == 2)
-          return AddMultiInfo(CGUIInfo(SYSTEM_DATE, StringUtils::DateStringToYYYYMMDD(prop.param(0)) % 10000, StringUtils::DateStringToYYYYMMDD(prop.param(1)) % 10000));
+          return AddMultiInfo(CGUIInfo(SYSTEM_DATE,
+                                       StringUtils::DateStringToYYYYMMDD(prop.param(0)) % 10000,
+                                       StringUtils::DateStringToYYYYMMDD(prop.param(1)) % 10000));
         else if (prop.num_params() == 1)
         {
           int dateformat = StringUtils::DateStringToYYYYMMDD(prop.param(0));
@@ -11042,11 +11139,13 @@ int CGUIInfoManager::TranslateSingleString(const std::string &strCondition, bool
         {
           TIME_FORMAT timeFormat = TranslateTimeFormat(prop.param(0));
           if (timeFormat == TIME_FORMAT_GUESS)
-            return AddMultiInfo(CGUIInfo(SYSTEM_TIME, StringUtils::TimeStringToSeconds(prop.param(0))));
+            return AddMultiInfo(
+                CGUIInfo(SYSTEM_TIME, StringUtils::TimeStringToSeconds(prop.param(0))));
           return AddMultiInfo(CGUIInfo(SYSTEM_TIME, timeFormat));
         }
         else
-          return AddMultiInfo(CGUIInfo(SYSTEM_TIME, StringUtils::TimeStringToSeconds(prop.param(0)), StringUtils::TimeStringToSeconds(prop.param(1))));
+          return AddMultiInfo(CGUIInfo(SYSTEM_TIME, StringUtils::TimeStringToSeconds(prop.param(0)),
+                                       StringUtils::TimeStringToSeconds(prop.param(1))));
       }
     }
     else if (cat.Name() == "library")
@@ -11261,9 +11360,12 @@ int CGUIInfoManager::TranslateSingleString(const std::string &strCondition, bool
         if (prop.Name() == "string")
         {
           if (prop.num_params() == 2)
-            return AddMultiInfo(CGUIInfo(SKIN_STRING_IS_EQUAL, CSkinSettings::GetInstance().TranslateString(prop.param(0)), prop.param(1)));
+            return AddMultiInfo(CGUIInfo(
+                SKIN_STRING_IS_EQUAL, CSkinSettings::GetInstance().TranslateString(prop.param(0)),
+                prop.param(1)));
           else
-            return AddMultiInfo(CGUIInfo(SKIN_STRING, CSkinSettings::GetInstance().TranslateString(prop.param(0))));
+            return AddMultiInfo(
+                CGUIInfo(SKIN_STRING, CSkinSettings::GetInstance().TranslateString(prop.param(0))));
         }
         else if (prop.Name() == "numeric")
         {
@@ -11271,7 +11373,8 @@ int CGUIInfoManager::TranslateSingleString(const std::string &strCondition, bool
               CGUIInfo(SKIN_INTEGER, CSkinSettings::GetInstance().TranslateString(prop.param(0))));
         }
         else if (prop.Name() == "hassetting")
-          return AddMultiInfo(CGUIInfo(SKIN_BOOL, CSkinSettings::GetInstance().TranslateBool(prop.param(0))));
+          return AddMultiInfo(
+              CGUIInfo(SKIN_BOOL, CSkinSettings::GetInstance().TranslateBool(prop.param(0))));
         else if (prop.Name() == "hastheme")
           return AddMultiInfo(CGUIInfo(SKIN_HAS_THEME, prop.param(0)));
         else if (prop.Name() == "timerisrunning")
@@ -11294,7 +11397,8 @@ int CGUIInfoManager::TranslateSingleString(const std::string &strCondition, bool
         { //! @todo The parameter for these should really be on the first not the second property
           if (prop.param().find("xml") != std::string::npos)
             return AddMultiInfo(CGUIInfo(window_bool.val, 0, prop.param()));
-          int winID = prop.param().empty() ? WINDOW_INVALID : CWindowTranslator::TranslateWindow(prop.param());
+          int winID = prop.param().empty() ? WINDOW_INVALID
+                                           : CWindowTranslator::TranslateWindow(prop.param());
           return AddMultiInfo(CGUIInfo(window_bool.val, winID, 0));
         }
       }
@@ -11316,7 +11420,8 @@ int CGUIInfoManager::TranslateSingleString(const std::string &strCondition, bool
     {
       int groupID = atoi(cat.param().c_str());
       if (groupID)
-        return AddMultiInfo(CGUIInfo(CONTROL_GROUP_HAS_FOCUS, groupID, atoi(prop.param(0).c_str())));
+        return AddMultiInfo(
+            CGUIInfo(CONTROL_GROUP_HAS_FOCUS, groupID, atoi(prop.param(0).c_str())));
     }
     else if (cat.Name() == "playlist")
     {
@@ -11368,6 +11473,22 @@ int CGUIInfoManager::TranslateSingleString(const std::string &strCondition, bool
       {
         if (prop.Name() == rd.str)
           return rd.val;
+      }
+    }
+    else if (cat.Name() == "web")
+    {
+      for (const auto& i : web)
+      {
+        if (prop.Name() == i.str)
+          return i.val;
+      }
+    }
+    else if (cat.Name() == "webcontrol")
+    {
+      for (const auto& i : webcontrol)
+      {
+        if (prop.Name() == i.str)
+          return i.val;
       }
     }
   }
@@ -11459,14 +11580,15 @@ int CGUIInfoManager::TranslateSingleString(const std::string &strCondition, bool
     }
     else if (info[0].Name() == "control")
     {
-      const Property &prop = info[1];
+      const Property& prop = info[1];
       for (const auto& control_label : control_labels)
       {
         if (prop.Name() == control_label.str)
         { //! @todo The parameter for these should really be on the first not the second property
           int controlID = atoi(prop.param().c_str());
           if (controlID)
-            return AddMultiInfo(CGUIInfo(control_label.val, controlID, atoi(info[2].param(0).c_str())));
+            return AddMultiInfo(
+                CGUIInfo(control_label.val, controlID, atoi(info[2].param(0).c_str())));
           return 0;
         }
       }
@@ -11476,7 +11598,10 @@ int CGUIInfoManager::TranslateSingleString(const std::string &strCondition, bool
   return 0;
 }
 
-int CGUIInfoManager::TranslateListItem(const Property& cat, const Property& prop, int id, bool container)
+int CGUIInfoManager::TranslateListItem(const Property& cat,
+                                       const Property& prop,
+                                       int id,
+                                       bool container)
 {
   int ret = 0;
   std::string data3;
@@ -11574,7 +11699,7 @@ int CGUIInfoManager::TranslatePlayerString(std::string_view info) const
   return 0;
 }
 
-TIME_FORMAT CGUIInfoManager::TranslateTimeFormat(const std::string &format)
+TIME_FORMAT CGUIInfoManager::TranslateTimeFormat(const std::string& format)
 {
   if (format.empty())
     return TIME_FORMAT_GUESS;
@@ -11611,7 +11736,7 @@ TIME_FORMAT CGUIInfoManager::TranslateTimeFormat(const std::string &format)
   return TIME_FORMAT_GUESS;
 }
 
-std::string CGUIInfoManager::GetLabel(int info, int contextWindow, std::string *fallback) const
+std::string CGUIInfoManager::GetLabel(int info, int contextWindow, std::string* fallback) const
 {
   if (info >= CONDITIONAL_LABEL_START && info <= CONDITIONAL_LABEL_END)
   {
@@ -11633,7 +11758,10 @@ std::string CGUIInfoManager::GetLabel(int info, int contextWindow, std::string *
   return strLabel;
 }
 
-bool CGUIInfoManager::GetInt(int &value, int info, int contextWindow, const CGUIListItem *item /* = nullptr */) const
+bool CGUIInfoManager::GetInt(int& value,
+                             int info,
+                             int contextWindow,
+                             const CGUIListItem* item /* = nullptr */) const
 {
   if (info >= MULTI_INFO_START && info <= MULTI_INFO_END)
   {
@@ -11654,7 +11782,7 @@ bool CGUIInfoManager::GetInt(int &value, int info, int contextWindow, const CGUI
   return m_infoProviders.GetInt(value, m_currentFile.get(), contextWindow, CGUIInfo(info));
 }
 
-INFO::InfoPtr CGUIInfoManager::Register(const std::string &expression, int context)
+INFO::InfoPtr CGUIInfoManager::Register(const std::string& expression, int context)
 {
   std::string condition(CGUIInfoLabel::ReplaceLocalize(expression));
   StringUtils::Trim(condition);
@@ -11692,7 +11820,7 @@ bool CGUIInfoManager::EvaluateBool(const std::string& expression,
   return false;
 }
 
-bool CGUIInfoManager::GetBool(int condition1, int contextWindow, const CGUIListItem *item)
+bool CGUIInfoManager::GetBool(int condition1, int contextWindow, const CGUIListItem* item)
 {
   bool bReturn = false;
   int condition = std::abs(condition1);
@@ -11722,7 +11850,9 @@ bool CGUIInfoManager::GetBool(int condition1, int contextWindow, const CGUIListI
   return (condition1 < 0) ? !bReturn : bReturn;
 }
 
-bool CGUIInfoManager::GetMultiInfoBool(const CGUIInfo &info, int contextWindow, const CGUIListItem *item)
+bool CGUIInfoManager::GetMultiInfoBool(const CGUIInfo& info,
+                                       int contextWindow,
+                                       const CGUIListItem* item)
 {
   bool bReturn = false;
   int condition = std::abs(info.GetInfo());
@@ -11732,7 +11862,8 @@ bool CGUIInfoManager::GetMultiInfoBool(const CGUIInfo &info, int contextWindow, 
     std::shared_ptr<CGUIListItem> itemPtr;
     if (!item)
     {
-      itemPtr = GUIINFO::GetCurrentListItem(contextWindow, info.GetData1(), info.GetData2(), info.GetInfoFlag());
+      itemPtr = GUIINFO::GetCurrentListItem(contextWindow, info.GetData1(), info.GetData2(),
+                                            info.GetInfoFlag());
       item = itemPtr.get();
     }
     if (item)
@@ -11871,7 +12002,10 @@ bool CGUIInfoManager::GetMultiInfoBool(const CGUIInfo &info, int contextWindow, 
   return (info.GetInfo() < 0) ? !bReturn : bReturn;
 }
 
-bool CGUIInfoManager::GetMultiInfoInt(int &value, const CGUIInfo &info, int contextWindow, const CGUIListItem *item) const
+bool CGUIInfoManager::GetMultiInfoInt(int& value,
+                                      const CGUIInfo& info,
+                                      int contextWindow,
+                                      const CGUIListItem* item) const
 {
   if (info.GetInfo() == INTEGER_VALUEOF)
   {
@@ -11883,7 +12017,8 @@ bool CGUIInfoManager::GetMultiInfoInt(int &value, const CGUIInfo &info, int cont
     std::shared_ptr<CGUIListItem> itemPtr;
     if (!item)
     {
-      itemPtr = GUIINFO::GetCurrentListItem(contextWindow, info.GetData1(), info.GetData2(), info.GetInfoFlag());
+      itemPtr = GUIINFO::GetCurrentListItem(contextWindow, info.GetData1(), info.GetData2(),
+                                            info.GetInfoFlag());
       item = itemPtr.get();
     }
     if (item)
@@ -11909,7 +12044,9 @@ bool CGUIInfoManager::GetMultiInfoInt(int &value, const CGUIInfo &info, int cont
   return m_infoProviders.GetInt(value, m_currentFile.get(), contextWindow, info);
 }
 
-std::string CGUIInfoManager::GetMultiInfoLabel(const CGUIInfo &constinfo, int contextWindow, std::string *fallback) const
+std::string CGUIInfoManager::GetMultiInfoLabel(const CGUIInfo& constinfo,
+                                               int contextWindow,
+                                               std::string* fallback) const
 {
   CGUIInfo info(constinfo);
 
@@ -11920,7 +12057,8 @@ std::string CGUIInfoManager::GetMultiInfoLabel(const CGUIInfo &constinfo, int co
     if (item)
     {
       // Image prioritizes images over labels (in the case of music item ratings for instance)
-      return GetMultiInfoItemImage(dynamic_cast<CFileItem*>(item.get()), contextWindow, info, fallback);
+      return GetMultiInfoItemImage(dynamic_cast<CFileItem*>(item.get()), contextWindow, info,
+                                   fallback);
     }
     else
     {
@@ -11944,7 +12082,7 @@ std::string CGUIInfoManager::GetMultiInfoLabel(const CGUIInfo &constinfo, int co
 }
 
 /// \brief Obtains the filename of the image to show from whichever subsystem is needed
-std::string CGUIInfoManager::GetImage(int info, int contextWindow, std::string *fallback)
+std::string CGUIInfoManager::GetImage(int info, int contextWindow, std::string* fallback)
 {
   if (info >= CONDITIONAL_LABEL_START && info <= CONDITIONAL_LABEL_END)
   {
@@ -11954,11 +12092,8 @@ std::string CGUIInfoManager::GetImage(int info, int contextWindow, std::string *
   {
     return GetMultiInfoLabel(m_multiInfo[info - MULTI_INFO_START], contextWindow, fallback);
   }
-  else if (info == LISTITEM_THUMB ||
-           info == LISTITEM_ICON ||
-           info == LISTITEM_ACTUAL_ICON ||
-           info == LISTITEM_OVERLAY ||
-           info == LISTITEM_ART)
+  else if (info == LISTITEM_THUMB || info == LISTITEM_ICON || info == LISTITEM_ACTUAL_ICON ||
+           info == LISTITEM_OVERLAY || info == LISTITEM_ART)
   {
     const std::shared_ptr<CGUIListItem> item = GUIINFO::GetCurrentListItem(contextWindow);
     if (item && item->IsFileItem())
@@ -11974,12 +12109,12 @@ void CGUIInfoManager::ResetCurrentItem()
   m_infoProviders.InitCurrentItem(nullptr);
 }
 
-void CGUIInfoManager::UpdateCurrentItem(const CFileItem &item)
+void CGUIInfoManager::UpdateCurrentItem(const CFileItem& item)
 {
   m_currentFile->UpdateInfo(item);
 }
 
-void CGUIInfoManager::SetCurrentItem(const CFileItem &item)
+void CGUIInfoManager::SetCurrentItem(const CFileItem& item)
 {
   *m_currentFile = item;
   ART::FillInDefaultIcon(*m_currentFile);
@@ -11989,7 +12124,7 @@ void CGUIInfoManager::SetCurrentItem(const CFileItem &item)
   CServiceBroker::GetAnnouncementManager()->Announce(ANNOUNCEMENT::Info, "OnChanged");
 }
 
-void CGUIInfoManager::SetCurrentAlbumThumb(const std::string &thumbFileName)
+void CGUIInfoManager::SetCurrentAlbumThumb(const std::string& thumbFileName)
 {
   if (CFileUtils::Exists(thumbFileName))
     m_currentFile->SetArt("thumb", thumbFileName);
@@ -12014,7 +12149,7 @@ void CGUIInfoManager::Clear()
   do
   {
     swapList.clear();
-    for (auto &item : m_bools)
+    for (auto& item : m_bools)
       if (item.use_count() > 1)
         swapList.insert(item);
     m_bools.swap(swapList);
@@ -12044,7 +12179,7 @@ void CGUIInfoManager::UpdateAVInfo() const
   }
 }
 
-int CGUIInfoManager::AddMultiInfo(const CGUIInfo &info)
+int CGUIInfoManager::AddMultiInfo(const CGUIInfo& info)
 {
   // check to see if we have this info already
   for (unsigned int i = 0; i < m_multiInfo.size(); ++i)
@@ -12081,7 +12216,10 @@ bool CGUIInfoManager::IsListItemInfo(int info) const
   return (iResolvedInfo >= LISTITEM_START && iResolvedInfo <= LISTITEM_END);
 }
 
-bool CGUIInfoManager::GetItemInt(int &value, const CGUIListItem *item, int contextWindow, int info) const
+bool CGUIInfoManager::GetItemInt(int& value,
+                                 const CGUIListItem* item,
+                                 int contextWindow,
+                                 int info) const
 {
   value = 0;
 
@@ -12091,12 +12229,18 @@ bool CGUIInfoManager::GetItemInt(int &value, const CGUIListItem *item, int conte
   return m_infoProviders.GetInt(value, item, contextWindow, CGUIInfo(info));
 }
 
-std::string CGUIInfoManager::GetItemLabel(const CFileItem *item, int contextWindow, int info, std::string *fallback /* = nullptr */) const
+std::string CGUIInfoManager::GetItemLabel(const CFileItem* item,
+                                          int contextWindow,
+                                          int info,
+                                          std::string* fallback /* = nullptr */) const
 {
   return GetMultiInfoItemLabel(item, contextWindow, CGUIInfo(info), fallback);
 }
 
-std::string CGUIInfoManager::GetMultiInfoItemLabel(const CFileItem *item, int contextWindow, const CGUIInfo &info, std::string *fallback /* = nullptr */) const
+std::string CGUIInfoManager::GetMultiInfoItemLabel(const CFileItem* item,
+                                                   int contextWindow,
+                                                   const CGUIInfo& info,
+                                                   std::string* fallback /* = nullptr */) const
 {
   if (!item)
     return std::string();
@@ -12228,15 +12372,22 @@ std::string CGUIInfoManager::GetMultiInfoItemLabel(const CFileItem *item, int co
   return value;
 }
 
-std::string CGUIInfoManager::GetItemImage(const CGUIListItem *item, int contextWindow, int info, std::string *fallback /*= nullptr*/) const
+std::string CGUIInfoManager::GetItemImage(const CGUIListItem* item,
+                                          int contextWindow,
+                                          int info,
+                                          std::string* fallback /*= nullptr*/) const
 {
   if (!item || !item->IsFileItem())
     return std::string();
 
-  return GetMultiInfoItemImage(static_cast<const CFileItem*>(item), contextWindow, CGUIInfo(info), fallback);
+  return GetMultiInfoItemImage(static_cast<const CFileItem*>(item), contextWindow, CGUIInfo(info),
+                               fallback);
 }
 
-std::string CGUIInfoManager::GetMultiInfoItemImage(const CFileItem *item, int contextWindow, const CGUIInfo &info, std::string *fallback /*= nullptr*/) const
+std::string CGUIInfoManager::GetMultiInfoItemImage(const CFileItem* item,
+                                                   int contextWindow,
+                                                   const CGUIInfo& info,
+                                                   std::string* fallback /*= nullptr*/) const
 {
   if (info.GetInfo() >= CONDITIONAL_LABEL_START && info.GetInfo() <= CONDITIONAL_LABEL_END)
   {
@@ -12251,7 +12402,7 @@ std::string CGUIInfoManager::GetMultiInfoItemImage(const CFileItem *item, int co
   return GetMultiInfoItemLabel(item, contextWindow, info, fallback);
 }
 
-bool CGUIInfoManager::GetItemBool(const CGUIListItem *item, int contextWindow, int condition) const
+bool CGUIInfoManager::GetItemBool(const CGUIListItem* item, int contextWindow, int condition) const
 {
   if (!item)
     return false;
@@ -12289,7 +12440,7 @@ void CGUIInfoManager::ResetCache()
   ++m_refreshCounter;
 }
 
-void CGUIInfoManager::SetCurrentVideoTag(const CVideoInfoTag &tag)
+void CGUIInfoManager::SetCurrentVideoTag(const CVideoInfoTag& tag)
 {
   m_currentFile->SetFromVideoInfoTag(tag);
   m_currentFile->SetStartOffset(0);
@@ -12297,7 +12448,7 @@ void CGUIInfoManager::SetCurrentVideoTag(const CVideoInfoTag &tag)
   CServiceBroker::GetAnnouncementManager()->Announce(ANNOUNCEMENT::Info, "OnChanged");
 }
 
-void CGUIInfoManager::SetCurrentSongTag(const MUSIC_INFO::CMusicInfoTag &tag)
+void CGUIInfoManager::SetCurrentSongTag(const MUSIC_INFO::CMusicInfoTag& tag)
 {
   m_currentFile->SetFromMusicInfoTag(tag);
   m_currentFile->SetStartOffset(0);
@@ -12382,51 +12533,51 @@ void CGUIInfoManager::OnApplicationMessage(KODI::MESSAGING::ThreadMessage* pMsg)
 {
   switch (pMsg->dwMessage)
   {
-  case TMSG_GUI_INFOLABEL:
-  {
-    if (pMsg->lpVoid)
+    case TMSG_GUI_INFOLABEL:
     {
-      auto infoLabels = static_cast<std::vector<std::string>*>(pMsg->lpVoid);
-      for (const auto& param : pMsg->params)
-        infoLabels->emplace_back(GetLabel(TranslateString(param), DEFAULT_CONTEXT));
+      if (pMsg->lpVoid)
+      {
+        auto infoLabels = static_cast<std::vector<std::string>*>(pMsg->lpVoid);
+        for (const auto& param : pMsg->params)
+          infoLabels->emplace_back(GetLabel(TranslateString(param), DEFAULT_CONTEXT));
+      }
     }
-  }
-  break;
-
-  case TMSG_GUI_INFOBOOL:
-  {
-    if (pMsg->lpVoid)
-    {
-      auto infoLabels = static_cast<std::vector<bool>*>(pMsg->lpVoid);
-      for (const auto& param : pMsg->params)
-        infoLabels->push_back(EvaluateBool(param, DEFAULT_CONTEXT));
-    }
-  }
-  break;
-
-  case TMSG_UPDATE_CURRENT_ITEM:
-  {
-    auto* item{static_cast<CFileItem*>(pMsg->lpVoid)};
-    if (!item)
-      return;
-
-    if (pMsg->param1 == 1 && item->HasMusicInfoTag()) // only grab music tag
-      SetCurrentSongTag(*item->GetMusicInfoTag());
-    else if (pMsg->param1 == 2 && item->HasVideoInfoTag()) // only grab video tag
-      SetCurrentVideoTag(*item->GetVideoInfoTag());
-    else
-      SetCurrentItem(*item);
-
-    delete item;
-  }
-  break;
-
-  default:
     break;
+
+    case TMSG_GUI_INFOBOOL:
+    {
+      if (pMsg->lpVoid)
+      {
+        auto infoLabels = static_cast<std::vector<bool>*>(pMsg->lpVoid);
+        for (const auto& param : pMsg->params)
+          infoLabels->push_back(EvaluateBool(param, DEFAULT_CONTEXT));
+      }
+    }
+    break;
+
+    case TMSG_UPDATE_CURRENT_ITEM:
+    {
+      auto* item{static_cast<CFileItem*>(pMsg->lpVoid)};
+      if (!item)
+        return;
+
+      if (pMsg->param1 == 1 && item->HasMusicInfoTag()) // only grab music tag
+        SetCurrentSongTag(*item->GetMusicInfoTag());
+      else if (pMsg->param1 == 2 && item->HasVideoInfoTag()) // only grab video tag
+        SetCurrentVideoTag(*item->GetVideoInfoTag());
+      else
+        SetCurrentItem(*item);
+
+      delete item;
+    }
+    break;
+
+    default:
+      break;
   }
 }
 
-void CGUIInfoManager::RegisterInfoProvider(IGUIInfoProvider *provider)
+void CGUIInfoManager::RegisterInfoProvider(IGUIInfoProvider* provider)
 {
   if (!CServiceBroker::GetWinSystem())
     return;
@@ -12436,7 +12587,7 @@ void CGUIInfoManager::RegisterInfoProvider(IGUIInfoProvider *provider)
   m_infoProviders.RegisterProvider(provider, false);
 }
 
-void CGUIInfoManager::UnregisterInfoProvider(IGUIInfoProvider *provider)
+void CGUIInfoManager::UnregisterInfoProvider(IGUIInfoProvider* provider)
 {
   if (!CServiceBroker::GetWinSystem())
     return;

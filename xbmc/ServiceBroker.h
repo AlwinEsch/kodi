@@ -54,6 +54,7 @@ class CAppParams;
 template<class T>
 class CComponentContainer;
 class CContextMenuManager;
+
 class XBPython;
 class CDataCacheCore;
 class IAE;
@@ -109,6 +110,11 @@ class CKeyboardLayoutManager;
 namespace RETRO
 {
 class CGUIGameRenderManager;
+}
+
+namespace WEB
+{
+class CWebManager;
 }
 } // namespace KODI
 
@@ -175,6 +181,7 @@ public:
   static ADDON::CRepositoryUpdater& GetRepositoryUpdater();
   static CInputManager& GetInputManager();
   static CFileExtensionProvider& GetFileExtensionProvider();
+  static KODI::WEB::CWebManager& GetWEBManager();
   static bool IsAddonInterfaceUp();
   static bool IsServiceManagerUp();
   static CNetworkBase& GetNetwork();

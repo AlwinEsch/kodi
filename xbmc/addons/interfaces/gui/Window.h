@@ -59,7 +59,7 @@ extern "C"
                               bool (*CBInit)(KODI_GUI_CLIENT_HANDLE),
                               bool (*CBFocus)(KODI_GUI_CLIENT_HANDLE, int),
                               bool (*CBClick)(KODI_GUI_CLIENT_HANDLE, int),
-                              bool (*CBOnAction)(KODI_GUI_CLIENT_HANDLE, ADDON_ACTION),
+                              bool (*CBOnAction)(KODI_GUI_CLIENT_HANDLE, const addon_action_data*),
                               void (*CBGetContextButtons)(KODI_GUI_CLIENT_HANDLE,
                                                           int,
                                                           gui_context_menu_pair*,
@@ -239,7 +239,7 @@ extern "C"
     bool (*CBOnInit)(KODI_GUI_CLIENT_HANDLE cbhdl) = nullptr;
     bool (*CBOnFocus)(KODI_GUI_CLIENT_HANDLE cbhdl, int controlId) = nullptr;
     bool (*CBOnClick)(KODI_GUI_CLIENT_HANDLE cbhdl, int controlId) = nullptr;
-    bool (*CBOnAction)(KODI_GUI_CLIENT_HANDLE cbhdl, ADDON_ACTION actionId) = nullptr;
+    bool (*CBOnAction)(KODI_GUI_CLIENT_HANDLE cbhdl, const addon_action_data* action) = nullptr;
     void (*CBGetContextButtons)(KODI_GUI_CLIENT_HANDLE cbhdl,
                                 int itemNumber,
                                 gui_context_menu_pair* buttons,

@@ -14,6 +14,7 @@ set(HEADERS
   vfs.h
   video_codec.h
   visualization.h
+  web.h
 )
 
 if(HEADERS)

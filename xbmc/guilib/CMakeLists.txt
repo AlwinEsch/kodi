@@ -58,6 +58,7 @@ set(SOURCES DDSImage.cpp
             GUIUtils.cpp
             GUIVideoControl.cpp
             GUIVisualisationControl.cpp
+            GUIWebAddonControl.cpp
             GUIWindow.cpp
             GUIWindowManager.cpp
             GUIWrappingListContainer.cpp
@@ -141,6 +142,7 @@ set(HEADERS AspectRatio.h
             GUIUtils.h
             GUIVideoControl.h
             GUIVisualisationControl.h
+            GUIWebAddonControl.h
             GUIWindow.h
             GUIWindowManager.h
             GUIWrappingListContainer.h

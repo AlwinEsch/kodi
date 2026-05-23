@@ -45,7 +45,7 @@ extern "C"
                           bool (*CBInit)(KODI_GUI_CLIENT_HANDLE),
                           bool (*CBFocus)(KODI_GUI_CLIENT_HANDLE, int),
                           bool (*CBClick)(KODI_GUI_CLIENT_HANDLE, int),
-                          bool (*CBOnAction)(KODI_GUI_CLIENT_HANDLE, enum ADDON_ACTION),
+                          bool (*CBOnAction)(KODI_GUI_CLIENT_HANDLE, const struct addon_action_data* action),
                           void (*CBGetContextButtons)(
                               KODI_GUI_CLIENT_HANDLE, int, gui_context_menu_pair*, unsigned int*),
                           bool (*CBOnContextButton)(KODI_GUI_CLIENT_HANDLE, int, unsigned int));

@@ -67,10 +67,17 @@ namespace RETRO
 {
 class CGUIGameRenderManager;
 }
+
 namespace UTILS::I18N
 {
 class CSubTagRegistryManager;
 } // namespace UTILS::I18N
+
+namespace WEB
+{
+class CWebManager;
+} // namespace WEB
+
 } // namespace KODI
 
 namespace MEDIA_DETECT
@@ -197,6 +204,7 @@ public:
   KODI::GAME::CGameServices& GetGameServices();
   KODI::RETRO::CGUIGameRenderManager& GetGameRenderManager();
   PERIPHERALS::CPeripherals& GetPeripherals();
+  KODI::WEB::CWebManager& GetWEBManager();
 
   KODI::PLAYLIST::CPlayListPlayer& GetPlaylistPlayer();
   CSlideShowDelegator& GetSlideShowDelegator();
@@ -254,6 +262,7 @@ protected:
   std::unique_ptr<CPlayerCoreFactory> m_playerCoreFactory;
   std::unique_ptr<CDatabaseManager> m_databaseManager;
   std::unique_ptr<CMediaManager> m_mediaManager;
+  std::unique_ptr<KODI::WEB::CWebManager> m_webManager;
 #if !defined(TARGET_WINDOWS) && defined(HAS_OPTICAL_DRIVE)
   std::unique_ptr<MEDIA_DETECT::CDetectDVDMedia> m_DetectDVDType;
 #endif

@@ -44,6 +44,7 @@
 #include "video/guilib/VideoGUIUtils.h"
 #include "video/guilib/VideoPlayActionProcessor.h"
 #include "video/guilib/VideoSelectActionProcessor.h"
+#include "web/WebManager.h"
 
 #include <atomic>
 #include <memory>
@@ -188,6 +189,45 @@ private:
   std::atomic_flag m_pvrStarted{};
 };
 
+class CWebSubscriber : public CDirectoryProvider::CSubscriber
+{
+public:
+  explicit CWebSubscriber(ISubscriberCallback& invalidate)
+    : CDirectoryProvider::CSubscriber(invalidate)
+  {
+    CServiceBroker::GetWEBManager().Events().Subscribe(
+      this,
+      [this](const KODI::WEB::WebEvent& event)
+      {
+        if (event == KODI::WEB::WebEvent::ManagerStarted)
+          m_webManagerStarted.test_and_set();
+        else if (event == KODI::WEB::WebEvent::ManagerStarting ||
+          event == KODI::WEB::WebEvent::ManagerStopping ||
+          event == KODI::WEB::WebEvent::ManagerStopped)
+          m_webManagerStarted.clear();
+
+        if (!m_webManagerStarted.test())
+          return;
+
+        using enum KODI::WEB::WebEvent;
+        if (event == ManagerStarted || event == ManagerStopped ||
+          event == ManagerChanged)
+        {
+          OnEventPublished();
+        }
+      });
+
+    if (CServiceBroker::GetWEBManager().IsStarted())
+      m_webManagerStarted.test_and_set();
+  }
+  ~CWebSubscriber() override { CServiceBroker::GetWEBManager().Events().Unsubscribe(this); }
+
+  bool IsReadyToUse() const override { return m_webManagerStarted.test(); }
+
+private:
+  std::atomic_flag m_webManagerStarted{};
+};
+
 class CFavouritesSubscriber : public CDirectoryProvider::CSubscriber
 {
 public:
@@ -211,6 +251,8 @@ std::unique_ptr<CDirectoryProvider::CSubscriber> GetSubscriber(const std::string
     return std::make_unique<CAddonsSubscriber>(invalidate);
   else if (URIUtils::IsProtocol(url, "pvr"))
     return std::make_unique<CPVRSubscriber>(invalidate);
+  else if (URIUtils::IsProtocol(url, "web"))
+    return std::make_unique<CWebSubscriber>(invalidate);
   else if (URIUtils::IsProtocol(url, "favourites"))
     return std::make_unique<CFavouritesSubscriber>(invalidate);
   else

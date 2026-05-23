@@ -21,6 +21,11 @@ class CGUIControl;
 class CGUIMediaWindow;
 class CGUIWindow;
 
+namespace KODI::WEB
+{
+class CGUIWindowWebBrowser;
+} // namespace KODI::WEB
+
 namespace KODI::GUILIB::GUIINFO
 {
 
@@ -29,6 +34,7 @@ std::string GetPlaylistLabel(int item, PLAYLIST::Id playlistid = PLAYLIST::Id::T
 CGUIWindow* GetWindow(int contextWindow);
 CGUIControl* GetActiveContainer(int containerId, int contextWindow);
 CGUIMediaWindow* GetMediaWindow(int contextWindow);
+KODI::WEB::CGUIWindowWebBrowser* GetWebBrowserWindow(int contextWindow);
 std::shared_ptr<CGUIListItem> GetCurrentListItem(int contextWindow,
                                                  int containerId = 0,
                                                  int itemOffset = 0,

@@ -33,6 +33,7 @@
 #include "utils/XMLUtils.h"
 #include "utils/log.h"
 #include "weather/WeatherManager.h"
+#include "web/WebManager.h"
 
 #include <algorithm>
 #include <array>
@@ -822,6 +823,7 @@ bool CLangInfo::SetLanguage(std::string language /* = "" */, bool reloadServices
     CServiceBroker::GetWeatherManager().Refresh();
     CServiceBroker::GetPVRManager().LocalizationChanged();
     CServiceBroker::GetDatabaseManager().LocalizationChanged();
+    CServiceBroker::GetWEBManager().SetLanguage(language);
     CServiceBroker::GetAppMessenger()->PostMsg(TMSG_EXECUTE_BUILT_IN, -1, -1, nullptr,
                                                "ReloadSkin");
   }

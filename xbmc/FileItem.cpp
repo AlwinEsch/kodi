@@ -995,6 +995,11 @@ bool CFileItem::IsAndroidApp() const
   return GetURL().IsAndroidApp();
 }
 
+bool CFileItem::IsWeb() const
+{
+  return URIUtils::IsWeb(m_strPath);
+}
+
 bool CFileItem::IsStack() const
 {
   return GetDynURL().IsStack();

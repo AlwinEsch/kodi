@@ -189,6 +189,11 @@
                                                       "addon-instance/VideoCodec.h" \
                                                       "addon-instance/inputstream/StreamCodec.h" \
                                                       "addon-instance/inputstream/StreamCrypto.h"
+
+#define ADDON_INSTANCE_VERSION_WEB                    "1.0.2"
+#define ADDON_INSTANCE_VERSION_WEB_MIN                "1.0.2"
+#define ADDON_INSTANCE_VERSION_WEB_XML_ID             "kodi.binary.instance.web"
+#define ADDON_INSTANCE_VERSION_WEB_DEPENDS            "addon-instance/Web.h"
 // clang-format on
 
 //==============================================================================
@@ -255,6 +260,9 @@ typedef enum ADDON_TYPE
 
   /// Shader preset instance, see @ref cpp_kodi_addon_shaderpreset "kodi::addon::CInstanceShaderPreset"
   ADDON_INSTANCE_SHADERPRESET = 113,
+
+  /// Webbrowser instance, see @ref cpp_kodi_addon_shaderpreset "kodi::addon::CInstanceWeb"
+  ADDON_INSTANCE_WEB = 114,
 } ADDON_TYPE;
 ///@}
 //------------------------------------------------------------------------------
@@ -360,6 +368,10 @@ extern "C"
       case ADDON_INSTANCE_VIDEOCODEC:
         return ADDON_INSTANCE_VERSION_VIDEOCODEC;
 #endif
+#if !defined(BUILD_KODI_ADDON) || defined(ADDON_INSTANCE_VERSION_WEB_USED)
+      case ADDON_INSTANCE_WEB:
+        return ADDON_INSTANCE_VERSION_WEB;
+#endif
     }
     return "0.0.0";
   }
@@ -417,6 +429,8 @@ extern "C"
         return ADDON_INSTANCE_VERSION_VISUALIZATION_MIN;
       case ADDON_INSTANCE_VIDEOCODEC:
         return ADDON_INSTANCE_VERSION_VIDEOCODEC_MIN;
+      case ADDON_INSTANCE_WEB:
+        return ADDON_INSTANCE_VERSION_WEB_MIN;
     }
     return "0.0.0";
   }
@@ -471,6 +485,8 @@ extern "C"
         return "Visualization";
       case ADDON_INSTANCE_VIDEOCODEC:
         return "VideoCodec";
+      case ADDON_INSTANCE_WEB:
+        return "Web";
     }
     return "unknown";
   }
@@ -526,6 +542,8 @@ extern "C"
         return ADDON_INSTANCE_VISUALIZATION;
       else if (strcmp(name, "videocodec") == 0)
         return ADDON_INSTANCE_VIDEOCODEC;
+      else if (strcmp(name, "web") == 0)
+        return ADDON_INSTANCE_WEB;
     }
     return -1;
   }

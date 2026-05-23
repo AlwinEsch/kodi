@@ -19,6 +19,7 @@
 #include "utils/log.h"
 #include "video/VideoDatabase.h"
 #include "view/ViewDatabase.h"
+#include "web/WebDatabase.h"
 
 #include <algorithm>
 #include <mutex>
@@ -74,6 +75,8 @@ bool CDatabaseManager::InitializeInternal()
   if (CPVRDatabase db; !UpdateDatabase(db, &advancedSettings->m_databaseTV))
     return false;
   if (CPVREpgDatabase db; !UpdateDatabase(db, &advancedSettings->m_databaseEpg))
+    return false;
+  if (KODI::WEB::CWebDatabase db; !UpdateDatabase(db, &advancedSettings->m_databaseWeb))
     return false;
 
   CLog::LogF(LOGDEBUG, "updating databases... DONE");

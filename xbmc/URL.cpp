@@ -156,7 +156,7 @@ void CURL::Parse(std::string strURL1)
   if (IsProtocol("rss") || IsProtocol("rsss") || IsProtocol("rar") || IsProtocol("apk") ||
       IsProtocol("xbt") || IsProtocol("zip") || IsProtocol("addons") || IsProtocol("image") ||
       IsProtocol("videodb") || IsProtocol("musicdb") || IsProtocol("androidapp") ||
-      IsProtocol("pvr") || IsProtocol("bluray"))
+      IsProtocol("pvr") || IsProtocol("bluray") || IsProtocol("web"))
     sep = "?";
   else if (IsProtocolEqual(strProtocol2, "http") || IsProtocolEqual(strProtocol2, "https") ||
            IsProtocolEqual(strProtocol2, "plugin") || IsProtocolEqual(strProtocol2, "addons") ||
@@ -262,7 +262,8 @@ void CURL::Parse(std::string strURL1)
       m_strFileName = strURL.substr(iPos, iEnd - iPos);
   }
 
-  if (IsProtocol("musicdb") || IsProtocol("videodb") || IsProtocol("sources") || IsProtocol("pvr"))
+  if (IsProtocol("musicdb") || IsProtocol("videodb") || IsProtocol("sources") ||
+      IsProtocol("pvr") || IsProtocol("web"))
   {
     if (!m_strHostName.empty() && !m_strFileName.empty())
     {

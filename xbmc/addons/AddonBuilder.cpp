@@ -72,6 +72,7 @@ AddonPtr CAddonBuilder::Generate(const AddonInfoPtr& info, AddonType type)
     case AddonType::VFS:
     case AddonType::VISUALIZATION:
     case AddonType::SCREENSAVER:
+    case AddonType::WEB_MANAGER:
       return std::make_shared<CAddonDll>(info, type);
     case AddonType::GAMEDLL:
       return std::make_shared<GAME::CGameClient>(info);

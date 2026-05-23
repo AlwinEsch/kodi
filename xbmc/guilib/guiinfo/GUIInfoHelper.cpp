@@ -21,6 +21,7 @@
 #include "resources/ResourcesComponent.h"
 #include "utils/StringUtils.h"
 #include "utils/URIUtils.h"
+#include "web/windows/GUIWindowWebBrowser.h"
 #include "windows/GUIMediaWindow.h"
 
 namespace KODI::GUILIB::GUIINFO
@@ -29,6 +30,7 @@ namespace KODI::GUILIB::GUIINFO
 // conditions for window retrieval
 static const int WINDOW_CONDITION_HAS_LIST_ITEMS = 1;
 static const int WINDOW_CONDITION_IS_MEDIA_WINDOW = 2;
+static const int WINDOW_CONDITION_HAS_WEB_CONTROL = 4;
 
 std::string GetPlaylistLabel(int item, PLAYLIST::Id playlistId /* = TYPE_NONE */)
 {
@@ -85,6 +87,9 @@ bool CheckWindowCondition(const CGUIWindow* window, int condition)
     return false;
   if ((condition & WINDOW_CONDITION_IS_MEDIA_WINDOW) && !window->IsMediaWindow())
     return false;
+  if ((condition & WINDOW_CONDITION_HAS_WEB_CONTROL) && !window->HasWebControl())
+    return false;
+
   return true;
 }
 
@@ -130,6 +135,15 @@ CGUIMediaWindow* GetMediaWindow(int contextWindow)
   CGUIWindow* window = GetWindowWithCondition(contextWindow, WINDOW_CONDITION_IS_MEDIA_WINDOW);
   if (window)
     return static_cast<CGUIMediaWindow*>(window);
+
+  return nullptr;
+}
+
+KODI::WEB::CGUIWindowWebBrowser* GetWebBrowserWindow(int contextWindow)
+{
+  CGUIWindow* window = GetWindowWithCondition(contextWindow, WINDOW_CONDITION_HAS_WEB_CONTROL);
+  if (window)
+    return dynamic_cast<KODI::WEB::CGUIWindowWebBrowser*>(window);
 
   return nullptr;
 }

@@ -49,6 +49,7 @@
 #include "utils/i18n/Bcp47Registry/SubTagRegistryManager.h"
 #include "utils/log.h"
 #include "weather/WeatherManager.h"
+#include "web/WebManager.h"
 
 #include <memory>
 
@@ -162,6 +163,8 @@ bool CServiceManager::InitStageTwo(const std::string& profilesUserDataFolder)
   m_binaryAddonCache = std::make_unique<ADDON::CBinaryAddonCache>();
   m_binaryAddonCache->Init();
 
+  m_webManager = std::make_unique<WEB::CWebManager>();
+
   m_favouritesService = std::make_unique<CFavouritesService>(profilesUserDataFolder);
 
   m_serviceAddons = std::make_unique<ADDON::CServiceAddonManager>(*m_addonMgr);
@@ -227,7 +230,10 @@ bool CServiceManager::InitStageThree(const std::shared_ptr<CProfileManager>& pro
 
   // Init PVR manager after login, not already on login screen
   if (!profileManager->UsingLoginScreen())
+  {
     m_PVRManager->Init();
+    m_webManager->Init();
+  }
 
   m_playerCoreFactory = std::make_unique<CPlayerCoreFactory>(*profileManager);
 
@@ -270,7 +276,7 @@ void CServiceManager::DeinitStageTwo()
 #if defined(HAS_FILESYSTEM_SMB)
   m_WSDiscovery.reset();
 #endif
-
+  m_webManager->Deinit();
   m_weatherManager.reset();
   m_powerManager.reset();
   m_fileExtensionProvider.reset();
@@ -283,6 +289,7 @@ void CServiceManager::DeinitStageTwo()
   m_favouritesService.reset();
   m_binaryAddonCache.reset();
   m_dataCacheCore.reset();
+  m_webManager.reset();
   m_PVRManager.reset();
   m_extsMimeSupportList.reset();
   m_vfsAddonCache.reset();
@@ -435,6 +442,11 @@ CFileExtensionProvider& CServiceManager::GetFileExtensionProvider()
 CPowerManager& CServiceManager::GetPowerManager()
 {
   return *m_powerManager;
+}
+
+WEB::CWebManager& CServiceManager::GetWEBManager()
+{
+  return *m_webManager;
 }
 
 CNetworkBase& CServiceManager::GetNetwork()

@@ -105,7 +105,11 @@ bool CExecString::Parse(const CFileItem& item, const std::string& contextWindow)
     const CURL url(item.GetPath());
     Parse(CURL::Decode(url.GetHostName()));
   }
-  else if (item.IsFolder() &&
+  else if (item.IsWeb())
+  {
+    Parse(item.GetPath());
+  }
+  else if (item.IsFolder()&&
            (CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->m_playlistAsFolders ||
             !(PLAYLIST::IsSmartPlayList(item) || PLAYLIST::IsPlayList(item))))
   {

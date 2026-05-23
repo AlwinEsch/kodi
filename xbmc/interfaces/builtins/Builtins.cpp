@@ -22,7 +22,9 @@
 #include "ServiceBroker.h"
 #include "SkinBuiltins.h"
 #include "SystemBuiltins.h"
+#include "Util.h"
 #include "WeatherBuiltins.h"
+#include "WebBuiltins.h"
 #include "input/InputManager.h"
 #include "powermanagement/PowerTypes.h"
 #include "settings/Settings.h"
@@ -55,6 +57,7 @@ CBuiltins::CBuiltins()
   RegisterCommands<CSkinBuiltins>();
   RegisterCommands<CSystemBuiltins>();
   RegisterCommands<CWeatherBuiltins>();
+  RegisterCommands<CWebBuiltins>();
 
 #if defined(HAVE_LIBCEC)
   RegisterCommands<CCECBuiltins>();

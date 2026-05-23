@@ -1286,6 +1286,23 @@ void CAdvancedSettings::ParseSettingsFile(const std::string &file)
     XMLUtils::GetBoolean(pElement, "transparentvideolayout", m_guiVideoLayoutTransparent);
   }
 
+  pElement = pRootElement->FirstChildElement("webdatabase");
+  if (pElement)
+  {
+    XMLUtils::GetString(pElement, "type", m_databaseWeb.type);
+    XMLUtils::GetString(pElement, "host", m_databaseWeb.host);
+    XMLUtils::GetString(pElement, "port", m_databaseWeb.port);
+    XMLUtils::GetString(pElement, "user", m_databaseWeb.user);
+    XMLUtils::GetString(pElement, "pass", m_databaseWeb.pass);
+    XMLUtils::GetString(pElement, "name", m_databaseWeb.name);
+    XMLUtils::GetString(pElement, "key", m_databaseWeb.key);
+    XMLUtils::GetString(pElement, "cert", m_databaseWeb.cert);
+    XMLUtils::GetString(pElement, "ca", m_databaseWeb.ca);
+    XMLUtils::GetString(pElement, "capath", m_databaseWeb.capath);
+    XMLUtils::GetString(pElement, "ciphers", m_databaseWeb.ciphers);
+    XMLUtils::GetBoolean(pElement, "compression", m_databaseWeb.compression);
+  }
+
   std::string seekSteps;
   XMLUtils::GetString(pRootElement, "seeksteps", seekSteps);
   if (!seekSteps.empty())

@@ -44,6 +44,7 @@
 #include "GUIUtils.h"
 #include "GUIVideoControl.h"
 #include "GUIVisualisationControl.h"
+#include "GUIWebAddonControl.h"
 #include "GUIWrappingListContainer.h"
 #include "ServiceBroker.h"
 #include "addons/Skin.h"
@@ -108,6 +109,7 @@ static const ControlMapping controls[] = {
     {"togglebutton", CGUIControl::GUICONTROL_TOGGLEBUTTON},
     {"videowindow", CGUIControl::GUICONTROL_VIDEO},
     {"visualisation", CGUIControl::GUICONTROL_VISUALISATION},
+    {"webaddon", CGUIControl::GUICONTROL_WEB_ADDON},
     {"wraplist", CGUIControl::GUICONTAINER_WRAPLIST},
 };
 
@@ -946,6 +948,12 @@ CGUIControl* CGUIControlFactory::Create(int parentID,
 
   KODI::UTILS::MOVING_SPEED::MapEventConfig movingSpeedCfg;
 
+  // Web add-on control related
+  bool transparent = false;
+  bool singleReload = false; // If true can button also do other commands (load and reload)
+  std::string addonBrowserOwnId; // Identifier for addon related part to get a running site
+  std::string url;
+
   /////////////////////////////////////////////////////////////////////////////
   // Read control properties from XML
   //
@@ -1211,6 +1219,11 @@ CGUIControl* CGUIControlFactory::Create(int parentID,
   XMLUtils::GetBoolean(pControlNode, "resetonlabelchange", resetOnLabelChange);
 
   XMLUtils::GetBoolean(pControlNode, "password", bPassword);
+
+  XMLUtils::GetBoolean(pControlNode, "transparent", transparent);
+  XMLUtils::GetBoolean(pControlNode, "singlereload", singleReload);
+  GetString(pControlNode, "url", url);
+  GetString(pControlNode, "browserownid", addonBrowserOwnId);
 
   // view type
   VIEW_TYPE viewType = VIEW_TYPE_NONE;
@@ -1789,6 +1802,16 @@ CGUIControl* CGUIControlFactory::Create(int parentID,
       rcontrol->SetFocusActions(focusActions);
       rcontrol->SetUnFocusActions(unfocusActions);
 
+      break;
+    }
+    case CGUIControl::GUICONTROL_WEB_ADDON:
+    {
+      control = new GUILIB::CGUIWebAddonControl(parentID, id, posX, posY, width, height, url);
+      GUILIB::CGUIWebAddonControl* wcontrol = static_cast<GUILIB::CGUIWebAddonControl*>(control);
+      wcontrol->SetTransparent(transparent);
+      wcontrol->SetReloadButton(!singleReload);
+      if (!addonBrowserOwnId.empty())
+        wcontrol->SetWebControlIdString(addonBrowserOwnId);
       break;
     }
     default:

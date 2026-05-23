@@ -39,5 +39,8 @@ xbmc/utils/i18n                                 utils_i18n
 xbmc/utils/i18n/Bcp47Registry                   utils_i18n_Bcp47Registry
 xbmc/view                                       view
 xbmc/weather                                    weather
+xbmc/web                                        webaddons
+xbmc/web/dialogs                                webaddons_dialogs
+xbmc/web/windows                                webaddons_windows
 xbmc/windowing                                  windowing
 xbmc/windows                                    windows

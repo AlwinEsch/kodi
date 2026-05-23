@@ -304,6 +304,7 @@ public:
     GUICONTROL_TOGGLEBUTTON,
     GUICONTROL_VIDEO,
     GUICONTROL_VISUALISATION,
+    GUICONTROL_WEB_ADDON,
   };
   GUICONTROLTYPES GetControlType() const { return ControlType; }
 

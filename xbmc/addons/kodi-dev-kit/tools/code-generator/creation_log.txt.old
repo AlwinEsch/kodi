@@ -1,0 +1,280 @@
+Used call options: {'buildpath': '/home/alwin/Dev/kodi/xbmc/addons/kodi-dev-kit/build/angle', 'sourcepath': '', 'version': '7499', 'name': 'kodi', 'devbranch': '', 'git_url_base': 'https://github.com/AlwinEsch/angle-kodi.git', 'git_url_remote_upstream': 'git@github.com:AlwinEsch/angle-kodi.git', 'fullremote': False, 'force': False, 'debug': False}
+Checking about used GIT branch...
+[20/05/2026 08:33:48] Checking repo present: : Repository not present and becomes cloned See below
+[20/05/2026 08:35:10] Found branch version change: : Current: main, needed 7499 
+[20/05/2026 08:35:10]  - Check own modified Chromium Angle remote source present: : Remote branch becomes added OK
+[20/05/2026 08:35:11]  - Update own Chromium Angle remote source: : Fetch remote code See below
+[20/05/2026 08:35:13]    Fetching progress ...: OK
+[20/05/2026 08:35:13]  - Check original Chromium Angle remote source present: : remote branch becomes added OK
+[20/05/2026 08:35:13]  - Update original Chromium Angle remote source: : Fetch remote code [20/05/2026 08:35:15]  - Checking our Angle repo needs update: : Repository cloned before, update not needed Already done and up to date
+[20/05/2026 08:35:15] Checkout or add our needed branch to use for CMake add: : 
+[20/05/2026 08:35:15]  Active branch: : main 
+[20/05/2026 08:35:15]  Needed branch: : kodi/7499 
+[20/05/2026 08:35:15]  - Checkout branch: : Needed branch on origin upstream present, checking out with creation of new from "main" to "kodi/7499" OK
+[20/05/2026 08:35:16] Merge main to match "upstream-google/main": Fetch remote code 
+[20/05/2026 08:35:19]    Fetching progress ...: OK
+[20/05/2026 08:35:19] Check needed values for programming code generation:: See below
+[20/05/2026 08:35:19]  - GIT branch version: : 7499 OK
+[20/05/2026 08:35:19]  - GIT commit SHA: : 2dfb5b7603d09c1d06f9d7a894752431d98b9a3e OK
+[20/05/2026 08:35:19]  - GIT commit date: : 20251208-1719 OK
+Checking about cloned Angle own files to change...
+[20/05/2026 08:35:19] Change file: : .gitignore OK
+[20/05/2026 08:35:19]  - Apply GIT commit: : Change .gitignore to match our usage 
+[20/05/2026 08:35:19]    Changed files: : .gitignore 
+[20/05/2026 08:35:19] Remove file: : .gitmodules OK
+[20/05/2026 08:35:19]  - Apply GIT commit: : Remove not wanted files from origin 
+[20/05/2026 08:35:19]    Changed files: : .gitmodules 
+Download additional used files...
+[20/05/2026 08:35:19] Get file: : gni-to-cmake.py See below
+[20/05/2026 08:35:19]  - Download needed : Used commit version 0742522b24152262b04913242cb0b3c48de92ba0 
+[20/05/2026 08:35:20]  - Get: : gni-to-cmake.py Bytes: 17754 
+[20/05/2026 08:35:20] Remove git submodule: : /third_party/zlib OK
+[20/05/2026 08:35:20] Get repo directory: : /third_party/zlib OK
+[20/05/2026 08:35:20]  - Apply GIT commit: : Add third_party zlib source 
+[20/05/2026 08:35:20]    Changed files: : third_party/zlib 
+[20/05/2026 08:35:20]                   : third_party/zlib/BUILD.gn 
+[20/05/2026 08:35:20]                   : third_party/zlib/CMakeLists.txt 
+[20/05/2026 08:35:20]                   : third_party/zlib/DIR_METADATA 
+[20/05/2026 08:35:20]                   : third_party/zlib/LICENSE 
+[20/05/2026 08:35:20]                   : third_party/zlib/OWNERS 
+[20/05/2026 08:35:20]                   : third_party/zlib/README 
+[20/05/2026 08:35:20]                   : third_party/zlib/README.chromium 
+[20/05/2026 08:35:20]                   : third_party/zlib/adler32.c 
+[20/05/2026 08:35:20]                   : third_party/zlib/adler32_simd.c 
+[20/05/2026 08:35:20]                   : third_party/zlib/adler32_simd.h 
+[20/05/2026 08:35:20]                   : third_party/zlib/chromeconf.h 
+[20/05/2026 08:35:20]                   : third_party/zlib/compress.c 
+[20/05/2026 08:35:20]                   : third_party/zlib/contrib/bench/check.sh 
+[20/05/2026 08:35:20]                   : third_party/zlib/contrib/bench/zlib_bench.cc 
+[20/05/2026 08:35:20]                   : third_party/zlib/contrib/minizip/ChangeLogUnzip 
+[20/05/2026 08:35:20]                   : third_party/zlib/contrib/minizip/Makefile 
+[20/05/2026 08:35:20]                   : third_party/zlib/contrib/minizip/README.chromium 
+[20/05/2026 08:35:20]                   : third_party/zlib/contrib/minizip/crypt.h 
+[20/05/2026 08:35:20]                   : third_party/zlib/contrib/minizip/ints.h 
+[20/05/2026 08:35:20]                   : third_party/zlib/contrib/minizip/ioapi.c 
+[20/05/2026 08:35:20]                   : third_party/zlib/contrib/minizip/ioapi.h 
+[20/05/2026 08:35:20]                   : third_party/zlib/contrib/minizip/iowin32.c 
+[20/05/2026 08:35:20]                   : third_party/zlib/contrib/minizip/iowin32.h 
+[20/05/2026 08:35:20]                   : third_party/zlib/contrib/minizip/miniunz.c 
+[20/05/2026 08:35:20]                   : third_party/zlib/contrib/minizip/minizip.c 
+[20/05/2026 08:35:20]                   : third_party/zlib/contrib/minizip/minizip.md 
+[20/05/2026 08:35:20]                   : third_party/zlib/contrib/minizip/mztools.c 
+[20/05/2026 08:35:20]                   : third_party/zlib/contrib/minizip/mztools.h 
+[20/05/2026 08:35:20]                   : third_party/zlib/contrib/minizip/skipset.h 
+[20/05/2026 08:35:20]                   : third_party/zlib/contrib/minizip/unzip.c 
+[20/05/2026 08:35:20]                   : third_party/zlib/contrib/minizip/unzip.h 
+[20/05/2026 08:35:20]                   : third_party/zlib/contrib/minizip/zip.c 
+[20/05/2026 08:35:20]                   : third_party/zlib/contrib/minizip/zip.h 
+[20/05/2026 08:35:20]                   : third_party/zlib/contrib/optimizations/chunkcopy.h 
+[20/05/2026 08:35:20]                   : third_party/zlib/contrib/optimizations/inffast_chunk.c 
+[20/05/2026 08:35:20]                   : third_party/zlib/contrib/optimizations/inffast_chunk.h 
+[20/05/2026 08:35:20]                   : third_party/zlib/contrib/optimizations/inflate.c 
+[20/05/2026 08:35:20]                   : third_party/zlib/contrib/optimizations/insert_string.h 
+[20/05/2026 08:35:20]                   : third_party/zlib/contrib/qat/deflate_qat.cpp 
+[20/05/2026 08:35:20]                   : third_party/zlib/contrib/qat/deflate_qat.h 
+[20/05/2026 08:35:20]                   : third_party/zlib/contrib/qat/qatzpp/io_buffers.cpp 
+[20/05/2026 08:35:20]                   : third_party/zlib/contrib/qat/qatzpp/io_buffers.h 
+[20/05/2026 08:35:20]                   : third_party/zlib/contrib/qat/qatzpp/memory.cpp 
+[20/05/2026 08:35:20]                   : third_party/zlib/contrib/qat/qatzpp/memory.hpp 
+[20/05/2026 08:35:20]                   : third_party/zlib/contrib/qat/qatzpp/qat.cpp 
+[20/05/2026 08:35:20]                   : third_party/zlib/contrib/qat/qatzpp/qat.hpp 
+[20/05/2026 08:35:20]                   : third_party/zlib/contrib/qat/qatzpp/qat_buffer_list.cpp 
+[20/05/2026 08:35:20]                   : third_party/zlib/contrib/qat/qatzpp/qat_buffer_list.hpp 
+[20/05/2026 08:35:20]                   : third_party/zlib/contrib/qat/qatzpp/qat_instance.cpp 
+[20/05/2026 08:35:20]                   : third_party/zlib/contrib/qat/qatzpp/qat_instance.hpp 
+[20/05/2026 08:35:20]                   : third_party/zlib/contrib/qat/qatzpp/qat_task.cpp 
+[20/05/2026 08:35:20]                   : third_party/zlib/contrib/qat/qatzpp/qat_task.hpp 
+[20/05/2026 08:35:20]                   : third_party/zlib/contrib/qat/qatzpp/session.cpp 
+[20/05/2026 08:35:20]                   : third_party/zlib/contrib/qat/qatzpp/session.hpp 
+[20/05/2026 08:35:20]                   : third_party/zlib/contrib/tests/DEPS 
+[20/05/2026 08:35:20]                   : third_party/zlib/contrib/tests/OWNERS 
+[20/05/2026 08:35:20]                   : third_party/zlib/contrib/tests/fuzzers/BUILD.gn 
+[20/05/2026 08:35:20]                   : third_party/zlib/contrib/tests/fuzzers/OWNERS 
+[20/05/2026 08:35:20]                   : third_party/zlib/contrib/tests/fuzzers/compress_fuzzer.cc 
+[20/05/2026 08:35:20]                   : third_party/zlib/contrib/tests/fuzzers/deflate_fuzzer.cc 
+[20/05/2026 08:35:20]                   : third_party/zlib/contrib/tests/fuzzers/deflate_set_dictionary_fuzzer.cc 
+[20/05/2026 08:35:20]                   : third_party/zlib/contrib/tests/fuzzers/inflate_fuzzer.cc 
+[20/05/2026 08:35:20]                   : third_party/zlib/contrib/tests/fuzzers/inflate_with_header_fuzzer.cc 
+[20/05/2026 08:35:20]                   : third_party/zlib/contrib/tests/fuzzers/minizip_unzip_fuzzer.cc 
+[20/05/2026 08:35:20]                   : third_party/zlib/contrib/tests/fuzzers/streaming_inflate_fuzzer.cc 
+[20/05/2026 08:35:20]                   : third_party/zlib/contrib/tests/fuzzers/uncompress_fuzzer.cc 
+[20/05/2026 08:35:20]                   : third_party/zlib/contrib/tests/infcover.cc 
+[20/05/2026 08:35:20]                   : third_party/zlib/contrib/tests/infcover.h 
+[20/05/2026 08:35:20]                   : third_party/zlib/contrib/tests/run_all_unittests.cc 
+[20/05/2026 08:35:20]                   : third_party/zlib/contrib/tests/standalone_test_runner.cc 
+[20/05/2026 08:35:20]                   : third_party/zlib/contrib/tests/utils_unittest.cc 
+[20/05/2026 08:35:20]                   : third_party/zlib/cpu_features.c 
+[20/05/2026 08:35:20]                   : third_party/zlib/cpu_features.h 
+[20/05/2026 08:35:20]                   : third_party/zlib/crc32.c 
+[20/05/2026 08:35:20]                   : third_party/zlib/crc32.h 
+[20/05/2026 08:35:20]                   : third_party/zlib/crc32_simd.c 
+[20/05/2026 08:35:20]                   : third_party/zlib/crc32_simd.h 
+[20/05/2026 08:35:20]                   : third_party/zlib/crc_folding.c 
+[20/05/2026 08:35:20]                   : third_party/zlib/deflate.c 
+[20/05/2026 08:35:20]                   : third_party/zlib/deflate.h 
+[20/05/2026 08:35:20]                   : third_party/zlib/doc/algorithm.txt 
+[20/05/2026 08:35:20]                   : third_party/zlib/doc/crc-doc.1.0.pdf 
+[20/05/2026 08:35:20]                   : third_party/zlib/doc/rfc1950.txt 
+[20/05/2026 08:35:20]                   : third_party/zlib/doc/rfc1951.txt 
+[20/05/2026 08:35:20]                   : third_party/zlib/doc/rfc1952.txt 
+[20/05/2026 08:35:20]                   : third_party/zlib/doc/txtvsbin.txt 
+[20/05/2026 08:35:20]                   : third_party/zlib/examples/zpipe.c 
+[20/05/2026 08:35:20]                   : third_party/zlib/google/BUILD.gn 
+[20/05/2026 08:35:20]                   : third_party/zlib/google/DEPS 
+[20/05/2026 08:35:20]                   : third_party/zlib/google/OWNERS 
+[20/05/2026 08:35:20]                   : third_party/zlib/google/compression_utils.cc 
+[20/05/2026 08:35:20]                   : third_party/zlib/google/compression_utils.h 
+[20/05/2026 08:35:20]                   : third_party/zlib/google/compression_utils_portable.cc 
+[20/05/2026 08:35:20]                   : third_party/zlib/google/compression_utils_portable.h 
+[20/05/2026 08:35:20]                   : third_party/zlib/google/compression_utils_unittest.cc 
+[20/05/2026 08:35:20]                   : third_party/zlib/google/redact.h 
+[20/05/2026 08:35:20]                   : third_party/zlib/google/test/data/Different Encryptions.zip 
+[20/05/2026 08:35:20]                   : third_party/zlib/google/test/data/Empty Dir Same Name As File.zip 
+[20/05/2026 08:35:20]                   : third_party/zlib/google/test/data/Mixed Paths.zip 
+[20/05/2026 08:35:20]                   : third_party/zlib/google/test/data/Parent Dir Same Name As File.zip 
+[20/05/2026 08:35:20]                   : third_party/zlib/google/test/data/README.md 
+[20/05/2026 08:35:20]                   : third_party/zlib/google/test/data/Repeated Dir Name.zip 
+[20/05/2026 08:35:20]                   : third_party/zlib/google/test/data/Repeated File Name With Different Cases.zip 
+[20/05/2026 08:35:20]                   : third_party/zlib/google/test/data/Repeated File Name.zip 
+[20/05/2026 08:35:20]                   : third_party/zlib/google/test/data/SJIS Bug 846195.zip 
+[20/05/2026 08:35:20]                   : third_party/zlib/google/test/data/Windows Special Names.zip 
+[20/05/2026 08:35:20]                   : third_party/zlib/google/test/data/Wrong CRC.zip 
+[20/05/2026 08:35:20]                   : third_party/zlib/google/test/data/create_symlink_test_zips.py 
+[20/05/2026 08:35:20]                   : third_party/zlib/google/test/data/create_test_zip.sh 
+[20/05/2026 08:35:20]                   : third_party/zlib/google/test/data/empty.zip 
+[20/05/2026 08:35:20]                   : third_party/zlib/google/test/data/evil.zip 
+[20/05/2026 08:35:20]                   : third_party/zlib/google/test/data/evil_via_absolute_file_name.zip 
+[20/05/2026 08:35:20]                   : third_party/zlib/google/test/data/evil_via_invalid_utf8.zip 
+[20/05/2026 08:35:20]                   : third_party/zlib/google/test/data/symlink_absolute_path.zip 
+[20/05/2026 08:35:20]                   : third_party/zlib/google/test/data/symlink_duplicate_link.zip 
+[20/05/2026 08:35:20]                   : third_party/zlib/google/test/data/symlink_evil_relative_path.zip 
+[20/05/2026 08:35:20]                   : third_party/zlib/google/test/data/symlink_follow_own_link.zip 
+[20/05/2026 08:35:20]                   : third_party/zlib/google/test/data/symlink_follow_own_link_dir.zip 
+[20/05/2026 08:35:20]                   : third_party/zlib/google/test/data/symlink_too_large.zip 
+[20/05/2026 08:35:20]                   : third_party/zlib/google/test/data/symlinks.zip 
+[20/05/2026 08:35:20]                   : third_party/zlib/google/test/data/test.zip 
+[20/05/2026 08:35:20]                   : third_party/zlib/google/test/data/test/foo.txt 
+[20/05/2026 08:35:20]                   : third_party/zlib/google/test/data/test/foo/bar.txt 
+[20/05/2026 08:35:20]                   : third_party/zlib/google/test/data/test/foo/bar/.hidden 
+[20/05/2026 08:35:20]                   : third_party/zlib/google/test/data/test/foo/bar/baz.txt 
+[20/05/2026 08:35:20]                   : third_party/zlib/google/test/data/test/foo/bar/quux.txt 
+[20/05/2026 08:35:20]                   : third_party/zlib/google/test/data/test_encrypted.zip 
+[20/05/2026 08:35:20]                   : third_party/zlib/google/test/data/test_mismatch_size.zip 
+[20/05/2026 08:35:20]                   : third_party/zlib/google/test/data/test_nocompress.zip 
+[20/05/2026 08:35:20]                   : third_party/zlib/google/test/data/test_posix_permissions.zip 
+[20/05/2026 08:35:20]                   : third_party/zlib/google/test/data/unicode_path_extra.zip 
+[20/05/2026 08:35:20]                   : third_party/zlib/google/test/data/unicode_path_extra_overflow.zip 
+[20/05/2026 08:35:20]                   : third_party/zlib/google/test_data.filelist 
+[20/05/2026 08:35:20]                   : third_party/zlib/google/test_data.globlist 
+[20/05/2026 08:35:20]                   : third_party/zlib/google/zip.cc 
+[20/05/2026 08:35:20]                   : third_party/zlib/google/zip.h 
+[20/05/2026 08:35:20]                   : third_party/zlib/google/zip_internal.cc 
+[20/05/2026 08:35:20]                   : third_party/zlib/google/zip_internal.h 
+[20/05/2026 08:35:20]                   : third_party/zlib/google/zip_reader.cc 
+[20/05/2026 08:35:20]                   : third_party/zlib/google/zip_reader.h 
+[20/05/2026 08:35:20]                   : third_party/zlib/google/zip_reader_unittest.cc 
+[20/05/2026 08:35:20]                   : third_party/zlib/google/zip_unittest.cc 
+[20/05/2026 08:35:20]                   : third_party/zlib/google/zip_writer.cc 
+[20/05/2026 08:35:20]                   : third_party/zlib/google/zip_writer.h 
+[20/05/2026 08:35:20]                   : third_party/zlib/gzclose.c 
+[20/05/2026 08:35:20]                   : third_party/zlib/gzguts.h 
+[20/05/2026 08:35:20]                   : third_party/zlib/gzlib.c 
+[20/05/2026 08:35:20]                   : third_party/zlib/gzread.c 
+[20/05/2026 08:35:20]                   : third_party/zlib/gzwrite.c 
+[20/05/2026 08:35:20]                   : third_party/zlib/infback.c 
+[20/05/2026 08:35:20]                   : third_party/zlib/inffast.c 
+[20/05/2026 08:35:20]                   : third_party/zlib/inffast.h 
+[20/05/2026 08:35:20]                   : third_party/zlib/inffixed.h 
+[20/05/2026 08:35:20]                   : third_party/zlib/inflate.c 
+[20/05/2026 08:35:20]                   : third_party/zlib/inflate.h 
+[20/05/2026 08:35:20]                   : third_party/zlib/inftrees.c 
+[20/05/2026 08:35:20]                   : third_party/zlib/inftrees.h 
+[20/05/2026 08:35:20]                   : third_party/zlib/patches/0000-build.patch 
+[20/05/2026 08:35:20]                   : third_party/zlib/patches/0001-simd.patch 
+[20/05/2026 08:35:20]                   : third_party/zlib/patches/0002-uninitializedcheck.patch 
+[20/05/2026 08:35:20]                   : third_party/zlib/patches/0003-uninitializedjump.patch 
+[20/05/2026 08:35:20]                   : third_party/zlib/patches/0004-fix-uwp.patch 
+[20/05/2026 08:35:20]                   : third_party/zlib/patches/0005-infcover-gtest.patch 
+[20/05/2026 08:35:20]                   : third_party/zlib/patches/0007-zero-init-deflate-window.patch 
+[20/05/2026 08:35:20]                   : third_party/zlib/patches/0008-minizip-zip-unzip-tools.patch 
+[20/05/2026 08:35:20]                   : third_party/zlib/patches/0009-infcover-oob.patch 
+[20/05/2026 08:35:20]                   : third_party/zlib/patches/0010-cmake.patch 
+[20/05/2026 08:35:20]                   : third_party/zlib/patches/0011-avx512.patch 
+[20/05/2026 08:35:20]                   : third_party/zlib/patches/0012-lfs-open64.patch 
+[20/05/2026 08:35:20]                   : third_party/zlib/patches/0013-cpu-feature-detection-for-arm.patch 
+[20/05/2026 08:35:20]                   : third_party/zlib/patches/0014-minizip-unzip-with-incorrect-size.patch 
+[20/05/2026 08:35:20]                   : third_party/zlib/patches/0015-minizip-unzip-enable-decryption.patch 
+[20/05/2026 08:35:20]                   : third_party/zlib/patches/0016-minizip-parse-unicode-path-extra-field.patch 
+[20/05/2026 08:35:20]                   : third_party/zlib/patches/0017-deflate-move-zmemzero-after-null-check.patch 
+[20/05/2026 08:35:20]                   : third_party/zlib/patches/0018-support-prefixed-zip64.patch 
+[20/05/2026 08:35:20]                   : third_party/zlib/patches/0019-fix-zip64-in-zip.patch 
+[20/05/2026 08:35:20]                   : third_party/zlib/patches/README 
+[20/05/2026 08:35:20]                   : third_party/zlib/slide_hash_simd.h 
+[20/05/2026 08:35:20]                   : third_party/zlib/test/minigzip.c 
+[20/05/2026 08:35:20]                   : third_party/zlib/trees.c 
+[20/05/2026 08:35:20]                   : third_party/zlib/trees.h 
+[20/05/2026 08:35:20]                   : third_party/zlib/uncompr.c 
+[20/05/2026 08:35:20]                   : third_party/zlib/win32/zlib1.rc 
+[20/05/2026 08:35:20]                   : third_party/zlib/zconf.h 
+[20/05/2026 08:35:20]                   : third_party/zlib/zconf.h.in 
+[20/05/2026 08:35:20]                   : third_party/zlib/zlib.3 
+[20/05/2026 08:35:20]                   : third_party/zlib/zlib.h 
+[20/05/2026 08:35:20]                   : third_party/zlib/zlib.map 
+[20/05/2026 08:35:20]                   : third_party/zlib/zlib.pc.cmakein 
+[20/05/2026 08:35:20]                   : third_party/zlib/zlibConfig.cmake.in 
+[20/05/2026 08:35:20]                   : third_party/zlib/zutil.c 
+[20/05/2026 08:35:20]                   : third_party/zlib/zutil.h 
+[20/05/2026 08:35:21] Download needed WebKit files: See below
+[20/05/2026 08:35:21]  - Download: : /include/CMakeLists.txt 
+[20/05/2026 08:35:21]  - Get: : CMakeLists.txt Bytes: 1416 
+[20/05/2026 08:35:21]  - Apply GIT commit: : Apply from WebKit taken files 
+[20/05/2026 08:35:21]    Changed files: : include/CMakeLists.txt 
+Generate cmake parts...
+[20/05/2026 08:35:21] Convert Ninja based Chromium GNI files to CMake: : See below
+[20/05/2026 08:35:21]  - Convert: : /src/compiler.gni to /cmake/Compiler.cmake OK
+[20/05/2026 08:35:21]  - Convert: : /src/libGLESv2.gni to /cmake/GLESv2.cmake OK
+[20/05/2026 08:35:21]  - Convert: : /src/libANGLE/renderer/d3d/BUILD.gn to /cmake/D3D.cmake OK
+[20/05/2026 08:35:21]  - Convert: : /src/libANGLE/renderer/gl/BUILD.gn to /cmake/GL.cmake OK
+[20/05/2026 08:35:21]  - Convert: : /src/libANGLE/renderer/metal/BUILD.gn to /cmake/Metal.cmake OK
+[20/05/2026 08:35:21] Create C++ header files: : See below
+[20/05/2026 08:35:21]  - Create angle_commit.h: 
+[20/05/2026 08:35:21]    Store: : ./angle_commit.h OK
+[20/05/2026 08:35:21]    Store: : ./src/common/angle_commit.h OK
+[20/05/2026 08:35:21]  - Create ANGLEShaderProgramVersion.h: 
+[20/05/2026 08:35:21]    Store: : ./ANGLEShaderProgramVersion.h OK
+[20/05/2026 08:35:21]    Store: : ./src/common/ANGLEShaderProgramVersion.h OK
+[20/05/2026 08:35:21] Copy in kodi-dev-kit included CMake files to Angle source: See below
+[20/05/2026 08:35:21]  - Copy: : ./PlatformMac.cmake to angle/PlatformMac.cmake OK
+[20/05/2026 08:35:21]  - Copy: : ./PlatformWin.cmake to angle/PlatformWin.cmake OK
+[20/05/2026 08:35:21]  - Copy: : ./PlatformLinux.cmake to angle/PlatformLinux.cmake OK
+[20/05/2026 08:35:21]  - Copy: : ./CMakeLists.txt to angle/CMakeLists.txt OK
+[20/05/2026 08:35:21]  - Copy: : ./cmake/WebKitMacros-minimal.cmake to angle/cmake/WebKitMacros-minimal.cmake OK
+[20/05/2026 08:35:21]  - Copy: : ./cmake/WebKitCommon-minimal.cmake to angle/cmake/WebKitCommon-minimal.cmake OK
+[20/05/2026 08:35:21]  - Copy: : ./cmake/linux.cmake to angle/cmake/linux.cmake OK
+[20/05/2026 08:35:21]  - Copy: : ./cmake/DetectSSE2.cmake to angle/cmake/DetectSSE2.cmake OK
+[20/05/2026 08:35:21]  - Copy: : ./cmake/WebKitCompilerFlags-minimal.cmake to angle/cmake/WebKitCompilerFlags-minimal.cmake OK
+[20/05/2026 08:35:21]  - Apply GIT commit: : Apply needed CMake files 
+[20/05/2026 08:35:21]    Changed files: : ANGLEShaderProgramVersion.h 
+[20/05/2026 08:35:21]                   : CMakeLists.txt 
+[20/05/2026 08:35:21]                   : PlatformLinux.cmake 
+[20/05/2026 08:35:21]                   : PlatformMac.cmake 
+[20/05/2026 08:35:21]                   : PlatformWin.cmake 
+[20/05/2026 08:35:21]                   : angle_commit.h 
+[20/05/2026 08:35:21]                   : cmake/Compiler.cmake 
+[20/05/2026 08:35:21]                   : cmake/D3D.cmake 
+[20/05/2026 08:35:21]                   : cmake/DetectSSE2.cmake 
+[20/05/2026 08:35:21]                   : cmake/GL.cmake 
+[20/05/2026 08:35:21]                   : cmake/GLESv2.cmake 
+[20/05/2026 08:35:21]                   : cmake/Metal.cmake 
+[20/05/2026 08:35:21]                   : cmake/WebKitCommon-minimal.cmake 
+[20/05/2026 08:35:21]                   : cmake/WebKitCompilerFlags-minimal.cmake 
+[20/05/2026 08:35:21]                   : cmake/WebKitMacros-minimal.cmake 
+[20/05/2026 08:35:21]                   : cmake/linux.cmake 
+[20/05/2026 08:35:21]                   : src/common/ANGLEShaderProgramVersion.h 
+[20/05/2026 08:35:21]                   : src/common/angle_commit.h 
+Apply needed patches...
+[20/05/2026 08:35:22]  - Found patch: : 0002-fix-zlib_bench-build.patch Patch applied
+[20/05/2026 08:35:22]  - Found patch: : 0001-fix-builder-error.patch Patch applied
+[20/05/2026 08:35:22]  - Apply GIT commit: : Applied code change patches to Angle 
+[20/05/2026 08:35:22]    Changed files: : src/gpu_info_util/SystemInfo_win.cpp 
+[20/05/2026 08:35:22]                   : third_party/zlib/contrib/bench/zlib_bench.cc 
