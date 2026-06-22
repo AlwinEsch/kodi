@@ -16,6 +16,9 @@
 #if defined (HAVE_LIBVA)
 #include <va/va_x11.h>
 #include "cores/VideoPlayer/DVDCodecs/Video/VAAPI.h"
+#if defined(HAS_VULKAN)
+#include "cores/VideoPlayer/VideoRenderers/HwDecRender/RendererVAAPIVulkan.h"
+#endif
 #if defined(HAS_GL)
 #include "cores/VideoPlayer/VideoRenderers/HwDecRender/RendererVAAPIGL.h"
 #endif
@@ -66,6 +69,15 @@ void VAAPIRegister(CVaapiProxy *winSystem, bool deepColor)
 {
   VAAPI::CDecoder::Register(winSystem, deepColor);
 }
+
+#if defined(HAS_VULKAN)
+void VAAPIRegisterRenderVulkan(CVaapiProxy* winSystem, bool& general, bool& deepColor)
+{
+  EGLDisplay eglDpy = winSystem->eglDisplay;
+  VADisplay vaDpy = vaGetDisplay(winSystem->dpy);
+  CRendererVAAPIVulkan::Register(winSystem, vaDpy, eglDpy, general, deepColor);
+}
+#endif
 
 #if defined(HAS_GL)
 void VAAPIRegisterRenderGL(CVaapiProxy* winSystem, bool& general, bool& deepColor)

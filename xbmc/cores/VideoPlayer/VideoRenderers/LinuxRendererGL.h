@@ -146,7 +146,7 @@ protected:
 
   struct
   {
-    CFrameBufferObject fbo;
+    CFrameBufferObjectGL fbo;
     float width, height;
   } m_fbo;
 

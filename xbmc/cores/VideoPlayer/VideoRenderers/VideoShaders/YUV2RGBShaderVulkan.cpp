@@ -1,0 +1,405 @@
+/*
+ *  Copyright (c) 2007 d4rk
+ *  Copyright (C) 2007-2024 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
+ *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
+ */
+
+#include "YUV2RGBShaderVulkan.h"
+
+#include "../RenderFlags.h"
+#include "ConvolutionKernels.h"
+#include "ToneMappers.h"
+#include "settings/AdvancedSettings.h"
+#include "utils/VulkanUtils.h"
+#include "utils/log.h"
+
+#include <sstream>
+#include <string>
+
+using namespace Shaders::VULKAN;
+
+//////////////////////////////////////////////////////////////////////
+// BaseYUV2RGBVulkanShader - base class for VulkanSL YUV2RGB shaders
+//////////////////////////////////////////////////////////////////////
+
+BaseYUV2RGBVulkanShader::BaseYUV2RGBVulkanShader(EShaderFormat format,
+                                             AVColorPrimaries dstPrimaries,
+                                             AVColorPrimaries srcPrimaries,
+                                             bool toneMap,
+                                             ETONEMAPMETHOD toneMapMethod,
+                                             bool dither)
+{
+  m_width = 1;
+  m_height = 1;
+  m_field = 0;
+  m_format = format;
+  m_dither = dither;
+
+  m_black = 0.0f;
+  m_contrast = 1.0f;
+
+  m_convertFullRange = false;
+
+  if (m_format == SHADER_YV12)
+    m_defines += "#define XBMC_YV12\n";
+  else if (m_format == SHADER_YV12_9 || m_format == SHADER_YV12_10 || m_format == SHADER_YV12_12 ||
+           m_format == SHADER_YV12_14 || m_format == SHADER_YV12_16)
+    m_defines += "#define XBMC_YV12_HI\n";
+  else if (m_format == SHADER_NV12)
+    m_defines += "#define XBMC_NV12\n";
+  else if (m_format == SHADER_NV12_RRG)
+    m_defines += "#define XBMC_NV12_RRG\n";
+  else if (m_format == SHADER_YUY2)
+    m_defines += "#define XBMC_YUY2\n";
+  else if (m_format == SHADER_UYVY)
+    m_defines += "#define XBMC_UYVY\n";
+  else if (m_format == SHADER_Y210)
+    m_defines += "#define XBMC_Y210\n";
+  else if (m_format == SHADER_AYUV)
+    m_defines += "#define XBMC_AYUV\n";
+  else if (m_format == SHADER_Y410)
+    m_defines += "#define XBMC_Y410\n";
+  else if (m_format == SHADER_Y412)
+    m_defines += "#define XBMC_Y412\n";
+  else
+    CLog::Log(LOGERROR, "GLES: BaseYUV2RGBVulkanShader - unsupported format {}",
+              fmt::formatter<EShaderFormat>::ToString(m_format));
+
+  if (dstPrimaries != srcPrimaries)
+  {
+    m_colorConversion = true;
+    m_defines += "#define XBMC_COL_CONVERSION\n";
+  }
+
+  if (toneMap)
+  {
+    m_toneMapping = true;
+    m_toneMappingMethod = toneMapMethod;
+    if (toneMapMethod == VS_TONEMAPMETHOD_REINHARD)
+      m_defines += "#define KODI_TONE_MAPPING_REINHARD\n";
+    else if (toneMapMethod == VS_TONEMAPMETHOD_ACES)
+      m_defines += "#define KODI_TONE_MAPPING_ACES\n";
+    else if (toneMapMethod == VS_TONEMAPMETHOD_HABLE)
+      m_defines += "#define KODI_TONE_MAPPING_HABLE\n";
+  }
+
+  if (m_dither)
+    m_defines += "#define XBMC_DITHER\n";
+
+  VertexShader()->LoadSource("vulkan_yuv2rgb.vert", m_defines);
+
+  CLog::Log(LOGDEBUG, "GLES: using shader format: {}",
+            fmt::formatter<EShaderFormat>::ToString(m_format));
+  CLog::Log(LOGDEBUG, "GLES: using tonemap method: {}",
+            fmt::formatter<ETONEMAPMETHOD>::ToString(m_toneMappingMethod));
+
+  m_convMatrix.SetSourceColorPrimaries(srcPrimaries).SetDestinationColorPrimaries(dstPrimaries);
+}
+
+BaseYUV2RGBVulkanShader::~BaseYUV2RGBVulkanShader()
+{
+  Free();
+}
+
+void BaseYUV2RGBVulkanShader::OnCompiledAndLinked()
+{
+  m_hVertex = glGetAttribLocation(ProgramHandle(),  "m_attrpos");
+  m_hYcoord = glGetAttribLocation(ProgramHandle(),  "m_attrcordY");
+  m_hUcoord = glGetAttribLocation(ProgramHandle(),  "m_attrcordU");
+  m_hVcoord = glGetAttribLocation(ProgramHandle(),  "m_attrcordV");
+  m_hProj = glGetUniformLocation(ProgramHandle(), "m_proj");
+  m_hModel = glGetUniformLocation(ProgramHandle(), "m_model");
+  m_hAlpha = glGetUniformLocation(ProgramHandle(), "m_alpha");
+  m_hYTex = glGetUniformLocation(ProgramHandle(), "m_sampY");
+  m_hUTex = glGetUniformLocation(ProgramHandle(), "m_sampU");
+  m_hVTex = glGetUniformLocation(ProgramHandle(), "m_sampV");
+  m_hYuvMat = glGetUniformLocation(ProgramHandle(), "m_yuvmat");
+  m_hStep = glGetUniformLocation(ProgramHandle(), "m_step");
+  m_hPrimMat = glGetUniformLocation(ProgramHandle(), "m_primMat");
+  m_hGammaSrc = glGetUniformLocation(ProgramHandle(), "m_gammaSrc");
+  m_hGammaDstInv = glGetUniformLocation(ProgramHandle(), "m_gammaDstInv");
+  m_hCoefsDst = glGetUniformLocation(ProgramHandle(), "m_coefsDst");
+  m_hToneP1 = glGetUniformLocation(ProgramHandle(), "m_toneP1");
+  m_hLuminance = glGetUniformLocation(ProgramHandle(), "m_luminance");
+
+  if (m_dither)
+  {
+    m_hDitherEnabled = glGetUniformLocation(ProgramHandle(), "m_ditherEnabled");
+    m_hDither = glGetUniformLocation(ProgramHandle(), "m_dither");
+    m_hDitherQuant = glGetUniformLocation(ProgramHandle(), "m_ditherquant");
+    m_hDitherSize = glGetUniformLocation(ProgramHandle(), "m_dithersize");
+  }
+
+  VerifyVulkanState();
+}
+
+bool BaseYUV2RGBVulkanShader::OnEnabled()
+{
+  // set shader attributes once enabled
+  glUniform1i(m_hYTex, 0);
+  glUniform1i(m_hUTex, 1);
+  glUniform1i(m_hVTex, 2);
+  glUniform2f(m_hStep, 1.0 / m_width, 1.0 / m_height);
+
+  m_convMatrix.SetDestinationContrast(m_contrast)
+      .SetDestinationBlack(m_black)
+      .SetDestinationLimitedRange(!m_convertFullRange);
+
+  Matrix4 yuvMat = m_convMatrix.GetYuvMat();
+  glUniformMatrix4fv(m_hYuvMat, 1, GL_FALSE, yuvMat.ToRaw());
+  glUniformMatrix4fv(m_hProj,  1, GL_FALSE, m_proj);
+  glUniformMatrix4fv(m_hModel, 1, GL_FALSE, m_model);
+  glUniform1f(m_hAlpha, m_alpha);
+
+  if (m_colorConversion)
+  {
+    Matrix3 primMat = m_convMatrix.GetPrimMat();
+    glUniformMatrix3fv(m_hPrimMat, 1, GL_FALSE, primMat.ToRaw());
+    glUniform1f(m_hGammaSrc, m_convMatrix.GetGammaSrc());
+    glUniform1f(m_hGammaDstInv, 1 / m_convMatrix.GetGammaDst());
+  }
+
+  if (m_toneMapping)
+  {
+    if (m_toneMappingMethod == VS_TONEMAPMETHOD_REINHARD)
+    {
+      float param = 0.7;
+
+      if (m_hasLightMetadata)
+      {
+        param = log10(100) / log10(m_lightMetadata.MaxCLL);
+      }
+      else if (m_hasDisplayMetadata && m_displayMetadata.has_luminance)
+      {
+        param = log10(100) /
+                log10(m_displayMetadata.max_luminance.num / m_displayMetadata.max_luminance.den);
+      }
+
+      // Sanity check
+      if (param < 0.1f || param > 5.0f)
+      {
+        param = 0.7f;
+      }
+
+      param *= m_toneMappingParam;
+
+      Matrix3x1 coefs = m_convMatrix.GetRGBYuvCoefs(AVColorSpace::AVCOL_SPC_BT709);
+      glUniform3f(m_hCoefsDst, coefs[0], coefs[1], coefs[2]);
+      glUniform1f(m_hToneP1, param);
+    }
+    else if (m_toneMappingMethod == VS_TONEMAPMETHOD_ACES)
+    {
+      const float lumin = CToneMappers::GetLuminanceValue(m_hasDisplayMetadata, m_displayMetadata,
+                                                          m_hasLightMetadata, m_lightMetadata);
+      glUniform1f(m_hLuminance, lumin);
+      glUniform1f(m_hToneP1, m_toneMappingParam);
+    }
+    else if (m_toneMappingMethod == VS_TONEMAPMETHOD_HABLE)
+    {
+      const float lumin = CToneMappers::GetLuminanceValue(m_hasDisplayMetadata, m_displayMetadata,
+                                                          m_hasLightMetadata, m_lightMetadata);
+      const float param = (10000.0f / lumin) * (2.0f / m_toneMappingParam);
+      glUniform1f(m_hLuminance, lumin);
+      glUniform1f(m_hToneP1, param);
+    }
+  }
+
+  if (m_dither && m_ditherTex)
+  {
+    glUniform1f(m_hDitherEnabled, m_ditherEnabled ? 1.0f : 0.0f);
+    glUniform1i(m_hDither, 4);
+    glActiveTexture(GL_TEXTURE4);
+    glBindTexture(GL_TEXTURE_2D, m_ditherTex);
+    glActiveTexture(GL_TEXTURE0);
+    glUniform1f(m_hDitherQuant, (1 << m_ditherDepth) - 1.0f);
+    glUniform2f(m_hDitherSize, static_cast<float>(m_ditherSize), static_cast<float>(m_ditherSize));
+  }
+
+  VerifyVulkanState();
+
+  return true;
+}
+
+void BaseYUV2RGBVulkanShader::SetDitherUniforms(bool enabled,
+                                              GLuint ditherTex,
+                                              unsigned int ditherDepth,
+                                              int ditherSize)
+{
+  m_ditherEnabled = enabled;
+  m_ditherTex = ditherTex;
+  m_ditherDepth = ditherDepth;
+  m_ditherSize = ditherSize;
+}
+
+void BaseYUV2RGBVulkanShader::OnDisabled()
+{
+  if (m_dither && m_ditherTex)
+  {
+    glActiveTexture(GL_TEXTURE4);
+    glBindTexture(GL_TEXTURE_2D, 0);
+    glActiveTexture(GL_TEXTURE0);
+  }
+}
+
+void BaseYUV2RGBVulkanShader::Free()
+{
+}
+
+void BaseYUV2RGBVulkanShader::SetColParams(AVColorSpace colSpace, int bits, bool limited,
+                                        int textureBits)
+{
+  if (colSpace == AVCOL_SPC_UNSPECIFIED)
+  {
+    if (m_width > 1024 || m_height >= 600)
+      colSpace = AVCOL_SPC_BT709;
+    else
+      colSpace = AVCOL_SPC_BT470BG;
+  }
+
+  m_convMatrix.SetSourceColorSpace(colSpace)
+      .SetSourceBitDepth(bits)
+      .SetSourceLimitedRange(limited)
+      .SetSourceTextureBitDepth(textureBits);
+}
+
+void BaseYUV2RGBVulkanShader::SetDisplayMetadata(bool hasDisplayMetadata,
+                                               const AVMasteringDisplayMetadata& displayMetadata,
+                                               bool hasLightMetadata,
+                                               AVContentLightMetadata lightMetadata)
+{
+  m_hasDisplayMetadata = hasDisplayMetadata;
+  m_displayMetadata = displayMetadata;
+  m_hasLightMetadata = hasLightMetadata;
+  m_lightMetadata = lightMetadata;
+}
+
+//////////////////////////////////////////////////////////////////////
+// YUV2RGBProgressiveShader - YUV2RGB with no deinterlacing
+// Use for weave deinterlacing / progressive
+//////////////////////////////////////////////////////////////////////
+
+YUV2RGBProgressiveShader::YUV2RGBProgressiveShader(EShaderFormat format,
+                                                   AVColorPrimaries dstPrimaries,
+                                                   AVColorPrimaries srcPrimaries,
+                                                   bool toneMap,
+                                                   ETONEMAPMETHOD toneMapMethod,
+                                                   bool dither)
+  : BaseYUV2RGBVulkanShader(format, dstPrimaries, srcPrimaries, toneMap, toneMapMethod, dither)
+{
+  PixelShader()->LoadSource("vulkan_yuv2rgb_basic.frag", m_defines);
+  PixelShader()->InsertSource("vulkan_tonemap.frag", "void main()");
+  PixelShader()->InsertSource("vulkan_dither_uniforms.frag", "void main()");
+  PixelShader()->InsertSource("vulkan_dither_body.frag", "gl_FragColor");
+}
+
+
+//////////////////////////////////////////////////////////////////////
+// YUV2RGBBobShader - YUV2RGB with Bob deinterlacing
+//////////////////////////////////////////////////////////////////////
+
+YUV2RGBBobShader::YUV2RGBBobShader(EShaderFormat format,
+                                   AVColorPrimaries dstPrimaries,
+                                   AVColorPrimaries srcPrimaries,
+                                   bool toneMap,
+                                   ETONEMAPMETHOD toneMapMethod,
+                                   bool dither)
+  : BaseYUV2RGBVulkanShader(format, dstPrimaries, srcPrimaries, toneMap, toneMapMethod, dither)
+{
+  PixelShader()->LoadSource("vulkan_yuv2rgb_bob.frag", m_defines);
+  PixelShader()->InsertSource("vulkan_tonemap.frag", "void main()");
+  PixelShader()->InsertSource("vulkan_dither_uniforms.frag", "void main()");
+  PixelShader()->InsertSource("vulkan_dither_body.frag", "gl_FragColor");
+}
+
+void YUV2RGBBobShader::OnCompiledAndLinked()
+{
+  BaseYUV2RGBVulkanShader::OnCompiledAndLinked();
+  m_hStepX = glGetUniformLocation(ProgramHandle(), "m_stepX");
+  m_hStepY = glGetUniformLocation(ProgramHandle(), "m_stepY");
+  m_hField = glGetUniformLocation(ProgramHandle(), "m_field");
+  VerifyVulkanState();
+}
+
+bool YUV2RGBBobShader::OnEnabled()
+{
+  if(!BaseYUV2RGBVulkanShader::OnEnabled())
+    return false;
+
+  glUniform1i(m_hField, m_field);
+  glUniform1f(m_hStepX, 1.0f / (float)m_width);
+  glUniform1f(m_hStepY, 1.0f / (float)m_height);
+  VerifyVulkanState();
+  return true;
+}
+
+//------------------------------------------------------------------------------
+// YUV2RGBFilterShader
+//------------------------------------------------------------------------------
+
+YUV2RGBFilterShader::YUV2RGBFilterShader(EShaderFormat format,
+                                         AVColorPrimaries dstPrimaries,
+                                         AVColorPrimaries srcPrimaries,
+                                         bool toneMap,
+                                         ETONEMAPMETHOD toneMapMethod,
+                                         ESCALINGMETHOD method,
+                                         bool dither)
+  : BaseYUV2RGBVulkanShader(format, dstPrimaries, srcPrimaries, toneMap, toneMapMethod, dither)
+{
+  m_scaling = method;
+  PixelShader()->LoadSource("vulkan_yuv2rgb_filter.frag", m_defines);
+  VertexShader()->LoadSource("vulkan_yuv2rgb.vert");
+  PixelShader()->InsertSource("vulkan_tonemap.frag", "void main()");
+  PixelShader()->InsertSource("vulkan_dither_uniforms.frag", "void main()");
+  PixelShader()->InsertSource("vulkan_dither_body.frag", "fragColor = rgb");
+}
+
+YUV2RGBFilterShader::~YUV2RGBFilterShader()
+{
+  if (m_kernelTex)
+    glDeleteTextures(1, &m_kernelTex);
+  m_kernelTex = 0;
+}
+
+void YUV2RGBFilterShader::OnCompiledAndLinked()
+{
+  BaseYUV2RGBVulkanShader::OnCompiledAndLinked();
+  m_hKernTex = glGetUniformLocation(ProgramHandle(), "m_kernelTex");
+
+  if (m_scaling != VS_SCALINGMETHOD_LANCZOS3_FAST && m_scaling != VS_SCALINGMETHOD_SPLINE36_FAST)
+    m_scaling = VS_SCALINGMETHOD_LANCZOS3_FAST;
+
+  CConvolutionKernel kernel(m_scaling, 256);
+
+  if (m_kernelTex)
+  {
+    glDeleteTextures(1, &m_kernelTex);
+    m_kernelTex = 0;
+  }
+  glGenTextures(1, &m_kernelTex);
+
+  glActiveTexture(GL_TEXTURE3);
+  glBindTexture(GL_TEXTURE_2D, m_kernelTex);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+
+  GLvoid* data = (GLvoid*)kernel.GetFloatPixels();
+#if defined(GL_ES_VERSION_3_0)
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, kernel.GetSize(), 1, 0, GL_RGBA, GL_FLOAT, data);
+#endif
+  glActiveTexture(GL_TEXTURE0);
+  VerifyVulkanState();
+}
+
+bool YUV2RGBFilterShader::OnEnabled()
+{
+  glActiveTexture(GL_TEXTURE3);
+  glBindTexture(GL_TEXTURE_2D, m_kernelTex);
+  glUniform1i(m_hKernTex, 3);
+  glActiveTexture(GL_TEXTURE0);
+
+  return BaseYUV2RGBVulkanShader::OnEnabled();
+}

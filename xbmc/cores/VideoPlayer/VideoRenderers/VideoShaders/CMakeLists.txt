@@ -14,11 +14,18 @@ if(CORE_SYSTEM_NAME STREQUAL windows OR CORE_SYSTEM_NAME STREQUAL windowsstore)
 endif()
 
 
-if(TARGET ${APP_NAME_LC}::OpenGl OR TARGET ${APP_NAME_LC}::OpenGLES)
+if(TARGET ${APP_NAME_LC}::OpenGl OR TARGET ${APP_NAME_LC}::OpenGLES OR TARGET ${APP_NAME_LC}::Vulkan)
   list(APPEND SOURCES ConversionMatrix.cpp
                       ToneMappers.cpp)
   list(APPEND HEADERS ConversionMatrix.h
                       ToneMappers.h)
+endif()
+
+if(TARGET ${APP_NAME_LC}::Vulkan)
+  list(APPEND SOURCES VideoFilterShaderVulkan.cpp
+                      YUV2RGBShaderVulkan.cpp)
+  list(APPEND HEADERS VideoFilterShaderVulkan.h
+                      YUV2RGBShaderVulkan.h)
 endif()
 
 if(TARGET ${APP_NAME_LC}::OpenGl)

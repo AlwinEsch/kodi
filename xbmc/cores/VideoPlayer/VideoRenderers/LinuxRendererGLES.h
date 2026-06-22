@@ -140,7 +140,7 @@ protected:
 
   struct
   {
-    CFrameBufferObject fbo;
+    CFrameBufferObjectGL fbo;
     float width{0.0};
     float height{0.0};
   } m_fbo;

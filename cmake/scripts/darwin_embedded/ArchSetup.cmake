@@ -23,13 +23,15 @@ else()
   set(NEON True)
 endif()
 
-if(NOT APP_RENDER_SYSTEM OR APP_RENDER_SYSTEM STREQUAL "gles")
+if(NOT APP_RENDER_SYSTEM OR APP_RENDER_SYSTEM STREQUAL "vulkan"
+  list(APPEND PLATFORM_REQUIRED_DEPS Vulkan)
+  set(APP_RENDER_SYSTEM vulkan)
+elseif(APP_RENDER_SYSTEM STREQUAL "gles")
   set(PLATFORM_REQUIRED_DEPS OpenGLES)
-  set(APP_RENDER_SYSTEM gles)
   list(APPEND SYSTEM_DEFINES -DGL_DO_NOT_WARN_IF_MULTI_GL_VERSION_HEADERS_INCLUDED
                              -DGLES_SILENCE_DEPRECATION)
 else()
-  message(SEND_ERROR "Currently only OpenGLES rendering is supported. Please set APP_RENDER_SYSTEM to \"gles\"")
+  message(SEND_ERROR "Currently only Vulkan or OpenGLES rendering is supported. Please set APP_RENDER_SYSTEM to \"vulkan\" or \"gles\"")
 endif()
 
 list(APPEND DEPLIBS "-framework CoreFoundation" "-framework CoreVideo"

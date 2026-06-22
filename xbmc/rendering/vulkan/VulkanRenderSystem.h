@@ -1,0 +1,163 @@
+/*
+ *  Copyright (C) 2005-2024 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
+ *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
+ */
+
+#pragma once
+
+#include "VulkanShader.h"
+#include "rendering/RenderSystem.h"
+#include "utils/ColorUtils.h"
+#include "utils/Map.h"
+
+#include <map>
+
+#include <fmt/format.h>
+
+#include "system_vulkan.h"
+
+enum class VulkanShaderMethod
+{
+  SM_DEFAULT,
+  SM_TEXTURE,
+  SM_TEXTURE_111R,
+  SM_MULTI,
+  SM_MULTI_RGBA_111R,
+  SM_FONTS,
+  SM_FONTS_SHADER_CLIP,
+  SM_TEXTURE_NOBLEND,
+  SM_MULTI_BLENDCOLOR,
+  SM_MULTI_RGBA_111R_BLENDCOLOR,
+  SM_MULTI_111R_111R_BLENDCOLOR,
+  SM_TEXTURE_RGBA,
+  SM_TEXTURE_RGBA_OES,
+  SM_TEXTURE_RGBA_BLENDCOLOR,
+  SM_TEXTURE_RGBA_BOB,
+  SM_TEXTURE_RGBA_BOB_OES,
+  SM_TEXTURE_NOALPHA,
+  SM_MAX
+};
+
+template<>
+struct fmt::formatter<VulkanShaderMethod> : fmt::formatter<std::string_view>
+{
+  template<typename FormatContext>
+  constexpr auto format(const VulkanShaderMethod& shaderMethod, FormatContext& ctx)
+  {
+    const auto it = VulkanShaderMethodMap.find(shaderMethod);
+    if (it == VulkanShaderMethodMap.cend())
+      throw std::range_error("no string mapping found for shader method");
+
+    return fmt::formatter<string_view>::format(it->second, ctx);
+  }
+
+private:
+  static constexpr auto VulkanShaderMethodMap = make_map<VulkanShaderMethod, std::string_view>({
+      {VulkanShaderMethod::SM_DEFAULT, "default"},
+      {VulkanShaderMethod::SM_TEXTURE, "texture"},
+      {VulkanShaderMethod::SM_TEXTURE_111R, "alpha texture with diffuse color"},
+      {VulkanShaderMethod::SM_MULTI, "multi"},
+      {VulkanShaderMethod::SM_MULTI_RGBA_111R, "multi with color/alpha texture"},
+      {VulkanShaderMethod::SM_FONTS, "fonts"},
+      {VulkanShaderMethod::SM_FONTS_SHADER_CLIP, "fonts with vertex shader based clipping"},
+      {VulkanShaderMethod::SM_TEXTURE_NOBLEND, "texture no blending"},
+      {VulkanShaderMethod::SM_MULTI_BLENDCOLOR, "multi blend colour"},
+      {VulkanShaderMethod::SM_MULTI_RGBA_111R_BLENDCOLOR,
+       "multi with color/alpha texture and blend color"},
+      {VulkanShaderMethod::SM_MULTI_111R_111R_BLENDCOLOR,
+       "multi with alpha/alpha texture and blend color"},
+      {VulkanShaderMethod::SM_TEXTURE_RGBA, "texture rgba"},
+      {VulkanShaderMethod::SM_TEXTURE_RGBA_OES, "texture rgba OES"},
+      {VulkanShaderMethod::SM_TEXTURE_RGBA_BLENDCOLOR, "texture rgba blend colour"},
+      {VulkanShaderMethod::SM_TEXTURE_RGBA_BOB, "texture rgba bob"},
+      {VulkanShaderMethod::SM_TEXTURE_RGBA_BOB_OES, "texture rgba bob OES"},
+      {VulkanShaderMethod::SM_TEXTURE_NOALPHA, "texture no alpha"},
+  });
+
+  static_assert(static_cast<size_t>(VulkanShaderMethod::SM_MAX) == VulkanShaderMethodMap.size(),
+                "VulkanShaderMethodMap doesn't match the size of VulkanShaderMethod, did you forget to "
+                "add/remove a mapping?");
+};
+
+class CVulkanRenderSystem : public CRenderSystemBase
+{
+public:
+  CVulkanRenderSystem();
+  ~CVulkanRenderSystem() override = default;
+
+  bool InitRenderSystem() override;
+  bool DestroyRenderSystem() override;
+  bool ResetRenderSystem(int width, int height) override;
+
+  bool BeginRender() override;
+  bool EndRender() override;
+  void PresentRender(bool rendered, bool videoLayer) override;
+  void InvalidateColorBuffer() override;
+  bool ClearBuffers(KODI::UTILS::COLOR::Color color) override;
+  bool IsExtSupported(const char* extension) const override;
+
+  void SetVSync(bool vsync);
+  void ResetVSync() { m_bVsyncInit = false; }
+
+  void SetViewPort(const CRect& viewPort) override;
+  void GetViewPort(CRect& viewPort) override;
+
+  bool ScissorsCanEffectClipping() override;
+  CRect ClipRectToScissorRect(const CRect &rect) override;
+  void SetScissors(const CRect& rect) override;
+  void ResetScissors() override;
+
+  void SetDepthCulling(DepthCulling culling) override;
+
+  void CaptureStateBlock() override;
+  void ApplyStateBlock() override;
+
+  void SetCameraPosition(const CPoint &camera, int screenWidth, int screenHeight, float stereoFactor = 0.0f) override;
+
+  bool SupportsStereo(RenderStereoMode mode) const override;
+
+  void Project(float &x, float &y, float &z) override;
+
+  std::string GetShaderPath(const std::string& filename) override;
+
+  void InitialiseShaders();
+  void ReleaseShaders();
+  void EnableGUIShader(VulkanShaderMethod method);
+  void DisableGUIShader();
+
+  GLint GUIShaderGetPos();
+  GLint GUIShaderGetCol();
+  GLint GUIShaderGetCoord0();
+  GLint GUIShaderGetCoord1();
+  GLint GUIShaderGetUniCol();
+  GLint GUIShaderGetCoord0Matrix();
+  GLint GUIShaderGetField();
+  GLint GUIShaderGetStep();
+  GLint GUIShaderGetContrast();
+  GLint GUIShaderGetBrightness();
+  GLint GUIShaderGetModel();
+  GLint GUIShaderGetMatrix();
+  GLint GUIShaderGetClip();
+  GLint GUIShaderGetCoordStep();
+  GLint GUIShaderGetDepth();
+  GLint GUIShaderGetPma();
+
+protected:
+  virtual void SetVSyncImpl(bool enable) = 0;
+  virtual void PresentRenderImpl(bool rendered) = 0;
+  void CalculateMaxTexturesize();
+
+  bool m_bVsyncInit{false};
+  int m_width;
+  int m_height;
+
+  std::string m_RenderExtensions;
+
+  std::map<VulkanShaderMethod, std::unique_ptr<CVulkanShader>> m_pShader;
+  VulkanShaderMethod m_method = VulkanShaderMethod::SM_DEFAULT;
+
+  GLint      m_viewPort[4];
+};

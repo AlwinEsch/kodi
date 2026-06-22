@@ -6,35 +6,35 @@
  *  See LICENSES/README.md for more information.
  */
 
-#include "FrameBufferObject.h"
+#include "FrameBufferObjectVulkan.h"
 
 #include "ServiceBroker.h"
-#include "rendering/GLExtensions.h"
+#include "rendering/vulkan/VulkanExtensions.h"
 #include "rendering/RenderSystem.h"
-#include "utils/GLUtils.h"
+#include "utils/VulkanUtils.h"
 #include "utils/log.h"
 
 //////////////////////////////////////////////////////////////////////
-// CFrameBufferObject
+// CFrameBufferObjectVulkan
 //////////////////////////////////////////////////////////////////////
 
-CFrameBufferObject::CFrameBufferObject()
+CFrameBufferObjectVulkan::CFrameBufferObjectVulkan()
 {
   m_valid = false;
   m_supported = false;
   m_bound = false;
 }
 
-bool CFrameBufferObject::IsSupported()
+bool CFrameBufferObjectVulkan::IsSupported()
 {
-  if (CGLExtensions::IsExtensionSupported(CGLExtensions::EXT_framebuffer_object))
+  if (CVulkanExtensions::IsExtensionSupported(CVulkanExtensions::EXT_framebuffer_object))
     m_supported = true;
   else
     m_supported = false;
   return m_supported;
 }
 
-bool CFrameBufferObject::Initialize()
+bool CFrameBufferObjectVulkan::Initialize()
 {
   if (!IsSupported())
     return false;
@@ -42,7 +42,7 @@ bool CFrameBufferObject::Initialize()
   Cleanup();
 
   glGenFramebuffers(1, &m_fbo);
-  VerifyGLState();
+  VerifyVulkanState();
 
   if (!m_fbo)
     return false;
@@ -51,7 +51,7 @@ bool CFrameBufferObject::Initialize()
   return true;
 }
 
-void CFrameBufferObject::Cleanup()
+void CFrameBufferObjectVulkan::Cleanup()
 {
   if (!IsValid())
     return;
@@ -72,7 +72,7 @@ void CFrameBufferObject::Cleanup()
   m_bound = false;
 }
 
-bool CFrameBufferObject::CreateAndBindToTexture(GLenum target, int width, int height, GLenum format, GLenum type,
+bool CFrameBufferObjectVulkan::CreateAndBindToTexture(GLenum target, int width, int height, GLenum format, GLenum type,
                                                 GLenum filter, GLenum clampmode)
 {
   if (!IsValid())
@@ -88,25 +88,25 @@ bool CFrameBufferObject::CreateAndBindToTexture(GLenum target, int width, int he
   glTexParameteri(target, GL_TEXTURE_WRAP_T, clampmode);
   glTexParameteri(target, GL_TEXTURE_MAG_FILTER, filter);
   glTexParameteri(target, GL_TEXTURE_MIN_FILTER, filter);
-  VerifyGLState();
+  VerifyVulkanState();
 
   m_bound = false;
   glBindFramebuffer(GL_FRAMEBUFFER, m_fbo);
   glBindTexture(target, m_texid);
   glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, target, m_texid, 0);
-  VerifyGLState();
+  VerifyVulkanState();
   GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
   if (status != GL_FRAMEBUFFER_COMPLETE)
   {
-    VerifyGLState();
+    VerifyVulkanState();
     return false;
   }
   m_bound = true;
   return true;
 }
 
-bool CFrameBufferObject::AttachDepthBuffer(int width, int height)
+bool CFrameBufferObjectVulkan::AttachDepthBuffer(int width, int height)
 {
   if (!IsValid() || !IsBound())
     return false;
@@ -133,7 +133,7 @@ bool CFrameBufferObject::AttachDepthBuffer(int width, int height)
   return true;
 }
 
-void CFrameBufferObject::SetFiltering(GLenum target, GLenum mode)
+void CFrameBufferObjectVulkan::SetFiltering(GLenum target, GLenum mode)
 {
   glBindTexture(target, m_texid);
   glTexParameteri(target, GL_TEXTURE_MAG_FILTER, mode);
@@ -141,7 +141,7 @@ void CFrameBufferObject::SetFiltering(GLenum target, GLenum mode)
 }
 
 // Begin rendering to FBO
-bool CFrameBufferObject::BeginRender()
+bool CFrameBufferObjectVulkan::BeginRender()
 {
   if (IsValid() && IsBound())
   {
@@ -152,7 +152,7 @@ bool CFrameBufferObject::BeginRender()
 }
 
 // Finish rendering to FBO
-void CFrameBufferObject::EndRender() const
+void CFrameBufferObjectVulkan::EndRender() const
 {
   if (IsValid())
     glBindFramebuffer(GL_FRAMEBUFFER, 0);

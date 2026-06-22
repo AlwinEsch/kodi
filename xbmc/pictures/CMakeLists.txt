@@ -25,6 +25,11 @@ set(HEADERS interfaces/ISlideShowDelegate.h
             SlideShowDelegator.h
             SlideShowPicture.h)
 
+if(TARGET ${APP_NAME_LC}::Vulkan)
+  list(APPEND SOURCES SlideShowPictureVulkan.cpp)
+  list(APPEND HEADERS SlideShowPictureVulkan.h)
+endif()
+
 if(TARGET ${APP_NAME_LC}::OpenGl)
   list(APPEND SOURCES SlideShowPictureGL.cpp)
   list(APPEND HEADERS SlideShowPictureGL.h)

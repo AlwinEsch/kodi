@@ -1,0 +1,2267 @@
+/*
+ *  Copyright (C) 2010-2018 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
+ *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
+ */
+
+#include "LinuxRendererVulkan.h"
+
+#include "RenderCapture.h"
+#include "RenderCaptureVulkan.h"
+#include "RenderFactory.h"
+#include "ServiceBroker.h"
+#include "VideoShaders/VideoFilterShaderVulkan.h"
+#include "VideoShaders/YUV2RGBShaderVulkan.h"
+#include "VideoShaders/dither.h"
+#include "application/Application.h"
+#include "cores/IPlayer.h"
+#include "guilib/Texture.h"
+#include "rendering/vulkan/VulkanExtensions.h"
+#include "rendering/vulkan/VulkanMatrix.h"
+#include "rendering/vulkan/VulkanRenderSystem.h"
+#include "settings/AdvancedSettings.h"
+#include "settings/DisplaySettings.h"
+#include "settings/MediaSettings.h"
+#include "settings/Settings.h"
+#include "settings/SettingsComponent.h"
+#include "utils/HDRUtils.h"
+#include "utils/MathUtils.h"
+#include "utils/VulkanUtils.h"
+#include "utils/log.h"
+#include "windowing/WinSystem.h"
+
+#include <mutex>
+
+using namespace Shaders;
+using namespace Shaders::VULKAN;
+
+CLinuxRendererVulkan::CLinuxRendererVulkan()
+{
+  m_format = AV_PIX_FMT_NONE;
+
+  m_fullRange = !CServiceBroker::GetWinSystem()->UseLimitedColor();
+
+  m_renderSystem = dynamic_cast<CVulkanRenderSystem*>(CServiceBroker::GetRenderSystem());
+
+  std::tie(m_useDithering, m_ditherDepth) = CServiceBroker::GetWinSystem()->GetDitherSettings();
+  if (m_useDithering)
+  {
+    if (m_renderSystem && !m_renderSystem->IsExtSupported("GL_EXT_texture_norm16"))
+    {
+      CLog::Log(LOGWARNING,
+                "Vulkan: dithering requested but GL_EXT_texture_norm16 not supported, disabling");
+      m_useDithering = false;
+    }
+    else
+    {
+#if defined(GL_R16_EXT)
+      glGenTextures(1, &m_ditherTex);
+      glActiveTexture(GL_TEXTURE3);
+      glBindTexture(GL_TEXTURE_2D, m_ditherTex);
+      glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+      glTexImage2D(GL_TEXTURE_2D, 0, GL_R16_EXT, dither_size, dither_size, 0, GL_RED,
+                   GL_UNSIGNED_SHORT, dither_matrix);
+      glActiveTexture(GL_TEXTURE0);
+      if (m_ditherDepth == 0)
+        CLog::Log(LOGDEBUG, "Vulkan: dithering auto");
+      else
+        CLog::Log(LOGDEBUG, "Vulkan: dithering enabled, depth={}", m_ditherDepth);
+#else
+      // GL_EXT_texture_norm16 not exposed by this GL header (e.g. iOS):
+      // no 16-bit single-channel format available for the dither texture.
+      CLog::Log(LOGWARNING, "Vulkan: GL_R16_EXT undefined at build time; dithering disabled");
+      m_useDithering = false;
+#endif
+    }
+  }
+
+#if defined(GL_ES_VERSION_3_0)
+  int32_t intermediatePrecision = CServiceBroker::GetSettingsComponent()->GetSettings()->GetInt(
+      CSettings::SETTING_VIDEOPLAYER_HQSCALERPRECISION);
+  if (intermediatePrecision == 16)
+  {
+    m_intermediateFormat = GL_RGBA16F;
+    m_intermediateType = GL_FLOAT;
+  }
+  else if (intermediatePrecision == 10)
+  {
+    m_intermediateFormat = GL_RGB10_A2;
+    m_intermediateType = GL_UNSIGNED_INT_2_10_10_10_REV;
+  }
+  CLog::Log(LOGDEBUG, "Vulkan: HQ scaler precision={}, intermediate format={:#x}",
+            intermediatePrecision, static_cast<unsigned>(m_intermediateFormat));
+#endif
+
+#if defined(GL_UNPACK_ROW_LENGTH_EXT)
+  if (CVulkanExtensions::IsExtensionSupported(CVulkanExtensions::EXT_unpack_subimage))
+  {
+    m_pixelStoreKey = GL_UNPACK_ROW_LENGTH_EXT;
+  }
+#endif
+}
+
+CLinuxRendererVulkan::~CLinuxRendererVulkan()
+{
+  UnInit();
+
+  ReleaseShaders();
+
+  if (m_ditherTex)
+    glDeleteTextures(1, &m_ditherTex);
+
+  free(m_planeBuffer);
+  m_planeBuffer = nullptr;
+}
+
+CBaseRenderer* CLinuxRendererVulkan::Create(CVideoBuffer* buffer)
+{
+  return new CLinuxRendererVulkan();
+}
+
+bool CLinuxRendererVulkan::Register()
+{
+  VIDEOPLAYER::CRendererFactory::RegisterRenderer("default", CLinuxRendererVulkan::Create);
+  return true;
+}
+
+bool CLinuxRendererVulkan::ValidateRenderTarget()
+{
+  if (!m_bValidated)
+  {
+    // function pointer for texture might change in
+    // call to LoadShaders
+    glFinish();
+
+    for (int i = 0; i < NUM_BUFFERS; i++)
+    {
+      DeleteTexture(i);
+    }
+
+    // create the yuv textures
+    UpdateVideoFilter();
+    LoadShaders();
+
+    if (m_renderMethod < 0)
+    {
+      return false;
+    }
+
+    for (int i = 0; i < m_NumYUVBuffers; i++)
+    {
+      CreateTexture(i);
+    }
+
+    m_bValidated = true;
+
+    return true;
+  }
+
+  return false;
+}
+
+bool CLinuxRendererVulkan::Configure(const VideoPicture& picture,
+                                     float fps,
+                                     unsigned int orientation)
+{
+  auto colorimetry = KODI::UTILS::GetColorimetry(picture);
+  bool inferred = (picture.color_space == AVCOL_SPC_UNSPECIFIED);
+  CLog::Log(
+      LOGDEBUG,
+      "LinuxRendererVulkan::Configure: fps: {:0.3f}, {}x{}, colorimetry: {}{}, {}bit, {} range",
+      fps, picture.iWidth, picture.iHeight, KODI::UTILS::ColorimetryToString(colorimetry),
+      inferred ? " (inferred)" : "", picture.colorBits,
+      picture.color_range == 1 ? "full" : "limited");
+  m_format = picture.videoBuffer->GetFormat();
+
+  // CPU-upload renderer: HWACCEL pix_fmts (e.g. AV_PIX_FMT_DRM_PRIME) have no host planes.
+  if (GetShaderFormat() == SHADER_NONE)
+  {
+    CLog::Log(LOGDEBUG, "LinuxRendererVulkan::Configure: refusing unsupported pix_fmt {}",
+              m_format == AV_PIX_FMT_NONE ? "none" : av_get_pix_fmt_name(m_format));
+    return false;
+  }
+
+  m_sourceWidth = picture.iWidth;
+  m_sourceHeight = picture.iHeight;
+  m_renderOrientation = orientation;
+
+  m_srcPrimaries = picture.color_primaries;
+  m_srcColorBits = picture.colorBits;
+  m_srcFullRange = picture.color_range == 1;
+  m_toneMap = false;
+
+  // Calculate the input frame aspect ratio.
+  CalculateFrameAspectRatio(picture.iDisplayWidth, picture.iDisplayHeight);
+  SetViewMode(m_videoSettings.m_ViewMode);
+  ManageRenderArea();
+
+  m_bConfigured = true;
+  m_scalingMethodGui = (ESCALINGMETHOD)-1;
+  m_scalingMethod = m_videoSettings.m_ScalingMethod;
+
+  // Ensure that textures are recreated and rendering starts only after the 1st
+  // frame is loaded after every call to Configure().
+  m_bValidated = false;
+
+  if (!CServiceBroker::GetWinSystem()->SetVideoOutput(&picture))
+    CLog::Log(LOGWARNING, "LinuxRendererVulkan::Configure: SetVideoOutput failed");
+
+  CServiceBroker::GetWinSystem()->SetColorimetry(&picture);
+
+  m_passthroughHDR = CServiceBroker::GetWinSystem()->SetHDR(&picture);
+  CLog::Log(LOGDEBUG, "LinuxRendererVulkan::Configure: HDR passthrough: {}",
+            m_passthroughHDR ? "on" : "off");
+
+  m_hdrFboActive =
+      m_passthroughHDR && CServiceBroker::GetWinSystem()->SetGuiCompositing(picture.color_transfer);
+  if (m_passthroughHDR && !m_hdrFboActive)
+    CLog::Log(LOGWARNING, "LinuxRendererVulkan::Configure: HDR passthrough active but GUI "
+                          "compositing not supported by windowing system");
+
+  return true;
+}
+
+bool CLinuxRendererVulkan::ConfigChanged(const VideoPicture& picture)
+{
+  if (picture.videoBuffer->GetFormat() != m_format)
+  {
+    return true;
+  }
+
+  return false;
+}
+
+int CLinuxRendererVulkan::NextYUVTexture()
+{
+  return (m_iYUVRenderBuffer + 1) % m_NumYUVBuffers;
+}
+
+void CLinuxRendererVulkan::AddVideoPicture(const VideoPicture& picture, int index)
+{
+  CPictureBuffer& buf = m_buffers[index];
+  if (buf.videoBuffer)
+  {
+    CLog::LogF(LOGERROR, "unreleased video buffer");
+    buf.videoBuffer->Release();
+  }
+  buf.videoBuffer = picture.videoBuffer;
+  buf.videoBuffer->Acquire();
+  buf.loaded = false;
+  buf.m_srcPrimaries = picture.color_primaries;
+  buf.m_srcColSpace = picture.color_space;
+  buf.m_srcColTransfer = picture.color_transfer;
+  buf.m_srcFullRange = picture.color_range == 1;
+  buf.m_srcBits = picture.colorBits;
+
+  buf.hasDisplayMetadata = picture.hasDisplayMetadata;
+  buf.displayMetadata = picture.displayMetadata;
+  buf.lightMetadata = picture.lightMetadata;
+  if (picture.hasLightMetadata && picture.lightMetadata.MaxCLL)
+  {
+    buf.hasLightMetadata = picture.hasLightMetadata;
+  }
+}
+
+void CLinuxRendererVulkan::ReleaseBuffer(int idx)
+{
+  CPictureBuffer& buf = m_buffers[idx];
+  if (buf.videoBuffer)
+  {
+    buf.videoBuffer->Release();
+    buf.videoBuffer = nullptr;
+  }
+}
+
+void CLinuxRendererVulkan::CalculateTextureSourceRects(int source, int num_planes)
+{
+  CPictureBuffer& buf = m_buffers[source];
+  YuvImage* im = &buf.image;
+
+  // calculate the source rectangle
+  for (int field = 0; field < 3; field++)
+  {
+    for (int plane = 0; plane < num_planes; plane++)
+    {
+      CYuvPlane& p = buf.fields[field][plane];
+
+      p.rect = m_sourceRect;
+      p.width = im->width;
+      p.height = im->height;
+
+      if (field != FIELD_FULL)
+      {
+        // correct for field offsets and chroma offsets
+        float offset_y = 0.5;
+        if (plane != 0)
+        {
+          offset_y += 0.5f;
+        }
+
+        if (field == FIELD_BOT)
+        {
+          offset_y *= -1;
+        }
+
+        p.rect.y1 += offset_y;
+        p.rect.y2 += offset_y;
+
+        // half the height if this is a field
+        p.height *= 0.5f;
+        p.rect.y1 *= 0.5f;
+        p.rect.y2 *= 0.5f;
+      }
+
+      if (plane != 0)
+      {
+        p.width /= 1 << im->cshift_x;
+        p.height /= 1 << im->cshift_y;
+
+        p.rect.x1 /= 1 << im->cshift_x;
+        p.rect.x2 /= 1 << im->cshift_x;
+        p.rect.y1 /= 1 << im->cshift_y;
+        p.rect.y2 /= 1 << im->cshift_y;
+      }
+
+      // protect against division by zero
+      if (p.texheight == 0 || p.texwidth == 0 || p.pixpertex_x == 0 || p.pixpertex_y == 0)
+      {
+        continue;
+      }
+
+      p.height /= p.pixpertex_y;
+      p.rect.y1 /= p.pixpertex_y;
+      p.rect.y2 /= p.pixpertex_y;
+      p.width /= p.pixpertex_x;
+      p.rect.x1 /= p.pixpertex_x;
+      p.rect.x2 /= p.pixpertex_x;
+
+      if (m_textureTarget == GL_TEXTURE_2D)
+      {
+        p.height /= p.texheight;
+        p.rect.y1 /= p.texheight;
+        p.rect.y2 /= p.texheight;
+        p.width /= p.texwidth;
+        p.rect.x1 /= p.texwidth;
+        p.rect.x2 /= p.texwidth;
+      }
+    }
+  }
+}
+
+void CLinuxRendererVulkan::LoadPlane(
+    CYuvPlane& plane, int type, unsigned width, unsigned height, int stride, int bpp, void* data)
+{
+  const GLvoid* pixelData = data;
+  int bps = bpp * KODI::UTILS::VULKAN::vulkanFormatElementByteCount(type);
+
+  glBindTexture(m_textureTarget, plane.id);
+
+  bool pixelStoreChanged = false;
+  if (stride != static_cast<int>(width * bps))
+  {
+    if (m_pixelStoreKey > 0)
+    {
+      pixelStoreChanged = true;
+      glPixelStorei(m_pixelStoreKey, stride / bps);
+    }
+    else
+    {
+      size_t planeSize = width * height * bps;
+      if (m_planeBufferSize < planeSize)
+      {
+        m_planeBuffer = static_cast<unsigned char*>(realloc(m_planeBuffer, planeSize));
+        m_planeBufferSize = planeSize;
+      }
+
+      unsigned char *src(static_cast<unsigned char*>(data)), *dst(m_planeBuffer);
+
+      for (unsigned int y = 0; y < height; ++y, src += stride, dst += width * bps)
+        memcpy(dst, src, width * bps);
+
+      pixelData = m_planeBuffer;
+    }
+  }
+  GLenum datatype = (bpp == 2) ? GL_UNSIGNED_SHORT : GL_UNSIGNED_BYTE;
+  glTexSubImage2D(m_textureTarget, 0, 0, 0, width, height, type, datatype, pixelData);
+
+  if (m_pixelStoreKey > 0 && pixelStoreChanged)
+    glPixelStorei(m_pixelStoreKey, 0);
+
+  // check if we need to load any border pixels
+  if (height < plane.texheight)
+  {
+    glTexSubImage2D(m_textureTarget, 0, 0, height, width, 1, type, datatype,
+                    static_cast<const unsigned char*>(pixelData) + stride * (height - 1));
+  }
+
+  if (width < plane.texwidth)
+  {
+    glTexSubImage2D(m_textureTarget, 0, width, 0, 1, height, type, datatype,
+                    static_cast<const unsigned char*>(pixelData) + bps * (width - 1));
+  }
+
+  glBindTexture(m_textureTarget, 0);
+}
+
+bool CLinuxRendererVulkan::Flush(bool saveBuffers)
+{
+  glFinish();
+
+  for (int i = 0; i < m_NumYUVBuffers; i++)
+  {
+    DeleteTexture(i);
+  }
+
+  glFinish();
+  m_bValidated = false;
+  m_fbo.fbo.Cleanup();
+  m_iYUVRenderBuffer = 0;
+
+  return false;
+}
+
+void CLinuxRendererVulkan::Update()
+{
+  if (!m_bConfigured)
+  {
+    return;
+  }
+
+  ManageRenderArea();
+  ValidateRenderTarget();
+}
+
+void CLinuxRendererVulkan::ClearBackBuffer()
+{
+  //set the entire backbuffer to black
+  //if we do a two pass render, we have to draw a quad. else we might occlude OSD elements.
+  if (CServiceBroker::GetWinSystem()->GetGfxContext().GetRenderOrder() ==
+      RENDER_ORDER_ALL_BACK_TO_FRONT)
+  {
+    CServiceBroker::GetWinSystem()->GetGfxContext().Clear(0xff000000);
+  }
+  else
+  {
+    ClearBackBufferQuad();
+  }
+}
+
+void CLinuxRendererVulkan::ClearBackBufferQuad()
+{
+  CRect windowRect(0, 0, CServiceBroker::GetWinSystem()->GetGfxContext().GetWidth(),
+                   CServiceBroker::GetWinSystem()->GetGfxContext().GetHeight());
+  struct Svertex
+  {
+    float x, y;
+  };
+
+  std::vector<Svertex> vertices{
+      {windowRect.x1, windowRect.y2 * 2},
+      {windowRect.x1, windowRect.y1},
+      {windowRect.x2 * 2, windowRect.y1},
+  };
+
+  glDisable(GL_BLEND);
+
+  m_renderSystem->EnableGUIShader(VulkanShaderMethod::SM_DEFAULT);
+  GLint posLoc = m_renderSystem->GUIShaderGetPos();
+  GLint uniCol = m_renderSystem->GUIShaderGetUniCol();
+  GLint depthLoc = m_renderSystem->GUIShaderGetDepth();
+
+  glUniform4f(uniCol, 0.0f, 0.0f, 0.0f, 1.0f);
+  glUniform1f(depthLoc, -1);
+
+  GLuint vertexVBO;
+  glGenBuffers(1, &vertexVBO);
+  glBindBuffer(GL_ARRAY_BUFFER, vertexVBO);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(Svertex) * vertices.size(), vertices.data(), GL_STATIC_DRAW);
+
+  glVertexAttribPointer(posLoc, 2, GL_FLOAT, GL_FALSE, sizeof(Svertex), 0);
+  glEnableVertexAttribArray(posLoc);
+
+  glDrawArrays(GL_TRIANGLES, 0, vertices.size());
+
+  glDisableVertexAttribArray(posLoc);
+  glBindBuffer(GL_ARRAY_BUFFER, 0);
+  glDeleteBuffers(1, &vertexVBO);
+
+  m_renderSystem->DisableGUIShader();
+}
+
+void CLinuxRendererVulkan::DrawBlackBars()
+{
+  CRect windowRect(0, 0, CServiceBroker::GetWinSystem()->GetGfxContext().GetWidth(),
+                   CServiceBroker::GetWinSystem()->GetGfxContext().GetHeight());
+
+  auto quads = windowRect.SubtractRect(m_destRect);
+
+  struct Svertex
+  {
+    float x, y;
+  };
+
+  std::vector<Svertex> vertices(6 * quads.size());
+
+  GLubyte count = 0;
+  for (const auto& quad : quads)
+  {
+    vertices[count + 1].x = quad.x1;
+    vertices[count + 1].y = quad.y1;
+
+    vertices[count + 0].x = vertices[count + 5].x = quad.x1;
+    vertices[count + 0].y = vertices[count + 5].y = quad.y2;
+
+    vertices[count + 2].x = vertices[count + 3].x = quad.x2;
+    vertices[count + 2].y = vertices[count + 3].y = quad.y1;
+
+    vertices[count + 4].x = quad.x2;
+    vertices[count + 4].y = quad.y2;
+
+    count += 6;
+  }
+
+  glDisable(GL_BLEND);
+
+  CVulkanRenderSystem* renderSystem =
+      dynamic_cast<CVulkanRenderSystem*>(CServiceBroker::GetRenderSystem());
+  if (!renderSystem)
+    return;
+
+  renderSystem->EnableGUIShader(VulkanShaderMethod::SM_DEFAULT);
+  GLint posLoc = renderSystem->GUIShaderGetPos();
+  GLint uniCol = renderSystem->GUIShaderGetUniCol();
+  GLint depthLoc = m_renderSystem->GUIShaderGetDepth();
+
+  glUniform4f(uniCol, 0.0f, 0.0f, 0.0f, 1.0f);
+  glUniform1f(depthLoc, -1);
+
+  GLuint vertexVBO;
+  glGenBuffers(1, &vertexVBO);
+  glBindBuffer(GL_ARRAY_BUFFER, vertexVBO);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(Svertex) * vertices.size(), vertices.data(), GL_STATIC_DRAW);
+
+  glVertexAttribPointer(posLoc, 2, GL_FLOAT, GL_FALSE, sizeof(Svertex), 0);
+  glEnableVertexAttribArray(posLoc);
+
+  glDrawArrays(GL_TRIANGLES, 0, vertices.size());
+
+  glDisableVertexAttribArray(posLoc);
+  glBindBuffer(GL_ARRAY_BUFFER, 0);
+  glDeleteBuffers(1, &vertexVBO);
+
+  renderSystem->DisableGUIShader();
+}
+
+void CLinuxRendererVulkan::RenderUpdate(
+    int index, int index2, bool clear, unsigned int flags, unsigned int alpha)
+{
+  m_iYUVRenderBuffer = index;
+
+  if (!m_bConfigured)
+  {
+    return;
+  }
+
+  // if its first pass, just init textures and return
+  if (ValidateRenderTarget())
+  {
+    if (clear) //if clear is set, we're expected to overwrite all backbuffer pixels, even if we have nothing to render
+      ClearBackBuffer();
+
+    return;
+  }
+
+  if (!IsGuiLayer())
+  {
+    RenderUpdateVideo(clear, flags, alpha);
+    return;
+  }
+
+  CPictureBuffer& buf = m_buffers[index];
+
+  if (!buf.fields[FIELD_FULL][0].id)
+  {
+    return;
+  }
+
+  ManageRenderArea();
+
+  if (clear)
+  {
+    if (alpha == 255)
+      DrawBlackBars();
+    else
+    {
+      ClearBackBuffer();
+    }
+  }
+
+  if (alpha < 255)
+  {
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    if (m_pYUVProgShader)
+    {
+      m_pYUVProgShader->SetAlpha(alpha / 255.0f);
+    }
+
+    if (m_pYUVBobShader)
+    {
+      m_pYUVBobShader->SetAlpha(alpha / 255.0f);
+    }
+  }
+  else
+  {
+    glDisable(GL_BLEND);
+    if (m_pYUVProgShader)
+    {
+      m_pYUVProgShader->SetAlpha(1.0f);
+    }
+
+    if (m_pYUVBobShader)
+    {
+      m_pYUVBobShader->SetAlpha(1.0f);
+    }
+  }
+
+  if (!Render(flags, index) && clear)
+    ClearBackBuffer();
+
+  VerifyVulkanState();
+  glEnable(GL_BLEND);
+}
+
+void CLinuxRendererVulkan::RenderUpdateVideo(bool clear, unsigned int flags, unsigned int alpha)
+{
+  if (!m_bConfigured)
+    return;
+
+  if (IsGuiLayer())
+    return;
+
+  int index = m_iYUVRenderBuffer;
+  CPictureBuffer& buf = m_buffers[index];
+
+  if (!buf.fields[FIELD_FULL][0].id)
+    return;
+
+  ManageRenderArea();
+
+  if (clear)
+  {
+    if (alpha == 255)
+      DrawBlackBars();
+    else
+      ClearBackBuffer();
+  }
+
+  if (alpha < 255)
+  {
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    if (m_pYUVProgShader)
+      m_pYUVProgShader->SetAlpha(alpha / 255.0f);
+    if (m_pYUVBobShader)
+      m_pYUVBobShader->SetAlpha(alpha / 255.0f);
+  }
+  else
+  {
+    glDisable(GL_BLEND);
+    if (m_pYUVProgShader)
+      m_pYUVProgShader->SetAlpha(1.0f);
+    if (m_pYUVBobShader)
+      m_pYUVBobShader->SetAlpha(1.0f);
+  }
+
+  if (!Render(flags, index) && clear)
+    ClearBackBuffer();
+
+  VerifyVulkanState();
+  glEnable(GL_BLEND);
+}
+
+void CLinuxRendererVulkan::UpdateVideoFilter()
+{
+  CRect srcRect;
+  CRect dstRect;
+  CRect viewRect;
+  GetVideoRect(srcRect, dstRect, viewRect);
+
+  // TODO: ValidateRenderTarget runs before the display resolution is established
+  // (the WHITELIST/resolution ADJUST happens ~500ms after the first RenderUpdate).
+  // This causes UpdateVideoFilter to be called with a 0x0 viewport. The proper fix
+  // is in CRenderManager to defer rendering until the resolution is ready.
+  if (viewRect.Height() == 0 || viewRect.Width() == 0)
+    return;
+
+  // TODO: GL also checks nonLinStretchChanged and cmsChanged in the early exit
+  // and the reload check below. Add when non-linear stretch and CMS are ported to Vulkan.
+  if (m_scalingMethodGui == m_videoSettings.m_ScalingMethod &&
+      viewRect.Height() == m_lastViewRect.Height() && viewRect.Width() == m_lastViewRect.Width())
+  {
+    return;
+  }
+
+  // Viewport-only change doesn't need shader reload -- only method changes do
+  if (m_scalingMethod != m_videoSettings.m_ScalingMethod)
+    m_reloadShaders = true;
+
+  m_scalingMethodGui = m_videoSettings.m_ScalingMethod;
+  m_scalingMethod = m_scalingMethodGui;
+  m_lastViewRect = viewRect;
+
+  if (!Supports(m_scalingMethod))
+  {
+    CLog::Log(
+        LOGWARNING,
+        "CLinuxRendererVulkan::UpdateVideoFilter - chosen scaling method {}, is not supported "
+        "by renderer",
+        m_scalingMethod);
+    m_scalingMethod = VS_SCALINGMETHOD_LINEAR;
+  }
+
+  if (m_pVideoFilterShader)
+  {
+    delete m_pVideoFilterShader;
+    m_pVideoFilterShader = nullptr;
+  }
+
+  m_fbo.fbo.Cleanup();
+
+  VerifyVulkanState();
+
+  if (m_scalingMethod == VS_SCALINGMETHOD_AUTO)
+  {
+    bool scaleSD = m_sourceHeight < 720 && m_sourceWidth < 1280;
+    bool scaleUp =
+        (int)m_sourceHeight < m_viewRect.Height() && (int)m_sourceWidth < m_viewRect.Width();
+    bool scaleFps =
+        m_fps <
+        CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->m_videoAutoScaleMaxFps +
+            0.01f;
+
+    if (Supports(VS_SCALINGMETHOD_LANCZOS3_FAST) && scaleSD && scaleUp && scaleFps)
+      m_scalingMethod = VS_SCALINGMETHOD_LANCZOS3_FAST;
+    else
+      m_scalingMethod = VS_SCALINGMETHOD_LINEAR;
+  }
+
+  switch (m_scalingMethod)
+  {
+    case VS_SCALINGMETHOD_NEAREST:
+    case VS_SCALINGMETHOD_LINEAR:
+    {
+      // TODO: GL creates DefaultFilterShader here (or StretchFilterShader for
+      // non-linear stretch). Add when non-linear stretch is ported to Vulkan.
+      SetTextureFilter(m_scalingMethod == VS_SCALINGMETHOD_NEAREST ? GL_NEAREST : GL_LINEAR);
+      m_renderQuality = RQ_SINGLEPASS;
+      return;
+    }
+    case VS_SCALINGMETHOD_LANCZOS3_FAST:
+    case VS_SCALINGMETHOD_SPLINE36_FAST:
+    {
+      // On Vulkan 3.1+, FAST scalers use a single-pass combined YUV+convolution shader
+      // (YUV2RGBFilterShader with textureGather). On lower versions, fall through to
+      // multi-pass FBO path. Matches GL 4.0+ single-pass / GL <4.0 multi-pass pattern.
+      EShaderFormat fmt = GetShaderFormat();
+      if (fmt == SHADER_NV12 || (fmt >= SHADER_YV12 && fmt <= SHADER_YV12_16))
+      {
+        uint32_t major, minor;
+        m_renderSystem->GetRenderVersion(major, minor);
+        if (major >= 3 && minor >= 1)
+        {
+          SetTextureFilter(GL_LINEAR);
+          m_renderQuality = RQ_SINGLEPASS;
+          return;
+        }
+      }
+
+      [[fallthrough]];
+    }
+
+    case VS_SCALINGMETHOD_LANCZOS2:
+    case VS_SCALINGMETHOD_SPLINE36:
+    case VS_SCALINGMETHOD_LANCZOS3:
+    case VS_SCALINGMETHOD_CUBIC_B_SPLINE:
+    case VS_SCALINGMETHOD_CUBIC_MITCHELL:
+    case VS_SCALINGMETHOD_CUBIC_CATMULL:
+    case VS_SCALINGMETHOD_CUBIC_0_075:
+    case VS_SCALINGMETHOD_CUBIC_0_1:
+    {
+      if (m_renderMethod & RENDER_GLSL)
+      {
+        if (!m_fbo.fbo.Initialize())
+        {
+          CLog::Log(LOGERROR, "Vulkan: Error initializing FBO");
+          break;
+        }
+
+        // m_intermediateFormat and m_intermediateType are set in the constructor from
+        // hqscalerprecision setting. Try requested format first, fall back to GL_RGBA
+        // if unsupported (e.g. Vulkan 2.0 context where GL_RGB10_A2 / GL_RGBA16F are
+        // not available).
+        if (!m_fbo.fbo.CreateAndBindToTexture(GL_TEXTURE_2D, m_sourceWidth, m_sourceHeight,
+                                              m_intermediateFormat, m_intermediateType, GL_NEAREST))
+        {
+          if (m_intermediateFormat != GL_RGBA)
+          {
+            m_intermediateFormat = GL_RGBA;
+            m_intermediateType = GL_UNSIGNED_BYTE;
+            if (!m_fbo.fbo.CreateAndBindToTexture(GL_TEXTURE_2D, m_sourceWidth, m_sourceHeight,
+                                                  GL_RGBA))
+            {
+              CLog::Log(LOGERROR, "Vulkan: Error creating texture and binding to FBO");
+              break;
+            }
+          }
+          else
+          {
+            CLog::Log(LOGERROR, "Vulkan: Error creating texture and binding to FBO");
+            break;
+          }
+        }
+      }
+
+      // TODO: GL also passes m_nonLinStretch, m_intermediateGammaCorrection.
+      // Add when non-linear stretch and gamma correction are ported to Vulkan.
+      m_pVideoFilterShader = new ConvolutionFilterShader(m_scalingMethod, m_useDithering);
+      if (!m_pVideoFilterShader->CompileAndLink())
+      {
+        CLog::Log(LOGERROR, "Vulkan: Error compiling and linking video filter shader");
+        break;
+      }
+
+      if (m_useDithering && m_ditherTex)
+      {
+        bool ditherActive = true;
+        unsigned int effectiveDitherDepth = m_ditherDepth;
+        if (m_ditherDepth == 0)
+        {
+          GLint redBits = 0;
+          glGetIntegerv(GL_RED_BITS, &redBits);
+          // Use framebuffer depth on HDR displays; assume 8-bit on SDR displays
+          // since the CRTC or display will truncate to 8-bit regardless of BO depth.
+          if (CServiceBroker::GetWinSystem()->IsHDRDisplay())
+            effectiveDitherDepth = (redBits > 0) ? redBits : 8;
+          else
+            effectiveDitherDepth = 8;
+
+          float scaleFactor = ScalingAboveThreshold();
+          bool downscaling = scaleFactor > 0.0f && scaleFactor < 1.0f;
+          ditherActive = (m_srcFullRange != m_fullRange) || m_srcColorBits > effectiveDitherDepth ||
+                         m_toneMap || downscaling;
+        }
+        static_cast<ConvolutionFilterShader*>(m_pVideoFilterShader)
+            ->SetDitherUniforms(ditherActive, m_ditherTex, effectiveDitherDepth, dither_size);
+      }
+
+      CLog::Log(LOGINFO, "Vulkan: FBO intermediate format {:#x}",
+                static_cast<unsigned>(m_intermediateFormat));
+      CLog::Log(LOGINFO, "Vulkan: Selecting multi pass rendering");
+      SetTextureFilter(GL_LINEAR);
+      m_renderQuality = RQ_MULTIPASS;
+      return;
+    }
+    case VS_SCALINGMETHOD_BICUBIC_SOFTWARE:
+    case VS_SCALINGMETHOD_LANCZOS_SOFTWARE:
+    case VS_SCALINGMETHOD_SINC_SOFTWARE:
+    case VS_SCALINGMETHOD_SINC8:
+    {
+      CLog::Log(LOGERROR, "Vulkan: TODO: This scaler has not yet been implemented");
+      break;
+    }
+    default:
+      break;
+  }
+
+  CLog::Log(LOGERROR, "Vulkan: Falling back to bilinear due to failure to init scaler");
+  if (m_pVideoFilterShader)
+  {
+    delete m_pVideoFilterShader;
+    m_pVideoFilterShader = nullptr;
+  }
+
+  m_fbo.fbo.Cleanup();
+
+  m_pVideoFilterShader = new DefaultFilterShader();
+  if (!m_pVideoFilterShader->CompileAndLink())
+  {
+    CLog::Log(LOGERROR, "CLinuxRendererVulkan::UpdateVideoFilter: Error compiling and linking "
+                        "default video filter shader");
+  }
+
+  SetTextureFilter(GL_LINEAR);
+  m_renderQuality = RQ_SINGLEPASS;
+}
+
+void CLinuxRendererVulkan::LoadShaders(int field)
+{
+  m_reloadShaders = false;
+
+  if (!LoadShadersHook())
+  {
+    int requestedMethod = CServiceBroker::GetSettingsComponent()->GetSettings()->GetInt(
+        CSettings::SETTING_VIDEOPLAYER_RENDERMETHOD);
+    CLog::Log(LOGDEBUG, "Vulkan: Requested render method: {}", requestedMethod);
+
+    ReleaseShaders();
+
+    switch (requestedMethod)
+    {
+      case RENDER_METHOD_AUTO:
+      case RENDER_METHOD_GLSL:
+      {
+        // Try GLSL shaders if supported and user requested auto or GLSL.
+        if (glCreateProgram())
+        {
+          // Auto dithering (depth=0): decide per-video whether dithering is beneficial.
+          // Shaders are always compiled with XBMC_DITHER when the setting is on.
+          // The m_ditherEnabled uniform controls whether the shader applies dithering.
+          bool ditherActive = true;
+          unsigned int effectiveDitherDepth = m_ditherDepth;
+
+          if (m_ditherDepth == 0 && m_ditherTex)
+          {
+            GLint redBits = 0;
+            glGetIntegerv(GL_RED_BITS, &redBits);
+            if (CServiceBroker::GetWinSystem()->IsHDRDisplay())
+              effectiveDitherDepth = (redBits > 0) ? redBits : 8;
+            else
+              effectiveDitherDepth = 8;
+
+            float scaleFactor = ScalingAboveThreshold();
+            bool downscaling = scaleFactor > 0.0f && scaleFactor < 1.0f;
+            ditherActive = (m_srcFullRange != m_fullRange) ||
+                           m_srcColorBits > effectiveDitherDepth || m_toneMap || downscaling;
+
+            CLog::Log(LOGDEBUG,
+                      "Vulkan: auto dither {} (depth={}, source={}bit, "
+                      "rangeMismatch={}, toneMap={}, downscaling={})",
+                      ditherActive ? "on" : "off", effectiveDitherDepth, m_srcColorBits,
+                      m_srcFullRange != m_fullRange, m_toneMap, downscaling);
+          }
+
+          EShaderFormat shaderFormat = GetShaderFormat();
+          m_toneMapMethod = m_videoSettings.m_ToneMapMethod;
+
+          // Try single-pass filter shader for FAST scalers on Vulkan 3.1+
+          if (m_renderQuality == RQ_SINGLEPASS &&
+              (m_scalingMethod == VS_SCALINGMETHOD_LANCZOS3_FAST ||
+               m_scalingMethod == VS_SCALINGMETHOD_SPLINE36_FAST))
+          {
+            m_pYUVProgShader = new YUV2RGBFilterShader(
+                shaderFormat, m_passthroughHDR ? m_srcPrimaries : AVColorPrimaries::AVCOL_PRI_BT709,
+                m_srcPrimaries, m_toneMap, m_toneMapMethod, m_scalingMethod, m_useDithering);
+            // TODO: GL gates this on !m_cmsOn. Add when CMS is ported to Vulkan.
+            m_pYUVProgShader->SetConvertFullColorRange(m_fullRange);
+
+            CLog::Log(LOGINFO, "Vulkan: Selecting YUV 2 RGB shader with filter");
+
+            if (m_pYUVProgShader->CompileAndLink())
+            {
+              if (m_useDithering && m_ditherTex)
+                m_pYUVProgShader->SetDitherUniforms(ditherActive, m_ditherTex, effectiveDitherDepth,
+                                                    dither_size);
+              m_renderMethod = RENDER_GLSL;
+              UpdateVideoFilter();
+              break;
+            }
+            else
+            {
+              CLog::Log(LOGERROR, "Vulkan: Error enabling YUV2RGB GLSL shader");
+              delete m_pYUVProgShader;
+              m_pYUVProgShader = nullptr;
+            }
+          }
+
+          // Fall back to regular progressive shader
+          m_pYUVProgShader = new YUV2RGBProgressiveShader(
+              shaderFormat, m_passthroughHDR ? m_srcPrimaries : AVColorPrimaries::AVCOL_PRI_BT709,
+              m_srcPrimaries, m_toneMap, m_toneMapMethod, m_useDithering);
+          m_pYUVProgShader->SetConvertFullColorRange(m_fullRange);
+
+          CLog::Log(LOGINFO, "Vulkan: Selecting YUV 2 RGB shader");
+
+          m_pYUVBobShader = new YUV2RGBBobShader(
+              shaderFormat, m_passthroughHDR ? m_srcPrimaries : AVColorPrimaries::AVCOL_PRI_BT709,
+              m_srcPrimaries, m_toneMap, m_toneMapMethod, m_useDithering);
+          m_pYUVBobShader->SetConvertFullColorRange(m_fullRange);
+
+          if ((m_pYUVProgShader && m_pYUVProgShader->CompileAndLink()) &&
+              (m_pYUVBobShader && m_pYUVBobShader->CompileAndLink()))
+          {
+            if (m_useDithering && m_ditherTex)
+            {
+              m_pYUVProgShader->SetDitherUniforms(ditherActive, m_ditherTex, effectiveDitherDepth,
+                                                  dither_size);
+              m_pYUVBobShader->SetDitherUniforms(ditherActive, m_ditherTex, effectiveDitherDepth,
+                                                 dither_size);
+            }
+            m_renderMethod = RENDER_GLSL;
+            UpdateVideoFilter();
+            break;
+          }
+          else
+          {
+            ReleaseShaders();
+            CLog::Log(LOGERROR, "Vulkan: Error enabling YUV2RGB GLSL shader");
+            m_renderMethod = -1;
+            break;
+          }
+        }
+
+        break;
+      }
+      default:
+      {
+        m_renderMethod = -1;
+        CLog::Log(LOGERROR, "Vulkan: render method not supported");
+      }
+    }
+  }
+}
+
+void CLinuxRendererVulkan::ReleaseShaders()
+{
+  if (m_pYUVProgShader)
+  {
+    delete m_pYUVProgShader;
+    m_pYUVProgShader = nullptr;
+  }
+
+  if (m_pYUVBobShader)
+  {
+    delete m_pYUVBobShader;
+    m_pYUVBobShader = nullptr;
+  }
+}
+
+void CLinuxRendererVulkan::UnInit()
+{
+  CLog::Log(LOGDEBUG, "LinuxRendererVulkan: Cleaning up Vulkan resources");
+  std::unique_lock lock(CServiceBroker::GetWinSystem()->GetGfxContext());
+
+  glFinish();
+
+  // YUV textures
+  for (int i = 0; i < NUM_BUFFERS; ++i)
+  {
+    DeleteTexture(i);
+  }
+
+  if (m_bConfigured)
+  {
+    m_hdrFboActive = false;
+    CServiceBroker::GetWinSystem()->SetGuiCompositing(false);
+    CServiceBroker::GetWinSystem()->SetHDR(nullptr);
+    m_passthroughHDR = false;
+    CServiceBroker::GetWinSystem()->SetColorimetry(nullptr);
+    CServiceBroker::GetWinSystem()->SetVideoOutput(nullptr);
+  }
+
+  // cleanup framebuffer object if it was in use
+  m_fbo.fbo.Cleanup();
+  m_bValidated = false;
+  m_bConfigured = false;
+}
+
+bool CLinuxRendererVulkan::CreateTexture(int index)
+{
+  if (m_format == AV_PIX_FMT_NV12)
+    return CreateNV12Texture(index);
+  else if (m_format == AV_PIX_FMT_YUYV422 || m_format == AV_PIX_FMT_UYVY422)
+    return CreatePackedYUVTexture(index);
+  else
+    return CreatePlanarYUVTexture(index);
+}
+
+void CLinuxRendererVulkan::DeleteTexture(int index)
+{
+  ReleaseBuffer(index);
+
+  if (m_format == AV_PIX_FMT_NV12)
+    DeleteNV12Texture(index);
+  else if (m_format == AV_PIX_FMT_YUYV422 || m_format == AV_PIX_FMT_UYVY422)
+    DeletePackedYUVTexture(index);
+  else
+    DeletePlanarYUVTexture(index);
+}
+
+bool CLinuxRendererVulkan::UploadTexture(int index)
+{
+  if (!m_buffers[index].videoBuffer)
+  {
+    return false;
+  }
+
+  if (m_buffers[index].loaded)
+  {
+    return true;
+  }
+
+  bool ret{false};
+
+  YuvImage& dst = m_buffers[index].image;
+  m_buffers[index].videoBuffer->GetPlanes(dst.plane);
+  m_buffers[index].videoBuffer->GetStrides(dst.stride);
+
+  if (m_format == AV_PIX_FMT_NV12)
+  {
+    ret = UploadNV12Texture(index);
+  }
+  else if (m_format == AV_PIX_FMT_YUYV422 || m_format == AV_PIX_FMT_UYVY422)
+  {
+    ret = UploadPackedYUVTexture(index);
+  }
+  else
+  {
+    // default to planar YUV texture handlers
+    ret = UploadPlanarYUVTexture(index);
+  }
+
+  if (ret)
+  {
+    m_buffers[index].loaded = true;
+  }
+
+  return ret;
+}
+
+bool CLinuxRendererVulkan::Render(unsigned int flags, int index)
+{
+  // obtain current field, if interlaced
+  if (flags & RENDER_FLAG_TOP)
+  {
+    m_currentField = FIELD_TOP;
+  }
+  else if (flags & RENDER_FLAG_BOT)
+  {
+    m_currentField = FIELD_BOT;
+  }
+  else
+  {
+    m_currentField = FIELD_FULL;
+  }
+
+  // call texture load function
+  if (!UploadTexture(index))
+  {
+    return false;
+  }
+
+  if (RenderHook(index))
+  {
+    ;
+  }
+  else if (m_renderMethod & RENDER_GLSL)
+  {
+    UpdateVideoFilter();
+    switch (m_renderQuality)
+    {
+      case RQ_LOW:
+      case RQ_SINGLEPASS:
+      {
+        RenderSinglePass(index, m_currentField);
+        VerifyVulkanState();
+        break;
+      }
+      case RQ_MULTIPASS:
+      {
+        RenderToFBO(index, m_currentField);
+        RenderFromFBO();
+        VerifyVulkanState();
+        break;
+      }
+      default:
+        break;
+    }
+  }
+  else
+  {
+    return false;
+  }
+
+  AfterRenderHook(index);
+  return true;
+}
+
+void CLinuxRendererVulkan::RenderSinglePass(int index, int field)
+{
+  CPictureBuffer& buf = m_buffers[index];
+  CYuvPlane(&planes)[YuvImage::MAX_PLANES] = m_buffers[index].fields[field];
+
+  CheckVideoParameters(index);
+
+  if (m_reloadShaders)
+  {
+    m_reloadShaders = false;
+    LoadShaders(field);
+  }
+
+  // Y
+  glActiveTexture(GL_TEXTURE0);
+  glBindTexture(m_textureTarget, planes[0].id);
+
+  // U
+  glActiveTexture(GL_TEXTURE1);
+  glBindTexture(m_textureTarget, planes[1].id);
+
+  // V
+  glActiveTexture(GL_TEXTURE2);
+  glBindTexture(m_textureTarget, planes[2].id);
+
+  glActiveTexture(GL_TEXTURE0);
+  VerifyVulkanState();
+
+  Shaders::VULKAN::BaseYUV2RGBVulkanShader* pYUVShader;
+  if (field != FIELD_FULL)
+  {
+    pYUVShader = m_pYUVBobShader;
+  }
+  else
+  {
+    pYUVShader = m_pYUVProgShader;
+  }
+
+  pYUVShader->SetBlack(m_videoSettings.m_Brightness * 0.01f - 0.5f);
+  pYUVShader->SetContrast(m_videoSettings.m_Contrast * 0.02f);
+  pYUVShader->SetWidth(planes[0].texwidth);
+  pYUVShader->SetHeight(planes[0].texheight);
+  pYUVShader->SetColParams(buf.m_srcColSpace, buf.m_srcBits, !buf.m_srcFullRange,
+                           buf.m_srcTextureBits);
+  pYUVShader->SetDisplayMetadata(buf.hasDisplayMetadata, buf.displayMetadata, buf.hasLightMetadata,
+                                 buf.lightMetadata);
+  pYUVShader->SetToneMapParam(m_videoSettings.m_ToneMapParam);
+
+  if (field == FIELD_TOP)
+  {
+    pYUVShader->SetField(1);
+  }
+  else if (field == FIELD_BOT)
+  {
+    pYUVShader->SetField(0);
+  }
+
+  pYUVShader->SetMatrices(vulkanMatrixProject.Get(), vulkanMatrixModview.Get());
+  pYUVShader->Enable();
+
+  GLubyte idx[4] = {0, 1, 3, 2}; // determines order of triangle strip
+  GLfloat m_vert[4][3];
+  GLfloat m_tex[3][4][2];
+
+  GLint vertLoc = pYUVShader->GetVertexLoc();
+  GLint Yloc = pYUVShader->GetYcoordLoc();
+  GLint Uloc = pYUVShader->GetUcoordLoc();
+  GLint Vloc = pYUVShader->GetVcoordLoc();
+
+  glVertexAttribPointer(vertLoc, 3, GL_FLOAT, 0, 0, m_vert);
+  glVertexAttribPointer(Yloc, 2, GL_FLOAT, 0, 0, m_tex[0]);
+  glVertexAttribPointer(Uloc, 2, GL_FLOAT, 0, 0, m_tex[1]);
+  glVertexAttribPointer(Vloc, 2, GL_FLOAT, 0, 0, m_tex[2]);
+
+  glEnableVertexAttribArray(vertLoc);
+  glEnableVertexAttribArray(Yloc);
+  glEnableVertexAttribArray(Uloc);
+  glEnableVertexAttribArray(Vloc);
+
+  // Setup vertex position values
+  for (int i = 0; i < 4; i++)
+  {
+    m_vert[i][0] = m_rotatedDestCoords[i].x;
+    m_vert[i][1] = m_rotatedDestCoords[i].y;
+    m_vert[i][2] = 0.0f; // set z to 0
+  }
+
+  // Setup texture coordinates
+  for (int i = 0; i < 3; i++)
+  {
+    m_tex[i][0][0] = m_tex[i][3][0] = planes[i].rect.x1;
+    m_tex[i][0][1] = m_tex[i][1][1] = planes[i].rect.y1;
+    m_tex[i][1][0] = m_tex[i][2][0] = planes[i].rect.x2;
+    m_tex[i][2][1] = m_tex[i][3][1] = planes[i].rect.y2;
+  }
+
+  glDrawElements(GL_TRIANGLE_STRIP, 4, GL_UNSIGNED_BYTE, idx);
+
+  VerifyVulkanState();
+
+  pYUVShader->Disable();
+  VerifyVulkanState();
+
+  glDisableVertexAttribArray(vertLoc);
+  glDisableVertexAttribArray(Yloc);
+  glDisableVertexAttribArray(Uloc);
+  glDisableVertexAttribArray(Vloc);
+
+  VerifyVulkanState();
+}
+
+void CLinuxRendererVulkan::RenderToFBO(int index, int field)
+{
+  CPictureBuffer& buf = m_buffers[index];
+  CYuvPlane(&planes)[YuvImage::MAX_PLANES] = m_buffers[index].fields[field];
+
+  CheckVideoParameters(index);
+
+  if (m_reloadShaders)
+  {
+    m_reloadShaders = false;
+    LoadShaders(m_currentField);
+  }
+
+  if (!m_fbo.fbo.IsValid())
+  {
+    if (!m_fbo.fbo.Initialize())
+    {
+      CLog::Log(LOGERROR, "Vulkan: Error initializing FBO");
+      return;
+    }
+
+    if (!m_fbo.fbo.CreateAndBindToTexture(GL_TEXTURE_2D, m_sourceWidth, m_sourceHeight, GL_RGBA,
+                                          GL_SHORT))
+    {
+      CLog::Log(LOGERROR, "Vulkan: Error creating texture and binding to FBO");
+      return;
+    }
+  }
+
+  // Y
+  glActiveTexture(GL_TEXTURE0);
+  glBindTexture(m_textureTarget, planes[0].id);
+  VerifyVulkanState();
+
+  // U
+  glActiveTexture(GL_TEXTURE1);
+  glBindTexture(m_textureTarget, planes[1].id);
+  VerifyVulkanState();
+
+  // V
+  glActiveTexture(GL_TEXTURE2);
+  glBindTexture(m_textureTarget, planes[2].id);
+  VerifyVulkanState();
+
+  glActiveTexture(GL_TEXTURE0);
+  VerifyVulkanState();
+
+  Shaders::VULKAN::BaseYUV2RGBVulkanShader* pYUVShader = m_pYUVProgShader;
+  // make sure the yuv shader is loaded and ready to go
+  if (!pYUVShader || (!pYUVShader->OK()))
+  {
+    CLog::Log(LOGERROR, "Vulkan: YUV shader not active, cannot do multipass render");
+    return;
+  }
+
+  m_fbo.fbo.BeginRender();
+  VerifyVulkanState();
+
+  pYUVShader->SetBlack(m_videoSettings.m_Brightness * 0.01f - 0.5f);
+  pYUVShader->SetContrast(m_videoSettings.m_Contrast * 0.02f);
+  pYUVShader->SetWidth(planes[0].texwidth);
+  pYUVShader->SetHeight(planes[0].texheight);
+  pYUVShader->SetColParams(buf.m_srcColSpace, buf.m_srcBits, !buf.m_srcFullRange,
+                           buf.m_srcTextureBits);
+  pYUVShader->SetDisplayMetadata(buf.hasDisplayMetadata, buf.displayMetadata, buf.hasLightMetadata,
+                                 buf.lightMetadata);
+  pYUVShader->SetToneMapParam(m_videoSettings.m_ToneMapParam);
+
+  if (field == FIELD_TOP)
+  {
+    pYUVShader->SetField(1);
+  }
+  else if (field == FIELD_BOT)
+  {
+    pYUVShader->SetField(0);
+  }
+
+  VerifyVulkanState();
+
+  vulkanMatrixModview.Push();
+  vulkanMatrixModview->LoadIdentity();
+  vulkanMatrixModview.Load();
+
+  vulkanMatrixProject.Push();
+  vulkanMatrixProject->LoadIdentity();
+  vulkanMatrixProject->Ortho2D(0, m_sourceWidth, 0, m_sourceHeight);
+  vulkanMatrixProject.Load();
+
+  pYUVShader->SetMatrices(vulkanMatrixProject.Get(), vulkanMatrixModview.Get());
+
+  CRect viewport;
+  m_renderSystem->GetViewPort(viewport);
+  glViewport(0, 0, m_sourceWidth, m_sourceHeight);
+  glScissor(0, 0, m_sourceWidth, m_sourceHeight);
+
+  if (!pYUVShader->Enable())
+  {
+    CLog::Log(LOGERROR, "Vulkan: Error enabling YUV shader");
+  }
+
+  m_fbo.width = planes[0].rect.x2 - planes[0].rect.x1;
+  m_fbo.height = planes[0].rect.y2 - planes[0].rect.y1;
+
+  if (m_textureTarget == GL_TEXTURE_2D)
+  {
+    m_fbo.width *= planes[0].texwidth;
+    m_fbo.height *= planes[0].texheight;
+  }
+
+  m_fbo.width *= planes[0].pixpertex_x;
+  m_fbo.height *= planes[0].pixpertex_y;
+
+  // 1st Pass to video frame size
+  GLubyte idx[4] = {0, 1, 3, 2}; // determines order of triangle strip
+  GLfloat vert[4][3];
+  GLfloat tex[3][4][2];
+
+  GLint vertLoc = pYUVShader->GetVertexLoc();
+  GLint Yloc = pYUVShader->GetYcoordLoc();
+  GLint Uloc = pYUVShader->GetUcoordLoc();
+  GLint Vloc = pYUVShader->GetVcoordLoc();
+
+  glVertexAttribPointer(vertLoc, 3, GL_FLOAT, 0, 0, vert);
+  glVertexAttribPointer(Yloc, 2, GL_FLOAT, 0, 0, tex[0]);
+  glVertexAttribPointer(Uloc, 2, GL_FLOAT, 0, 0, tex[1]);
+  glVertexAttribPointer(Vloc, 2, GL_FLOAT, 0, 0, tex[2]);
+
+  glEnableVertexAttribArray(vertLoc);
+  glEnableVertexAttribArray(Yloc);
+  glEnableVertexAttribArray(Uloc);
+  glEnableVertexAttribArray(Vloc);
+
+  // Setup vertex position values
+  // Set vertex coordinates
+  vert[0][0] = vert[3][0] = 0.0f;
+  vert[0][1] = vert[1][1] = 0.0f;
+  vert[1][0] = vert[2][0] = m_fbo.width;
+  vert[2][1] = vert[3][1] = m_fbo.height;
+  vert[0][2] = vert[1][2] = vert[2][2] = vert[3][2] = 0.0f;
+
+  // Setup texture coordinates
+  for (int i = 0; i < 3; i++)
+  {
+    tex[i][0][0] = tex[i][3][0] = planes[i].rect.x1;
+    tex[i][0][1] = tex[i][1][1] = planes[i].rect.y1;
+    tex[i][1][0] = tex[i][2][0] = planes[i].rect.x2;
+    tex[i][2][1] = tex[i][3][1] = planes[i].rect.y2;
+  }
+
+  glDrawElements(GL_TRIANGLE_STRIP, 4, GL_UNSIGNED_BYTE, idx);
+
+  VerifyVulkanState();
+
+  pYUVShader->Disable();
+
+  vulkanMatrixModview.PopLoad();
+  vulkanMatrixProject.PopLoad();
+
+  VerifyVulkanState();
+
+  glDisableVertexAttribArray(vertLoc);
+  glDisableVertexAttribArray(Yloc);
+  glDisableVertexAttribArray(Uloc);
+  glDisableVertexAttribArray(Vloc);
+
+  m_renderSystem->SetViewPort(viewport);
+
+  m_fbo.fbo.EndRender();
+
+  VerifyVulkanState();
+}
+
+void CLinuxRendererVulkan::RenderFromFBO()
+{
+  glActiveTexture(GL_TEXTURE0);
+  glBindTexture(GL_TEXTURE_2D, m_fbo.fbo.Texture());
+  VerifyVulkanState();
+
+  // Use regular normalized texture coordinates
+
+  // 2nd Pass to screen size with optional video filter
+
+  if (m_pVideoFilterShader)
+  {
+    GLint filter;
+    if (!m_pVideoFilterShader->GetTextureFilter(filter))
+    {
+      filter = m_scalingMethod == VS_SCALINGMETHOD_NEAREST ? GL_NEAREST : GL_LINEAR;
+    }
+
+    m_fbo.fbo.SetFiltering(GL_TEXTURE_2D, filter);
+    m_pVideoFilterShader->SetSourceTexture(0);
+    m_pVideoFilterShader->SetWidth(m_sourceWidth);
+    m_pVideoFilterShader->SetHeight(m_sourceHeight);
+    m_pVideoFilterShader->SetAlpha(1.0f);
+    m_pVideoFilterShader->SetMatrices(vulkanMatrixProject.Get(), vulkanMatrixModview.Get());
+    m_pVideoFilterShader->Enable();
+  }
+  else
+  {
+    GLint filter = m_scalingMethod == VS_SCALINGMETHOD_NEAREST ? GL_NEAREST : GL_LINEAR;
+    m_fbo.fbo.SetFiltering(GL_TEXTURE_2D, filter);
+  }
+
+  VerifyVulkanState();
+
+  float imgwidth = m_fbo.width / m_sourceWidth;
+  float imgheight = m_fbo.height / m_sourceHeight;
+
+  GLubyte idx[4] = {0, 1, 3, 2}; // determines order of triangle strip
+  GLfloat vert[4][3];
+  GLfloat tex[4][2];
+
+  GLint vertLoc = m_pVideoFilterShader->GetVertexLoc();
+  GLint loc = m_pVideoFilterShader->GetcoordLoc();
+
+  glVertexAttribPointer(vertLoc, 3, GL_FLOAT, 0, 0, vert);
+  glVertexAttribPointer(loc, 2, GL_FLOAT, 0, 0, tex);
+
+  glEnableVertexAttribArray(vertLoc);
+  glEnableVertexAttribArray(loc);
+
+  // Setup vertex position values
+  for (int i = 0; i < 4; i++)
+  {
+    vert[i][0] = m_rotatedDestCoords[i].x;
+    vert[i][1] = m_rotatedDestCoords[i].y;
+    vert[i][2] = 0.0f; // set z to 0
+  }
+
+  // Setup texture coordinates
+  tex[0][0] = tex[3][0] = 0.0f;
+  tex[0][1] = tex[1][1] = 0.0f;
+  tex[1][0] = tex[2][0] = imgwidth;
+  tex[2][1] = tex[3][1] = imgheight;
+
+  glDrawElements(GL_TRIANGLE_STRIP, 4, GL_UNSIGNED_BYTE, idx);
+
+  glDisableVertexAttribArray(loc);
+  glDisableVertexAttribArray(vertLoc);
+
+  VerifyVulkanState();
+
+  if (m_pVideoFilterShader)
+  {
+    m_pVideoFilterShader->Disable();
+  }
+
+  VerifyVulkanState();
+
+  glBindTexture(GL_TEXTURE_2D, 0);
+  VerifyVulkanState();
+}
+
+bool CLinuxRendererVulkan::RenderCapture(int index, CRenderCapture* capture)
+{
+  if (!m_bValidated)
+  {
+    return false;
+  }
+
+  // save current video rect
+  CRect saveSize = m_destRect;
+  saveRotatedCoords(); // backup current m_rotatedDestCoords
+
+  // new video rect is thumbnail size
+  m_destRect.SetRect(0, 0, static_cast<float>(capture->GetWidth()),
+                     static_cast<float>(capture->GetHeight()));
+  MarkDirty();
+  syncDestRectToRotatedPoints(); // syncs the changed destRect to m_rotatedDestCoords
+
+  // clear framebuffer and invert Y axis to get non-inverted image
+  glDisable(GL_BLEND);
+
+  vulkanMatrixModview.Push();
+  vulkanMatrixModview->Translatef(0.0f, capture->GetHeight(), 0.0f);
+  vulkanMatrixModview->Scalef(1.0f, -1.0f, 1.0f);
+  vulkanMatrixModview.Load();
+
+  capture->BeginRender();
+
+  Render(RENDER_FLAG_NOOSD, index);
+  // read pixels
+  glReadPixels(0,
+               CServiceBroker::GetWinSystem()->GetGfxContext().GetHeight() - capture->GetHeight(),
+               capture->GetWidth(), capture->GetHeight(), GL_RGBA, GL_UNSIGNED_BYTE,
+               capture->GetRenderBuffer());
+
+  // OpenVulkan returns in RGBA order but CRenderCapture needs BGRA order
+  // XOR Swap RGBA -> BGRA
+  unsigned char* pixels = static_cast<unsigned char*>(capture->GetRenderBuffer());
+  for (unsigned int i = 0; i < capture->GetWidth() * capture->GetHeight(); i++, pixels += 4)
+  {
+    std::swap(pixels[0], pixels[2]);
+  }
+
+  capture->EndRender();
+
+  // revert model view matrix
+  vulkanMatrixModview.PopLoad();
+
+  // restore original video rect
+  m_destRect = saveSize;
+  restoreRotatedCoords(); // restores the previous state of the rotated dest coords
+
+  return true;
+}
+
+//********************************************************************************************************/
+// YUV texture creation, deletion, copying + clearing
+//********************************************************************************************************/
+bool CLinuxRendererVulkan::UploadPlanarYUVTexture(int source)
+{
+  CPictureBuffer& buf = m_buffers[source];
+  YuvImage* im = &buf.image;
+
+  VerifyVulkanState();
+
+  glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+
+  if (im->bpp == 2)
+  {
+    // >8-bit: three separate GL_R16_EXT planes
+    LoadPlane(buf.fields[FIELD_FULL][0], GL_RED, im->width, im->height, im->stride[0], im->bpp,
+              im->plane[0]);
+
+    LoadPlane(buf.fields[FIELD_FULL][1], GL_RED, im->width >> im->cshift_x,
+              im->height >> im->cshift_y, im->stride[1], im->bpp, im->plane[1]);
+
+    LoadPlane(buf.fields[FIELD_FULL][2], GL_RED, im->width >> im->cshift_x,
+              im->height >> im->cshift_y, im->stride[2], im->bpp, im->plane[2]);
+  }
+  else
+  {
+    // 8-bit: GL_LUMINANCE for Y/U, GL_ALPHA for V
+    LoadPlane(buf.fields[FIELD_FULL][0], GL_LUMINANCE, im->width, im->height, im->stride[0],
+              im->bpp, im->plane[0]);
+
+    LoadPlane(buf.fields[FIELD_FULL][1], GL_LUMINANCE, im->width >> im->cshift_x,
+              im->height >> im->cshift_y, im->stride[1], im->bpp, im->plane[1]);
+
+    LoadPlane(buf.fields[FIELD_FULL][2], GL_ALPHA, im->width >> im->cshift_x,
+              im->height >> im->cshift_y, im->stride[2], im->bpp, im->plane[2]);
+  }
+
+  VerifyVulkanState();
+
+  CalculateTextureSourceRects(source, 3);
+
+  return true;
+}
+
+void CLinuxRendererVulkan::DeletePlanarYUVTexture(int index)
+{
+  YuvImage& im = m_buffers[index].image;
+
+  if (m_buffers[index].fields[FIELD_FULL][0].id == 0)
+  {
+    return;
+  }
+
+  // finish up all textures, and delete them
+  for (int f = 0; f < MAX_FIELDS; f++)
+  {
+    for (int p = 0; p < YuvImage::MAX_PLANES; p++)
+    {
+      if (m_buffers[index].fields[f][p].id)
+      {
+        if (glIsTexture(m_buffers[index].fields[f][p].id))
+        {
+          glDeleteTextures(1, &m_buffers[index].fields[f][p].id);
+        }
+
+        m_buffers[index].fields[f][p].id = 0;
+      }
+    }
+  }
+
+  for (int p = 0; p < YuvImage::MAX_PLANES; p++)
+  {
+    im.plane[p] = nullptr;
+  }
+}
+
+bool CLinuxRendererVulkan::CreatePlanarYUVTexture(int index)
+{
+  // since we also want the field textures, pitch must be texture aligned
+  unsigned p;
+  CPictureBuffer& buf = m_buffers[index];
+  YuvImage& im = buf.image;
+
+  DeletePlanarYUVTexture(index);
+
+  im.height = m_sourceHeight;
+  im.width = m_sourceWidth;
+
+  // Chroma subsampling derived from libavutil's pixdesc API. Works for any
+  // planar YUV pix_fmt (4:2:0 / 4:2:2 / 4:4:4) without per-format checks.
+  const AVPixFmtDescriptor* desc = av_pix_fmt_desc_get(m_format);
+  im.cshift_x = desc ? desc->log2_chroma_w : 1;
+  im.cshift_y = desc ? desc->log2_chroma_h : 1;
+
+  buf.m_srcTextureBits = desc ? desc->comp[0].depth : 8;
+  im.bpp = (buf.m_srcTextureBits > 8) ? 2 : 1;
+
+  im.stride[0] = im.bpp * im.width;
+  im.stride[1] = im.bpp * (im.width >> im.cshift_x);
+  im.stride[2] = im.bpp * (im.width >> im.cshift_x);
+
+  im.planesize[0] = im.stride[0] * im.height;
+  im.planesize[1] = im.stride[1] * (im.height >> im.cshift_y);
+  im.planesize[2] = im.stride[2] * (im.height >> im.cshift_y);
+
+  for (int i = 0; i < 3; i++)
+  {
+    im.plane[i] = nullptr; // will be set in UploadTexture()
+  }
+
+  for (int f = 0; f < MAX_FIELDS; f++)
+  {
+    for (p = 0; p < YuvImage::MAX_PLANES; p++)
+    {
+      if (!glIsTexture(m_buffers[index].fields[f][p].id))
+      {
+        glGenTextures(1, &m_buffers[index].fields[f][p].id);
+        VerifyVulkanState();
+      }
+    }
+  }
+
+  // YUV
+  for (int f = FIELD_FULL; f <= FIELD_BOT; f++)
+  {
+    int fieldshift = (f == FIELD_FULL) ? 0 : 1;
+    CYuvPlane(&planes)[YuvImage::MAX_PLANES] = m_buffers[index].fields[f];
+
+    planes[0].texwidth = im.width;
+    planes[0].texheight = im.height >> fieldshift;
+
+    planes[1].texwidth = planes[0].texwidth >> im.cshift_x;
+    planes[1].texheight = planes[0].texheight >> im.cshift_y;
+    planes[2].texwidth = planes[0].texwidth >> im.cshift_x;
+    planes[2].texheight = planes[0].texheight >> im.cshift_y;
+
+    for (int p = 0; p < 3; p++)
+    {
+      planes[p].pixpertex_x = 1;
+      planes[p].pixpertex_y = 1;
+    }
+
+    for (int p = 0; p < 3; p++)
+    {
+      CYuvPlane& plane = planes[p];
+      if (plane.texwidth * plane.texheight == 0)
+      {
+        continue;
+      }
+
+      glBindTexture(m_textureTarget, plane.id);
+
+      if (im.bpp == 2)
+      {
+#if defined(GL_R16_EXT)
+        glTexImage2D(m_textureTarget, 0, GL_R16_EXT, plane.texwidth, plane.texheight, 0, GL_RED,
+                     GL_UNSIGNED_SHORT, nullptr);
+#else
+        CLog::Log(LOGERROR, "Vulkan: GL_R16_EXT undefined; cannot render >8-bit YUV");
+        return false;
+#endif
+      }
+      else
+      {
+        GLint format;
+        if (p == 2) // V plane needs an alpha texture
+          format = GL_ALPHA;
+        else
+          format = GL_LUMINANCE;
+
+        glTexImage2D(m_textureTarget, 0, format, plane.texwidth, plane.texheight, 0, format,
+                     GL_UNSIGNED_BYTE, nullptr);
+      }
+
+      glTexParameteri(m_textureTarget, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+      glTexParameteri(m_textureTarget, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+      glTexParameteri(m_textureTarget, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+      glTexParameteri(m_textureTarget, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+      VerifyVulkanState();
+    }
+  }
+  return true;
+}
+
+//********************************************************************************************************
+// NV12 Texture loading, creation and deletion
+//********************************************************************************************************
+bool CLinuxRendererVulkan::UploadNV12Texture(int source)
+{
+  CPictureBuffer& buf = m_buffers[source];
+  YuvImage* im = &buf.image;
+
+  bool deinterlacing;
+  if (m_currentField == FIELD_FULL)
+  {
+    deinterlacing = false;
+  }
+  else
+  {
+    deinterlacing = true;
+  }
+
+  VerifyVulkanState();
+
+  glPixelStorei(GL_UNPACK_ALIGNMENT, im->bpp);
+
+  if (deinterlacing)
+  {
+    // Load Odd Y field
+    LoadPlane(buf.fields[FIELD_TOP][0], GL_LUMINANCE, im->width, im->height >> 1, im->stride[0] * 2,
+              im->bpp, im->plane[0]);
+
+    // Load Even Y field
+    LoadPlane(buf.fields[FIELD_BOT][0], GL_LUMINANCE, im->width, im->height >> 1, im->stride[0] * 2,
+              im->bpp, im->plane[0] + im->stride[0]);
+
+    // Load Odd UV Fields
+    LoadPlane(buf.fields[FIELD_TOP][1], GL_LUMINANCE_ALPHA, im->width >> im->cshift_x,
+              im->height >> (im->cshift_y + 1), im->stride[1] * 2, im->bpp, im->plane[1]);
+
+    // Load Even UV Fields
+    LoadPlane(buf.fields[FIELD_BOT][1], GL_LUMINANCE_ALPHA, im->width >> im->cshift_x,
+              im->height >> (im->cshift_y + 1), im->stride[1] * 2, im->bpp,
+              im->plane[1] + im->stride[1]);
+  }
+  else
+  {
+    // Load Y plane
+    LoadPlane(buf.fields[FIELD_FULL][0], GL_LUMINANCE, im->width, im->height, im->stride[0],
+              im->bpp, im->plane[0]);
+
+    // Load UV plane
+    LoadPlane(buf.fields[FIELD_FULL][1], GL_LUMINANCE_ALPHA, im->width >> im->cshift_x,
+              im->height >> im->cshift_y, im->stride[1], im->bpp, im->plane[1]);
+  }
+
+  VerifyVulkanState();
+
+  CalculateTextureSourceRects(source, 3);
+
+  return true;
+}
+
+bool CLinuxRendererVulkan::CreateNV12Texture(int index)
+{
+  // since we also want the field textures, pitch must be texture aligned
+  CPictureBuffer& buf = m_buffers[index];
+  YuvImage& im = buf.image;
+
+  // Delete any old texture
+  DeleteNV12Texture(index);
+
+  im.height = m_sourceHeight;
+  im.width = m_sourceWidth;
+  im.cshift_x = 1;
+  im.cshift_y = 1;
+  im.bpp = 1;
+
+  im.stride[0] = im.width;
+  im.stride[1] = im.width;
+  im.stride[2] = 0;
+
+  im.plane[0] = nullptr;
+  im.plane[1] = nullptr;
+  im.plane[2] = nullptr;
+
+  // Y plane
+  im.planesize[0] = im.stride[0] * im.height;
+  // packed UV plane
+  im.planesize[1] = im.stride[1] * im.height / 2;
+  // third plane is not used
+  im.planesize[2] = 0;
+
+  for (int i = 0; i < 2; i++)
+  {
+    im.plane[i] = nullptr; // will be set in UploadTexture()
+  }
+
+  for (int f = 0; f < MAX_FIELDS; f++)
+  {
+    for (int p = 0; p < 2; p++)
+    {
+      if (!glIsTexture(buf.fields[f][p].id))
+      {
+        glGenTextures(1, &buf.fields[f][p].id);
+        VerifyVulkanState();
+      }
+    }
+
+    buf.fields[f][2].id = buf.fields[f][1].id;
+  }
+
+  // YUV
+  for (int f = FIELD_FULL; f <= FIELD_BOT; f++)
+  {
+    int fieldshift = (f == FIELD_FULL) ? 0 : 1;
+    CYuvPlane(&planes)[YuvImage::MAX_PLANES] = buf.fields[f];
+
+    planes[0].texwidth = im.width;
+    planes[0].texheight = im.height >> fieldshift;
+
+    planes[1].texwidth = planes[0].texwidth >> im.cshift_x;
+    planes[1].texheight = planes[0].texheight >> im.cshift_y;
+    planes[2].texwidth = planes[1].texwidth;
+    planes[2].texheight = planes[1].texheight;
+
+    for (int p = 0; p < 3; p++)
+    {
+      planes[p].pixpertex_x = 1;
+      planes[p].pixpertex_y = 1;
+    }
+
+    for (int p = 0; p < 2; p++)
+    {
+      CYuvPlane& plane = planes[p];
+      if (plane.texwidth * plane.texheight == 0)
+      {
+        continue;
+      }
+
+      glBindTexture(m_textureTarget, plane.id);
+
+      if (p == 1)
+      {
+        glTexImage2D(m_textureTarget, 0, GL_LUMINANCE_ALPHA, plane.texwidth, plane.texheight, 0,
+                     GL_LUMINANCE_ALPHA, GL_UNSIGNED_BYTE, nullptr);
+      }
+      else
+      {
+        glTexImage2D(m_textureTarget, 0, GL_LUMINANCE, plane.texwidth, plane.texheight, 0,
+                     GL_LUMINANCE, GL_UNSIGNED_BYTE, nullptr);
+      }
+
+      glTexParameteri(m_textureTarget, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+      glTexParameteri(m_textureTarget, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+      glTexParameteri(m_textureTarget, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+      glTexParameteri(m_textureTarget, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+      VerifyVulkanState();
+    }
+  }
+
+  return true;
+}
+
+void CLinuxRendererVulkan::DeleteNV12Texture(int index)
+{
+  CPictureBuffer& buf = m_buffers[index];
+  YuvImage& im = buf.image;
+
+  if (buf.fields[FIELD_FULL][0].id == 0)
+  {
+    return;
+  }
+
+  // finish up all textures, and delete them
+  for (int f = 0; f < MAX_FIELDS; f++)
+  {
+    for (int p = 0; p < 2; p++)
+    {
+      if (buf.fields[f][p].id)
+      {
+        if (glIsTexture(buf.fields[f][p].id))
+        {
+          glDeleteTextures(1, &buf.fields[f][p].id);
+        }
+
+        buf.fields[f][p].id = 0;
+      }
+    }
+
+    buf.fields[f][2].id = 0;
+  }
+
+  for (int p = 0; p < 2; p++)
+  {
+    im.plane[p] = nullptr;
+  }
+}
+
+//********************************************************************************************************
+// YUV422 packed Texture creation, deletion, copying + clearing
+//********************************************************************************************************
+bool CLinuxRendererVulkan::UploadPackedYUVTexture(int source)
+{
+  CPictureBuffer& buf = m_buffers[source];
+  YuvImage* im = &buf.image;
+
+  VerifyVulkanState();
+
+  glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+
+  // Load YUYV plane
+  LoadPlane(buf.fields[FIELD_FULL][0], GL_BGRA_EXT, im->width / 2, im->height, im->stride[0],
+            im->bpp, im->plane[0]);
+
+  VerifyVulkanState();
+
+  CalculateTextureSourceRects(source, 3);
+
+  return true;
+}
+
+void CLinuxRendererVulkan::DeletePackedYUVTexture(int index)
+{
+  CPictureBuffer& buf = m_buffers[index];
+  YuvImage& im = buf.image;
+
+  if (buf.fields[FIELD_FULL][0].id == 0)
+    return;
+
+  // finish up all textures, and delete them
+  for (int f = 0; f < MAX_FIELDS; f++)
+  {
+    if (buf.fields[f][0].id)
+    {
+      if (glIsTexture(buf.fields[f][0].id))
+      {
+        glDeleteTextures(1, &buf.fields[f][0].id);
+      }
+      buf.fields[f][0].id = 0;
+    }
+    buf.fields[f][1].id = 0;
+    buf.fields[f][2].id = 0;
+  }
+
+  im.plane[0] = nullptr;
+}
+
+bool CLinuxRendererVulkan::CreatePackedYUVTexture(int index)
+{
+  if (!CServiceBroker::GetRenderSystem()->IsExtSupported("GL_EXT_texture_format_BGRA8888"))
+  {
+    CLog::Log(LOGERROR, "CLinuxRendererVulkan::CreatePackedYUVTexture - "
+                        "GL_EXT_texture_format_BGRA8888 not supported");
+    return false;
+  }
+
+  // since we also want the field textures, pitch must be texture aligned
+  CPictureBuffer& buf = m_buffers[index];
+  YuvImage& im = buf.image;
+
+  // Delete any old texture
+  DeletePackedYUVTexture(index);
+
+  im.height = m_sourceHeight;
+  im.width = m_sourceWidth;
+  im.cshift_x = 0;
+  im.cshift_y = 0;
+  im.bpp = 1;
+
+  im.stride[0] = im.width * 2;
+  im.stride[1] = 0;
+  im.stride[2] = 0;
+
+  im.planesize[0] = im.stride[0] * im.height;
+  im.planesize[1] = 0;
+  im.planesize[2] = 0;
+
+  im.plane[0] = nullptr; // will be set in UploadTexture()
+  im.plane[1] = nullptr;
+  im.plane[2] = nullptr;
+
+  for (int f = 0; f < MAX_FIELDS; f++)
+  {
+    if (!glIsTexture(buf.fields[f][0].id))
+    {
+      glGenTextures(1, &buf.fields[f][0].id);
+      VerifyVulkanState();
+    }
+    buf.fields[f][1].id = buf.fields[f][0].id;
+    buf.fields[f][2].id = buf.fields[f][1].id;
+  }
+
+  // YUV
+  for (int f = FIELD_FULL; f <= FIELD_BOT; f++)
+  {
+    int fieldshift = (f == FIELD_FULL) ? 0 : 1;
+    CYuvPlane(&planes)[YuvImage::MAX_PLANES] = buf.fields[f];
+
+    planes[0].texwidth = im.width / 2;
+    planes[0].texheight = im.height >> fieldshift;
+    planes[1].texwidth = planes[0].texwidth;
+    planes[1].texheight = planes[0].texheight;
+    planes[2].texwidth = planes[1].texwidth;
+    planes[2].texheight = planes[1].texheight;
+
+    for (int p = 0; p < 3; p++)
+    {
+      planes[p].pixpertex_x = 2;
+      planes[p].pixpertex_y = 1;
+    }
+
+    CYuvPlane& plane = planes[0];
+    if (plane.texwidth * plane.texheight == 0)
+      continue;
+
+    glBindTexture(m_textureTarget, plane.id);
+
+    glTexImage2D(m_textureTarget, 0, GL_RGBA, plane.texwidth, plane.texheight, 0, GL_BGRA_EXT,
+                 GL_UNSIGNED_BYTE, NULL);
+
+    glTexParameteri(m_textureTarget, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(m_textureTarget, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(m_textureTarget, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(m_textureTarget, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    VerifyVulkanState();
+  }
+
+  return true;
+}
+
+//********************************************************************************************************
+// SurfaceTexture creation, deletion, copying + clearing
+//********************************************************************************************************
+void CLinuxRendererVulkan::SetTextureFilter(GLenum method)
+{
+  for (int i = 0; i < m_NumYUVBuffers; i++)
+  {
+    CPictureBuffer& buf = m_buffers[i];
+
+    for (int f = FIELD_FULL; f <= FIELD_BOT; f++)
+    {
+      for (int p = 0; p < 3; p++)
+      {
+        if (glIsTexture(buf.fields[f][p].id))
+        {
+          glBindTexture(m_textureTarget, buf.fields[f][p].id);
+          glTexParameteri(m_textureTarget, GL_TEXTURE_MIN_FILTER, method);
+          glTexParameteri(m_textureTarget, GL_TEXTURE_MAG_FILTER, method);
+          VerifyVulkanState();
+        }
+      }
+    }
+  }
+}
+
+bool CLinuxRendererVulkan::Supports(ERENDERFEATURE feature) const
+{
+  if (feature == RENDERFEATURE_GAMMA || feature == RENDERFEATURE_NOISE ||
+      feature == RENDERFEATURE_SHARPNESS || feature == RENDERFEATURE_NONLINSTRETCH)
+  {
+    return false;
+  }
+
+  if (feature == RENDERFEATURE_STRETCH || feature == RENDERFEATURE_ZOOM ||
+      feature == RENDERFEATURE_VERTICAL_SHIFT || feature == RENDERFEATURE_PIXEL_RATIO ||
+      feature == RENDERFEATURE_POSTPROCESS || feature == RENDERFEATURE_ROTATION ||
+      feature == RENDERFEATURE_BRIGHTNESS || feature == RENDERFEATURE_CONTRAST ||
+      feature == RENDERFEATURE_TONEMAP)
+  {
+    return true;
+  }
+
+  return false;
+}
+
+bool CLinuxRendererVulkan::SupportsMultiPassRendering()
+{
+  return true;
+}
+
+float CLinuxRendererVulkan::ScalingAboveThreshold() const
+{
+  float scaleX = m_destRect.Width() / static_cast<float>(m_sourceWidth);
+  float scaleY = m_destRect.Height() / static_cast<float>(m_sourceHeight);
+  float scaleFactor = (scaleX + scaleY) / 2.0f;
+  float scalePercent = fabs(1.0f - scaleFactor) * 100;
+  int minScale = CServiceBroker::GetSettingsComponent()->GetSettings()->GetInt(
+      CSettings::SETTING_VIDEOPLAYER_HQSCALERS);
+
+  if (scalePercent < minScale)
+    return 0.0f;
+
+  // < 1.0 = downscale, > 1.0 = upscale
+  return scaleFactor;
+}
+
+bool CLinuxRendererVulkan::Supports(ESCALINGMETHOD method) const
+{
+  // nearest neighbor doesn't work on YUY2 and UYVY
+  if (method == VS_SCALINGMETHOD_NEAREST && m_format != AV_PIX_FMT_YUYV422 &&
+      m_format != AV_PIX_FMT_UYVY422)
+  {
+    return true;
+  }
+
+  if (method == VS_SCALINGMETHOD_LINEAR || method == VS_SCALINGMETHOD_AUTO)
+  {
+    return true;
+  }
+
+  if (method == VS_SCALINGMETHOD_CUBIC_B_SPLINE || method == VS_SCALINGMETHOD_CUBIC_MITCHELL ||
+      method == VS_SCALINGMETHOD_CUBIC_CATMULL || method == VS_SCALINGMETHOD_CUBIC_0_075 ||
+      method == VS_SCALINGMETHOD_CUBIC_0_1 || method == VS_SCALINGMETHOD_LANCZOS2 ||
+      method == VS_SCALINGMETHOD_SPLINE36_FAST || method == VS_SCALINGMETHOD_LANCZOS3_FAST ||
+      method == VS_SCALINGMETHOD_SPLINE36 || method == VS_SCALINGMETHOD_LANCZOS3)
+  {
+    // if scaling is below level, avoid hq scaling
+    if (ScalingAboveThreshold() == 0.0f)
+      return false;
+
+    if (m_renderMethod & RENDER_GLSL)
+    {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+CRenderInfo CLinuxRendererVulkan::GetRenderInfo()
+{
+  CRenderInfo info;
+  info.max_buffer_size = NUM_BUFFERS;
+
+  return info;
+}
+
+bool CLinuxRendererVulkan::IsGuiLayer()
+{
+  return !m_hdrFboActive;
+}
+
+CRenderCapture* CLinuxRendererVulkan::GetRenderCapture()
+{
+  return new CRenderCaptureVulkan;
+}
+
+void CLinuxRendererVulkan::CheckVideoParameters(int index)
+{
+  const CPictureBuffer& buf = m_buffers[index];
+  const ETONEMAPMETHOD& toneMapMethod = m_videoSettings.m_ToneMapMethod;
+
+  if (buf.m_srcPrimaries != m_srcPrimaries)
+  {
+    m_srcPrimaries = buf.m_srcPrimaries;
+    m_reloadShaders = true;
+  }
+
+  bool toneMap = false;
+  const bool streamIsHDRPQ =
+      (buf.m_srcColTransfer == AVCOL_TRC_SMPTE2084 && buf.m_srcPrimaries == AVCOL_PRI_BT2020);
+
+  if (streamIsHDRPQ && !m_passthroughHDR && toneMapMethod != VS_TONEMAPMETHOD_OFF)
+  {
+    toneMap = true;
+  }
+
+  if (toneMap != m_toneMap || toneMapMethod != m_toneMapMethod)
+  {
+    m_reloadShaders = true;
+    m_toneMap = toneMap;
+    m_toneMapMethod = toneMapMethod;
+  }
+}

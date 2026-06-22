@@ -21,10 +21,11 @@
 #include "windowing/WinSystem.h"
 
 #include <mutex>
-#if defined(HAS_GL)
+#if defined(HAS_VULKAN)
+#include "guilib/graphics/vulkan/VulkanGUIFontTTF.h"
+#elif defined(HAS_GL)
 #include "GUIFontTTFGL.h"
-#endif
-#if defined(HAS_GLES)
+#elif defined(HAS_GLES)
 #include "GUIFontTTFGLES.h"
 #endif
 #include "FileItem.h"
@@ -406,11 +407,11 @@ void GUIFontManager::Clear()
   m_vecFontFiles.clear();
   m_vecFontInfo.clear();
 
-#if defined(HAS_GL)
+#if defined(HAS_VULKAN)
+  KODI::GUILIB::GRAPHICS::VULKAN::CVulkanGUIFontTTF::DestroyStaticVertexBuffers();
+#elif defined(HAS_GL)
   CGUIFontTTFGL::DestroyStaticVertexBuffers();
-#endif
-
-#if defined(HAS_GLES)
+#elif defined(HAS_GLES)
   CGUIFontTTFGLES::DestroyStaticVertexBuffers();
 #endif
 }

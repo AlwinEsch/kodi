@@ -77,7 +77,8 @@ set(HEADERS AutoSwitch.h
             Util.h
             XBDateTime.h
             system_egl.h
-            system_gl.h)
+            system_gl.h
+            system_vulkan.h)
 
 if(ENABLE_OPTICAL)
   list(APPEND SOURCES Autorun.cpp)

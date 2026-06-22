@@ -18,7 +18,11 @@
 #include <va/va.h>
 
 #include "system_egl.h"
+#if defined(HAS_VULKAN)
+#include "system_vulkan.h"
+#elif defined(HAS_GLES) || defined(HAS_GL)
 #include "system_gl.h"
+#endif
 
 #include <EGL/eglext.h>
 
@@ -43,8 +47,8 @@ public:
   CVaapiTexture() = default;
   virtual ~CVaapiTexture() = default;
 
-  virtual void Init(InteropInfo &interop) = 0;
-  virtual bool Map(CVaapiRenderPicture *pic) = 0;
+  virtual void Init(InteropInfo& interop) = 0;
+  virtual bool Map(CVaapiRenderPicture* pic) = 0;
   virtual void Unmap() = 0;
 
   virtual GLuint GetTextureY() = 0;
@@ -55,9 +59,9 @@ public:
 class CVaapi2Texture : public CVaapiTexture
 {
 public:
-  bool Map(CVaapiRenderPicture *pic) override;
+  bool Map(CVaapiRenderPicture* pic) override;
   void Unmap() override;
-  void Init(InteropInfo &interop) override;
+  void Init(InteropInfo& interop) override;
 
   GLuint GetTextureY() override;
   GLuint GetTextureVU() override;
@@ -68,7 +72,10 @@ public:
   static void TestInteropFormats(VADisplay vaDpy, EGLDisplay eglDisplay, CCapabilities& caps);
 
 private:
-  static bool TestEsh(VADisplay vaDpy, EGLDisplay eglDisplay, std::uint32_t rtFormat, std::int32_t pixelFormat);
+  static bool TestEsh(VADisplay vaDpy,
+                      EGLDisplay eglDisplay,
+                      std::uint32_t rtFormat,
+                      std::int32_t pixelFormat);
 
   struct MappedTexture
   {
@@ -84,5 +91,4 @@ private:
   CSizeInt m_textureSize;
 };
 
-}
-
+} // namespace VAAPI

@@ -357,6 +357,9 @@ void CSettingConditions::Initialize()
 #ifdef HAVE_WAYLAND
   m_simpleConditions.emplace("have_wayland");
 #endif
+#ifdef HAS_VULKAN
+  m_simpleConditions.emplace("has_vulkan");
+#endif
 #ifdef HAS_GL
   m_simpleConditions.emplace("has_gl");
 #endif

@@ -3,17 +3,16 @@ set(SOURCES RPBaseRenderer.cpp
 set(HEADERS RPBaseRenderer.h
             RPRendererGuiTexture.h)
 
-if(CORE_SYSTEM_NAME STREQUAL windows)
+if(TARGET ${APP_NAME_LC}::Vulkan)
+  list(APPEND SOURCES RPRendererVulkan.cpp)
+  list(APPEND HEADERS RPRendererVulkan.h)
+elseif(CORE_SYSTEM_NAME STREQUAL windows)
   list(APPEND SOURCES RPWinRenderer.cpp)
   list(APPEND HEADERS RPWinRenderer.h)
-endif()
-
-if(TARGET ${APP_NAME_LC}::OpenGl)
+elseif(TARGET ${APP_NAME_LC}::OpenGl)
   list(APPEND SOURCES RPRendererOpenGL.cpp)
   list(APPEND HEADERS RPRendererOpenGL.h)
-endif()
-
-if(TARGET ${APP_NAME_LC}::OpenGLES)
+elseif(TARGET ${APP_NAME_LC}::OpenGLES)
   list(APPEND SOURCES RPRendererOpenGLES.cpp)
   list(APPEND HEADERS RPRendererOpenGLES.h)
 endif()
@@ -22,12 +21,13 @@ if(("gbm" IN_LIST CORE_PLATFORM_NAME_LC OR "wayland" IN_LIST CORE_PLATFORM_NAME_
   list(APPEND SOURCES RPRendererDMAUtils.cpp)
   list(APPEND HEADERS RPRendererDMAUtils.h)
 
-  if(TARGET ${APP_NAME_LC}::OpenGl)
+  if(TARGET ${APP_NAME_LC}::Vulkan)
+    list(APPEND SOURCES RPRendererDMAVulkan.cpp)
+    list(APPEND HEADERS RPRendererDMAVulkan.h)
+  elseif(TARGET ${APP_NAME_LC}::OpenGl)
     list(APPEND SOURCES RPRendererDMAOpenGL.cpp)
     list(APPEND HEADERS RPRendererDMAOpenGL.h)
-  endif()
-
-  if(TARGET ${APP_NAME_LC}::OpenGLES)
+  elseif(TARGET ${APP_NAME_LC}::OpenGLES)
     list(APPEND SOURCES RPRendererDMAOpenGLES.cpp)
     list(APPEND HEADERS RPRendererDMAOpenGLES.h)
   endif()

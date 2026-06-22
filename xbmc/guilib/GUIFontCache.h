@@ -222,7 +222,10 @@ struct CGUIFontCacheDynamicPosition
 
 struct CVertexBuffer
 {
-#if defined(HAS_GL) || defined(HAS_GLES)
+#if defined(HAS_VULKAN)
+  typedef unsigned int BufferHandleType;
+#define BUFFER_HANDLE_INIT 0
+#elif defined(HAS_GL) || defined(HAS_GLES)
   typedef unsigned int BufferHandleType;
 #define BUFFER_HANDLE_INIT 0
 #elif defined(HAS_DX)

@@ -109,6 +109,11 @@ option(ENABLE_AIRTUNES    "Enable AirTunes support?" ON)
 option(ENABLE_OPTICAL     "Enable optical support?" ON)
 option(ENABLE_PYTHON      "Enable python support?" ON)
 option(ENABLE_TESTING     "Enable testing support?" ON)
+if(NOT WIN32)
+  set(APP_RENDER_SYSTEM "vulkan" CACHE STRING "Render system to use: \"vulkan\", \"gl\" or \"gles\"")
+else()
+  set(APP_RENDER_SYSTEM "vulkan" CACHE STRING "Render system to use: \"vulkan\" or \"dx11\"")
+endif()
 
 # Internal Depends - supported on all platforms
 

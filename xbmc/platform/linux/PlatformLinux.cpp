@@ -26,6 +26,18 @@
 #include "platform/linux/powermanagement/LinuxPowerSyscall.h"
 
 // clang-format off
+#if defined(HAS_VULKAN)
+#if defined(HAVE_WAYLAND)
+#include "windowing/wayland/WinSystemWaylandEGLContextVulkan.h"
+#endif
+#if defined(HAVE_X11)
+#include "windowing/X11/WinSystemX11VulkanContext.h"
+#endif
+#if defined(HAVE_GBM)
+#include "windowing/gbm/WinSystemGbmVulkanContext.h"
+#endif
+#endif
+
 #if defined(HAS_GLES)
 #if defined(HAVE_WAYLAND)
 #include "windowing/wayland/WinSystemWaylandEGLContextGLES.h"
@@ -66,6 +78,18 @@ bool CPlatformLinux::InitStageOne()
     return false;
 
   setenv("OS", "Linux", true); // for python scripts that check the OS
+
+#if defined(HAS_VULKAN)
+#if defined(HAVE_WAYLAND)
+  KODI::WINDOWING::WAYLAND::CWinSystemWaylandEGLContextVulkan::Register();
+#endif
+#if defined(HAVE_X11)
+  KODI::WINDOWING::X11::CWinSystemX11VulkanContext::Register();
+#endif
+#if defined(HAVE_GBM)
+  KODI::WINDOWING::GBM::CWinSystemGbmVulkanContext::Register();
+#endif
+#endif
 
 #if defined(HAS_GLES)
 #if defined(HAVE_WAYLAND)

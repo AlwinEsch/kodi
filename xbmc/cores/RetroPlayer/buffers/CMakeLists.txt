@@ -10,6 +10,13 @@ set(HEADERS BaseRenderBuffer.h
             RenderBufferManager.h
 )
 
+if(TARGET ${APP_NAME_LC}::Vulkan)
+  list(APPEND SOURCES RenderBufferVulkan.cpp
+                      RenderBufferPoolVulkan.cpp)
+  list(APPEND HEADERS RenderBufferVulkan.h
+                      RenderBufferPoolVulkan.h)
+endif()
+
 if(TARGET ${APP_NAME_LC}::OpenGl)
   list(APPEND SOURCES RenderBufferOpenGL.cpp
                       RenderBufferPoolOpenGL.cpp)

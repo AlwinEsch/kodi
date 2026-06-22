@@ -4,6 +4,12 @@ set(PLATFORM_REQUIRED_TOOLS EffectsCompiler Msys)
 list(APPEND PLATFORM_OPTIONAL_PACKAGES LibAACS LibBDPlus)
 
 set(PLATFORM_OPTIONAL_DEPS_EXCLUDE CEC)
-set(APP_RENDER_SYSTEM dx11)
+if(APP_RENDER_SYSTEM STREQUAL "vulkan")
+
+elseif(APP_RENDER_SYSTEM STREQUAL "dx11")
+
+else()
+  message(SEND_ERROR "Currently only Vulkan or DX11 rendering is supported. Please set APP_RENDER_SYSTEM to \"vulkan\" or \"dx11\"")
+endif()
 
 set(${CORE_SYSTEM_NAME}_SEARCH_CONFIG NO_DEFAULT_PATH CACHE STRING "")

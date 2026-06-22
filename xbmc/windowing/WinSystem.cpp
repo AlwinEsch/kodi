@@ -10,7 +10,9 @@
 
 #include "ServiceBroker.h"
 #include "guilib/DispResource.h"
-#if HAS_GLES
+#if HAS_VULKAN
+#include "guilib/graphics/vulkan/VulkanGUIFontTTF.h"
+#elif HAS_GLES
 #include "guilib/GUIFontTTFGL.h"
 #endif
 #include "powermanagement/DPMSSupport.h"

@@ -12,7 +12,11 @@
 
 #include <memory>
 
+#ifdef HAS_VULKAN
+#include "system_vulkan.h"
+#else
 #include "system_gl.h"
+#endif
 
 class CEGLImage;
 class IBufferObject;
