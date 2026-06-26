@@ -14,6 +14,7 @@
 #include "utils/Map.h"
 
 #include <map>
+#include <vector>
 
 #include <fmt/format.h>
 
@@ -154,7 +155,7 @@ protected:
   int m_width;
   int m_height;
 
-  std::string m_RenderExtensions;
+  std::vector<std::pair<std::string, uint32_t>> m_vulkanExtensions;
 
   std::map<VulkanShaderMethod, std::unique_ptr<CVulkanShader>> m_pShader;
   VulkanShaderMethod m_method = VulkanShaderMethod::SM_DEFAULT;

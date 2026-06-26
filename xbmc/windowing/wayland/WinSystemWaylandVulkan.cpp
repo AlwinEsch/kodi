@@ -40,11 +40,11 @@ std::unique_ptr<CWinSystemBase> CWinSystemWaylandVulkan::CreateWinSystem()
 bool CWinSystemWaylandVulkan::InitWindowSystem()
 {
   fprintf(stderr, "---> %s\n", __PRETTY_FUNCTION__);
-  //  if (!CWinSystemWaylandEGLContext::InitWindowSystemEGL(EGL_OPENGL_ES2_BIT, EGL_OPENGL_ES_API))
-//  {
-//    return false;
-//  }
-//
+  if (!CWinSystemWaylandImpl::InitWindowSystem())
+  {
+    return false;
+  }
+  //
 //  CLinuxRendererVulkan::Register();
 //
 //  CDVDVideoCodecDRMPRIME::Register();
@@ -81,19 +81,24 @@ bool CWinSystemWaylandVulkan::CreateNewWindow(const std::string& name,
                                                   RESOLUTION_INFO& res)
 {
   fprintf(stderr, "---> %s\n", __PRETTY_FUNCTION__);
+  if (!CWinSystemWaylandImpl::CreateNewWindow(name, fullScreen, res))
+  {
+    return false;
+  }
+
   return true;
 }
 
 bool CWinSystemWaylandVulkan::DestroyWindow()
 {
   fprintf(stderr, "---> %s\n", __PRETTY_FUNCTION__);
-  return true;
+  return CWinSystemWaylandImpl::DestroyWindow();
 }
 
 bool CWinSystemWaylandVulkan::DestroyWindowSystem()
 {
   fprintf(stderr, "---> %s\n", __PRETTY_FUNCTION__);
-  return true;
+  return CWinSystemWayland::DestroyWindowSystem();
 }
 
 bool CWinSystemWaylandVulkan::BindTextureUploadContext()

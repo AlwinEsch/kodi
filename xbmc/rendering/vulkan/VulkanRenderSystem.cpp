@@ -118,20 +118,20 @@ bool CVulkanRenderSystem::InitRenderSystem()
 //  }
 //
 //  LogGraphicsInfo();
-//
-//  m_bRenderCreated = true;
-//
+
+  m_bRenderCreated = true;
+
 //  InitialiseShaders();
 //
-//  CVulkanGUITexture::Register();
+  CVulkanGUITexture::Register();
 
   return true;
 }
 
 bool CVulkanRenderSystem::ResetRenderSystem(int width, int height)
 {
-  //m_width = width;
-  //m_height = height;
+  m_width = width;
+  m_height = height;
 
   //glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
   //CalculateMaxTexturesize();
@@ -172,15 +172,15 @@ bool CVulkanRenderSystem::DestroyRenderSystem()
   //PresentRenderImpl(true);
 
   //ReleaseShaders();
-  //m_bRenderCreated = false;
+  m_bRenderCreated = false;
 
   return true;
 }
 
 bool CVulkanRenderSystem::BeginRender()
 {
-  //if (!m_bRenderCreated)
-  //  return false;
+  if (!m_bRenderCreated)
+    return false;
 
   //m_GUIElementCount = 0;
 
@@ -203,18 +203,18 @@ bool CVulkanRenderSystem::BeginRender()
 
 bool CVulkanRenderSystem::EndRender()
 {
-  //if (!m_bRenderCreated)
-  //  return false;
+  if (!m_bRenderCreated)
+    return false;
 
   return true;
 }
 
 void CVulkanRenderSystem::InvalidateColorBuffer()
 {
-  //if (!m_bRenderCreated)
-  //  return;
+  if (!m_bRenderCreated)
+    return;
 
-  //// some platforms prefer a clear, instead of rendering over
+  // some platforms prefer a clear, instead of rendering over
   //if (GetClearFunction() == ClearFunction::FIXED_FUNCTION)
   //  ClearBuffers(0);
 
@@ -228,8 +228,8 @@ void CVulkanRenderSystem::InvalidateColorBuffer()
 
 bool CVulkanRenderSystem::ClearBuffers(KODI::UTILS::COLOR::Color color)
 {
-  //if (!m_bRenderCreated)
-  //  return false;
+  if (!m_bRenderCreated)
+    return false;
 
   //float r = KODI::UTILS::VULKAN::GetChannelFromARGB(KODI::UTILS::VULKAN::ColorChannel::R, color) / 255.0f;
   //float g = KODI::UTILS::VULKAN::GetChannelFromARGB(KODI::UTILS::VULKAN::ColorChannel::G, color) / 255.0f;
@@ -254,28 +254,21 @@ bool CVulkanRenderSystem::ClearBuffers(KODI::UTILS::COLOR::Color color)
 
 bool CVulkanRenderSystem::IsExtSupported(const char* extension) const
 {
-  //if (strcmp(extension, "GL_EXT_framebuffer_object") == 0)
-  //{
-  //  // Vulkan has FBO as a core element, not an extension!
-  //  return true;
-  //}
-  //else
-  //{
-  //  std::string name;
-  //  name = " ";
-  //  name += extension;
-  //  name += " ";
+  for (const auto& [extName, specVersion] : m_vulkanExtensions)
+  {
+    if (extName == extension)
+      return true;
+  }
 
-  //  return m_RenderExtensions.find(name) != std::string::npos;
-  //}
+  return false;
 }
 
 void CVulkanRenderSystem::PresentRender(bool rendered, bool videoLayer)
 {
   //SetVSync(true);
 
-  //if (!m_bRenderCreated)
-  //  return;
+  if (!m_bRenderCreated)
+    return;
 
   //PresentRenderImpl(rendered);
 
@@ -289,8 +282,8 @@ void CVulkanRenderSystem::SetVSync(bool enable)
   //if (m_bVsyncInit)
   //  return;
 
-  //if (!m_bRenderCreated)
-  //  return;
+  if (!m_bRenderCreated)
+    return;
 
   //if (enable)
   //  CLog::Log(LOGINFO, "Vulkan: Enabling VSYNC");
@@ -304,8 +297,8 @@ void CVulkanRenderSystem::SetVSync(bool enable)
 
 void CVulkanRenderSystem::CaptureStateBlock()
 {
-  //if (!m_bRenderCreated)
-  //  return;
+  if (!m_bRenderCreated)
+    return;
 
   //vulkanMatrixProject.Push();
   //vulkanMatrixModview.Push();
@@ -319,8 +312,8 @@ void CVulkanRenderSystem::CaptureStateBlock()
 
 void CVulkanRenderSystem::ApplyStateBlock()
 {
-  //if (!m_bRenderCreated)
-  //  return;
+  if (!m_bRenderCreated)
+    return;
 
   //vulkanMatrixProject.PopLoad();
   //vulkanMatrixModview.PopLoad();
@@ -336,8 +329,8 @@ void CVulkanRenderSystem::SetCameraPosition(const CPoint& camera,
                                             int screenHeight,
                                             float stereoFactor)
 {
-  //if (!m_bRenderCreated)
-  //  return;
+  if (!m_bRenderCreated)
+    return;
 
   //CPoint offset = camera - CPoint(screenWidth * 0.5f, screenHeight * 0.5f);
 
@@ -375,8 +368,8 @@ void CVulkanRenderSystem::CalculateMaxTexturesize()
 
 void CVulkanRenderSystem::GetViewPort(CRect& viewPort)
 {
-  //if (!m_bRenderCreated)
-  //  return;
+  if (!m_bRenderCreated)
+    return;
 
   //viewPort.x1 = m_viewPort[0];
   //viewPort.y1 = m_height - m_viewPort[1] - m_viewPort[3];
@@ -386,8 +379,8 @@ void CVulkanRenderSystem::GetViewPort(CRect& viewPort)
 
 void CVulkanRenderSystem::SetViewPort(const CRect& viewPort)
 {
-  //if (!m_bRenderCreated)
-  //  return;
+  if (!m_bRenderCreated)
+    return;
 
   //glScissor((GLint)viewPort.x1, (GLint)(m_height - viewPort.y1 - viewPort.Height()),
   //          (GLsizei)viewPort.Width(), (GLsizei)viewPort.Height());
@@ -421,8 +414,8 @@ CRect CVulkanRenderSystem::ClipRectToScissorRect(const CRect& rect)
 
 void CVulkanRenderSystem::SetScissors(const CRect& rect)
 {
-  //if (!m_bRenderCreated)
-  //  return;
+  if (!m_bRenderCreated)
+    return;
   //GLint x1 = MathUtils::round_int(static_cast<double>(rect.x1));
   //GLint y1 = MathUtils::round_int(static_cast<double>(rect.y1));
   //GLint x2 = MathUtils::round_int(static_cast<double>(rect.x2));

@@ -397,6 +397,9 @@ bool CWinSystemWayland::CreateNewWindow(const std::string& name,
 
 IShellSurface* CWinSystemWayland::CreateShellSurface(const std::string& name)
 {
+  fprintf(stderr, "CWinSystemWayland::CreateShellSurface: Trying to create shell surface for %s\n",
+          name.c_str());
+
   IShellSurface* shell = CShellSurfaceXdgShell::TryCreate(*this, *m_connection, m_surface, name,
                                                           std::string(CCompileInfo::GetAppName()));
   if (!shell)
@@ -563,7 +566,6 @@ std::shared_ptr<COutput> CWinSystemWayland::FindOutputByWaylandOutput(wayland::o
  */
 bool CWinSystemWayland::SetResolutionExternal(bool fullScreen, RESOLUTION_INFO const& res)
 {
-  sleep(5);
   // In fullscreen modes, we never change the surface size on Kodi's request,
   // but only when the compositor tells us to. At least xdg_shell specifies
   // that with state fullscreen the dimensions given in configure() must
