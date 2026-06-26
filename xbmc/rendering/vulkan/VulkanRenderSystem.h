@@ -17,7 +17,7 @@
 
 #include <fmt/format.h>
 
-#include "system_vulkan.h"
+//#include "system_vulkan.h"
 
 enum class VulkanShaderMethod
 {
@@ -128,22 +128,22 @@ public:
   void EnableGUIShader(VulkanShaderMethod method);
   void DisableGUIShader();
 
-  GLint GUIShaderGetPos();
-  GLint GUIShaderGetCol();
-  GLint GUIShaderGetCoord0();
-  GLint GUIShaderGetCoord1();
-  GLint GUIShaderGetUniCol();
-  GLint GUIShaderGetCoord0Matrix();
-  GLint GUIShaderGetField();
-  GLint GUIShaderGetStep();
-  GLint GUIShaderGetContrast();
-  GLint GUIShaderGetBrightness();
-  GLint GUIShaderGetModel();
-  GLint GUIShaderGetMatrix();
-  GLint GUIShaderGetClip();
-  GLint GUIShaderGetCoordStep();
-  GLint GUIShaderGetDepth();
-  GLint GUIShaderGetPma();
+  //GLint GUIShaderGetPos();
+  //GLint GUIShaderGetCol();
+  //GLint GUIShaderGetCoord0();
+  //GLint GUIShaderGetCoord1();
+  //GLint GUIShaderGetUniCol();
+  //GLint GUIShaderGetCoord0Matrix();
+  //GLint GUIShaderGetField();
+  //GLint GUIShaderGetStep();
+  //GLint GUIShaderGetContrast();
+  //GLint GUIShaderGetBrightness();
+  //GLint GUIShaderGetModel();
+  //GLint GUIShaderGetMatrix();
+  //GLint GUIShaderGetClip();
+  //GLint GUIShaderGetCoordStep();
+  //GLint GUIShaderGetDepth();
+  //GLint GUIShaderGetPma();
 
 protected:
   virtual void SetVSyncImpl(bool enable) = 0;
@@ -159,5 +159,5 @@ protected:
   std::map<VulkanShaderMethod, std::unique_ptr<CVulkanShader>> m_pShader;
   VulkanShaderMethod m_method = VulkanShaderMethod::SM_DEFAULT;
 
-  GLint      m_viewPort[4];
+  //GLint      m_viewPort[4];
 };

@@ -84,17 +84,17 @@ namespace
 
 static VulkanShaderMethod TranslateVulkanShaderMethod(GL_SHADER_METHOD method)
 {
-  switch (method)
-  {
-    case GL_SHADER_METHOD::DEFAULT:
-      return VulkanShaderMethod::SM_DEFAULT;
-    case GL_SHADER_METHOD::TEXTURE:
-      return VulkanShaderMethod::SM_TEXTURE;
-    case GL_SHADER_METHOD::TEXTURE_NOALPHA:
-      return VulkanShaderMethod::SM_TEXTURE_NOALPHA;
-    default:
-      break;
-  }
+  //switch (method)
+  //{
+  //  case GL_SHADER_METHOD::DEFAULT:
+  //    return VulkanShaderMethod::SM_DEFAULT;
+  //  case GL_SHADER_METHOD::TEXTURE:
+  //    return VulkanShaderMethod::SM_TEXTURE;
+  //  case GL_SHADER_METHOD::TEXTURE_NOALPHA:
+  //    return VulkanShaderMethod::SM_TEXTURE_NOALPHA;
+  //  default:
+  //    break;
+  //}
 
   return VulkanShaderMethod::SM_DEFAULT;
 }
@@ -145,8 +145,8 @@ void CRenderContext::EnableGUIShader(GL_SHADER_METHOD method)
 {
 #if defined(HAS_VULKAN)
   CVulkanRenderSystem* renderingVulkan = dynamic_cast<CVulkanRenderSystem*>(m_rendering);
-  if (renderingVulkan != nullptr)
-    renderingVulkan->EnableGUIShader(TranslateVulkanShaderMethod(method));
+  //if (renderingVulkan != nullptr)
+  //  renderingVulkan->EnableGUIShader(TranslateVulkanShaderMethod(method));
 #elif defined(HAS_GL)
   CRenderSystemGL* rendering = dynamic_cast<CRenderSystemGL*>(m_rendering);
   if (rendering != nullptr)
@@ -162,8 +162,8 @@ void CRenderContext::DisableGUIShader()
 {
 #if defined(HAS_VULKAN)
   CVulkanRenderSystem* renderingVulkan = dynamic_cast<CVulkanRenderSystem*>(m_rendering);
-  if (renderingVulkan != nullptr)
-    renderingVulkan->DisableGUIShader();
+  //if (renderingVulkan != nullptr)
+  //  renderingVulkan->DisableGUIShader();
 #elif defined(HAS_GL)
   CRenderSystemGL* renderingGL = dynamic_cast<CRenderSystemGL*>(m_rendering);
   if (renderingGL != nullptr)
@@ -180,7 +180,7 @@ int CRenderContext::GUIShaderGetPos()
 #if defined(HAS_VULKAN)
   CVulkanRenderSystem* renderingVulkan = dynamic_cast<CVulkanRenderSystem*>(m_rendering);
   if (renderingVulkan != nullptr)
-    return static_cast<int>(renderingVulkan->GUIShaderGetPos());
+    return -1; //static_cast<int>(renderingVulkan->GUIShaderGetPos());
 #elif defined(HAS_GL)
   CRenderSystemGL* renderingGL = dynamic_cast<CRenderSystemGL*>(m_rendering);
   if (renderingGL != nullptr)
@@ -199,7 +199,7 @@ int CRenderContext::GUIShaderGetCoord0()
 #if defined(HAS_VULKAN)
   CVulkanRenderSystem* renderingVulkan = dynamic_cast<CVulkanRenderSystem*>(m_rendering);
   if (renderingVulkan != nullptr)
-    return static_cast<int>(renderingVulkan->GUIShaderGetCoord0());
+    return -1; //static_cast<int>(renderingVulkan->GUIShaderGetCoord0());
 #elif defined(HAS_GL)
   CRenderSystemGL* renderingGL = dynamic_cast<CRenderSystemGL*>(m_rendering);
   if (renderingGL != nullptr)
@@ -218,7 +218,7 @@ int CRenderContext::GUIShaderGetUniCol()
 #if defined(HAS_VULKAN)
   CVulkanRenderSystem* renderingVulkan = dynamic_cast<CVulkanRenderSystem*>(m_rendering);
   if (renderingVulkan != nullptr)
-    return static_cast<int>(renderingVulkan->GUIShaderGetUniCol());
+    return -1; //static_cast<int>(renderingVulkan->GUIShaderGetUniCol());
 #elif defined(HAS_GL)
   CRenderSystemGL* renderingGL = dynamic_cast<CRenderSystemGL*>(m_rendering);
   if (renderingGL != nullptr)
@@ -237,7 +237,7 @@ int CRenderContext::GUIShaderGetDepth()
 #if defined(HAS_VULKAN)
   CVulkanRenderSystem* renderingVulkan = dynamic_cast<CVulkanRenderSystem*>(m_rendering);
   if (renderingVulkan != nullptr)
-    return static_cast<int>(renderingVulkan->GUIShaderGetDepth());
+    return -1; //static_cast<int>(renderingVulkan->GUIShaderGetDepth());
 #elif defined(HAS_GL)
   CRenderSystemGL* renderingGL = dynamic_cast<CRenderSystemGL*>(m_rendering);
   if (renderingGL != nullptr)

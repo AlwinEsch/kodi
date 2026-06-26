@@ -28,7 +28,7 @@
 // clang-format off
 #if defined(HAS_VULKAN)
 #if defined(HAVE_WAYLAND)
-#include "windowing/wayland/WinSystemWaylandEGLContextVulkan.h"
+#include "windowing/wayland/WinSystemWaylandVulkan.h"
 #endif
 #if defined(HAVE_X11)
 #include "windowing/X11/WinSystemX11VulkanContext.h"
@@ -81,7 +81,7 @@ bool CPlatformLinux::InitStageOne()
 
 #if defined(HAS_VULKAN)
 #if defined(HAVE_WAYLAND)
-  KODI::WINDOWING::WAYLAND::CWinSystemWaylandEGLContextVulkan::Register();
+  KODI::WINDOWING::WAYLAND::CWinSystemWaylandVulkan::Register();
 #endif
 #if defined(HAVE_X11)
   KODI::WINDOWING::X11::CWinSystemX11VulkanContext::Register();

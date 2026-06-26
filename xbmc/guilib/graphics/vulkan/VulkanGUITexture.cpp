@@ -47,131 +47,131 @@ CVulkanGUITexture* CVulkanGUITexture::Clone() const
 
 void CVulkanGUITexture::Begin(KODI::UTILS::COLOR::Color color)
 {
-  CTexture* texture = m_texture.m_textures[m_currentFrame].get();
-  texture->LoadToGPU();
-  if (m_diffuse.size())
-    m_diffuse.m_textures[0]->LoadToGPU();
+  //CTexture* texture = m_texture.m_textures[m_currentFrame].get();
+  //texture->LoadToGPU();
+  //if (m_diffuse.size())
+  //  m_diffuse.m_textures[0]->LoadToGPU();
 
-  // Setup Colors
-  m_col[0] = KODI::UTILS::VULKAN::GetChannelFromARGB(KODI::UTILS::VULKAN::ColorChannel::R, color);
-  m_col[1] = KODI::UTILS::VULKAN::GetChannelFromARGB(KODI::UTILS::VULKAN::ColorChannel::G, color);
-  m_col[2] = KODI::UTILS::VULKAN::GetChannelFromARGB(KODI::UTILS::VULKAN::ColorChannel::B, color);
-  m_col[3] = KODI::UTILS::VULKAN::GetChannelFromARGB(KODI::UTILS::VULKAN::ColorChannel::A, color);
+  //// Setup Colors
+  //m_col[0] = KODI::UTILS::VULKAN::GetChannelFromARGB(KODI::UTILS::VULKAN::ColorChannel::R, color);
+  //m_col[1] = KODI::UTILS::VULKAN::GetChannelFromARGB(KODI::UTILS::VULKAN::ColorChannel::G, color);
+  //m_col[2] = KODI::UTILS::VULKAN::GetChannelFromARGB(KODI::UTILS::VULKAN::ColorChannel::B, color);
+  //m_col[3] = KODI::UTILS::VULKAN::GetChannelFromARGB(KODI::UTILS::VULKAN::ColorChannel::A, color);
 
-  bool hasAlpha = m_texture.m_textures[m_currentFrame]->HasAlpha() || m_col[3] < 255;
-  const bool hasBlendColor =
-      m_col[0] != 255 || m_col[1] != 255 || m_col[2] != 255 || m_col[3] != 255;
+  //bool hasAlpha = m_texture.m_textures[m_currentFrame]->HasAlpha() || m_col[3] < 255;
+  //const bool hasBlendColor =
+  //    m_col[0] != 255 || m_col[1] != 255 || m_col[2] != 255 || m_col[3] != 255;
 
-  if (m_diffuse.size())
-  {
-    if (hasBlendColor)
-    {
-      m_renderSystem->EnableGUIShader(VulkanShaderMethod::SM_MULTI_BLENDCOLOR);
-    }
-    else
-    {
-      m_renderSystem->EnableGUIShader(VulkanShaderMethod::SM_MULTI);
-    }
+  //if (m_diffuse.size())
+  //{
+  //  if (hasBlendColor)
+  //  {
+  //    m_renderSystem->EnableGUIShader(VulkanShaderMethod::SM_MULTI_BLENDCOLOR);
+  //  }
+  //  else
+  //  {
+  //    m_renderSystem->EnableGUIShader(VulkanShaderMethod::SM_MULTI);
+  //  }
 
-    hasAlpha |= m_diffuse.m_textures[0]->HasAlpha();
+  //  hasAlpha |= m_diffuse.m_textures[0]->HasAlpha();
 
-    // We don't need a 111R_RGBA version of the GLES 2.0 shaders, so in the
-    // unlikely event of having an alpha-only texture, switch with the
-    // diffuse.
-    if (texture->GetSwizzle() == KD_TEX_SWIZ_111R)
-    {
-      texture->BindToUnit(1);
-      m_diffuse.m_textures[0]->BindToUnit(0);
-    }
-    else
-    {
-      texture->BindToUnit(0);
-      m_diffuse.m_textures[0]->BindToUnit(1);
-    }
-  }
-  else
-  {
-    if (hasBlendColor)
-    {
-      m_renderSystem->EnableGUIShader(VulkanShaderMethod::SM_TEXTURE);
-    }
-    else
-    {
-      m_renderSystem->EnableGUIShader(VulkanShaderMethod::SM_TEXTURE_NOBLEND);
-    }
+  //  // We don't need a 111R_RGBA version of the GLES 2.0 shaders, so in the
+  //  // unlikely event of having an alpha-only texture, switch with the
+  //  // diffuse.
+  //  if (texture->GetSwizzle() == KD_TEX_SWIZ_111R)
+  //  {
+  //    texture->BindToUnit(1);
+  //    m_diffuse.m_textures[0]->BindToUnit(0);
+  //  }
+  //  else
+  //  {
+  //    texture->BindToUnit(0);
+  //    m_diffuse.m_textures[0]->BindToUnit(1);
+  //  }
+  //}
+  //else
+  //{
+  //  if (hasBlendColor)
+  //  {
+  //    m_renderSystem->EnableGUIShader(VulkanShaderMethod::SM_TEXTURE);
+  //  }
+  //  else
+  //  {
+  //    m_renderSystem->EnableGUIShader(VulkanShaderMethod::SM_TEXTURE_NOBLEND);
+  //  }
 
-    texture->BindToUnit(0);
-  }
+  //  texture->BindToUnit(0);
+  //}
 
-  if (hasAlpha)
-  {
-    // See CGUIFontTTFGLES::FirstBegin for rationale. SDR uses accumulator
-    // coverage alpha; HDR FBO composite uses a compensated squared-alpha
-    // blend because the FBO is color-transformed to PQ/HLG before composite,
-    // and alpha blending in non-linear space is mathematically wrong.
-    if (CServiceBroker::GetWinSystem()->IsHdrComposite())
-      glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_SRC_ALPHA,
-                          GL_ONE_MINUS_SRC_ALPHA);
-    else
-      glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE_MINUS_DST_ALPHA, GL_ONE);
-    glEnable(GL_BLEND);
-  }
-  else
-  {
-    glDisable(GL_BLEND);
-  }
+  //if (hasAlpha)
+  //{
+  //  // See CGUIFontTTFGLES::FirstBegin for rationale. SDR uses accumulator
+  //  // coverage alpha; HDR FBO composite uses a compensated squared-alpha
+  //  // blend because the FBO is color-transformed to PQ/HLG before composite,
+  //  // and alpha blending in non-linear space is mathematically wrong.
+  //  if (CServiceBroker::GetWinSystem()->IsHdrComposite())
+  //    glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_SRC_ALPHA,
+  //                        GL_ONE_MINUS_SRC_ALPHA);
+  //  else
+  //    glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE_MINUS_DST_ALPHA, GL_ONE);
+  //  glEnable(GL_BLEND);
+  //}
+  //else
+  //{
+  //  glDisable(GL_BLEND);
+  //}
 
-  m_packedVertices.clear();
+  //m_packedVertices.clear();
 }
 
 void CVulkanGUITexture::End()
 {
-  if (!m_packedVertices.empty())
-  {
-    GLint posLoc = m_renderSystem->GUIShaderGetPos();
-    GLint tex0Loc = m_renderSystem->GUIShaderGetCoord0();
-    GLint tex1Loc = m_renderSystem->GUIShaderGetCoord1();
-    GLint uniColLoc = m_renderSystem->GUIShaderGetUniCol();
-    GLint depthLoc = m_renderSystem->GUIShaderGetDepth();
+  //if (!m_packedVertices.empty())
+  //{
+  //  GLint posLoc = m_renderSystem->GUIShaderGetPos();
+  //  GLint tex0Loc = m_renderSystem->GUIShaderGetCoord0();
+  //  GLint tex1Loc = m_renderSystem->GUIShaderGetCoord1();
+  //  GLint uniColLoc = m_renderSystem->GUIShaderGetUniCol();
+  //  GLint depthLoc = m_renderSystem->GUIShaderGetDepth();
 
-    if (uniColLoc >= 0)
-    {
-      glUniform4f(uniColLoc, (m_col[0] / 255.0f), (m_col[1] / 255.0f), (m_col[2] / 255.0f),
-                  (m_col[3] / 255.0f));
-    }
+  //  if (uniColLoc >= 0)
+  //  {
+  //    glUniform4f(uniColLoc, (m_col[0] / 255.0f), (m_col[1] / 255.0f), (m_col[2] / 255.0f),
+  //                (m_col[3] / 255.0f));
+  //  }
 
-    glUniform1f(depthLoc, m_depth);
+  //  glUniform1f(depthLoc, m_depth);
 
-    if (m_diffuse.size())
-    {
-      if (m_texture.m_textures[m_currentFrame]->GetSwizzle() == KD_TEX_SWIZ_111R)
-        std::swap(tex0Loc, tex1Loc);
-      glVertexAttribPointer(tex1Loc, 2, GL_FLOAT, 0, sizeof(PackedVertex),
-                            (char*)m_packedVertices.data() + offsetof(PackedVertex, u2));
-      glEnableVertexAttribArray(tex1Loc);
-    }
-    glVertexAttribPointer(posLoc, 3, GL_FLOAT, 0, sizeof(PackedVertex),
-                          (char*)m_packedVertices.data() + offsetof(PackedVertex, x));
-    glEnableVertexAttribArray(posLoc);
-    glVertexAttribPointer(tex0Loc, 2, GL_FLOAT, 0, sizeof(PackedVertex),
-                          (char*)m_packedVertices.data() + offsetof(PackedVertex, u1));
-    glEnableVertexAttribArray(tex0Loc);
+  //  if (m_diffuse.size())
+  //  {
+  //    if (m_texture.m_textures[m_currentFrame]->GetSwizzle() == KD_TEX_SWIZ_111R)
+  //      std::swap(tex0Loc, tex1Loc);
+  //    glVertexAttribPointer(tex1Loc, 2, GL_FLOAT, 0, sizeof(PackedVertex),
+  //                          (char*)m_packedVertices.data() + offsetof(PackedVertex, u2));
+  //    glEnableVertexAttribArray(tex1Loc);
+  //  }
+  //  glVertexAttribPointer(posLoc, 3, GL_FLOAT, 0, sizeof(PackedVertex),
+  //                        (char*)m_packedVertices.data() + offsetof(PackedVertex, x));
+  //  glEnableVertexAttribArray(posLoc);
+  //  glVertexAttribPointer(tex0Loc, 2, GL_FLOAT, 0, sizeof(PackedVertex),
+  //                        (char*)m_packedVertices.data() + offsetof(PackedVertex, u1));
+  //  glEnableVertexAttribArray(tex0Loc);
 
-    glDrawElements(GL_TRIANGLES, m_packedVertices.size() * 6 / 4, GL_UNSIGNED_SHORT, m_idx.data());
-    CRenderSystemBase::m_GUIElementCount++;
+  //  glDrawElements(GL_TRIANGLES, m_packedVertices.size() * 6 / 4, GL_UNSIGNED_SHORT, m_idx.data());
+  //  CRenderSystemBase::m_GUIElementCount++;
 
-    if (m_diffuse.size())
-      glDisableVertexAttribArray(tex1Loc);
+  //  if (m_diffuse.size())
+  //    glDisableVertexAttribArray(tex1Loc);
 
-    glDisableVertexAttribArray(posLoc);
-    glDisableVertexAttribArray(tex0Loc);
-  }
+  //  glDisableVertexAttribArray(posLoc);
+  //  glDisableVertexAttribArray(tex0Loc);
+  //}
 
-  if (m_diffuse.size())
-    glActiveTexture(GL_TEXTURE0);
-  glEnable(GL_BLEND);
+  //if (m_diffuse.size())
+  //  glActiveTexture(GL_TEXTURE0);
+  //glEnable(GL_BLEND);
 
-  m_renderSystem->DisableGUIShader();
+  //m_renderSystem->DisableGUIShader();
 }
 
 void CVulkanGUITexture::Draw(
@@ -274,80 +274,80 @@ void CVulkanGUITexture::DrawQuad(const CRect& rect,
                                  const float depth,
                                  const bool blending)
 {
-  CVulkanRenderSystem* renderSystem =
-      dynamic_cast<CVulkanRenderSystem*>(CServiceBroker::GetRenderSystem());
-  if (texture)
-  {
-    texture->LoadToGPU();
-    texture->BindToUnit(0);
-  }
+  //CVulkanRenderSystem* renderSystem =
+  //    dynamic_cast<CVulkanRenderSystem*>(CServiceBroker::GetRenderSystem());
+  //if (texture)
+  //{
+  //  texture->LoadToGPU();
+  //  texture->BindToUnit(0);
+  //}
 
-  if (blending)
-  {
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glEnable(GL_BLEND);
-  }
-  else
-  {
-    glDisable(GL_BLEND);
-  }
+  //if (blending)
+  //{
+  //  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  //  glEnable(GL_BLEND);
+  //}
+  //else
+  //{
+  //  glDisable(GL_BLEND);
+  //}
 
-  VerifyVulkanState();
+  //VerifyVulkanState();
 
-  GLubyte col[4];
-  GLfloat ver[4][3];
-  GLfloat tex[4][2];
-  GLubyte idx[4] = {0, 1, 3, 2}; // Determines order of triangle strip
+  //GLubyte col[4];
+  //GLfloat ver[4][3];
+  //GLfloat tex[4][2];
+  //GLubyte idx[4] = {0, 1, 3, 2}; // Determines order of triangle strip
 
-  if (texture)
-    renderSystem->EnableGUIShader(VulkanShaderMethod::SM_TEXTURE);
-  else
-    renderSystem->EnableGUIShader(VulkanShaderMethod::SM_DEFAULT);
+  //if (texture)
+  //  renderSystem->EnableGUIShader(VulkanShaderMethod::SM_TEXTURE);
+  //else
+  //  renderSystem->EnableGUIShader(VulkanShaderMethod::SM_DEFAULT);
 
-  GLint posLoc = renderSystem->GUIShaderGetPos();
-  GLint tex0Loc = renderSystem->GUIShaderGetCoord0();
-  GLint uniColLoc = renderSystem->GUIShaderGetUniCol();
-  GLint depthLoc = renderSystem->GUIShaderGetDepth();
+  //GLint posLoc = renderSystem->GUIShaderGetPos();
+  //GLint tex0Loc = renderSystem->GUIShaderGetCoord0();
+  //GLint uniColLoc = renderSystem->GUIShaderGetUniCol();
+  //GLint depthLoc = renderSystem->GUIShaderGetDepth();
 
-  glVertexAttribPointer(posLoc, 3, GL_FLOAT, 0, 0, ver);
-  if (texture)
-    glVertexAttribPointer(tex0Loc, 2, GL_FLOAT, 0, 0, tex);
+  //glVertexAttribPointer(posLoc, 3, GL_FLOAT, 0, 0, ver);
+  //if (texture)
+  //  glVertexAttribPointer(tex0Loc, 2, GL_FLOAT, 0, 0, tex);
 
-  glEnableVertexAttribArray(posLoc);
-  if (texture)
-    glEnableVertexAttribArray(tex0Loc);
+  //glEnableVertexAttribArray(posLoc);
+  //if (texture)
+  //  glEnableVertexAttribArray(tex0Loc);
 
-  // Setup Colors
-  col[0] = KODI::UTILS::VULKAN::GetChannelFromARGB(KODI::UTILS::VULKAN::ColorChannel::R, color);
-  col[1] = KODI::UTILS::VULKAN::GetChannelFromARGB(KODI::UTILS::VULKAN::ColorChannel::G, color);
-  col[2] = KODI::UTILS::VULKAN::GetChannelFromARGB(KODI::UTILS::VULKAN::ColorChannel::B, color);
-  col[3] = KODI::UTILS::VULKAN::GetChannelFromARGB(KODI::UTILS::VULKAN::ColorChannel::A, color);
+  //// Setup Colors
+  //col[0] = KODI::UTILS::VULKAN::GetChannelFromARGB(KODI::UTILS::VULKAN::ColorChannel::R, color);
+  //col[1] = KODI::UTILS::VULKAN::GetChannelFromARGB(KODI::UTILS::VULKAN::ColorChannel::G, color);
+  //col[2] = KODI::UTILS::VULKAN::GetChannelFromARGB(KODI::UTILS::VULKAN::ColorChannel::B, color);
+  //col[3] = KODI::UTILS::VULKAN::GetChannelFromARGB(KODI::UTILS::VULKAN::ColorChannel::A, color);
 
-  glUniform4f(uniColLoc, col[0] / 255.0f, col[1] / 255.0f, col[2] / 255.0f, col[3] / 255.0f);
-  glUniform1f(depthLoc, depth);
+  //glUniform4f(uniColLoc, col[0] / 255.0f, col[1] / 255.0f, col[2] / 255.0f, col[3] / 255.0f);
+  //glUniform1f(depthLoc, depth);
 
-  ver[0][0] = ver[3][0] = rect.x1;
-  ver[0][1] = ver[1][1] = rect.y1;
-  ver[1][0] = ver[2][0] = rect.x2;
-  ver[2][1] = ver[3][1] = rect.y2;
-  ver[0][2] = ver[1][2] = ver[2][2] = ver[3][2] = 0;
+  //ver[0][0] = ver[3][0] = rect.x1;
+  //ver[0][1] = ver[1][1] = rect.y1;
+  //ver[1][0] = ver[2][0] = rect.x2;
+  //ver[2][1] = ver[3][1] = rect.y2;
+  //ver[0][2] = ver[1][2] = ver[2][2] = ver[3][2] = 0;
 
-  if (texture)
-  {
-    // Setup texture coordinates
-    CRect coords = texCoords ? *texCoords : CRect(0.0f, 0.0f, 1.0f, 1.0f);
-    tex[0][0] = tex[3][0] = coords.x1;
-    tex[0][1] = tex[1][1] = coords.y1;
-    tex[1][0] = tex[2][0] = coords.x2;
-    tex[2][1] = tex[3][1] = coords.y2;
-  }
+  //if (texture)
+  //{
+  //  // Setup texture coordinates
+  //  CRect coords = texCoords ? *texCoords : CRect(0.0f, 0.0f, 1.0f, 1.0f);
+  //  tex[0][0] = tex[3][0] = coords.x1;
+  //  tex[0][1] = tex[1][1] = coords.y1;
+  //  tex[1][0] = tex[2][0] = coords.x2;
+  //  tex[2][1] = tex[3][1] = coords.y2;
+  //}
 
-  glDrawElements(GL_TRIANGLE_STRIP, 4, GL_UNSIGNED_BYTE, idx);
-  CRenderSystemBase::m_GUIElementCount++;
+  //glDrawElements(GL_TRIANGLE_STRIP, 4, GL_UNSIGNED_BYTE, idx);
+  //CRenderSystemBase::m_GUIElementCount++;
 
-  glDisableVertexAttribArray(posLoc);
-  if (texture)
-    glDisableVertexAttribArray(tex0Loc);
+  //glDisableVertexAttribArray(posLoc);
+  //if (texture)
+  //  glDisableVertexAttribArray(tex0Loc);
 
-  renderSystem->DisableGUIShader();
+  //renderSystem->DisableGUIShader();
 }

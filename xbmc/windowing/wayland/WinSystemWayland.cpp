@@ -563,6 +563,7 @@ std::shared_ptr<COutput> CWinSystemWayland::FindOutputByWaylandOutput(wayland::o
  */
 bool CWinSystemWayland::SetResolutionExternal(bool fullScreen, RESOLUTION_INFO const& res)
 {
+  sleep(5);
   // In fullscreen modes, we never change the surface size on Kodi's request,
   // but only when the compositor tells us to. At least xdg_shell specifies
   // that with state fullscreen the dimensions given in configure() must
