@@ -9,8 +9,9 @@
 #pragma once
 
 #include "cores/RetroPlayer/shaders/IShaderTexture.h"
-
 #include "system_vulkan.h"
+
+#include <cstdint>
 
 namespace KODI::SHADER
 {
@@ -19,11 +20,11 @@ class CShaderTextureVulkan : public IShaderTexture
 {
 public:
   CShaderTextureVulkan(uint32_t textureWidth,
-                     uint32_t textureHeight,
-                     unsigned int pixelType,
-                     unsigned int internalFormat,
-                     unsigned int pixelFormat,
-                     bool bUseAlpha);
+                       uint32_t textureHeight,
+                       unsigned int pixelType,
+                       unsigned int internalFormat,
+                       unsigned int pixelFormat,
+                       bool bUseAlpha);
   ~CShaderTextureVulkan() override;
 
   // Disallow copy and move (this object owns raw GL IDs)

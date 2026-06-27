@@ -60,9 +60,9 @@ bool CShaderVulkan::Create(unsigned int passIdx,
   //const GLchar* vertexShaderSource = vertexShaderSourceStr.c_str();
   //const GLchar* fragmentShaderSource = fragmentShaderSourceStr.c_str();
 
-  //GLint status;
-  //GLuint vShader;
-  //GLuint fShader;
+  //int status;
+  //unsigned int vShader;
+  //unsigned int fShader;
 
   //vShader = glCreateShader(GL_VERTEX_SHADER);
   //glShaderSource(vShader, 1, &vertexShaderSource, nullptr);
@@ -71,7 +71,7 @@ bool CShaderVulkan::Create(unsigned int passIdx,
 
   //if (status == GL_FALSE)
   //{
-  //  GLint maxLength = 0;
+  //  int maxLength = 0;
   //  glGetShaderiv(vShader, GL_INFO_LOG_LENGTH, &maxLength);
   //  std::vector<GLchar> errorLog(maxLength);
   //  glGetShaderInfoLog(vShader, maxLength, &maxLength, errorLog.data());
@@ -86,7 +86,7 @@ bool CShaderVulkan::Create(unsigned int passIdx,
 
   //if (status == GL_FALSE)
   //{
-  //  GLint maxLength = 0;
+  //  int maxLength = 0;
   //  glGetShaderiv(fShader, GL_INFO_LOG_LENGTH, &maxLength);
   //  std::vector<GLchar> errorLog(maxLength);
   //  glGetShaderInfoLog(fShader, maxLength, &maxLength, errorLog.data());
@@ -110,7 +110,7 @@ bool CShaderVulkan::Create(unsigned int passIdx,
 
   //if (status == GL_FALSE)
   //{
-  //  GLint maxLength = 0;
+  //  int maxLength = 0;
   //  glGetProgramiv(m_shaderProgram, GL_INFO_LOG_LENGTH, &maxLength);
   //  std::vector<GLchar> errorLog(maxLength);
   //  glGetProgramInfoLog(m_shaderProgram, maxLength, &maxLength, errorLog.data());
@@ -124,7 +124,7 @@ bool CShaderVulkan::Create(unsigned int passIdx,
 
   //GetUniformLocs();
 
-  //GLint paramLoc = glGetUniformLocation(m_shaderProgram, "Texture");
+  //int paramLoc = glGetUniformLocation(m_shaderProgram, "Texture");
   //glUniform1i(paramLoc, 0);
 
   //const GLubyte idx[4] = {0, 1, 3, 2}; // Determines order of triangle strip
@@ -309,7 +309,7 @@ CShaderVulkan::UniformInputs CShaderVulkan::GetInputData(uint64_t frameCount) co
       {m_inputTextureSize}, // texture_size
       {m_destSize}, // output_size
       // Current frame count that can be modulo'ed
-      static_cast<GLint>(frameCount), // frame_count
+      static_cast<int>(frameCount), // frame_count
       // Time always flows forward
       1 // frame_direction
   };
@@ -317,7 +317,7 @@ CShaderVulkan::UniformInputs CShaderVulkan::GetInputData(uint64_t frameCount) co
   return input;
 }
 
-CShaderVulkan::UniformFrameInputs CShaderVulkan::GetFrameInputData(GLuint texture) const
+CShaderVulkan::UniformFrameInputs CShaderVulkan::GetFrameInputData(unsigned int texture) const
 {
   const UniformFrameInputs frameInput = {
       {m_inputSize}, // input_size
@@ -352,7 +352,7 @@ void CShaderVulkan::SetShaderParameters(IShaderTexture& sourceTexture)
   //// Set #pragma parameters
   //for (const auto& [paramName, paramValue] : m_shaderParameters)
   //{
-  //  GLint paramLoc = glGetUniformLocation(m_shaderProgram, paramName.c_str());
+  //  int paramLoc = glGetUniformLocation(m_shaderProgram, paramName.c_str());
   //  glUniform1f(paramLoc, paramValue);
   //}
 
@@ -384,7 +384,7 @@ void CShaderVulkan::SetShaderParameters(IShaderTexture& sourceTexture)
   //  auto* texture = static_cast<CVulkanTexture*>(lut->GetTexture());
   //  if (texture != nullptr)
   //  {
-  //    const GLint paramLoc = glGetUniformLocation(m_shaderProgram, lut->GetID().c_str());
+  //    const int paramLoc = glGetUniformLocation(m_shaderProgram, lut->GetID().c_str());
   //    glUniform1i(paramLoc, textureUnit);
   //    texture->BindToUnit(textureUnit);
   //    textureUnit++;
@@ -394,7 +394,7 @@ void CShaderVulkan::SetShaderParameters(IShaderTexture& sourceTexture)
   //// Set FBO textures
   //for (unsigned int i = 0; i < m_passIdx + 1; ++i)
   //{
-  //  GLint paramLoc;
+  //  int paramLoc;
   //  std::string paramPass = i ? "Pass" + std::to_string(i) : "Orig";
   //  paramLoc = glGetUniformLocation(m_shaderProgram, (paramPass + "InputSize").c_str());
   //  glUniform2f(paramLoc, m_passesUniformFrameInputs[i].input_size.x,

@@ -17,6 +17,7 @@
 #include <vector>
 
 #include <fmt/format.h>
+#include <vulkan/vulkan_core.h>
 
 //#include "system_vulkan.h"
 
@@ -78,9 +79,10 @@ private:
       {VulkanShaderMethod::SM_TEXTURE_NOALPHA, "texture no alpha"},
   });
 
-  static_assert(static_cast<size_t>(VulkanShaderMethod::SM_MAX) == VulkanShaderMethodMap.size(),
-                "VulkanShaderMethodMap doesn't match the size of VulkanShaderMethod, did you forget to "
-                "add/remove a mapping?");
+  static_assert(
+      static_cast<size_t>(VulkanShaderMethod::SM_MAX) == VulkanShaderMethodMap.size(),
+      "VulkanShaderMethodMap doesn't match the size of VulkanShaderMethod, did you forget to "
+      "add/remove a mapping?");
 };
 
 class CVulkanRenderSystem : public CRenderSystemBase
@@ -107,7 +109,7 @@ public:
   void GetViewPort(CRect& viewPort) override;
 
   bool ScissorsCanEffectClipping() override;
-  CRect ClipRectToScissorRect(const CRect &rect) override;
+  CRect ClipRectToScissorRect(const CRect& rect) override;
   void SetScissors(const CRect& rect) override;
   void ResetScissors() override;
 
@@ -116,11 +118,14 @@ public:
   void CaptureStateBlock() override;
   void ApplyStateBlock() override;
 
-  void SetCameraPosition(const CPoint &camera, int screenWidth, int screenHeight, float stereoFactor = 0.0f) override;
+  void SetCameraPosition(const CPoint& camera,
+                         int screenWidth,
+                         int screenHeight,
+                         float stereoFactor = 0.0f) override;
 
   bool SupportsStereo(RenderStereoMode mode) const override;
 
-  void Project(float &x, float &y, float &z) override;
+  void Project(float& x, float& y, float& z) override;
 
   std::string GetShaderPath(const std::string& filename) override;
 

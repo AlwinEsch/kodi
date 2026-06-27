@@ -67,10 +67,10 @@ protected:
 private:
   CVulkanGUITexture(const CVulkanGUITexture& texture) = default;
 
-  std::array<GLubyte, 4> m_col;
+  std::array<uint8_t, 4> m_col;
 
   PackedVertices m_packedVertices;
-  std::vector<GLushort> m_idx;
+  std::vector<uint16_t> m_idx;
   CVulkanRenderSystem* m_renderSystem;
 };
 

@@ -19,7 +19,7 @@
 // if not it's just an empty inline stub, and thus won't affect performance
 // and will be optimized out.
 
-#include "system_vulkan.h"
+#include <vulkan/vulkan_core.h>
 
 namespace KODI
 {
@@ -27,6 +27,8 @@ namespace UTILS
 {
 namespace VULKAN
 {
+
+constexpr uint32_t RequiredApiVersion = VK_API_VERSION_1_1;
 
 //void vulkanErrorCallback(GLenum source,
 //                         GLenum type,

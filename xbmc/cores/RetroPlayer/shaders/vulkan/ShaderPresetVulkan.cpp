@@ -13,7 +13,7 @@
 #include "ShaderLutVulkan.h"
 #include "ShaderUtilsVulkan.h"
 #include "cores/RetroPlayer/rendering/RenderContext.h"
-#include "rendering/gl/RenderSystemGL.h"
+#include "rendering/vulkan/VulkanRenderSystem.h"
 #include "utils/log.h"
 
 #include <regex>

@@ -15,7 +15,7 @@
 #include "rendering/vulkan/VulkanExtensions.h"
 #include "settings/AdvancedSettings.h"
 #include "settings/SettingsComponent.h"
-#include "utils/GLUtils.h"
+#include "utils/VulkanUtils.h"
 #include "utils/Map.h"
 #include "utils/MemUtils.h"
 #include "utils/log.h"

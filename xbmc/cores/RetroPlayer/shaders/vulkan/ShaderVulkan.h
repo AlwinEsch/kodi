@@ -57,15 +57,15 @@ private:
     float2 video_size;
     float2 texture_size;
     float2 output_size;
-    GLint frame_count;
-    GLint frame_direction;
+    int frame_count;
+    int frame_direction;
   };
 
   struct UniformFrameInputs
   {
     float2 input_size;
     float2 texture_size;
-    GLuint texture;
+    unsigned int texture;
     std::string alias;
   };
 
@@ -74,7 +74,7 @@ private:
                            const std::vector<std::unique_ptr<IShader>>& pShaders,
                            uint64_t frameCount);
   UniformInputs GetInputData(uint64_t frameCount = 0) const;
-  UniformFrameInputs GetFrameInputData(GLuint texture) const;
+  UniformFrameInputs GetFrameInputData(unsigned int texture) const;
   UniformFrameInputs GetFrameUniformInputs() const { return m_uniformFrameInputs; }
   void GetUniformLocs();
   void SetShaderParameters(IShaderTexture& sourceTexture);
@@ -110,12 +110,12 @@ private:
   float2 m_destSize;
 
   // Projection matrix
-  std::array<std::array<GLfloat, 4>, 4> m_MVP;
+  std::array<std::array<float, 4>, 4> m_MVP;
 
   // Value to modulo (%) frame count with (unused if 0)
   unsigned int m_frameCountMod{0};
 
-  GLuint m_shaderProgram{0};
+  unsigned int m_shaderProgram{0};
 
   std::array<std::array<float, 3>, 4> m_VertexCoords;
   std::array<std::array<float, 3>, 4> m_colors;
@@ -126,14 +126,14 @@ private:
 
   std::vector<UniformFrameInputs> m_passesUniformFrameInputs;
 
-  GLint m_FrameDirectionLoc{-1};
-  GLint m_FrameCountLoc{-1};
-  GLint m_OutputSizeLoc{-1};
-  GLint m_TextureSizeLoc{-1};
-  GLint m_InputSizeLoc{-1};
-  GLint m_MVPMatrixLoc{-1};
+  int m_FrameDirectionLoc{-1};
+  int m_FrameCountLoc{-1};
+  int m_OutputSizeLoc{-1};
+  int m_TextureSizeLoc{-1};
+  int m_InputSizeLoc{-1};
+  int m_MVPMatrixLoc{-1};
 
-  std::array<GLuint, 3> m_shaderVertexVBO{GL_NONE};
-  GLuint m_shaderIndexVBO{GL_NONE};
+  std::array<unsigned int, 3> m_shaderVertexVBO{0};
+  unsigned int m_shaderIndexVBO{0};
 };
 } // namespace KODI::SHADER

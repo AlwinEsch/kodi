@@ -281,78 +281,78 @@ void CLinuxRendererVulkan::ReleaseBuffer(int idx)
 
 void CLinuxRendererVulkan::CalculateTextureSourceRects(int source, int num_planes)
 {
-  CPictureBuffer& buf = m_buffers[source];
-  YuvImage* im = &buf.image;
+  //CPictureBuffer& buf = m_buffers[source];
+  //YuvImage* im = &buf.image;
 
-  // calculate the source rectangle
-  for (int field = 0; field < 3; field++)
-  {
-    for (int plane = 0; plane < num_planes; plane++)
-    {
-      CYuvPlane& p = buf.fields[field][plane];
+  //// calculate the source rectangle
+  //for (int field = 0; field < 3; field++)
+  //{
+  //  for (int plane = 0; plane < num_planes; plane++)
+  //  {
+  //    CYuvPlane& p = buf.fields[field][plane];
 
-      p.rect = m_sourceRect;
-      p.width = im->width;
-      p.height = im->height;
+  //    p.rect = m_sourceRect;
+  //    p.width = im->width;
+  //    p.height = im->height;
 
-      if (field != FIELD_FULL)
-      {
-        // correct for field offsets and chroma offsets
-        float offset_y = 0.5;
-        if (plane != 0)
-        {
-          offset_y += 0.5f;
-        }
+  //    if (field != FIELD_FULL)
+  //    {
+  //      // correct for field offsets and chroma offsets
+  //      float offset_y = 0.5;
+  //      if (plane != 0)
+  //      {
+  //        offset_y += 0.5f;
+  //      }
 
-        if (field == FIELD_BOT)
-        {
-          offset_y *= -1;
-        }
+  //      if (field == FIELD_BOT)
+  //      {
+  //        offset_y *= -1;
+  //      }
 
-        p.rect.y1 += offset_y;
-        p.rect.y2 += offset_y;
+  //      p.rect.y1 += offset_y;
+  //      p.rect.y2 += offset_y;
 
-        // half the height if this is a field
-        p.height *= 0.5f;
-        p.rect.y1 *= 0.5f;
-        p.rect.y2 *= 0.5f;
-      }
+  //      // half the height if this is a field
+  //      p.height *= 0.5f;
+  //      p.rect.y1 *= 0.5f;
+  //      p.rect.y2 *= 0.5f;
+  //    }
 
-      if (plane != 0)
-      {
-        p.width /= 1 << im->cshift_x;
-        p.height /= 1 << im->cshift_y;
+  //    if (plane != 0)
+  //    {
+  //      p.width /= 1 << im->cshift_x;
+  //      p.height /= 1 << im->cshift_y;
 
-        p.rect.x1 /= 1 << im->cshift_x;
-        p.rect.x2 /= 1 << im->cshift_x;
-        p.rect.y1 /= 1 << im->cshift_y;
-        p.rect.y2 /= 1 << im->cshift_y;
-      }
+  //      p.rect.x1 /= 1 << im->cshift_x;
+  //      p.rect.x2 /= 1 << im->cshift_x;
+  //      p.rect.y1 /= 1 << im->cshift_y;
+  //      p.rect.y2 /= 1 << im->cshift_y;
+  //    }
 
-      // protect against division by zero
-      if (p.texheight == 0 || p.texwidth == 0 || p.pixpertex_x == 0 || p.pixpertex_y == 0)
-      {
-        continue;
-      }
+  //    // protect against division by zero
+  //    if (p.texheight == 0 || p.texwidth == 0 || p.pixpertex_x == 0 || p.pixpertex_y == 0)
+  //    {
+  //      continue;
+  //    }
 
-      p.height /= p.pixpertex_y;
-      p.rect.y1 /= p.pixpertex_y;
-      p.rect.y2 /= p.pixpertex_y;
-      p.width /= p.pixpertex_x;
-      p.rect.x1 /= p.pixpertex_x;
-      p.rect.x2 /= p.pixpertex_x;
+  //    p.height /= p.pixpertex_y;
+  //    p.rect.y1 /= p.pixpertex_y;
+  //    p.rect.y2 /= p.pixpertex_y;
+  //    p.width /= p.pixpertex_x;
+  //    p.rect.x1 /= p.pixpertex_x;
+  //    p.rect.x2 /= p.pixpertex_x;
 
-      if (m_textureTarget == GL_TEXTURE_2D)
-      {
-        p.height /= p.texheight;
-        p.rect.y1 /= p.texheight;
-        p.rect.y2 /= p.texheight;
-        p.width /= p.texwidth;
-        p.rect.x1 /= p.texwidth;
-        p.rect.x2 /= p.texwidth;
-      }
-    }
-  }
+  //    if (m_textureTarget == GL_TEXTURE_2D)
+  //    {
+  //      p.height /= p.texheight;
+  //      p.rect.y1 /= p.texheight;
+  //      p.rect.y2 /= p.texheight;
+  //      p.width /= p.texwidth;
+  //      p.rect.x1 /= p.texwidth;
+  //      p.rect.x2 /= p.texwidth;
+  //    }
+  //  }
+  //}
 }
 
 void CLinuxRendererVulkan::LoadPlane(
@@ -2125,8 +2125,8 @@ bool CLinuxRendererVulkan::CreatePackedYUVTexture(int index)
 //********************************************************************************************************
 // SurfaceTexture creation, deletion, copying + clearing
 //********************************************************************************************************
-void CLinuxRendererVulkan::SetTextureFilter(GLenum method)
-{
+//void CLinuxRendererVulkan::SetTextureFilter(GLenum method)
+//{
   //for (int i = 0; i < m_NumYUVBuffers; i++)
   //{
   //  CPictureBuffer& buf = m_buffers[i];
@@ -2145,7 +2145,7 @@ void CLinuxRendererVulkan::SetTextureFilter(GLenum method)
   //    }
   //  }
   //}
-}
+//}
 
 bool CLinuxRendererVulkan::Supports(ERENDERFEATURE feature) const
 {

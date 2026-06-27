@@ -34,7 +34,7 @@ public:
 
   void Render(SRenderState& state) override;
 
-  GLuint m_texture = 0;
+  unsigned int m_texture = 0;
   float m_u;
   float m_v;
   bool m_pma; /*< is alpha in texture premultiplied in the values */
@@ -51,14 +51,14 @@ public:
 
   struct VERTEX
   {
-    GLfloat u, v;
-    GLubyte r, g, b, a;
-    GLfloat x, y, z;
+    float u, v;
+    uint8_t r, g, b, a;
+    float x, y, z;
   };
 
   std::vector<VERTEX> m_vertex;
 
-  GLuint m_texture = 0;
+  unsigned int m_texture = 0;
   float m_u;
   float m_v;
 };

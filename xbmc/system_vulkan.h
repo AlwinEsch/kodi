@@ -8,13 +8,13 @@
 
 #pragma once
 
-#ifdef HAS_VULKAN
-#if defined(TARGET_DARWIN)
-#include <OpenGLES/ES3/gl.h>
-#include <OpenGLES/ES3/glext.h>
-#else
-#include <GLES2/gl2.h>
-#include <GLES2/gl2ext.h>
-#include <GLES3/gl3.h>
-#endif
-#endif
+//#ifdef HAS_VULKAN
+//#if defined(TARGET_DARWIN)
+//#include <OpenGLES/ES3/gl.h>
+//#include <OpenGLES/ES3/glext.h>
+//#else
+//#include <GLES2/gl2.h>
+//#include <GLES2/gl2ext.h>
+//#include <GLES3/gl3.h>
+//#endif
+//#endif

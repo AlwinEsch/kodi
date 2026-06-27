@@ -306,7 +306,7 @@ void CVulkanGUIFontTTF::LastEnd()
 CVertexBuffer CVulkanGUIFontTTF::CreateVertexBuffer(const std::vector<SVertex>& vertices) const
 {
   assert(vertices.size() % 4 == 0);
-  GLuint bufferHandle = 0;
+  unsigned int bufferHandle = 0;
 
   //// Do not create empty buffers, leave buffer as 0, it will be ignored in drawing stage
   //if (!vertices.empty())
@@ -474,5 +474,5 @@ void CVulkanGUIFontTTF::DestroyStaticVertexBuffers(void)
   //m_staticVertexBufferCreated = false;
 }
 
-GLuint CVulkanGUIFontTTF::m_elementArrayHandle{0};
+unsigned int CVulkanGUIFontTTF::m_elementArrayHandle{0};
 bool CVulkanGUIFontTTF::m_staticVertexBufferCreated{false};

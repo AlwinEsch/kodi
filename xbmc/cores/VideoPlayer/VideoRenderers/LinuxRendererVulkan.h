@@ -105,7 +105,7 @@ protected:
   virtual bool ValidateRenderTarget();
   virtual void LoadShaders(int field = FIELD_FULL);
   virtual void ReleaseShaders();
-  void SetTextureFilter(GLenum method);
+//  void SetTextureFilter(GLenum method);
   void UpdateVideoFilter();
   void CheckVideoParameters(int index);
   AVColorPrimaries GetSrcPrimaries(AVColorPrimaries srcPrimaries,
@@ -129,7 +129,7 @@ protected:
   bool UploadPackedYUVTexture(int index);
   void DeletePackedYUVTexture(int index);
   bool CreatePackedYUVTexture(int index);
-
+//
   void CalculateTextureSourceRects(int source, int num_planes);
 
   // renderers
@@ -154,8 +154,8 @@ protected:
 
   bool m_bConfigured{false};
   bool m_bValidated{false};
-  GLenum m_textureTarget = GL_TEXTURE_2D;
-  int m_renderMethod{RENDER_GLSL};
+//  GLenum m_textureTarget = GL_TEXTURE_2D;
+//  int m_renderMethod{RENDER_GLSL};
   RenderQuality m_renderQuality{RQ_SINGLEPASS};
 
   // Dithering
@@ -163,17 +163,17 @@ protected:
   unsigned int m_ditherDepth{0};
   unsigned int m_srcColorBits{8};
   bool m_srcFullRange{false};
-  GLuint m_ditherTex{0};
+  unsigned int m_ditherTex{0};
 
   // Raw data used by renderer
   int m_currentField{FIELD_FULL};
   bool m_reloadShaders{false};
   CVulkanRenderSystem* m_renderSystem{nullptr};
-  GLenum m_pixelStoreKey{0};
+//  GLenum m_pixelStoreKey{0};
 
   struct CYuvPlane
   {
-    GLuint id{0};
+    unsigned int id{0};
     CRect rect{0, 0, 0, 0};
 
     float width{0.0};
@@ -186,7 +186,7 @@ protected:
     unsigned pixpertex_x{0};
     unsigned pixpertex_y{0};
   };
-
+//
   struct CPictureBuffer
   {
     CYuvPlane fields[MAX_FIELDS][YuvImage::MAX_PLANES];
@@ -226,9 +226,9 @@ protected:
   bool m_toneMap = false;
   ETONEMAPMETHOD m_toneMapMethod = VS_TONEMAPMETHOD_OFF;
   bool m_passthroughHDR = false;
-  GLint m_intermediateFormat{GL_RGBA};
-  GLint m_intermediateType{GL_UNSIGNED_BYTE};
-  // TODO: GL has m_intermediateGammaCorrection -- add when ported to Vulkan
+//  GLint m_intermediateFormat{GL_RGBA};
+//  GLint m_intermediateType{GL_UNSIGNED_BYTE};
+//  // TODO: GL has m_intermediateGammaCorrection -- add when ported to Vulkan
   unsigned char* m_planeBuffer = nullptr;
   size_t m_planeBufferSize = 0;
 

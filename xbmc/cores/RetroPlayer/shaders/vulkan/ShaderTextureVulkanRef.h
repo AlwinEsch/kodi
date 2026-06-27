@@ -12,6 +12,8 @@
 
 #include "system_vulkan.h"
 
+#include <cstdint>
+
 namespace KODI::SHADER
 {
 

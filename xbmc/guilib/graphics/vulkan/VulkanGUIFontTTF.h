@@ -47,7 +47,7 @@ protected:
                          unsigned int y2) override;
   void DeleteHardwareTexture() override;
 
-  static GLuint m_elementArrayHandle;
+  static unsigned int m_elementArrayHandle;
 
 private:
   unsigned int m_updateY1{0};

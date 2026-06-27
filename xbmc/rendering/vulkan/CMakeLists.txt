@@ -1,6 +1,7 @@
 if(TARGET ${APP_NAME_LC}::Vulkan)
   set(SOURCES VulkanExtensions.cpp
               VulkanGuiCompositeShader.cpp
+              VulkanInstance.cpp
               VulkanMatrix.cpp
               VulkanRenderSystem.cpp
               VulkanScreenshotSurface.cpp
@@ -8,6 +9,7 @@ if(TARGET ${APP_NAME_LC}::Vulkan)
 
   set(HEADERS VulkanExtensions.h
               VulkanGuiCompositeShader.h
+              VulkanInstance.h
               VulkanMatrix.h
               VulkanRenderSystem.h
               VulkanScreenshotSurface.h

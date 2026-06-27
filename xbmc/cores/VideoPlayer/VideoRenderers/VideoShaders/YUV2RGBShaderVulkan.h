@@ -55,12 +55,12 @@ public:
   int GetUcoordLoc() { return m_hUcoord; }
   int GetVcoordLoc() { return m_hVcoord; }
 
-  void SetMatrices(const GLfloat* p, const GLfloat* m)
+  void SetMatrices(const float* p, const float* m)
   {
     m_proj = p;
     m_model = m;
   }
-  void SetAlpha(GLfloat alpha) { m_alpha = alpha; }
+  void SetAlpha(float alpha) { m_alpha = alpha; }
 
 protected:
   void OnCompiledAndLinked() override;
@@ -110,9 +110,9 @@ protected:
   int m_hModel{-1};
   int m_hAlpha{-1};
 
-  const GLfloat* m_proj{nullptr};
-  const GLfloat* m_model{nullptr};
-  GLfloat m_alpha{1.0f};
+  const float* m_proj{nullptr};
+  const float* m_model{nullptr};
+  float m_alpha{1.0f};
 
   bool m_convertFullRange;
 

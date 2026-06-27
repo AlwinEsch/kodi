@@ -224,7 +224,15 @@ static void __gluMultMatrixVecf(const float matrix[16], const float in[4], float
 }
 
 // gluProject implementation taken from Mesa3D
-bool CVulkanMatrix::Project(float objx, float objy, float objz, const float modelMatrix[16], const float projMatrix[16], const GLint viewport[4], float* winx, float* winy, float* winz)
+bool CVulkanMatrix::Project(float objx,
+                            float objy,
+                            float objz,
+                            const float modelMatrix[16],
+                            const float projMatrix[16],
+                            const int viewport[4],
+                            float* winx,
+                            float* winy,
+                            float* winz)
 {
   float in[4];
   float out[4];
