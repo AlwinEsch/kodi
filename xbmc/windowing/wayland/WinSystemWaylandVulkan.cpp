@@ -44,9 +44,9 @@ bool CWinSystemWaylandVulkan::InitWindowSystem()
   {
     return false;
   }
-  //
-//  CLinuxRendererVulkan::Register();
-//
+
+  CLinuxRendererVulkan::Register();
+
 //  CDVDVideoCodecDRMPRIME::Register();
 //  CRendererDRMPRIMEVulkan::Register();
 //
@@ -72,6 +72,8 @@ bool CWinSystemWaylandVulkan::InitWindowSystem()
 //#endif
 //
 //  CVulkanScreenshotSurface::Register();
+
+  fprintf(stderr, "-22--> %s\n", __PRETTY_FUNCTION__);
 
   return true;
 }

@@ -6,9 +6,7 @@
  *  See LICENSES/README.md for more information.
  */
 
-#pragma once
-
-#include <vulkan/vulkan_core.h>
+#include "VulkanImplementation.h"
 
 namespace KODI
 {
@@ -16,22 +14,12 @@ namespace RENDERING
 {
 namespace VULKAN
 {
-
-class CVulkanInstance
+namespace WINDOWS
 {
-public:
-  CVulkanInstance() = default;
-  ~CVulkanInstance();
 
-  bool Create();
-  void Destroy();
 
-  VkInstance GetInstance() const { return m_instance; }
 
-private:
-  VkInstance m_instance{VK_NULL_HANDLE};
-};
-
+} // namespace WINDOWS
 } // namespace VULKAN
 } // namespace RENDERING
 } // namespace KODI

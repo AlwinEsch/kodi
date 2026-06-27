@@ -72,10 +72,10 @@ bool CPlatformFreebsd::InitStageOne()
   KODI::WINDOWING::WAYLAND::CWinSystemWaylandVulkan::Register();
 #endif
 #if defined(HAVE_X11)
-  KODI::WINDOWING::X11::CWinSystemX11VulkanContext::Register();
+  KODI::WINDOWING::X11::CWinSystemX11Vulkan::Register();
 #endif
 #if defined(HAVE_GBM)
-  KODI::WINDOWING::GBM::CWinSystemGbmVulkanContext::Register();
+  KODI::WINDOWING::GBM::CWinSystemGbmVulkan::Register();
 #endif
 #endif
 

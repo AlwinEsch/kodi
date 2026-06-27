@@ -14,4 +14,5 @@ xbmc/platform/win10/threads            platform/win10/threads
 xbmc/platform/win32/filesystem         platform/win32/filesystem
 xbmc/platform/win32/utils              platform/win32/utils
 xbmc/rendering/dx                      rendering/dx
+xbmc/rendering/vulkan/windows          rendering/vulkan/windows
 xbmc/windowing/win10                   windowing/win10

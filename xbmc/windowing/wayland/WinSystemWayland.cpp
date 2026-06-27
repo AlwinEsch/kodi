@@ -144,6 +144,7 @@ CWinSystemWayland::~CWinSystemWayland() noexcept = default;
 
 bool CWinSystemWayland::InitWindowSystem()
 {
+  fprintf(stderr, "---> %s\n", __PRETTY_FUNCTION__);
   const char* env = getenv("WAYLAND_DISPLAY");
   if (!env)
   {
@@ -210,6 +211,8 @@ bool CWinSystemWayland::InitWindowSystem()
       ->SetVisible(true);
 
   m_colorManager = std::make_unique<CColorManager>(*m_connection);
+
+  fprintf(stderr, "--222-> %s\n", __PRETTY_FUNCTION__);
   return CWinSystemBase::InitWindowSystem();
 }
 
@@ -391,6 +394,8 @@ bool CWinSystemWayland::CreateNewWindow(const std::string& name,
   CWinEventsWayland::SetDisplay(&m_connection->GetDisplay());
 
   m_colorManager->SetSurface(m_surface);
+
+
 
   return true;
 }

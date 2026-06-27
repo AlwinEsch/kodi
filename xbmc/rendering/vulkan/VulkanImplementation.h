@@ -17,19 +17,17 @@ namespace RENDERING
 namespace VULKAN
 {
 
-class CVulkanInstance
+class CVulkanInstance;
+
+class IVulkanImplementation
 {
 public:
-  CVulkanInstance() = default;
-  ~CVulkanInstance();
+  virtual ~IVulkanImplementation() = default;
 
-  bool Create();
-  void Destroy();
+  virtual bool IsAvailable() const = 0;
+  virtual bool CreateSurface(void* window, VkSurfaceKHR& surface) const = 0;
 
-  VkInstance GetInstance() const { return m_instance; }
-
-private:
-  VkInstance m_instance{VK_NULL_HANDLE};
+  virtual CVulkanInstance* GetVulkanInstance() = 0;
 };
 
 } // namespace VULKAN

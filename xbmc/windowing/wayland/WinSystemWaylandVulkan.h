@@ -57,6 +57,6 @@ protected:
   void PresentRenderImpl(bool rendered) override;
 };
 
-}
-}
-}
+} // namespace WAYLAND
+} // namespace WINDOWING
+} // namespace KODI

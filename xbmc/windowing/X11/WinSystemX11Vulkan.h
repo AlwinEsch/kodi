@@ -9,10 +9,7 @@
 #pragma once
 
 #include "WinSystemX11.h"
-#include "rendering/vulkan/RenderSystemVulkan.h"
-#include "windowing/X11/GLContextEGL.h"
-
-#include <EGL/egl.h>
+#include "rendering/vulkan/VulkanRenderSystem.h"
 
 class CGLContextEGL;
 
@@ -23,11 +20,11 @@ namespace WINDOWING
 namespace X11
 {
 
-class CWinSystemX11VulkanContext : public CWinSystemX11, public CRenderSystemVulkan
+class CWinSystemX11Vulkan : public CWinSystemX11, public CVulkanRenderSystem
 {
 public:
-  CWinSystemX11VulkanContext() = default;
-  virtual ~CWinSystemX11VulkanContext() override;
+  CWinSystemX11Vulkan() = default;
+  virtual ~CWinSystemX11Vulkan() override;
 
   static void Register();
   static std::unique_ptr<CWinSystemBase> CreateWinSystem();
@@ -40,14 +37,14 @@ public:
   bool SetFullScreen(bool fullScreen, RESOLUTION_INFO& res, bool blankOtherDisplays) override;
   bool DestroyWindowSystem() override;
   bool DestroyWindow() override;
-  int GetBufferAge() override { return m_bufferAgeSupport ? m_pGLContext->GetBufferAge() : 2; }
+  int GetBufferAge() override { return /*m_bufferAgeSupport ? m_pGLContext->GetBufferAge() :*/ 2; }
 
   bool IsExtSupported(const char* extension) const override;
 
-  EGLDisplay GetEGLDisplay() const;
-  EGLSurface GetEGLSurface() const;
-  EGLContext GetEGLContext() const;
-  EGLConfig GetEGLConfig() const;
+  //EGLDisplay GetEGLDisplay() const;
+  //EGLSurface GetEGLSurface() const;
+  //EGLContext GetEGLContext() const;
+  //EGLConfig GetEGLConfig() const;
 
   bool BindTextureUploadContext() override;
   bool UnbindTextureUploadContext() override;
@@ -60,7 +57,7 @@ protected:
   bool RefreshGLContext(bool force);
   XVisualInfo* GetVisual() override;
 
-  CGLContextEGL* m_pGLContext = nullptr;
+  //CGLContextEGL* m_pGLContext = nullptr;
   bool m_newGlContext;
   bool m_bufferAgeSupport{false};
 };

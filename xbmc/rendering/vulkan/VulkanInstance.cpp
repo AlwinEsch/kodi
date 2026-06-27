@@ -8,7 +8,15 @@
 
 #include "VulkanInstance.h"
 
+#include "utils/log.h"
+#include "utils/VulkanUtils.h"
+
 using namespace KODI::RENDERING::VULKAN;
+
+CVulkanInstance::~CVulkanInstance()
+{
+  Destroy();
+}
 
 bool CVulkanInstance::Create()
 {
