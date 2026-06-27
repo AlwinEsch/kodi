@@ -22,6 +22,48 @@
 #include <string_view>
 #include <utility>
 
+namespace KODI
+{
+namespace UTILS
+{
+namespace VULKAN
+{
+
+VkBool32 vulkanErrorCallback(VkDebugReportFlagsEXT flags,
+                             VkDebugReportObjectTypeEXT objectType,
+                             uint64_t object,
+                             size_t location,
+                             int32_t messageCode,
+                             const char* pLayerPrefix,
+                             const char* pMessage,
+                             void* pUserData)
+{
+  int logLevel;
+  if (flags & VK_DEBUG_REPORT_ERROR_BIT_EXT)
+    logLevel = LOGERROR;
+  else if (flags & VK_DEBUG_REPORT_WARNING_BIT_EXT ||
+           flags & VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT)
+    logLevel = LOGWARNING;
+  else if (flags & VK_DEBUG_REPORT_DEBUG_BIT_EXT)
+    logLevel = LOGDEBUG;
+  else if (flags & VK_DEBUG_REPORT_INFORMATION_BIT_EXT)
+    logLevel = LOGINFO;
+  else // For VK_DEBUG_REPORT_FLAG_BITS_MAX_ENUM_EXT and unknown flags
+    logLevel = LOGINFO;
+
+  /*!
+   * @remark pLayerPrefix and pMessage should not be nullptr, but we check them
+   * just in case to avoid potential crashes.
+   */
+  CLog::Log(logLevel, "Vulkan: {}: {}", pLayerPrefix ? pLayerPrefix : "Unknown",
+            pMessage ? pMessage : "No message text");
+  return VK_FALSE;
+}
+
+} // namespace VULKAN
+} // namespace UTILS
+} // namespace KODI
+
 //namespace
 //{
 //
@@ -70,26 +112,6 @@
 //
 //} // namespace
 
-//void KODI::UTILS::VULKAN::vulkanErrorCallback(GLenum source,
-//                                              GLenum type,
-//                                              GLuint id,
-//                                              GLenum severity,
-//                                              GLsizei length,
-//                                              const GLchar* message,
-//                                              const void* userParam)
-//{
-//#ifdef TARGET_LINUX
-//  const std::string_view sourceStr = vulkanErrorSource.get(source).value_or("");
-//  const std::string_view typeStr = vulkanErrorType.get(type).value_or("");
-//  const std::string_view severityStr = vulkanErrorSeverity.get(severity).value_or("");
-//
-//  CLog::Log(LOGDEBUG, "Vulkan Debugging:\nSource: {}\nType: {}\nSeverity: {}\nID: {}\nMessage: {}",
-//            sourceStr, typeStr, severityStr, id, message);
-//#else
-//  CLog::Log(LOGDEBUG, "Vulkan Debugging:\nID: {}\nMessage: {}", id, message);
-//#endif
-//}
-//
 //static void PrintMatrix(const GLfloat* matrix, const std::string& matrixName)
 //{
 //  CLog::Log(LOGDEBUG,
@@ -103,94 +125,94 @@
 
 void _VerifyVulkanState(const char* szfile, const char* szfunction, int lineno)
 {
-//  GLenum err = glGetError();
-//  if (err == GL_NO_ERROR)
-//  {
-//    return;
-//  }
-//
-//  auto error = vulkanErrors.find(err);
-//  if (error != vulkanErrors.end())
-//  {
-//    CLog::Log(LOGERROR, "Vulkan ERROR: {}", error->second);
-//  }
-//
-//  if (szfile && szfunction)
-//  {
-//    CLog::Log(LOGERROR, "In file: {} function: {} line: {}", szfile, szfunction, lineno);
-//  }
-//
-//  GLboolean scissors;
-//  glGetBooleanv(GL_SCISSOR_TEST, &scissors);
-//  CLog::Log(LOGDEBUG, "Scissor test enabled: {}", scissors == GL_TRUE ? "True" : "False");
-//
-//  GLfloat matrix[16];
-//  glGetFloatv(GL_SCISSOR_BOX, matrix);
-//  CLog::Log(LOGDEBUG, "Scissor box: {}, {}, {}, {}", matrix[0], matrix[1], matrix[2], matrix[3]);
-//
-//  glGetFloatv(GL_VIEWPORT, matrix);
-//  CLog::Log(LOGDEBUG, "Viewport: {}, {}, {}, {}", matrix[0], matrix[1], matrix[2], matrix[3]);
-//
-//  PrintMatrix(vulkanMatrixProject.Get(), "Projection Matrix");
-//  PrintMatrix(vulkanMatrixModview.Get(), "Modelview Matrix");
+  //  GLenum err = glGetError();
+  //  if (err == GL_NO_ERROR)
+  //  {
+  //    return;
+  //  }
+  //
+  //  auto error = vulkanErrors.find(err);
+  //  if (error != vulkanErrors.end())
+  //  {
+  //    CLog::Log(LOGERROR, "Vulkan ERROR: {}", error->second);
+  //  }
+  //
+  //  if (szfile && szfunction)
+  //  {
+  //    CLog::Log(LOGERROR, "In file: {} function: {} line: {}", szfile, szfunction, lineno);
+  //  }
+  //
+  //  GLboolean scissors;
+  //  glGetBooleanv(GL_SCISSOR_TEST, &scissors);
+  //  CLog::Log(LOGDEBUG, "Scissor test enabled: {}", scissors == GL_TRUE ? "True" : "False");
+  //
+  //  GLfloat matrix[16];
+  //  glGetFloatv(GL_SCISSOR_BOX, matrix);
+  //  CLog::Log(LOGDEBUG, "Scissor box: {}, {}, {}, {}", matrix[0], matrix[1], matrix[2], matrix[3]);
+  //
+  //  glGetFloatv(GL_VIEWPORT, matrix);
+  //  CLog::Log(LOGDEBUG, "Viewport: {}, {}, {}, {}", matrix[0], matrix[1], matrix[2], matrix[3]);
+  //
+  //  PrintMatrix(vulkanMatrixProject.Get(), "Projection Matrix");
+  //  PrintMatrix(vulkanMatrixModview.Get(), "Modelview Matrix");
 }
 
 void LogGraphicsInfo()
 {
-//  const char* s;
-//
-//  s = reinterpret_cast<const char*>(glGetString(GL_VENDOR));
-//  if (s)
-//    CLog::Log(LOGINFO, "GL_VENDOR = {}", s);
-//  else
-//    CLog::Log(LOGINFO, "GL_VENDOR = NULL");
-//
-//  s = reinterpret_cast<const char*>(glGetString(GL_RENDERER));
-//  if (s)
-//    CLog::Log(LOGINFO, "GL_RENDERER = {}", s);
-//  else
-//    CLog::Log(LOGINFO, "GL_RENDERER = NULL");
-//
-//  s = reinterpret_cast<const char*>(glGetString(GL_VERSION));
-//  if (s)
-//    CLog::Log(LOGINFO, "GL_VERSION = {}", s);
-//  else
-//    CLog::Log(LOGINFO, "GL_VERSION = NULL");
-//
-//  s = reinterpret_cast<const char*>(glGetString(GL_SHADING_LANGUAGE_VERSION));
-//  if (s)
-//    CLog::Log(LOGINFO, "GL_SHADING_LANGUAGE_VERSION = {}", s);
-//  else
-//    CLog::Log(LOGINFO, "GL_SHADING_LANGUAGE_VERSION = NULL");
-//
-//  //GL_NVX_gpu_memory_info extension
-//#define GL_GPU_MEMORY_INFO_DEDICATED_VIDMEM_NVX 0x9047
-//#define GL_GPU_MEMORY_INFO_TOTAL_AVAILABLE_MEMORY_NVX 0x9048
-//#define GL_GPU_MEMORY_INFO_CURRENT_AVAILABLE_VIDMEM_NVX 0x9049
-//#define GL_GPU_MEMORY_INFO_EVICTION_COUNT_NVX 0x904A
-//#define GL_GPU_MEMORY_INFO_EVICTED_MEMORY_NVX 0x904B
-//
-//  if (CVulkanExtensions::IsExtensionSupported(CVulkanExtensions::NVX_gpu_memory_info))
-//  {
-//    GLint mem = 0;
-//
-//    glGetIntegerv(GL_GPU_MEMORY_INFO_TOTAL_AVAILABLE_MEMORY_NVX, &mem);
-//    CLog::Log(LOGINFO, "GL_GPU_MEMORY_INFO_TOTAL_AVAILABLE_MEMORY_NVX = {}", mem);
-//
-//    //this seems to be the amount of ram on the videocard
-//    glGetIntegerv(GL_GPU_MEMORY_INFO_DEDICATED_VIDMEM_NVX, &mem);
-//    CLog::Log(LOGINFO, "GL_GPU_MEMORY_INFO_DEDICATED_VIDMEM_NVX = {}", mem);
-//  }
-//
-//  std::string extensions = "";
-//  const char* extension = reinterpret_cast<const char*>(glGetString(GL_EXTENSIONS));
-//  if (extension)
-//    extensions += extension;
-//
-//  if (!extensions.empty())
-//    CLog::Log(LOGINFO, "GL_EXTENSIONS = {}", extensions);
-//  else
-//    CLog::Log(LOGINFO, "GL_EXTENSIONS = NULL");
+  //  const char* s;
+  //
+  //  s = reinterpret_cast<const char*>(glGetString(GL_VENDOR));
+  //  if (s)
+  //    CLog::Log(LOGINFO, "GL_VENDOR = {}", s);
+  //  else
+  //    CLog::Log(LOGINFO, "GL_VENDOR = NULL");
+  //
+  //  s = reinterpret_cast<const char*>(glGetString(GL_RENDERER));
+  //  if (s)
+  //    CLog::Log(LOGINFO, "GL_RENDERER = {}", s);
+  //  else
+  //    CLog::Log(LOGINFO, "GL_RENDERER = NULL");
+  //
+  //  s = reinterpret_cast<const char*>(glGetString(GL_VERSION));
+  //  if (s)
+  //    CLog::Log(LOGINFO, "GL_VERSION = {}", s);
+  //  else
+  //    CLog::Log(LOGINFO, "GL_VERSION = NULL");
+  //
+  //  s = reinterpret_cast<const char*>(glGetString(GL_SHADING_LANGUAGE_VERSION));
+  //  if (s)
+  //    CLog::Log(LOGINFO, "GL_SHADING_LANGUAGE_VERSION = {}", s);
+  //  else
+  //    CLog::Log(LOGINFO, "GL_SHADING_LANGUAGE_VERSION = NULL");
+  //
+  //  //GL_NVX_gpu_memory_info extension
+  //#define GL_GPU_MEMORY_INFO_DEDICATED_VIDMEM_NVX 0x9047
+  //#define GL_GPU_MEMORY_INFO_TOTAL_AVAILABLE_MEMORY_NVX 0x9048
+  //#define GL_GPU_MEMORY_INFO_CURRENT_AVAILABLE_VIDMEM_NVX 0x9049
+  //#define GL_GPU_MEMORY_INFO_EVICTION_COUNT_NVX 0x904A
+  //#define GL_GPU_MEMORY_INFO_EVICTED_MEMORY_NVX 0x904B
+  //
+  //  if (CVulkanExtensions::IsExtensionSupported(CVulkanExtensions::NVX_gpu_memory_info))
+  //  {
+  //    GLint mem = 0;
+  //
+  //    glGetIntegerv(GL_GPU_MEMORY_INFO_TOTAL_AVAILABLE_MEMORY_NVX, &mem);
+  //    CLog::Log(LOGINFO, "GL_GPU_MEMORY_INFO_TOTAL_AVAILABLE_MEMORY_NVX = {}", mem);
+  //
+  //    //this seems to be the amount of ram on the videocard
+  //    glGetIntegerv(GL_GPU_MEMORY_INFO_DEDICATED_VIDMEM_NVX, &mem);
+  //    CLog::Log(LOGINFO, "GL_GPU_MEMORY_INFO_DEDICATED_VIDMEM_NVX = {}", mem);
+  //  }
+  //
+  //  std::string extensions = "";
+  //  const char* extension = reinterpret_cast<const char*>(glGetString(GL_EXTENSIONS));
+  //  if (extension)
+  //    extensions += extension;
+  //
+  //  if (!extensions.empty())
+  //    CLog::Log(LOGINFO, "GL_EXTENSIONS = {}", extensions);
+  //  else
+  //    CLog::Log(LOGINFO, "GL_EXTENSIONS = NULL");
 }
 
 //int KODI::UTILS::VULKAN::vulkanFormatElementByteCount(GLenum format)

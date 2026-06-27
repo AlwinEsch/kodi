@@ -30,14 +30,20 @@ namespace VULKAN
 
 constexpr uint32_t RequiredApiVersion = VK_API_VERSION_1_1;
 
-//void vulkanErrorCallback(GLenum source,
-//                         GLenum type,
-//                         GLuint id,
-//                         GLenum severity,
-//                         GLsizei length,
-//                         const GLchar* message,
-//                         const void* userParam);
-//
+/*!
+ * @brief Error callback function for Vulkan validation layers.
+ *
+ * See https://docs.vulkan.org/refpages/latest/refpages/source/PFN_vkDebugReportCallbackEXT.html
+ */
+VkBool32 vulkanErrorCallback(VkDebugReportFlagsEXT flags,
+                             VkDebugReportObjectTypeEXT objectType,
+                             uint64_t object,
+                             size_t location,
+                             int32_t messageCode,
+                             const char* pLayerPrefix,
+                             const char* pMessage,
+                             void* pUserData);
+
 //int vulkanFormatElementByteCount(GLenum format);
 //
 enum class ColorChannel
