@@ -20,9 +20,9 @@ class CShaderTextureVulkan : public IShaderTexture
 public:
   CShaderTextureVulkan(uint32_t textureWidth,
                      uint32_t textureHeight,
-                     GLuint pixelType,
-                     GLuint internalFormat,
-                     GLuint pixelFormat,
+                     unsigned int pixelType,
+                     unsigned int internalFormat,
+                     unsigned int pixelFormat,
                      bool bUseAlpha);
   ~CShaderTextureVulkan() override;
 
@@ -40,7 +40,7 @@ public:
   void CreateTexture();
   void DeleteTexture();
   void BindToUnit(unsigned int unit);
-  GLuint GetTextureID() const { return m_texture; }
+  //GLuint GetTextureID() const { return m_texture; }
 
   void SetSRGBFramebuffer() { m_sRgbFramebuffer = true; }
   bool IsSRGBFramebuffer() const { return m_sRgbFramebuffer; }
@@ -56,16 +56,16 @@ public:
 
 private:
   // Construction parameters
-  const uint32_t m_textureWidth;
-  const uint32_t m_textureHeight;
-  const GLuint m_pixelType;
-  const GLuint m_internalFormat;
-  const GLuint m_pixelFormat;
+  const unsigned int m_textureWidth;
+  const unsigned int m_textureHeight;
+  const unsigned int m_pixelType;
+  const unsigned int m_internalFormat;
+  const unsigned int m_pixelFormat;
   const bool m_useAlpha;
 
-  const GLenum m_textureTarget = GL_TEXTURE_2D; //! @todo
-  GLuint m_texture{0};
-  GLuint m_FBO{0};
+  //const GLenum m_textureTarget = GL_TEXTURE_2D; //! @todo
+  unsigned int m_texture{0};
+  unsigned int m_FBO{0};
   bool m_sRgbFramebuffer{false};
   bool m_mipmapping{false};
 };

@@ -14,16 +14,16 @@
 #include <array>
 #include <memory>
 
-namespace KODI
-{
-namespace UTILS
-{
-namespace EGL
-{
-class CEGLFence;
-}
-}
-}
+//namespace KODI
+//{
+//namespace UTILS
+//{
+//namespace EGL
+//{
+//class CEGLFence;
+//}
+//}
+//}
 
 namespace VAAPI
 {
@@ -37,7 +37,7 @@ public:
   ~CRendererVAAPIVulkan() override;
 
   static CBaseRenderer* Create(CVideoBuffer *buffer);
-  static void Register(VAAPI::IVaapiWinSystem *winSystem, VADisplay vaDpy, EGLDisplay eglDisplay, bool &general, bool &deepColor);
+  //static void Register(VAAPI::IVaapiWinSystem *winSystem, VADisplay vaDpy, EGLDisplay eglDisplay, bool &general, bool &deepColor);
 
   bool Configure(const VideoPicture &picture, float fps, unsigned int orientation) override;
 
@@ -65,6 +65,6 @@ protected:
   // GetShaderFormat to pick the matching sampling path.
   std::int32_t m_vaapiFourcc{};
   std::unique_ptr<VAAPI::CVaapiTexture> m_vaapiTextures[NUM_BUFFERS];
-  std::array<std::unique_ptr<KODI::UTILS::EGL::CEGLFence>, NUM_BUFFERS> m_fences;
+  //std::array<std::unique_ptr<KODI::UTILS::EGL::CEGLFence>, NUM_BUFFERS> m_fences;
   static VAAPI::IVaapiWinSystem *m_pWinSystem;
 };

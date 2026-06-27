@@ -41,26 +41,26 @@ bool CShaderLutVulkan::Create(const ShaderLut& lut)
 std::unique_ptr<CTexture> CShaderLutVulkan::CreateLUTTexture(const ShaderLut& lut)
 {
   std::unique_ptr<CTexture> texture = CTexture::LoadFromFile(lut.path);
-  auto* textureGL = static_cast<CVulkanTexture*>(texture.get());
+  //auto* textureGL = static_cast<CVulkanTexture*>(texture.get());
 
-  if (textureGL == nullptr)
-  {
-    CLog::Log(LOGERROR, "CShaderLutVulkan::CreateLUTTexture: Couldn't open LUT: {}", lut.path);
-    return std::unique_ptr<CTexture>();
-  }
+  //if (textureGL == nullptr)
+  //{
+  //  CLog::Log(LOGERROR, "CShaderLutVulkan::CreateLUTTexture: Couldn't open LUT: {}", lut.path);
+  //  return std::unique_ptr<CTexture>();
+  //}
 
-  if (lut.mipmap)
-    textureGL->SetMipmapping();
+  //if (lut.mipmap)
+  //  textureGL->SetMipmapping();
 
-  textureGL->SetScalingMethod(lut.filterType == FilterType::LINEAR ? TEXTURE_SCALING::LINEAR
-                                                                   : TEXTURE_SCALING::NEAREST);
-  textureGL->LoadToGPU();
+  //textureGL->SetScalingMethod(lut.filterType == FilterType::LINEAR ? TEXTURE_SCALING::LINEAR
+  //                                                                 : TEXTURE_SCALING::NEAREST);
+  //textureGL->LoadToGPU();
 
-  const GLint wrapType = CShaderUtilsVulkan::TranslateWrapType(lut.wrapType);
+  //const GLint wrapType = CShaderUtilsVulkan::TranslateWrapType(lut.wrapType);
 
-  glBindTexture(GL_TEXTURE_2D, textureGL->GetTextureID());
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, wrapType);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, wrapType);
+  //glBindTexture(GL_TEXTURE_2D, textureGL->GetTextureID());
+  //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, wrapType);
+  //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, wrapType);
 
   return texture;
 }

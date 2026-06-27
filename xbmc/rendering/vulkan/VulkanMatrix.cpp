@@ -42,14 +42,14 @@ void CVulkanMatrix::LoadIdentity()
   m_pMatrix[3] = 0.0f;  m_pMatrix[7] = 0.0f;  m_pMatrix[11] = 0.0f;  m_pMatrix[15] = 1.0f;
 }
 
-void CVulkanMatrix::Ortho(GLfloat l, GLfloat r, GLfloat b, GLfloat t, GLfloat n, GLfloat f)
+void CVulkanMatrix::Ortho(float l, float r, float b, float t, float n, float f)
 {
-  GLfloat u =  2.0f / (r - l);
-  GLfloat v =  2.0f / (t - b);
-  GLfloat w = -2.0f / (f - n);
-  GLfloat x = - (r + l) / (r - l);
-  GLfloat y = - (t + b) / (t - b);
-  GLfloat z = - (f + n) / (f - n);
+  float u =  2.0f / (r - l);
+  float v =  2.0f / (t - b);
+  float w = -2.0f / (f - n);
+  float x = - (r + l) / (r - l);
+  float y = - (t + b) / (t - b);
+  float z = - (f + n) / (f - n);
   const CVulkanMatrix matrix{   u, 0.0f, 0.0f, 0.0f,
                          0.0f,    v, 0.0f, 0.0f,
                          0.0f, 0.0f,    w, 0.0f,
@@ -57,12 +57,12 @@ void CVulkanMatrix::Ortho(GLfloat l, GLfloat r, GLfloat b, GLfloat t, GLfloat n,
   MultMatrixf(matrix);
 }
 
-void CVulkanMatrix::Ortho2D(GLfloat l, GLfloat r, GLfloat b, GLfloat t)
+void CVulkanMatrix::Ortho2D(float l, float r, float b, float t)
 {
-  GLfloat u =  2.0f / (r - l);
-  GLfloat v =  2.0f / (t - b);
-  GLfloat x = - (r + l) / (r - l);
-  GLfloat y = - (t + b) / (t - b);
+  float u =  2.0f / (r - l);
+  float v =  2.0f / (t - b);
+  float x = - (r + l) / (r - l);
+  float y = - (t + b) / (t - b);
   const CVulkanMatrix matrix{   u, 0.0f, 0.0f, 0.0f,
                          0.0f,    v, 0.0f, 0.0f,
                          0.0f, 0.0f,-1.0f, 0.0f,
@@ -70,14 +70,14 @@ void CVulkanMatrix::Ortho2D(GLfloat l, GLfloat r, GLfloat b, GLfloat t)
   MultMatrixf(matrix);
 }
 
-void CVulkanMatrix::Frustum(GLfloat l, GLfloat r, GLfloat b, GLfloat t, GLfloat n, GLfloat f)
+void CVulkanMatrix::Frustum(float l, float r, float b, float t, float n, float f)
 {
-  GLfloat u = (2.0f * n) / (r - l);
-  GLfloat v = (2.0f * n) / (t - b);
-  GLfloat w = (r + l) / (r - l);
-  GLfloat x = (t + b) / (t - b);
-  GLfloat y = - (f + n) / (f - n);
-  GLfloat z = - (2.0f * f * n) / (f - n);
+  float u = (2.0f * n) / (r - l);
+  float v = (2.0f * n) / (t - b);
+  float w = (r + l) / (r - l);
+  float x = (t + b) / (t - b);
+  float y = - (f + n) / (f - n);
+  float z = - (2.0f * f * n) / (f - n);
   const CVulkanMatrix matrix{   u, 0.0f, 0.0f, 0.0f,
                          0.0f,    v, 0.0f, 0.0f,
                             w,    x,    y,-1.0f,
@@ -85,7 +85,7 @@ void CVulkanMatrix::Frustum(GLfloat l, GLfloat r, GLfloat b, GLfloat t, GLfloat 
   MultMatrixf(matrix);
 }
 
-void CVulkanMatrix::Translatef(GLfloat x, GLfloat y, GLfloat z)
+void CVulkanMatrix::Translatef(float x, float y, float z)
 {
   const CVulkanMatrix matrix{1.0f, 0.0f, 0.0f, 0.0f,
                          0.0f, 1.0f, 0.0f, 0.0f,
@@ -94,7 +94,7 @@ void CVulkanMatrix::Translatef(GLfloat x, GLfloat y, GLfloat z)
   MultMatrixf(matrix);
 }
 
-void CVulkanMatrix::Scalef(GLfloat x, GLfloat y, GLfloat z)
+void CVulkanMatrix::Scalef(float x, float y, float z)
 {
   const CVulkanMatrix matrix{   x, 0.0f, 0.0f, 0.0f,
                          0.0f,    y, 0.0f, 0.0f,
@@ -103,27 +103,27 @@ void CVulkanMatrix::Scalef(GLfloat x, GLfloat y, GLfloat z)
   MultMatrixf(matrix);
 }
 
-void CVulkanMatrix::Rotatef(GLfloat angle, GLfloat x, GLfloat y, GLfloat z)
+void CVulkanMatrix::Rotatef(float angle, float x, float y, float z)
 {
-  GLfloat modulus = std::sqrt((x*x)+(y*y)+(z*z));
+  float modulus = std::sqrt((x*x)+(y*y)+(z*z));
   if (modulus != 0.0f)
   {
     x /= modulus;
     y /= modulus;
     z /= modulus;
   }
-  GLfloat cosine = std::cos(angle);
-  GLfloat sine   = std::sin(angle);
-  GLfloat cos1   = 1 - cosine;
-  GLfloat a = (x*x*cos1) + cosine;
-  GLfloat b = (x*y*cos1) - (z*sine);
-  GLfloat c = (x*z*cos1) + (y*sine);
-  GLfloat d = (y*x*cos1) + (z*sine);
-  GLfloat e = (y*y*cos1) + cosine;
-  GLfloat f = (y*z*cos1) - (x*sine);
-  GLfloat g = (z*x*cos1) - (y*sine);
-  GLfloat h = (z*y*cos1) + (x*sine);
-  GLfloat i = (z*z*cos1) + cosine;
+  float cosine = std::cos(angle);
+  float sine   = std::sin(angle);
+  float cos1   = 1 - cosine;
+  float a = (x*x*cos1) + cosine;
+  float b = (x*y*cos1) - (z*sine);
+  float c = (x*z*cos1) + (y*sine);
+  float d = (y*x*cos1) + (z*sine);
+  float e = (y*y*cos1) + cosine;
+  float f = (y*z*cos1) - (x*sine);
+  float g = (z*x*cos1) - (y*sine);
+  float h = (z*y*cos1) + (x*sine);
+  float i = (z*z*cos1) + cosine;
   const CVulkanMatrix matrix{   a,    d,    g, 0.0f,
                             b,    e,    h, 0.0f,
                             c,    f,    i, 0.0f,
@@ -140,22 +140,22 @@ void CVulkanMatrix::MultMatrixf(const CVulkanMatrix &matrix) noexcept
     return;
   }
 #endif
-    GLfloat a = (matrix.m_pMatrix[0]  * m_pMatrix[0]) + (matrix.m_pMatrix[1]  * m_pMatrix[4]) + (matrix.m_pMatrix[2]  * m_pMatrix[8])  + (matrix.m_pMatrix[3]  * m_pMatrix[12]);
-    GLfloat b = (matrix.m_pMatrix[0]  * m_pMatrix[1]) + (matrix.m_pMatrix[1]  * m_pMatrix[5]) + (matrix.m_pMatrix[2]  * m_pMatrix[9])  + (matrix.m_pMatrix[3]  * m_pMatrix[13]);
-    GLfloat c = (matrix.m_pMatrix[0]  * m_pMatrix[2]) + (matrix.m_pMatrix[1]  * m_pMatrix[6]) + (matrix.m_pMatrix[2]  * m_pMatrix[10]) + (matrix.m_pMatrix[3]  * m_pMatrix[14]);
-    GLfloat d = (matrix.m_pMatrix[0]  * m_pMatrix[3]) + (matrix.m_pMatrix[1]  * m_pMatrix[7]) + (matrix.m_pMatrix[2]  * m_pMatrix[11]) + (matrix.m_pMatrix[3]  * m_pMatrix[15]);
-    GLfloat e = (matrix.m_pMatrix[4]  * m_pMatrix[0]) + (matrix.m_pMatrix[5]  * m_pMatrix[4]) + (matrix.m_pMatrix[6]  * m_pMatrix[8])  + (matrix.m_pMatrix[7]  * m_pMatrix[12]);
-    GLfloat f = (matrix.m_pMatrix[4]  * m_pMatrix[1]) + (matrix.m_pMatrix[5]  * m_pMatrix[5]) + (matrix.m_pMatrix[6]  * m_pMatrix[9])  + (matrix.m_pMatrix[7]  * m_pMatrix[13]);
-    GLfloat g = (matrix.m_pMatrix[4]  * m_pMatrix[2]) + (matrix.m_pMatrix[5]  * m_pMatrix[6]) + (matrix.m_pMatrix[6]  * m_pMatrix[10]) + (matrix.m_pMatrix[7]  * m_pMatrix[14]);
-    GLfloat h = (matrix.m_pMatrix[4]  * m_pMatrix[3]) + (matrix.m_pMatrix[5]  * m_pMatrix[7]) + (matrix.m_pMatrix[6]  * m_pMatrix[11]) + (matrix.m_pMatrix[7]  * m_pMatrix[15]);
-    GLfloat i = (matrix.m_pMatrix[8]  * m_pMatrix[0]) + (matrix.m_pMatrix[9]  * m_pMatrix[4]) + (matrix.m_pMatrix[10] * m_pMatrix[8])  + (matrix.m_pMatrix[11] * m_pMatrix[12]);
-    GLfloat j = (matrix.m_pMatrix[8]  * m_pMatrix[1]) + (matrix.m_pMatrix[9]  * m_pMatrix[5]) + (matrix.m_pMatrix[10] * m_pMatrix[9])  + (matrix.m_pMatrix[11] * m_pMatrix[13]);
-    GLfloat k = (matrix.m_pMatrix[8]  * m_pMatrix[2]) + (matrix.m_pMatrix[9]  * m_pMatrix[6]) + (matrix.m_pMatrix[10] * m_pMatrix[10]) + (matrix.m_pMatrix[11] * m_pMatrix[14]);
-    GLfloat l = (matrix.m_pMatrix[8]  * m_pMatrix[3]) + (matrix.m_pMatrix[9]  * m_pMatrix[7]) + (matrix.m_pMatrix[10] * m_pMatrix[11]) + (matrix.m_pMatrix[11] * m_pMatrix[15]);
-    GLfloat m = (matrix.m_pMatrix[12] * m_pMatrix[0]) + (matrix.m_pMatrix[13] * m_pMatrix[4]) + (matrix.m_pMatrix[14] * m_pMatrix[8])  + (matrix.m_pMatrix[15] * m_pMatrix[12]);
-    GLfloat n = (matrix.m_pMatrix[12] * m_pMatrix[1]) + (matrix.m_pMatrix[13] * m_pMatrix[5]) + (matrix.m_pMatrix[14] * m_pMatrix[9])  + (matrix.m_pMatrix[15] * m_pMatrix[13]);
-    GLfloat o = (matrix.m_pMatrix[12] * m_pMatrix[2]) + (matrix.m_pMatrix[13] * m_pMatrix[6]) + (matrix.m_pMatrix[14] * m_pMatrix[10]) + (matrix.m_pMatrix[15] * m_pMatrix[14]);
-    GLfloat p = (matrix.m_pMatrix[12] * m_pMatrix[3]) + (matrix.m_pMatrix[13] * m_pMatrix[7]) + (matrix.m_pMatrix[14] * m_pMatrix[11]) + (matrix.m_pMatrix[15] * m_pMatrix[15]);
+    float a = (matrix.m_pMatrix[0]  * m_pMatrix[0]) + (matrix.m_pMatrix[1]  * m_pMatrix[4]) + (matrix.m_pMatrix[2]  * m_pMatrix[8])  + (matrix.m_pMatrix[3]  * m_pMatrix[12]);
+    float b = (matrix.m_pMatrix[0]  * m_pMatrix[1]) + (matrix.m_pMatrix[1]  * m_pMatrix[5]) + (matrix.m_pMatrix[2]  * m_pMatrix[9])  + (matrix.m_pMatrix[3]  * m_pMatrix[13]);
+    float c = (matrix.m_pMatrix[0]  * m_pMatrix[2]) + (matrix.m_pMatrix[1]  * m_pMatrix[6]) + (matrix.m_pMatrix[2]  * m_pMatrix[10]) + (matrix.m_pMatrix[3]  * m_pMatrix[14]);
+    float d = (matrix.m_pMatrix[0]  * m_pMatrix[3]) + (matrix.m_pMatrix[1]  * m_pMatrix[7]) + (matrix.m_pMatrix[2]  * m_pMatrix[11]) + (matrix.m_pMatrix[3]  * m_pMatrix[15]);
+    float e = (matrix.m_pMatrix[4]  * m_pMatrix[0]) + (matrix.m_pMatrix[5]  * m_pMatrix[4]) + (matrix.m_pMatrix[6]  * m_pMatrix[8])  + (matrix.m_pMatrix[7]  * m_pMatrix[12]);
+    float f = (matrix.m_pMatrix[4]  * m_pMatrix[1]) + (matrix.m_pMatrix[5]  * m_pMatrix[5]) + (matrix.m_pMatrix[6]  * m_pMatrix[9])  + (matrix.m_pMatrix[7]  * m_pMatrix[13]);
+    float g = (matrix.m_pMatrix[4]  * m_pMatrix[2]) + (matrix.m_pMatrix[5]  * m_pMatrix[6]) + (matrix.m_pMatrix[6]  * m_pMatrix[10]) + (matrix.m_pMatrix[7]  * m_pMatrix[14]);
+    float h = (matrix.m_pMatrix[4]  * m_pMatrix[3]) + (matrix.m_pMatrix[5]  * m_pMatrix[7]) + (matrix.m_pMatrix[6]  * m_pMatrix[11]) + (matrix.m_pMatrix[7]  * m_pMatrix[15]);
+    float i = (matrix.m_pMatrix[8]  * m_pMatrix[0]) + (matrix.m_pMatrix[9]  * m_pMatrix[4]) + (matrix.m_pMatrix[10] * m_pMatrix[8])  + (matrix.m_pMatrix[11] * m_pMatrix[12]);
+    float j = (matrix.m_pMatrix[8]  * m_pMatrix[1]) + (matrix.m_pMatrix[9]  * m_pMatrix[5]) + (matrix.m_pMatrix[10] * m_pMatrix[9])  + (matrix.m_pMatrix[11] * m_pMatrix[13]);
+    float k = (matrix.m_pMatrix[8]  * m_pMatrix[2]) + (matrix.m_pMatrix[9]  * m_pMatrix[6]) + (matrix.m_pMatrix[10] * m_pMatrix[10]) + (matrix.m_pMatrix[11] * m_pMatrix[14]);
+    float l = (matrix.m_pMatrix[8]  * m_pMatrix[3]) + (matrix.m_pMatrix[9]  * m_pMatrix[7]) + (matrix.m_pMatrix[10] * m_pMatrix[11]) + (matrix.m_pMatrix[11] * m_pMatrix[15]);
+    float m = (matrix.m_pMatrix[12] * m_pMatrix[0]) + (matrix.m_pMatrix[13] * m_pMatrix[4]) + (matrix.m_pMatrix[14] * m_pMatrix[8])  + (matrix.m_pMatrix[15] * m_pMatrix[12]);
+    float n = (matrix.m_pMatrix[12] * m_pMatrix[1]) + (matrix.m_pMatrix[13] * m_pMatrix[5]) + (matrix.m_pMatrix[14] * m_pMatrix[9])  + (matrix.m_pMatrix[15] * m_pMatrix[13]);
+    float o = (matrix.m_pMatrix[12] * m_pMatrix[2]) + (matrix.m_pMatrix[13] * m_pMatrix[6]) + (matrix.m_pMatrix[14] * m_pMatrix[10]) + (matrix.m_pMatrix[15] * m_pMatrix[14]);
+    float p = (matrix.m_pMatrix[12] * m_pMatrix[3]) + (matrix.m_pMatrix[13] * m_pMatrix[7]) + (matrix.m_pMatrix[14] * m_pMatrix[11]) + (matrix.m_pMatrix[15] * m_pMatrix[15]);
     m_pMatrix[0] = a;  m_pMatrix[4] = e;  m_pMatrix[8]  = i;  m_pMatrix[12] = m;
     m_pMatrix[1] = b;  m_pMatrix[5] = f;  m_pMatrix[9]  = j;  m_pMatrix[13] = n;
     m_pMatrix[2] = c;  m_pMatrix[6] = g;  m_pMatrix[10] = k;  m_pMatrix[14] = o;
@@ -163,9 +163,9 @@ void CVulkanMatrix::MultMatrixf(const CVulkanMatrix &matrix) noexcept
 }
 
 // gluLookAt implementation taken from Mesa3D
-void CVulkanMatrix::LookAt(GLfloat eyex, GLfloat eyey, GLfloat eyez, GLfloat centerx, GLfloat centery, GLfloat centerz, GLfloat upx, GLfloat upy, GLfloat upz)
+void CVulkanMatrix::LookAt(float eyex, float eyey, float eyez, float centerx, float centery, float centerz, float upx, float upy, float upz)
 {
-  GLfloat forward[3], side[3], up[3];
+  float forward[3], side[3], up[3];
 
   forward[0] = centerx - eyex;
   forward[1] = centery - eyey;
@@ -175,7 +175,7 @@ void CVulkanMatrix::LookAt(GLfloat eyex, GLfloat eyey, GLfloat eyez, GLfloat cen
   up[1] = upy;
   up[2] = upz;
 
-  GLfloat tmp = std::sqrt(forward[0]*forward[0] + forward[1]*forward[1] + forward[2]*forward[2]);
+  float tmp = std::sqrt(forward[0]*forward[0] + forward[1]*forward[1] + forward[2]*forward[2]);
   if (tmp != 0.0f)
   {
     forward[0] /= tmp;
@@ -210,7 +210,7 @@ void CVulkanMatrix::LookAt(GLfloat eyex, GLfloat eyey, GLfloat eyez, GLfloat cen
   Translatef(-eyex, -eyey, -eyez);
 }
 
-static void __gluMultMatrixVecf(const GLfloat matrix[16], const GLfloat in[4], GLfloat out[4])
+static void __gluMultMatrixVecf(const float matrix[16], const float in[4], float out[4])
 {
   int i;
 
@@ -224,10 +224,10 @@ static void __gluMultMatrixVecf(const GLfloat matrix[16], const GLfloat in[4], G
 }
 
 // gluProject implementation taken from Mesa3D
-bool CVulkanMatrix::Project(GLfloat objx, GLfloat objy, GLfloat objz, const GLfloat modelMatrix[16], const GLfloat projMatrix[16], const GLint viewport[4], GLfloat* winx, GLfloat* winy, GLfloat* winz)
+bool CVulkanMatrix::Project(float objx, float objy, float objz, const float modelMatrix[16], const float projMatrix[16], const GLint viewport[4], float* winx, float* winy, float* winz)
 {
-  GLfloat in[4];
-  GLfloat out[4];
+  float in[4];
+  float out[4];
 
   in[0]=objx;
   in[1]=objy;

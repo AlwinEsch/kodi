@@ -14,7 +14,7 @@ namespace KODI
 {
 namespace RETRO
 {
-class CRPProcessInfoWayland : public CRPProcessInfoEGL
+class CRPProcessInfoWayland : public CRPProcessInfo
 {
 public:
   CRPProcessInfoWayland();

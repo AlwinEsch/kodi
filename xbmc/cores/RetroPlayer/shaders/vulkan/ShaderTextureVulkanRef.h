@@ -23,7 +23,7 @@ namespace KODI::SHADER
 class CShaderTextureVulkanRef : public IShaderTexture
 {
 public:
-  CShaderTextureVulkanRef(uint32_t textureWidth, uint32_t textureHeight, GLuint texture = 0);
+  CShaderTextureVulkanRef(uint32_t textureWidth, uint32_t textureHeight, unsigned int texture = 0);
   ~CShaderTextureVulkanRef() override = default;
 
   // Implementation of IShaderTexture
@@ -32,11 +32,11 @@ public:
 
   // OpenVulkan interface
   void BindToUnit(unsigned int unit);
-  GLuint GetTextureID() const { return m_texture; }
+  unsigned int GetTextureID() const { return m_texture; }
 
 private:
   const uint32_t m_textureWidth;
   const uint32_t m_textureHeight;
-  GLuint m_texture{0};
+  unsigned int m_texture{0};
 };
 } // namespace KODI::SHADER

@@ -23,15 +23,15 @@ CRenderBufferDMA::CRenderBufferDMA(CRenderContext& context, int fourcc)
     m_fourcc(fourcc),
     m_bo(CBufferObject::GetBufferObject(false))
 {
-  auto winSystemEGL =
-      dynamic_cast<KODI::WINDOWING::LINUX::CWinSystemEGL*>(CServiceBroker::GetWinSystem());
+  //auto winSystemEGL =
+  //    dynamic_cast<KODI::WINDOWING::LINUX::CWinSystemEGL*>(CServiceBroker::GetWinSystem());
 
-  if (winSystemEGL == nullptr)
-    throw std::runtime_error("dynamic_cast failed to cast to CWinSystemEGL. This is likely due to "
-                             "a build misconfiguration as DMA can only be used with EGL and "
-                             "specifically platforms that implement CWinSystemEGL");
+  //if (winSystemEGL == nullptr)
+  //  throw std::runtime_error("dynamic_cast failed to cast to CWinSystemEGL. This is likely due to "
+  //                           "a build misconfiguration as DMA can only be used with EGL and "
+  //                           "specifically platforms that implement CWinSystemEGL");
 
-  m_egl = std::make_unique<CEGLImage>(winSystemEGL->GetEGLDisplay());
+  //m_egl = std::make_unique<CEGLImage>(winSystemEGL->GetEGLDisplay());
 
   CLog::Log(LOGDEBUG, "CRenderBufferDMA: using BufferObject type: {}", m_bo->GetName());
 }
@@ -72,61 +72,61 @@ void CRenderBufferDMA::ReleaseMemory()
 
 void CRenderBufferDMA::CreateTexture()
 {
-  glGenTextures(1, &m_textureId);
-
-  glBindTexture(m_textureTarget, m_textureId);
-  glTexParameteri(m_textureTarget, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-  glTexParameteri(m_textureTarget, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-  glTexParameteri(m_textureTarget, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-  glTexParameteri(m_textureTarget, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-
-  // Force alpha to 1, because game client can leave it undefined
-#if defined(HAS_GL) || defined(GL_ES_VERSION_3_0)
-  if (m_fourcc == DRM_FORMAT_ARGB8888 || m_fourcc == DRM_FORMAT_ARGB1555)
-    glTexParameteri(m_textureTarget, GL_TEXTURE_SWIZZLE_A, GL_ONE);
-#endif
-
-  glBindTexture(m_textureTarget, 0);
+//  glGenTextures(1, &m_textureId);
+//
+//  glBindTexture(m_textureTarget, m_textureId);
+//  glTexParameteri(m_textureTarget, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+//  glTexParameteri(m_textureTarget, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+//  glTexParameteri(m_textureTarget, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+//  glTexParameteri(m_textureTarget, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+//
+//  // Force alpha to 1, because game client can leave it undefined
+//#if defined(HAS_GL) || defined(GL_ES_VERSION_3_0)
+//  if (m_fourcc == DRM_FORMAT_ARGB8888 || m_fourcc == DRM_FORMAT_ARGB1555)
+//    glTexParameteri(m_textureTarget, GL_TEXTURE_SWIZZLE_A, GL_ONE);
+//#endif
+//
+//  glBindTexture(m_textureTarget, 0);
 }
 
 bool CRenderBufferDMA::UploadTexture()
 {
-  if (m_bo->GetFd() < 0)
-    return false;
+  //if (m_bo->GetFd() < 0)
+  //  return false;
 
-  if (!glIsTexture(m_textureId))
-    CreateTexture();
+  //if (!glIsTexture(m_textureId))
+  //  CreateTexture();
 
-  glBindTexture(m_textureTarget, m_textureId);
+  //glBindTexture(m_textureTarget, m_textureId);
 
-  std::array<CEGLImage::EglPlane, CEGLImage::MAX_NUM_PLANES> planes;
+  //std::array<CEGLImage::EglPlane, CEGLImage::MAX_NUM_PLANES> planes;
 
-  planes[0].fd = m_bo->GetFd();
-  planes[0].offset = 0;
-  planes[0].pitch = m_bo->GetStride();
-  planes[0].modifier = m_bo->GetModifier();
+  //planes[0].fd = m_bo->GetFd();
+  //planes[0].offset = 0;
+  //planes[0].pitch = m_bo->GetStride();
+  //planes[0].modifier = m_bo->GetModifier();
 
-  CEGLImage::EglAttrs attribs;
+  //CEGLImage::EglAttrs attribs;
 
-  attribs.width = m_width;
-  attribs.height = m_height;
-  attribs.format = m_fourcc;
-  attribs.planes = planes;
+  //attribs.width = m_width;
+  //attribs.height = m_height;
+  //attribs.format = m_fourcc;
+  //attribs.planes = planes;
 
-  if (m_egl->CreateImage(attribs))
-    m_egl->UploadImage(m_textureTarget);
+  //if (m_egl->CreateImage(attribs))
+  //  m_egl->UploadImage(m_textureTarget);
 
-  m_egl->DestroyImage();
+  //m_egl->DestroyImage();
 
-  glBindTexture(m_textureTarget, 0);
+  //glBindTexture(m_textureTarget, 0);
 
   return true;
 }
 
 void CRenderBufferDMA::DeleteTexture()
 {
-  if (glIsTexture(m_textureId))
-    glDeleteTextures(1, &m_textureId);
+  //if (glIsTexture(m_textureId))
+  //  glDeleteTextures(1, &m_textureId);
 
-  m_textureId = 0;
+  //m_textureId = 0;
 }

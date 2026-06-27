@@ -67,9 +67,9 @@ void VAAPIRegister(CVaapiProxy* winSystem, bool deepColor)
 #if defined(HAS_VULKAN)
 void VAAPIRegisterRenderVulkan(CVaapiProxy* winSystem, bool& general, bool& deepColor)
 {
-  EGLDisplay eglDpy = winSystem->eglDisplay;
-  VADisplay vaDpy = vaGetDisplayWl(winSystem->dpy);
-  CRendererVAAPIVulkan::Register(winSystem, vaDpy, eglDpy, general, deepColor);
+  //EGLDisplay eglDpy = winSystem->eglDisplay;
+  //VADisplay vaDpy = vaGetDisplayWl(winSystem->dpy);
+  //CRendererVAAPIVulkan::Register(winSystem, vaDpy, eglDpy, general, deepColor);
 }
 #endif
 

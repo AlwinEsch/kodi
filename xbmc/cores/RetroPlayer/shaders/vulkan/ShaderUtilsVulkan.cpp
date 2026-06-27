@@ -13,28 +13,29 @@
 
 using namespace KODI::SHADER;
 
-GLint CShaderUtilsVulkan::TranslateWrapType(WrapType wrapType)
+int CShaderUtilsVulkan::TranslateWrapType(WrapType wrapType)
 {
-  GLint glWrap;
+  //GLint glWrap;
 
-  switch (wrapType)
-  {
-    case WrapType::EDGE:
-      glWrap = GL_CLAMP_TO_EDGE;
-      break;
-    case WrapType::REPEAT:
-      glWrap = GL_REPEAT;
-      break;
-    case WrapType::MIRRORED_REPEAT:
-      glWrap = GL_MIRRORED_REPEAT;
-      break;
-    case WrapType::BORDER:
-    default:
-      glWrap = GL_CLAMP_TO_EDGE;
-      break;
-  }
+  //switch (wrapType)
+  //{
+  //  case WrapType::EDGE:
+  //    glWrap = GL_CLAMP_TO_EDGE;
+  //    break;
+  //  case WrapType::REPEAT:
+  //    glWrap = GL_REPEAT;
+  //    break;
+  //  case WrapType::MIRRORED_REPEAT:
+  //    glWrap = GL_MIRRORED_REPEAT;
+  //    break;
+  //  case WrapType::BORDER:
+  //  default:
+  //    glWrap = GL_CLAMP_TO_EDGE;
+  //    break;
+  //}
 
-  return glWrap;
+  //return glWrap;
+  return 0;
 }
 
 std::string CShaderUtilsVulkan::GetGLSLVersion(std::string& source)
@@ -42,53 +43,53 @@ std::string CShaderUtilsVulkan::GetGLSLVersion(std::string& source)
   unsigned int version;
   std::string versionString;
 
-  const size_t sourceVersionPosition = source.find("#version ");
+  //const size_t sourceVersionPosition = source.find("#version ");
 
-  // Extract the version from the source
-  if (sourceVersionPosition != std::string::npos)
-  {
-    size_t sourceVersionSize;
-    std::string sourceVersion = source.substr(sourceVersionPosition + 9);
+  //// Extract the version from the source
+  //if (sourceVersionPosition != std::string::npos)
+  //{
+  //  size_t sourceVersionSize;
+  //  std::string sourceVersion = source.substr(sourceVersionPosition + 9);
 
-    if (std::isdigit(sourceVersion.at(0)))
-    {
-      version = std::stoul(sourceVersion, &sourceVersionSize, 10);
+  //  if (std::isdigit(sourceVersion.at(0)))
+  //  {
+  //    version = std::stoul(sourceVersion, &sourceVersionSize, 10);
 
-      // Keep only source code after the version define
-      source = sourceVersion.substr(sourceVersionSize);
-    }
-    else
-    {
-      return "\n";
-    }
+  //    // Keep only source code after the version define
+  //    source = sourceVersion.substr(sourceVersionSize);
+  //  }
+  //  else
+  //  {
+  //    return "\n";
+  //  }
 
-    if (version >= 130 && version < 330)
-      versionString = "300 es";
-    else if (version == 330)
-      versionString = "310 es";
-    else if (version > 330)
-      versionString = "320 es";
-    else
-      versionString = "100";
+  //  if (version >= 130 && version < 330)
+  //    versionString = "300 es";
+  //  else if (version == 330)
+  //    versionString = "310 es";
+  //  else if (version > 330)
+  //    versionString = "320 es";
+  //  else
+  //    versionString = "100";
 
-    versionString = "#version " + versionString + "\n";
-  }
-  // Set GLSL version according to GL version
-  else
-  {
-    unsigned int major{0};
-    unsigned int minor{0};
-    CServiceBroker::GetRenderSystem()->GetRenderVersion(major, minor);
-    version = major * 100 + minor * 10;
+  //  versionString = "#version " + versionString + "\n";
+  //}
+  //// Set GLSL version according to GL version
+  //else
+  //{
+  //  unsigned int major{0};
+  //  unsigned int minor{0};
+  //  CServiceBroker::GetRenderSystem()->GetRenderVersion(major, minor);
+  //  version = major * 100 + minor * 10;
 
-    if (version == 200)
-      versionString = "100";
-    else
-      versionString = std::to_string(version) + " es";
+  //  if (version == 200)
+  //    versionString = "100";
+  //  else
+  //    versionString = std::to_string(version) + " es";
 
-    // Do not force GLSL version for OpenGL ES
-    //versionString = "#version " + versionString + "\n";
-    versionString = "\n";
-  }
+  //  // Do not force GLSL version for OpenGL ES
+  //  //versionString = "#version " + versionString + "\n";
+  //  versionString = "\n";
+  //}
   return versionString;
 }

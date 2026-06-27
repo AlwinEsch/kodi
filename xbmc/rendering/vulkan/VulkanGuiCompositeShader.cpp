@@ -42,101 +42,101 @@ float SRGBToLinear(float v)
 
 CVulkanGuiCompositeShader::CVulkanGuiCompositeShader(const std::string& prefix)
 {
-  VertexShader()->LoadSource("vulkan_gui_composite.vert", prefix);
-  PixelShader()->LoadSource("vulkan_gui_composite.frag", prefix);
+  //VertexShader()->LoadSource("vulkan_gui_composite.vert", prefix);
+  //PixelShader()->LoadSource("vulkan_gui_composite.frag", prefix);
 }
 
 CVulkanGuiCompositeShader::~CVulkanGuiCompositeShader()
 {
-  if (m_lutDegammaTexId)
-    glDeleteTextures(1, &m_lutDegammaTexId);
-  if (m_lutTFTexId)
-    glDeleteTextures(1, &m_lutTFTexId);
+  //if (m_lutDegammaTexId)
+  //  glDeleteTextures(1, &m_lutDegammaTexId);
+  //if (m_lutTFTexId)
+  //  glDeleteTextures(1, &m_lutTFTexId);
 }
 
 void CVulkanGuiCompositeShader::OnCompiledAndLinked()
 {
-  m_hPos = glGetAttribLocation(ProgramHandle(), "a_pos");
-  m_hTex = glGetAttribLocation(ProgramHandle(), "a_tex");
-  m_hSamp = glGetUniformLocation(ProgramHandle(), "u_samp");
-  m_hLutDegamma = glGetUniformLocation(ProgramHandle(), "u_lutDegamma");
-  m_hLutTF = glGetUniformLocation(ProgramHandle(), "u_lutTF");
-  m_hProj = glGetUniformLocation(ProgramHandle(), "u_proj");
-  m_hOotfGamma = glGetUniformLocation(ProgramHandle(), "u_ootfGamma");
-  glUseProgram(ProgramHandle());
-  glUniform1i(m_hSamp, 0);
-  glUniform1i(m_hLutDegamma, 1);
-  glUniform1i(m_hLutTF, 2);
-  glUseProgram(0);
+  //m_hPos = glGetAttribLocation(ProgramHandle(), "a_pos");
+  //m_hTex = glGetAttribLocation(ProgramHandle(), "a_tex");
+  //m_hSamp = glGetUniformLocation(ProgramHandle(), "u_samp");
+  //m_hLutDegamma = glGetUniformLocation(ProgramHandle(), "u_lutDegamma");
+  //m_hLutTF = glGetUniformLocation(ProgramHandle(), "u_lutTF");
+  //m_hProj = glGetUniformLocation(ProgramHandle(), "u_proj");
+  //m_hOotfGamma = glGetUniformLocation(ProgramHandle(), "u_ootfGamma");
+  //glUseProgram(ProgramHandle());
+  //glUniform1i(m_hSamp, 0);
+  //glUniform1i(m_hLutDegamma, 1);
+  //glUniform1i(m_hLutTF, 2);
+  //glUseProgram(0);
 }
 
 bool CVulkanGuiCompositeShader::OnEnabled()
 {
-  if (m_proj)
-    glUniformMatrix4fv(m_hProj, 1, GL_FALSE, m_proj);
+  //if (m_proj)
+  //  glUniformMatrix4fv(m_hProj, 1, GL_FALSE, m_proj);
 
-  glUniform1f(m_hOotfGamma, m_ootfGamma);
+  //glUniform1f(m_hOotfGamma, m_ootfGamma);
 
-  glActiveTexture(GL_TEXTURE1);
-  glBindTexture(GL_TEXTURE_2D, m_lutDegammaTexId);
-  glActiveTexture(GL_TEXTURE2);
-  glBindTexture(GL_TEXTURE_2D, m_lutTFTexId);
-  glActiveTexture(GL_TEXTURE0);
+  //glActiveTexture(GL_TEXTURE1);
+  //glBindTexture(GL_TEXTURE_2D, m_lutDegammaTexId);
+  //glActiveTexture(GL_TEXTURE2);
+  //glBindTexture(GL_TEXTURE_2D, m_lutTFTexId);
+  //glActiveTexture(GL_TEXTURE0);
 
   return true;
 }
 
-GLuint CVulkanGuiCompositeShader::CreateLUTTexture(const std::vector<float>& data)
-{
-  while (glGetError() != GL_NO_ERROR)
-  {
-  }
-
-  GLuint texId;
-  glGenTextures(1, &texId);
-  glBindTexture(GL_TEXTURE_2D, texId);
-
-  // Prefer GL_R16F (Vulkan 3.0 core) over GL_LUMINANCE + GL_FLOAT (Vulkan 2.0).
-  // The Vulkan 3.0 spec tightens format validation for unsized internal formats,
-  // and some drivers (e.g. V3D on RPi5) silently reject GL_LUMINANCE + GL_FLOAT
-  // despite advertising OES_texture_float. GL_R16F avoids this by using a sized
-  // format with well-defined behavior. Half-float precision is sufficient for
-  // a 1024-entry LUT.
-  bool uploaded = false;
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_R16F, data.size(), 1, 0, GL_RED, GL_FLOAT, data.data());
-  if (glGetError() == GL_NO_ERROR)
-  {
-    uploaded = true;
-  }
-  else
-  {
-    while (glGetError() != GL_NO_ERROR)
-    {
-    }
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE, data.size(), 1, 0, GL_LUMINANCE, GL_FLOAT,
-                 data.data());
-    if (glGetError() == GL_NO_ERROR)
-      uploaded = true;
-    else
-      CLog::Log(LOGERROR,
-                "CVulkanGuiCompositeShader::CreateLUTTexture - failed to create {} entry "
-                "LUT texture (GL_R16F and GL_LUMINANCE+GL_FLOAT both failed)",
-                data.size());
-  }
-
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-  glBindTexture(GL_TEXTURE_2D, 0);
-
-  if (!uploaded)
-  {
-    glDeleteTextures(1, &texId);
-    return 0;
-  }
-  return texId;
-}
+//GLuint CVulkanGuiCompositeShader::CreateLUTTexture(const std::vector<float>& data)
+//{
+//  while (glGetError() != GL_NO_ERROR)
+//  {
+//  }
+//
+//  GLuint texId;
+//  glGenTextures(1, &texId);
+//  glBindTexture(GL_TEXTURE_2D, texId);
+//
+//  // Prefer GL_R16F (Vulkan 3.0 core) over GL_LUMINANCE + GL_FLOAT (Vulkan 2.0).
+//  // The Vulkan 3.0 spec tightens format validation for unsized internal formats,
+//  // and some drivers (e.g. V3D on RPi5) silently reject GL_LUMINANCE + GL_FLOAT
+//  // despite advertising OES_texture_float. GL_R16F avoids this by using a sized
+//  // format with well-defined behavior. Half-float precision is sufficient for
+//  // a 1024-entry LUT.
+//  bool uploaded = false;
+//  glTexImage2D(GL_TEXTURE_2D, 0, GL_R16F, data.size(), 1, 0, GL_RED, GL_FLOAT, data.data());
+//  if (glGetError() == GL_NO_ERROR)
+//  {
+//    uploaded = true;
+//  }
+//  else
+//  {
+//    while (glGetError() != GL_NO_ERROR)
+//    {
+//    }
+//    glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE, data.size(), 1, 0, GL_LUMINANCE, GL_FLOAT,
+//                 data.data());
+//    if (glGetError() == GL_NO_ERROR)
+//      uploaded = true;
+//    else
+//      CLog::Log(LOGERROR,
+//                "CVulkanGuiCompositeShader::CreateLUTTexture - failed to create {} entry "
+//                "LUT texture (GL_R16F and GL_LUMINANCE+GL_FLOAT both failed)",
+//                data.size());
+//  }
+//
+//  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+//  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+//  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+//  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+//  glBindTexture(GL_TEXTURE_2D, 0);
+//
+//  if (!uploaded)
+//  {
+//    glDeleteTextures(1, &texId);
+//    return 0;
+//  }
+//  return texId;
+//}
 
 std::vector<float> CVulkanGuiCompositeShader::GenerateDegammaLUT()
 {
@@ -166,42 +166,42 @@ std::vector<float> CVulkanGuiCompositeShader::GeneratePQLUT(float sdrPeak)
 
 bool CVulkanGuiCompositeShader::CreateLUTs(int colorTransfer)
 {
-  if (m_lutDegammaTexId)
-    glDeleteTextures(1, &m_lutDegammaTexId);
-  if (m_lutTFTexId)
-    glDeleteTextures(1, &m_lutTFTexId);
+  //if (m_lutDegammaTexId)
+  //  glDeleteTextures(1, &m_lutDegammaTexId);
+  //if (m_lutTFTexId)
+  //  glDeleteTextures(1, &m_lutTFTexId);
 
-  m_lutDegammaTexId = CreateLUTTexture(GenerateDegammaLUT());
-  if (!m_lutDegammaTexId)
-  {
-    CLog::Log(LOGERROR, "CVulkanGuiCompositeShader::CreateLUTs - failed to create degamma LUT");
-    return false;
-  }
+  //m_lutDegammaTexId = CreateLUTTexture(GenerateDegammaLUT());
+  //if (!m_lutDegammaTexId)
+  //{
+  //  CLog::Log(LOGERROR, "CVulkanGuiCompositeShader::CreateLUTs - failed to create degamma LUT");
+  //  return false;
+  //}
 
-  if (colorTransfer == AVCOL_TRC_SMPTE2084)
-  {
-    m_lutTFTexId = CreateLUTTexture(GeneratePQLUT(m_sdrPeak));
-    if (!m_lutTFTexId)
-    {
-      CLog::Log(LOGERROR, "CVulkanGuiCompositeShader::CreateLUTs - failed to create PQ LUT");
-      return false;
-    }
-    m_ootfGamma = 0.0f;
-    CLog::Log(LOGDEBUG, "CVulkanGuiCompositeShader::CreateLUTs - created PQ LUT ({} entries)",
-              LUT_SIZE);
-  }
-  else if (colorTransfer == AVCOL_TRC_ARIB_STD_B67)
-  {
-    // HLG: no TF LUT needed, shader computes OETF + inverse OOTF directly.
-    // BT.2100: gamma = 1.2 + 0.42 * log10(Lw/1000). For 1000-nit ref: 1.2.
-    m_ootfGamma = 1.2f;
-    CLog::Log(LOGDEBUG, "CVulkanGuiCompositeShader::CreateLUTs - HLG mode (gamma {})", m_ootfGamma);
-  }
-  else
-  {
-    CLog::Log(LOGERROR, "CVulkanGuiCompositeShader::CreateLUTs - unsupported transfer function {}",
-              colorTransfer);
-    return false;
-  }
+  //if (colorTransfer == AVCOL_TRC_SMPTE2084)
+  //{
+  //  m_lutTFTexId = CreateLUTTexture(GeneratePQLUT(m_sdrPeak));
+  //  if (!m_lutTFTexId)
+  //  {
+  //    CLog::Log(LOGERROR, "CVulkanGuiCompositeShader::CreateLUTs - failed to create PQ LUT");
+  //    return false;
+  //  }
+  //  m_ootfGamma = 0.0f;
+  //  CLog::Log(LOGDEBUG, "CVulkanGuiCompositeShader::CreateLUTs - created PQ LUT ({} entries)",
+  //            LUT_SIZE);
+  //}
+  //else if (colorTransfer == AVCOL_TRC_ARIB_STD_B67)
+  //{
+  //  // HLG: no TF LUT needed, shader computes OETF + inverse OOTF directly.
+  //  // BT.2100: gamma = 1.2 + 0.42 * log10(Lw/1000). For 1000-nit ref: 1.2.
+  //  m_ootfGamma = 1.2f;
+  //  CLog::Log(LOGDEBUG, "CVulkanGuiCompositeShader::CreateLUTs - HLG mode (gamma {})", m_ootfGamma);
+  //}
+  //else
+  //{
+  //  CLog::Log(LOGERROR, "CVulkanGuiCompositeShader::CreateLUTs - unsupported transfer function {}",
+  //            colorTransfer);
+  //  return false;
+  //}
   return true;
 }

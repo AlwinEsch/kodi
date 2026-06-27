@@ -38,10 +38,10 @@ private:
   CRenderContext& m_context;
 
   // Configuration parameters
-  GLuint m_pixelType = 0;
-  GLuint m_internalFormat = 0;
-  GLuint m_pixelFormat = 0;
-  GLuint m_bpp = 0;
+  unsigned int m_pixelType = 0;
+  unsigned int m_internalFormat = 0;
+  unsigned int m_pixelFormat = 0;
+  unsigned int m_bpp = 0;
 };
 } // namespace RETRO
 } // namespace KODI

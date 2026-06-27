@@ -19,10 +19,10 @@ class CVulkanMatrix
 public:
   CVulkanMatrix() = default;
 
-  constexpr CVulkanMatrix(GLfloat x0, GLfloat x1, GLfloat x2, GLfloat x3,
-                      GLfloat x4, GLfloat x5, GLfloat x6, GLfloat x7,
-                      GLfloat x8, GLfloat x9, GLfloat x10, GLfloat x11,
-                      GLfloat x12, GLfloat x13, GLfloat x14, GLfloat x15)
+  constexpr CVulkanMatrix(float x0, float x1, float x2, float x3,
+                      float x4, float x5, float x6, float x7,
+                      float x8, float x9, float x10, float x11,
+                      float x12, float x13, float x14, float x15)
     :m_pMatrix{x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11, x12, x13, x14, x15} {}
 
   CVulkanMatrix(const TransformMatrix &src) noexcept;
@@ -30,21 +30,21 @@ public:
   operator const float*() const                { return m_pMatrix; }
 
   void LoadIdentity();
-  void Ortho(GLfloat l, GLfloat r, GLfloat b, GLfloat t, GLfloat n, GLfloat f);
-  void Ortho2D(GLfloat l, GLfloat r, GLfloat b, GLfloat t);
-  void Frustum(GLfloat l, GLfloat r, GLfloat b, GLfloat t, GLfloat n, GLfloat f);
-  void Translatef(GLfloat x, GLfloat y, GLfloat z);
-  void Scalef(GLfloat x, GLfloat y, GLfloat z);
-  void Rotatef(GLfloat angle, GLfloat x, GLfloat y, GLfloat z);
+  void Ortho(float l, float r, float b, float t, float n, float f);
+  void Ortho2D(float l, float r, float b, float t);
+  void Frustum(float l, float r, float b, float t, float n, float f);
+  void Translatef(float x, float y, float z);
+  void Scalef(float x, float y, float z);
+  void Rotatef(float angle, float x, float y, float z);
   void MultMatrixf(const CVulkanMatrix &matrix) noexcept;
-  void LookAt(GLfloat eyex, GLfloat eyey, GLfloat eyez, GLfloat centerx, GLfloat centery, GLfloat centerz, GLfloat upx, GLfloat upy, GLfloat upz);
+  void LookAt(float eyex, float eyey, float eyez, float centerx, float centery, float centerz, float upx, float upy, float upz);
 
-  static bool Project(GLfloat objx, GLfloat objy, GLfloat objz, const GLfloat modelMatrix[16], const GLfloat projMatrix[16], const GLint viewport[4], GLfloat* winx, GLfloat* winy, GLfloat* winz);
+  static bool Project(float objx, float objy, float objz, const float modelMatrix[16], const float projMatrix[16], const GLint viewport[4], float* winx, float* winy, float* winz);
 
 private:
   /* alignas(16) allows better SIMD optimizations (e.g. SSE2 benefits
      a lot from this) */
-  alignas(16) GLfloat m_pMatrix[16];
+  alignas(16) float m_pMatrix[16];
 };
 
 class CVulkanMatrixStack

@@ -254,6 +254,9 @@ bool CVulkanRenderSystem::ClearBuffers(KODI::UTILS::COLOR::Color color)
 
 bool CVulkanRenderSystem::IsExtSupported(const char* extension) const
 {
+  if (!extension)
+    return false;
+
   for (const auto& [extName, specVersion] : m_vulkanExtensions)
   {
     if (extName == extension)
@@ -403,7 +406,7 @@ bool CVulkanRenderSystem::ScissorsCanEffectClipping()
 CRect CVulkanRenderSystem::ClipRectToScissorRect(const CRect& rect)
 {
   //if (!m_pShader[m_method])
-  //  return CRect();
+    return CRect();
   //float xFactor = m_pShader[m_method]->GetClipXFactor();
   //float xOffset = m_pShader[m_method]->GetClipXOffset();
   //float yFactor = m_pShader[m_method]->GetClipYFactor();

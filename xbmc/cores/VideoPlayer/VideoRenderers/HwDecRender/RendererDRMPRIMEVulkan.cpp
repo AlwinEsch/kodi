@@ -28,7 +28,7 @@
 
 #include <memory>
 
-using namespace KODI::UTILS::EGL;
+//using namespace KODI::UTILS::EGL;
 
 CRendererDRMPRIMEVulkan::~CRendererDRMPRIMEVulkan()
 {
@@ -311,7 +311,8 @@ void CRendererDRMPRIMEVulkan::ReleaseBuffer(int index)
 
 bool CRendererDRMPRIMEVulkan::NeedBuffer(int index)
 {
-  return !m_buffers[index].fence->IsSignaled();
+  //return !m_buffers[index].fence->IsSignaled();
+  return false;
 }
 
 CRenderInfo CRendererDRMPRIMEVulkan::GetRenderInfo()

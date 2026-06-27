@@ -11,8 +11,8 @@
 using namespace KODI::SHADER;
 
 CShaderTextureVulkanRef::CShaderTextureVulkanRef(uint32_t textureWidth,
-                                             uint32_t textureHeight,
-                                             GLuint texture)
+                                                 uint32_t textureHeight,
+                                                 unsigned int texture)
   : m_textureWidth(textureWidth),
     m_textureHeight(textureHeight),
     m_texture(texture)
@@ -31,6 +31,6 @@ float CShaderTextureVulkanRef::GetHeight() const
 
 void CShaderTextureVulkanRef::BindToUnit(unsigned int unit)
 {
-  glActiveTexture(GL_TEXTURE0 + unit);
-  glBindTexture(GL_TEXTURE_2D, m_texture);
+  //glActiveTexture(GL_TEXTURE0 + unit);
+  //glBindTexture(GL_TEXTURE_2D, m_texture);
 }

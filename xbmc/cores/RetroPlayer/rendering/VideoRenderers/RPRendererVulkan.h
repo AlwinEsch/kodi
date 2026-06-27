@@ -97,12 +97,12 @@ protected:
 
   std::map<CRenderBufferVulkan*, std::unique_ptr<RenderBufferTextures>> m_RBTexturesMap;
 
-  GLuint m_mainIndexVBO;
-  GLuint m_mainVertexVBO;
+  //GLuint m_mainIndexVBO;
+  //GLuint m_mainVertexVBO;
 
-  GLuint m_blackbarsVertexVBO;
+  //GLuint m_blackbarsVertexVBO;
 
-  const GLenum m_textureTarget = GL_TEXTURE_2D;
+  //const GLenum m_textureTarget = GL_TEXTURE_2D;
   float m_clearColor = 0.0f;
 };
 } // namespace RETRO

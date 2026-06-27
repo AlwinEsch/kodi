@@ -18,7 +18,7 @@ namespace KODI::SHADER
 class CShaderUtilsVulkan
 {
 public:
-  static GLint TranslateWrapType(WrapType wrapType);
+  static int TranslateWrapType(WrapType wrapType);
   static std::string GetGLSLVersion(std::string& source);
 };
 } // namespace KODI::SHADER

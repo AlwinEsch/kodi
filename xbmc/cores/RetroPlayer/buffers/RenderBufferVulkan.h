@@ -21,30 +21,30 @@ class CRenderBufferVulkan : public CRenderBufferSysMem
 {
 public:
   CRenderBufferVulkan(CRenderContext& context,
-                      GLuint pixelType,
-                      GLuint internalFormat,
-                      GLuint pixelFormat,
-                      GLuint bpp);
+                      unsigned int pixelType,
+                      unsigned int internalFormat,
+                      unsigned int pixelFormat,
+                      unsigned int bpp);
   ~CRenderBufferVulkan() override;
 
   // Implementation of IRenderBuffer via CRenderBufferSysMem
   bool UploadTexture() override;
 
-  GLuint TextureID() const { return m_textureId; }
+  //GLuint TextureID() const { return m_textureId; }
 
 private:
   // Construction parameters
   CRenderContext& m_context;
-  const GLuint m_pixelType;
-  const GLuint m_internalFormat;
-  const GLuint m_pixelFormat;
-  const GLuint m_bpp;
+  const unsigned int m_pixelType;
+  const unsigned int m_internalFormat;
+  const unsigned int m_pixelFormat;
+  const unsigned int m_bpp;
 
-  const GLenum m_textureTarget = GL_TEXTURE_2D; //! @todo
-  GLuint m_textureId = 0;
+  //const GLenum m_textureTarget = GL_TEXTURE_2D; //! @todo
+  //GLuint m_textureId = 0;
 
-  void CreateTexture();
-  void DeleteTexture();
+  //void CreateTexture();
+  //void DeleteTexture();
 };
 } // namespace RETRO
 } // namespace KODI

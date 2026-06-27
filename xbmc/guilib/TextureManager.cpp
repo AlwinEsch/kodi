@@ -528,17 +528,17 @@ void CGUITextureManager::FreeUnusedTextures(unsigned int timeDelay)
   }
 
 #if defined(HAS_VULKAN)
-  for (unsigned int i = 0; i < m_unusedHwTextures.size(); ++i)
-  {
-    // on ios/tvos the hw textures might be deleted from the os
-    // when XBMC is backgrounded (e.x. for backgrounded music playback)
-    // sanity check before delete in that case.
-#if defined(TARGET_DARWIN_EMBEDDED)
-    auto winSystem = dynamic_cast<WIN_SYSTEM_CLASS*>(CServiceBroker::GetWinSystem());
-    if (!winSystem->IsBackgrounded() || glIsTexture(m_unusedHwTextures[i]))
-#endif
-      glDeleteTextures(1, (GLuint*)&m_unusedHwTextures[i]);
-  }
+  //for (unsigned int i = 0; i < m_unusedHwTextures.size(); ++i)
+  //{
+//    // on ios/tvos the hw textures might be deleted from the os
+//    // when XBMC is backgrounded (e.x. for backgrounded music playback)
+//    // sanity check before delete in that case.
+//#if defined(TARGET_DARWIN_EMBEDDED)
+//    auto winSystem = dynamic_cast<WIN_SYSTEM_CLASS*>(CServiceBroker::GetWinSystem());
+//    if (!winSystem->IsBackgrounded() || glIsTexture(m_unusedHwTextures[i]))
+//#endif
+//      glDeleteTextures(1, (GLuint*)&m_unusedHwTextures[i]);
+  //}
 #elif defined(HAS_GL) || defined(HAS_GLES)
   for (unsigned int i = 0; i < m_unusedHwTextures.size(); ++i)
   {

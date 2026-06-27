@@ -33,45 +33,46 @@ IRenderBuffer* CRenderBufferPoolVulkan::CreateRenderBuffer(void* header /* = nul
 
 bool CRenderBufferPoolVulkan::ConfigureInternal()
 {
-  // Configure CRenderBufferPoolVulkan
-  switch (m_format)
-  {
-    case AV_PIX_FMT_0RGB32:
-    {
-      m_pixelType = GL_UNSIGNED_BYTE;
-      if (m_context.IsExtSupported("GL_EXT_texture_format_BGRA8888") ||
-          m_context.IsExtSupported("GL_IMG_texture_format_BGRA8888"))
-      {
-        m_internalFormat = GL_BGRA_EXT;
-        m_pixelFormat = GL_BGRA_EXT;
-      }
-      else if (m_context.IsExtSupported("GL_APPLE_texture_format_BGRA8888"))
-      {
-        // Apple's implementation does not conform to spec. Instead, they require
-        // differing format/internalformat, more like GL.
-        m_internalFormat = GL_RGBA;
-        m_pixelFormat = GL_BGRA_EXT;
-      }
-      else
-      {
-        m_internalFormat = GL_RGBA;
-        m_pixelFormat = GL_RGBA;
-      }
-      m_bpp = sizeof(uint32_t);
-      return true;
-    }
-    case AV_PIX_FMT_RGB555:
-    case AV_PIX_FMT_RGB565:
-    {
-      m_pixelType = GL_UNSIGNED_SHORT_5_6_5;
-      m_internalFormat = GL_RGB;
-      m_pixelFormat = GL_RGB;
-      m_bpp = sizeof(uint16_t);
-      return true;
-    }
-    default:
-      break;
-  }
+  //// Configure CRenderBufferPoolVulkan
+  //switch (m_format)
+  //{
+  //  case AV_PIX_FMT_0RGB32:
+  //  {
+  //    m_pixelType = GL_UNSIGNED_BYTE;
+  //    if (m_context.IsExtSupported("GL_EXT_texture_format_BGRA8888") ||
+  //        m_context.IsExtSupported("GL_IMG_texture_format_BGRA8888"))
+  //    {
+  //      m_internalFormat = GL_BGRA_EXT;
+  //      m_pixelFormat = GL_BGRA_EXT;
+  //    }
+  //    else if (m_context.IsExtSupported("GL_APPLE_texture_format_BGRA8888"))
+  //    {
+  //      // Apple's implementation does not conform to spec. Instead, they require
+  //      // differing format/internalformat, more like GL.
+  //      m_internalFormat = GL_RGBA;
+  //      m_pixelFormat = GL_BGRA_EXT;
+  //    }
+  //    else
+  //    {
+  //      m_internalFormat = GL_RGBA;
+  //      m_pixelFormat = GL_RGBA;
+  //    }
+  //    m_bpp = sizeof(uint32_t);
+  //    return true;
+  //  }
+  //  case AV_PIX_FMT_RGB555:
+  //  case AV_PIX_FMT_RGB565:
+  //  {
+  //    m_pixelType = GL_UNSIGNED_SHORT_5_6_5;
+  //    m_internalFormat = GL_RGB;
+  //    m_pixelFormat = GL_RGB;
+  //    m_bpp = sizeof(uint16_t);
+  //    return true;
+  //  }
+  //  default:
+  //    break;
+  //}
 
-  return false;
+  //return false;
+  return true;
 }

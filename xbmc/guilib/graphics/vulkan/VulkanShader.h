@@ -32,7 +32,7 @@ public:
   virtual ~CShader() = default;
   virtual bool Compile() = 0;
   virtual void Free() = 0;
-  virtual GLuint Handle() = 0;
+  virtual unsigned int Handle() = 0;
   virtual void SetSource(const std::string& src) { m_source = src; }
   virtual bool LoadSource(const std::string& filename, const std::string& prefix = "");
   virtual bool AppendSource(const std::string& filename);
@@ -61,10 +61,10 @@ public:
   CVertexShader() = default;
   ~CVertexShader() override { Free(); }
   void Free() override {}
-  GLuint Handle() override { return m_vertexShader; }
+  unsigned int Handle() override { return m_vertexShader; }
 
 protected:
-  GLuint m_vertexShader = 0;
+  unsigned int m_vertexShader = 0;
 };
 
 class CVulkanSLVertexShader : public CVertexShader
@@ -83,10 +83,10 @@ public:
   CPixelShader() = default;
   ~CPixelShader() override { Free(); }
   void Free() override {}
-  GLuint Handle() override { return m_pixelShader; }
+  unsigned int Handle() override { return m_pixelShader; }
 
 protected:
-  GLuint m_pixelShader = 0;
+  unsigned int m_pixelShader = 0;
 };
 
 class CVulkanSLPixelShader : public CPixelShader
@@ -140,12 +140,12 @@ public:
   virtual bool OnEnabled() { return true; }
   virtual void OnDisabled() {}
 
-  virtual GLuint ProgramHandle() { return m_shaderProgram; }
+  virtual unsigned int ProgramHandle() { return m_shaderProgram; }
 
 protected:
   CVertexShader* m_pVP = nullptr;
   CPixelShader* m_pFP = nullptr;
-  GLuint m_shaderProgram = 0;
+  unsigned int m_shaderProgram = 0;
   bool m_ok = false;
 };
 
@@ -168,7 +168,7 @@ public:
 protected:
   void Free();
 
-  GLint m_lastProgram;
+  int m_lastProgram;
   bool m_validated = false;
 };
 

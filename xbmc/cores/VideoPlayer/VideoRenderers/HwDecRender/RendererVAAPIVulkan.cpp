@@ -33,40 +33,40 @@ CBaseRenderer* CRendererVAAPIVulkan::Create(CVideoBuffer* buffer)
   return nullptr;
 }
 
-void CRendererVAAPIVulkan::Register(IVaapiWinSystem* winSystem,
-                                    VADisplay vaDpy,
-                                    EGLDisplay eglDisplay,
-                                    bool& general,
-                                    bool& deepColor)
-{
-  general = deepColor = false;
-
-  int major_version, minor_version;
-  if (vaInitialize(vaDpy, &major_version, &minor_version) != VA_STATUS_SUCCESS)
-  {
-    vaTerminate(vaDpy);
-    return;
-  }
-
-  // Probe importable surface formats via vaExportSurfaceHandle.
-  CCapabilities& caps = CDecoder::GetCaps();
-  CVaapi2Texture::TestInteropFormats(vaDpy, eglDisplay, caps);
-
-  CLog::Log(LOGDEBUG, "VAAPI EGL interop: {}", caps.ToString());
-
-  // Bool out-params are views over caps for the OptionalsReg / WinSystem
-  // boundary that still expresses capability as the general/deepColor pair.
-  general = caps.Supports(AV_PIX_FMT_NV12);
-  deepColor = caps.Supports(AV_PIX_FMT_P010);
-
-  vaTerminate(vaDpy);
-
-  if (general)
-  {
-    VIDEOPLAYER::CRendererFactory::RegisterRenderer("vaapi", CRendererVAAPIVulkan::Create);
-    m_pWinSystem = winSystem;
-  }
-}
+//void CRendererVAAPIVulkan::Register(IVaapiWinSystem* winSystem,
+//                                    VADisplay vaDpy,
+//                                    EGLDisplay eglDisplay,
+//                                    bool& general,
+//                                    bool& deepColor)
+//{
+//  general = deepColor = false;
+//
+//  int major_version, minor_version;
+//  if (vaInitialize(vaDpy, &major_version, &minor_version) != VA_STATUS_SUCCESS)
+//  {
+//    vaTerminate(vaDpy);
+//    return;
+//  }
+//
+//  // Probe importable surface formats via vaExportSurfaceHandle.
+//  CCapabilities& caps = CDecoder::GetCaps();
+//  CVaapi2Texture::TestInteropFormats(vaDpy, eglDisplay, caps);
+//
+//  CLog::Log(LOGDEBUG, "VAAPI EGL interop: {}", caps.ToString());
+//
+//  // Bool out-params are views over caps for the OptionalsReg / WinSystem
+//  // boundary that still expresses capability as the general/deepColor pair.
+//  general = caps.Supports(AV_PIX_FMT_NV12);
+//  deepColor = caps.Supports(AV_PIX_FMT_P010);
+//
+//  vaTerminate(vaDpy);
+//
+//  if (general)
+//  {
+//    VIDEOPLAYER::CRendererFactory::RegisterRenderer("vaapi", CRendererVAAPIVulkan::Create);
+//    m_pWinSystem = winSystem;
+//  }
+//}
 
 CRendererVAAPIVulkan::CRendererVAAPIVulkan() = default;
 
@@ -82,45 +82,46 @@ bool CRendererVAAPIVulkan::Configure(const VideoPicture& picture,
                                      float fps,
                                      unsigned int orientation)
 {
-  CVaapiRenderPicture* pic = dynamic_cast<CVaapiRenderPicture*>(picture.videoBuffer);
-  if (pic->procPic.videoSurface != VA_INVALID_ID)
-    m_isVAAPIBuffer = true;
-  else
-    m_isVAAPIBuffer = false;
+  //CVaapiRenderPicture* pic = dynamic_cast<CVaapiRenderPicture*>(picture.videoBuffer);
+  //if (pic->procPic.videoSurface != VA_INVALID_ID)
+  //  m_isVAAPIBuffer = true;
+  //else
+  //  m_isVAAPIBuffer = false;
 
-  m_vaapiFourcc = pic->procPic.fourcc;
+  //m_vaapiFourcc = pic->procPic.fourcc;
 
-  if (m_isVAAPIBuffer)
-  {
-    InteropInfo interop;
-    interop.textureTarget = GL_TEXTURE_2D;
-    interop.eglCreateImageKHR = (PFNEGLCREATEIMAGEKHRPROC)eglGetProcAddress("eglCreateImageKHR");
-    interop.eglDestroyImageKHR = (PFNEGLDESTROYIMAGEKHRPROC)eglGetProcAddress("eglDestroyImageKHR");
-    interop.glEGLImageTargetTexture2DOES =
-        (PFNGLEGLIMAGETARGETTEXTURE2DOESPROC)eglGetProcAddress("glEGLImageTargetTexture2DOES");
-    interop.eglDisplay = m_pWinSystem->GetEGLDisplay();
+  //if (m_isVAAPIBuffer)
+  //{
+  //  InteropInfo interop;
+  //  interop.textureTarget = GL_TEXTURE_2D;
+  //  interop.eglCreateImageKHR = (PFNEGLCREATEIMAGEKHRPROC)eglGetProcAddress("eglCreateImageKHR");
+  //  interop.eglDestroyImageKHR = (PFNEGLDESTROYIMAGEKHRPROC)eglGetProcAddress("eglDestroyImageKHR");
+  //  interop.glEGLImageTargetTexture2DOES =
+  //      (PFNGLEGLIMAGETARGETTEXTURE2DOESPROC)eglGetProcAddress("glEGLImageTargetTexture2DOES");
+  //  interop.eglDisplay = m_pWinSystem->GetEGLDisplay();
 
-    for (auto& tex : m_vaapiTextures)
-    {
-      tex = std::make_unique<VAAPI::CVaapi2Texture>();
-      tex->Init(interop);
-    }
+  //  for (auto& tex : m_vaapiTextures)
+  //  {
+  //    tex = std::make_unique<VAAPI::CVaapi2Texture>();
+  //    tex->Init(interop);
+  //  }
 
-    for (auto& fence : m_fences)
-    {
-      fence = std::make_unique<CEGLFence>(CRendererVAAPIVulkan::m_pWinSystem->GetEGLDisplay());
-    }
-  }
+  //  for (auto& fence : m_fences)
+  //  {
+  //    fence = std::make_unique<CEGLFence>(CRendererVAAPIVulkan::m_pWinSystem->GetEGLDisplay());
+  //  }
+  //}
 
-  return CLinuxRendererVulkan::Configure(picture, fps, orientation);
+  //return CLinuxRendererVulkan::Configure(picture, fps, orientation);
+  return true;
 }
 
 bool CRendererVAAPIVulkan::ConfigChanged(const VideoPicture& picture)
 {
-  CVaapiRenderPicture* pic = dynamic_cast<CVaapiRenderPicture*>(picture.videoBuffer);
-  if ((pic->procPic.videoSurface != VA_INVALID_ID && !m_isVAAPIBuffer) ||
-      (pic->procPic.videoSurface == VA_INVALID_ID && m_isVAAPIBuffer))
-    return true;
+  //CVaapiRenderPicture* pic = dynamic_cast<CVaapiRenderPicture*>(picture.videoBuffer);
+  //if ((pic->procPic.videoSurface != VA_INVALID_ID && !m_isVAAPIBuffer) ||
+  //    (pic->procPic.videoSurface == VA_INVALID_ID && m_isVAAPIBuffer))
+  //  return true;
 
   return false;
 }
@@ -174,38 +175,38 @@ bool CRendererVAAPIVulkan::RenderHook(int idx)
 
 bool CRendererVAAPIVulkan::CreateTexture(int index)
 {
-  if (!m_isVAAPIBuffer)
-  {
-    DeleteTexture(index);
+  //if (!m_isVAAPIBuffer)
+  //{
+  //  DeleteTexture(index);
 
-    if (!CreateNV12Texture(index))
-      return false;
+  //  if (!CreateNV12Texture(index))
+  //    return false;
 
-    // Allocate backing memory for NV12 plane copy (base class leaves planes null).
-    // CFFmpegPostproc AVFrame data may be recycled before upload, so we copy into
-    // stable buffers — matching the GL renderer's approach.
-    YuvImage& im = m_buffers[index].image;
-    for (int i = 0; i < 2; i++)
-      im.plane[i] = new uint8_t[im.planesize[i]];
+  //  // Allocate backing memory for NV12 plane copy (base class leaves planes null).
+  //  // CFFmpegPostproc AVFrame data may be recycled before upload, so we copy into
+  //  // stable buffers — matching the GL renderer's approach.
+  //  YuvImage& im = m_buffers[index].image;
+  //  for (int i = 0; i < 2; i++)
+  //    im.plane[i] = new uint8_t[im.planesize[i]];
 
-    m_nv12Allocated[index] = true;
-    return true;
-  }
+  //  m_nv12Allocated[index] = true;
+  //  return true;
+  //}
 
-  CPictureBuffer& buf = m_buffers[index];
-  YuvImage& im = buf.image;
-  CYuvPlane(&planes)[YuvImage::MAX_PLANES] = buf.fields[0];
+  //CPictureBuffer& buf = m_buffers[index];
+  //YuvImage& im = buf.image;
+  //CYuvPlane(&planes)[YuvImage::MAX_PLANES] = buf.fields[0];
 
-  DeleteTexture(index);
+  //DeleteTexture(index);
 
-  im = {};
-  std::fill(std::begin(planes), std::end(planes), CYuvPlane{});
-  im.height = m_sourceHeight;
-  im.width = m_sourceWidth;
-  im.cshift_x = 1;
-  im.cshift_y = 1;
+  //im = {};
+  //std::fill(std::begin(planes), std::end(planes), CYuvPlane{});
+  //im.height = m_sourceHeight;
+  //im.width = m_sourceWidth;
+  //im.cshift_x = 1;
+  //im.cshift_y = 1;
 
-  planes[0].id = 1;
+  //planes[0].id = 1;
 
   return true;
 }
@@ -238,108 +239,108 @@ void CRendererVAAPIVulkan::DeleteTexture(int index)
 
 bool CRendererVAAPIVulkan::UploadTexture(int index)
 {
-  if (!m_isVAAPIBuffer)
-  {
-    CPictureBuffer& buf = m_buffers[index];
-    CVaapiRenderPicture* pic = dynamic_cast<CVaapiRenderPicture*>(buf.videoBuffer);
-    if (!pic || !pic->valid)
-      return false;
+  //if (!m_isVAAPIBuffer)
+  //{
+  //  CPictureBuffer& buf = m_buffers[index];
+  //  CVaapiRenderPicture* pic = dynamic_cast<CVaapiRenderPicture*>(buf.videoBuffer);
+  //  if (!pic || !pic->valid)
+  //    return false;
 
-    if (!buf.loaded)
-    {
-      YuvImage& dst = buf.image;
-      YuvImage src;
-      pic->GetPlanes(src.plane);
-      pic->GetStrides(src.stride);
-      CVideoBuffer::CopyNV12Picture(&dst, &src);
-    }
-    CalculateTextureSourceRects(index, 3);
-    return UploadNV12Texture(index);
-  }
+  //  if (!buf.loaded)
+  //  {
+  //    YuvImage& dst = buf.image;
+  //    YuvImage src;
+  //    pic->GetPlanes(src.plane);
+  //    pic->GetStrides(src.stride);
+  //    CVideoBuffer::CopyNV12Picture(&dst, &src);
+  //  }
+  //  CalculateTextureSourceRects(index, 3);
+  //  return UploadNV12Texture(index);
+  //}
 
-  CPictureBuffer& buf = m_buffers[index];
+  //CPictureBuffer& buf = m_buffers[index];
 
-  CVaapiRenderPicture* pic = dynamic_cast<CVaapiRenderPicture*>(buf.videoBuffer);
+  //CVaapiRenderPicture* pic = dynamic_cast<CVaapiRenderPicture*>(buf.videoBuffer);
 
-  if (!pic || !pic->valid)
-  {
-    return false;
-  }
+  //if (!pic || !pic->valid)
+  //{
+  //  return false;
+  //}
 
-  m_vaapiTextures[index]->Map(pic);
+  //m_vaapiTextures[index]->Map(pic);
 
-  YuvImage& im = buf.image;
-  CYuvPlane(&planes)[3] = buf.fields[0];
+  //YuvImage& im = buf.image;
+  //CYuvPlane(&planes)[3] = buf.fields[0];
 
-  auto size = m_vaapiTextures[index]->GetTextureSize();
-  planes[0].texwidth = size.Width();
-  planes[0].texheight = size.Height();
+  //auto size = m_vaapiTextures[index]->GetTextureSize();
+  //planes[0].texwidth = size.Width();
+  //planes[0].texheight = size.Height();
 
-  // Packed 4:2:2 fourccs (YUY2 / Y210 / Y212 / Y216) hold two luma per
-  // texel, so the GL texture covers half the source width with each texel
-  // representing a (Y0, Cb, Y1, Cr) macropixel. Match the LinuxRendererGLES
-  // YUYV path: halve texwidth (ceiling for odd widths) and tell the shader
-  // pixpertex_x = 2.
-  const bool packed422 = (m_vaapiFourcc == VA_FOURCC_Y210 || m_vaapiFourcc == VA_FOURCC_Y212 ||
-                          m_vaapiFourcc == VA_FOURCC_Y216);
-  if (packed422)
-    planes[0].texwidth = (planes[0].texwidth + 1) / 2;
+  //// Packed 4:2:2 fourccs (YUY2 / Y210 / Y212 / Y216) hold two luma per
+  //// texel, so the GL texture covers half the source width with each texel
+  //// representing a (Y0, Cb, Y1, Cr) macropixel. Match the LinuxRendererGLES
+  //// YUYV path: halve texwidth (ceiling for odd widths) and tell the shader
+  //// pixpertex_x = 2.
+  //const bool packed422 = (m_vaapiFourcc == VA_FOURCC_Y210 || m_vaapiFourcc == VA_FOURCC_Y212 ||
+  //                        m_vaapiFourcc == VA_FOURCC_Y216);
+  //if (packed422)
+  //  planes[0].texwidth = (planes[0].texwidth + 1) / 2;
 
-  planes[1].texwidth = planes[0].texwidth >> im.cshift_x;
-  planes[1].texheight = planes[0].texheight >> im.cshift_y;
-  planes[2].texwidth = planes[1].texwidth;
-  planes[2].texheight = planes[1].texheight;
+  //planes[1].texwidth = planes[0].texwidth >> im.cshift_x;
+  //planes[1].texheight = planes[0].texheight >> im.cshift_y;
+  //planes[2].texwidth = planes[1].texwidth;
+  //planes[2].texheight = planes[1].texheight;
 
-  for (int p = 0; p < 3; p++)
-  {
-    planes[p].pixpertex_x = packed422 ? 2 : 1;
-    planes[p].pixpertex_y = 1;
-  }
+  //for (int p = 0; p < 3; p++)
+  //{
+  //  planes[p].pixpertex_x = packed422 ? 2 : 1;
+  //  planes[p].pixpertex_y = 1;
+  //}
 
-  // set textures
-  planes[0].id = m_vaapiTextures[index]->GetTextureY();
-  planes[1].id = m_vaapiTextures[index]->GetTextureVU();
-  planes[2].id = m_vaapiTextures[index]->GetTextureVU();
+  //// set textures
+  //planes[0].id = m_vaapiTextures[index]->GetTextureY();
+  //planes[1].id = m_vaapiTextures[index]->GetTextureVU();
+  //planes[2].id = m_vaapiTextures[index]->GetTextureVU();
 
-  for (int p = 0; p < 2; p++)
-  {
-    glBindTexture(m_textureTarget, planes[p].id);
-    glTexParameteri(m_textureTarget, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(m_textureTarget, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(m_textureTarget, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(m_textureTarget, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+  //for (int p = 0; p < 2; p++)
+  //{
+  //  glBindTexture(m_textureTarget, planes[p].id);
+  //  glTexParameteri(m_textureTarget, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  //  glTexParameteri(m_textureTarget, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  //  glTexParameteri(m_textureTarget, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+  //  glTexParameteri(m_textureTarget, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
-    glBindTexture(m_textureTarget, 0);
-    VerifyVulkanState();
-  }
+  //  glBindTexture(m_textureTarget, 0);
+  //  VerifyVulkanState();
+  //}
 
-  CalculateTextureSourceRects(index, 3);
+  //CalculateTextureSourceRects(index, 3);
   return true;
 }
 
 void CRendererVAAPIVulkan::AfterRenderHook(int index)
 {
-  if (m_fences[index])
-    m_fences[index]->CreateFence();
+  //if (m_fences[index])
+  //  m_fences[index]->CreateFence();
 }
 
 bool CRendererVAAPIVulkan::NeedBuffer(int index)
 {
-  if (m_fences[index])
-    return !m_fences[index]->IsSignaled();
+  //if (m_fences[index])
+  //  return !m_fences[index]->IsSignaled();
 
   return false;
 }
 
 void CRendererVAAPIVulkan::ReleaseBuffer(int index)
 {
-  if (m_fences[index])
-    m_fences[index]->DestroyFence();
+  //if (m_fences[index])
+  //  m_fences[index]->DestroyFence();
 
-  if (m_isVAAPIBuffer)
-  {
-    m_vaapiTextures[index]->Unmap();
-  }
+  //if (m_isVAAPIBuffer)
+  //{
+  //  m_vaapiTextures[index]->Unmap();
+  //}
 
   CLinuxRendererVulkan::ReleaseBuffer(index);
 }

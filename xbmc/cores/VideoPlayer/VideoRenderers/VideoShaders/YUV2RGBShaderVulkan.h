@@ -43,17 +43,17 @@ public:
   void SetBlack(float black) { m_black = black; }
   void SetContrast(float contrast) { m_contrast = contrast; }
   void SetConvertFullColorRange(bool convertFullRange) { m_convertFullRange = convertFullRange; }
-  void SetDitherUniforms(bool enabled, GLuint ditherTex, unsigned int ditherDepth, int ditherSize);
+  void SetDitherUniforms(bool enabled, unsigned int ditherTex, unsigned int ditherDepth, int ditherSize);
   void SetDisplayMetadata(bool hasDisplayMetadata,
                           const AVMasteringDisplayMetadata& displayMetadata,
                           bool hasLightMetadata,
                           AVContentLightMetadata lightMetadata);
   void SetToneMapParam(float param) { m_toneMappingParam = param; }
 
-  GLint GetVertexLoc() { return m_hVertex; }
-  GLint GetYcoordLoc() { return m_hYcoord; }
-  GLint GetUcoordLoc() { return m_hUcoord; }
-  GLint GetVcoordLoc() { return m_hVcoord; }
+  int GetVertexLoc() { return m_hVertex; }
+  int GetYcoordLoc() { return m_hYcoord; }
+  int GetUcoordLoc() { return m_hUcoord; }
+  int GetVcoordLoc() { return m_hVcoord; }
 
   void SetMatrices(const GLfloat* p, const GLfloat* m)
   {
@@ -90,25 +90,25 @@ protected:
   CConvertMatrix m_convMatrix;
 
   // shader attribute handles
-  GLint m_hYTex{-1};
-  GLint m_hUTex{-1};
-  GLint m_hVTex{-1};
-  GLint m_hYuvMat{-1};
-  GLint m_hStep{-1};
-  GLint m_hGammaSrc{-1};
-  GLint m_hGammaDstInv{-1};
-  GLint m_hPrimMat{-1};
-  GLint m_hToneP1{-1};
-  GLint m_hCoefsDst{-1};
-  GLint m_hLuminance = -1;
+  int m_hYTex{-1};
+  int m_hUTex{-1};
+  int m_hVTex{-1};
+  int m_hYuvMat{-1};
+  int m_hStep{-1};
+  int m_hGammaSrc{-1};
+  int m_hGammaDstInv{-1};
+  int m_hPrimMat{-1};
+  int m_hToneP1{-1};
+  int m_hCoefsDst{-1};
+  int m_hLuminance = -1;
 
-  GLint m_hVertex{-1};
-  GLint m_hYcoord{-1};
-  GLint m_hUcoord{-1};
-  GLint m_hVcoord{-1};
-  GLint m_hProj{-1};
-  GLint m_hModel{-1};
-  GLint m_hAlpha{-1};
+  int m_hVertex{-1};
+  int m_hYcoord{-1};
+  int m_hUcoord{-1};
+  int m_hVcoord{-1};
+  int m_hProj{-1};
+  int m_hModel{-1};
+  int m_hAlpha{-1};
 
   const GLfloat* m_proj{nullptr};
   const GLfloat* m_model{nullptr};
@@ -119,11 +119,11 @@ protected:
   // dithering
   bool m_dither{false};
   bool m_ditherEnabled{false};
-  GLint m_hDitherEnabled{-1};
-  GLint m_hDither{-1};
-  GLint m_hDitherQuant{-1};
-  GLint m_hDitherSize{-1};
-  GLuint m_ditherTex{0};
+  int m_hDitherEnabled{-1};
+  int m_hDither{-1};
+  int m_hDitherQuant{-1};
+  int m_hDitherSize{-1};
+  unsigned int m_ditherTex{0};
   unsigned int m_ditherDepth{0};
   int m_ditherSize{0};
 };
@@ -151,9 +151,9 @@ public:
   void OnCompiledAndLinked() override;
   bool OnEnabled() override;
 
-  GLint m_hStepX = -1;
-  GLint m_hStepY = -1;
-  GLint m_hField = -1;
+  int m_hStepX = -1;
+  int m_hStepY = -1;
+  int m_hField = -1;
 };
 
 class YUV2RGBFilterShader : public BaseYUV2RGBVulkanShader
@@ -172,8 +172,8 @@ protected:
   void OnCompiledAndLinked() override;
   bool OnEnabled() override;
 
-  GLuint m_kernelTex = 0;
-  GLint m_hKernTex = -1;
+  unsigned int m_kernelTex = 0;
+  int m_hKernTex = -1;
   ESCALINGMETHOD m_scaling = VS_SCALINGMETHOD_LANCZOS3_FAST;
 };
 

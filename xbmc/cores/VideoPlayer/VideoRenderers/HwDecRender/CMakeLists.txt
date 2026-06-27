@@ -61,10 +61,8 @@ if("gbm" IN_LIST CORE_PLATFORM_NAME_LC OR "wayland" IN_LIST CORE_PLATFORM_NAME_L
   endif()
 
   if(TARGET ${APP_NAME_LC}::Vulkan)
-    list(APPEND SOURCES RendererDRMPRIMEVulkan.cpp
-                        DRMPRIMEEGL.cpp)
-    list(APPEND HEADERS RendererDRMPRIMEVulkan.h
-                        DRMPRIMEEGL.h)
+    list(APPEND SOURCES RendererDRMPRIMEVulkan.cpp)
+    list(APPEND HEADERS RendererDRMPRIMEVulkan.h)
   endif()
 
   if(TARGET ${APP_NAME_LC}::OpenGLES)

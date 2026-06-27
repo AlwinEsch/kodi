@@ -79,11 +79,11 @@ private:
   // path (which always outputs full-range RGB).
   std::unique_ptr<Shaders::VULKAN::BaseYUV2RGBVulkanShader> m_yuvShader;
 
-  struct BUFFER
-  {
-    CVideoBuffer* videoBuffer = nullptr;
-    std::unique_ptr<KODI::UTILS::EGL::CEGLFence> fence;
-    CDRMPRIMETexture texture;
-    CDRMPRIMETextureYUV yuvTexture;
-  } m_buffers[NUM_BUFFERS];
+  //struct BUFFER
+  //{
+  //  CVideoBuffer* videoBuffer = nullptr;
+  //  std::unique_ptr<KODI::UTILS::EGL::CEGLFence> fence;
+  //  CDRMPRIMETexture texture;
+  //  CDRMPRIMETextureYUV yuvTexture;
+  //} m_buffers[NUM_BUFFERS];
 };
