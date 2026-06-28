@@ -30,6 +30,7 @@
 
 using namespace KODI;
 using namespace RETRO;
+using KODI::RENDERING::VULKAN::CVulkanRenderSystem;
 
 CRenderContext::CRenderContext(CRenderSystemBase* rendering,
                                CWinSystemBase* windowing,

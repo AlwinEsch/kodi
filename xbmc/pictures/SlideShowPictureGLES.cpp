@@ -65,10 +65,10 @@ void CSlideShowPicGLES::Render(float* x,
   glEnableVertexAttribArray(tex0Loc);
 
   // Setup Colour values
-  col[0] = KODI::UTILS::GL::GetChannelFromARGB(KODI::UTILS::GL::ColorChannel::R, color);
-  col[1] = KODI::UTILS::GL::GetChannelFromARGB(KODI::UTILS::GL::ColorChannel::G, color);
-  col[2] = KODI::UTILS::GL::GetChannelFromARGB(KODI::UTILS::GL::ColorChannel::B, color);
-  col[3] = KODI::UTILS::GL::GetChannelFromARGB(KODI::UTILS::GL::ColorChannel::A, color);
+  col[0] = KODI::UTILS::RENDER::GetChannelFromARGB(KODI::UTILS::RENDER::ColorChannel::R, color);
+  col[1] = KODI::UTILS::RENDER::GetChannelFromARGB(KODI::UTILS::RENDER::ColorChannel::G, color);
+  col[2] = KODI::UTILS::RENDER::GetChannelFromARGB(KODI::UTILS::RENDER::ColorChannel::B, color);
+  col[3] = KODI::UTILS::RENDER::GetChannelFromARGB(KODI::UTILS::RENDER::ColorChannel::A, color);
 
   if (CServiceBroker::GetWinSystem()->UseLimitedColor())
   {

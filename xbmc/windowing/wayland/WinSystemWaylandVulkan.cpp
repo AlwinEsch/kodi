@@ -40,7 +40,7 @@ std::unique_ptr<CWinSystemBase> CWinSystemWaylandVulkan::CreateWinSystem()
 bool CWinSystemWaylandVulkan::InitWindowSystem()
 {
   fprintf(stderr, "---> %s\n", __PRETTY_FUNCTION__);
-  if (!CWinSystemWaylandImpl::InitWindowSystem())
+  if (!CWinSystemWayland::InitWindowSystem())
   {
     return false;
   }
@@ -71,7 +71,7 @@ bool CWinSystemWaylandVulkan::InitWindowSystem()
 //  CDMAHeapBufferObject::Register();
 //#endif
 //
-//  CVulkanScreenshotSurface::Register();
+  KODI::RENDERING::VULKAN::CScreenshotSurface::Register();
 
   fprintf(stderr, "-22--> %s\n", __PRETTY_FUNCTION__);
 
@@ -83,10 +83,16 @@ bool CWinSystemWaylandVulkan::CreateNewWindow(const std::string& name,
                                                   RESOLUTION_INFO& res)
 {
   fprintf(stderr, "---> %s\n", __PRETTY_FUNCTION__);
-  if (!CWinSystemWaylandImpl::CreateNewWindow(name, fullScreen, res))
+  if (!CWinSystemWayland::CreateNewWindow(name, fullScreen, res))
   {
     return false;
   }
+
+  //if (!CreateContext())
+  //{
+  //  return false;
+  //}
+
 
   return true;
 }
@@ -94,7 +100,7 @@ bool CWinSystemWaylandVulkan::CreateNewWindow(const std::string& name,
 bool CWinSystemWaylandVulkan::DestroyWindow()
 {
   fprintf(stderr, "---> %s\n", __PRETTY_FUNCTION__);
-  return CWinSystemWaylandImpl::DestroyWindow();
+  return CWinSystemWayland::DestroyWindow();
 }
 
 bool CWinSystemWaylandVulkan::DestroyWindowSystem()
@@ -147,21 +153,3 @@ void CWinSystemWaylandVulkan::SetContextSize(CSizeInt size)
   //  CVulkanRenderSystem::ResetRenderSystem(size.Width(), size.Height());
   //}
 }
-
-void CWinSystemWaylandVulkan::SetVSyncImpl(bool enable)
-{
-  fprintf(stderr, "---> %s\n", __PRETTY_FUNCTION__);
-  // Unsupported
-}
-
-void CWinSystemWaylandVulkan::PresentRenderImpl(bool rendered)
-{
-  fprintf(stderr, "---> %s\n", __PRETTY_FUNCTION__);
-  //PresentFrame(rendered);
-}
-
-//void CWinSystemWaylandVulkan::delete_CVaapiProxy::operator()(CVaapiProxy *p) const
-//{
-//  WAYLAND::VaapiProxyDelete(p);
-//}
-

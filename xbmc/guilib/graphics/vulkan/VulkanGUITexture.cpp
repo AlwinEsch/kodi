@@ -12,8 +12,8 @@
 #include "guilib/Texture.h"
 #include "guilib/TextureFormats.h"
 #include "rendering/vulkan/VulkanRenderSystem.h"
+#include "rendering/vulkan/VulkanUtils.h"
 #include "utils/MathUtils.h"
-#include "utils/VulkanUtils.h"
 #include "utils/log.h"
 #include "windowing/GraphicContext.h"
 #include "windowing/WinSystem.h"
@@ -37,6 +37,7 @@ CVulkanGUITexture::CVulkanGUITexture(
     float posX, float posY, float width, float height, const CTextureInfo& texture)
   : CGUITexture(posX, posY, width, height, texture)
 {
+  using KODI::RENDERING::VULKAN::CVulkanRenderSystem;
   m_renderSystem = dynamic_cast<CVulkanRenderSystem*>(CServiceBroker::GetRenderSystem());
 }
 
@@ -53,10 +54,10 @@ void CVulkanGUITexture::Begin(KODI::UTILS::COLOR::Color color)
   //  m_diffuse.m_textures[0]->LoadToGPU();
 
   //// Setup Colors
-  //m_col[0] = KODI::UTILS::VULKAN::GetChannelFromARGB(KODI::UTILS::VULKAN::ColorChannel::R, color);
-  //m_col[1] = KODI::UTILS::VULKAN::GetChannelFromARGB(KODI::UTILS::VULKAN::ColorChannel::G, color);
-  //m_col[2] = KODI::UTILS::VULKAN::GetChannelFromARGB(KODI::UTILS::VULKAN::ColorChannel::B, color);
-  //m_col[3] = KODI::UTILS::VULKAN::GetChannelFromARGB(KODI::UTILS::VULKAN::ColorChannel::A, color);
+  //m_col[0] = KODI::UTILS::RENDER::GetChannelFromARGB(KODI::UTILS::VULKAN::ColorChannel::R, color);
+  //m_col[1] = KODI::UTILS::RENDER::GetChannelFromARGB(KODI::UTILS::VULKAN::ColorChannel::G, color);
+  //m_col[2] = KODI::UTILS::RENDER::GetChannelFromARGB(KODI::UTILS::VULKAN::ColorChannel::B, color);
+  //m_col[3] = KODI::UTILS::RENDER::GetChannelFromARGB(KODI::UTILS::VULKAN::ColorChannel::A, color);
 
   //bool hasAlpha = m_texture.m_textures[m_currentFrame]->HasAlpha() || m_col[3] < 255;
   //const bool hasBlendColor =
@@ -318,10 +319,10 @@ void CVulkanGUITexture::DrawQuad(const CRect& rect,
   //  glEnableVertexAttribArray(tex0Loc);
 
   //// Setup Colors
-  //col[0] = KODI::UTILS::VULKAN::GetChannelFromARGB(KODI::UTILS::VULKAN::ColorChannel::R, color);
-  //col[1] = KODI::UTILS::VULKAN::GetChannelFromARGB(KODI::UTILS::VULKAN::ColorChannel::G, color);
-  //col[2] = KODI::UTILS::VULKAN::GetChannelFromARGB(KODI::UTILS::VULKAN::ColorChannel::B, color);
-  //col[3] = KODI::UTILS::VULKAN::GetChannelFromARGB(KODI::UTILS::VULKAN::ColorChannel::A, color);
+  //col[0] = KODI::UTILS::RENDER::GetChannelFromARGB(KODI::UTILS::VULKAN::ColorChannel::R, color);
+  //col[1] = KODI::UTILS::RENDER::GetChannelFromARGB(KODI::UTILS::VULKAN::ColorChannel::G, color);
+  //col[2] = KODI::UTILS::RENDER::GetChannelFromARGB(KODI::UTILS::VULKAN::ColorChannel::B, color);
+  //col[3] = KODI::UTILS::RENDER::GetChannelFromARGB(KODI::UTILS::VULKAN::ColorChannel::A, color);
 
   //glUniform4f(uniColLoc, col[0] / 255.0f, col[1] / 255.0f, col[2] / 255.0f, col[3] / 255.0f);
   //glUniform1f(depthLoc, depth);

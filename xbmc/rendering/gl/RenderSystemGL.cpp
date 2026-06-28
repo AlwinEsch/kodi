@@ -318,10 +318,10 @@ bool CRenderSystemGL::ClearBuffers(KODI::UTILS::COLOR::Color color)
   if (m_stereoMode == RenderStereoMode::INTERLACED && m_stereoView == RenderStereoView::RIGHT)
     return true;
 
-  float r = KODI::UTILS::GL::GetChannelFromARGB(KODI::UTILS::GL::ColorChannel::R, color) / 255.0f;
-  float g = KODI::UTILS::GL::GetChannelFromARGB(KODI::UTILS::GL::ColorChannel::G, color) / 255.0f;
-  float b = KODI::UTILS::GL::GetChannelFromARGB(KODI::UTILS::GL::ColorChannel::B, color) / 255.0f;
-  float a = KODI::UTILS::GL::GetChannelFromARGB(KODI::UTILS::GL::ColorChannel::A, color) / 255.0f;
+  float r = KODI::UTILS::RENDER::GetChannelFromARGB(KODI::UTILS::RENDER::ColorChannel::R, color) / 255.0f;
+  float g = KODI::UTILS::RENDER::GetChannelFromARGB(KODI::UTILS::RENDER::ColorChannel::G, color) / 255.0f;
+  float b = KODI::UTILS::RENDER::GetChannelFromARGB(KODI::UTILS::RENDER::ColorChannel::B, color) / 255.0f;
+  float a = KODI::UTILS::RENDER::GetChannelFromARGB(KODI::UTILS::RENDER::ColorChannel::A, color) / 255.0f;
 
   glClearColor(r, g, b, a);
 

@@ -9,13 +9,15 @@
 #pragma once
 
 #include "WinSystemAndroid.h"
-#include "rendering/vulkan/VulkanRenderSystem.h"
+#include "rendering/vulkan/android/VulkanRenderSystemAndroid.h"
 #include "utils/GlobalsHandling.h"
 
 struct AVMasteringDisplayMetadata;
 struct AVContentLightMetadata;
 
-class CWinSystemAndroidVulkanContext : public CWinSystemAndroid, public CVulkanRenderSystem
+class CWinSystemAndroidVulkanContext
+  : public CWinSystemAndroid,
+    public KODI::RENDERING::VULKAN::ANDROID::CVulkanRenderSystemAndroid
 {
 public:
   CWinSystemAndroidVulkanContext() = default;
@@ -25,11 +27,9 @@ public:
   static std::unique_ptr<CWinSystemBase> CreateWinSystem();
 
   // Implementation of CWinSystemBase via CWinSystemAndroid
-  CRenderSystemBase *GetRenderSystem() override { return this; }
+  CRenderSystemBase* GetRenderSystem() override { return this; }
   bool InitWindowSystem() override;
-  bool CreateNewWindow(const std::string& name,
-                       bool fullScreen,
-                       RESOLUTION_INFO& res) override;
+  bool CreateNewWindow(const std::string& name, bool fullScreen, RESOLUTION_INFO& res) override;
 
   bool ResizeWindow(int newWidth, int newHeight, int newLeft, int newTop) override;
   bool SetFullScreen(bool fullScreen, RESOLUTION_INFO& res, bool blankOtherDisplays) override;

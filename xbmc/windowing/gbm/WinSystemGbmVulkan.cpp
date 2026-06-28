@@ -6,7 +6,7 @@
  *  See LICENSES/README.md for more information.
  */
 
-#include "WinSystemGbmGLESContext.h"
+#include "WinSystemGbmVulkan.h"
 
 #include "OptionalsReg.h"
 #include "cores/RetroPlayer/process/gbm/RPProcessInfoGbm.h"
@@ -43,22 +43,22 @@ using namespace KODI::WINDOWING::GBM;
 
 using namespace std::chrono_literals;
 
-CWinSystemGbmGLESContext::CWinSystemGbmGLESContext()
+CWinSystemGbmVulkan::CWinSystemGbmVulkan()
   : CWinSystemGbmEGLContext(EGL_PLATFORM_GBM_MESA, "EGL_MESA_platform_gbm")
 {
 }
 
-void CWinSystemGbmGLESContext::Register()
+void CWinSystemGbmVulkan::Register()
 {
   CWindowSystemFactory::RegisterWindowSystem(CreateWinSystem, "gbm");
 }
 
-std::unique_ptr<CWinSystemBase> CWinSystemGbmGLESContext::CreateWinSystem()
+std::unique_ptr<CWinSystemBase> CWinSystemGbmVulkan::CreateWinSystem()
 {
-  return std::make_unique<CWinSystemGbmGLESContext>();
+  return std::make_unique<CWinSystemGbmVulkan>();
 }
 
-bool CWinSystemGbmGLESContext::InitWindowSystem()
+bool CWinSystemGbmVulkan::InitWindowSystem()
 {
   VIDEOPLAYER::CRendererFactory::ClearRenderer();
   CDVDFactoryCodec::ClearHWAccels();
@@ -109,13 +109,13 @@ bool CWinSystemGbmGLESContext::InitWindowSystem()
   return true;
 }
 
-bool CWinSystemGbmGLESContext::SetFullScreen(bool fullScreen,
+bool CWinSystemGbmVulkan::SetFullScreen(bool fullScreen,
                                              RESOLUTION_INFO& res,
                                              bool blankOtherDisplays)
 {
   if (res.iWidth != m_nWidth || res.iHeight != m_nHeight)
   {
-    CLog::Log(LOGDEBUG, "CWinSystemGbmGLESContext::{} - resolution changed, creating a new window",
+    CLog::Log(LOGDEBUG, "CWinSystemGbmVulkan::{} - resolution changed, creating a new window",
               __FUNCTION__);
     CreateNewWindow("", fullScreen, res);
   }
@@ -132,7 +132,7 @@ bool CWinSystemGbmGLESContext::SetFullScreen(bool fullScreen,
   return true;
 }
 
-void CWinSystemGbmGLESContext::PresentRender(bool rendered, bool videoLayer)
+void CWinSystemGbmVulkan::PresentRender(bool rendered, bool videoLayer)
 {
   if (!m_bRenderCreated)
     return;
@@ -182,7 +182,7 @@ void CWinSystemGbmGLESContext::PresentRender(bool rendered, bool videoLayer)
 
   if (m_dispReset && m_dispResetTimer.IsTimePast())
   {
-    CLog::Log(LOGDEBUG, "CWinSystemGbmGLESContext::{} - Sending display reset to all clients",
+    CLog::Log(LOGDEBUG, "CWinSystemGbmVulkan::{} - Sending display reset to all clients",
               __FUNCTION__);
     m_dispReset = false;
     std::unique_lock lock(m_resourceSection);
@@ -192,7 +192,7 @@ void CWinSystemGbmGLESContext::PresentRender(bool rendered, bool videoLayer)
   }
 }
 
-bool CWinSystemGbmGLESContext::SetGuiCompositing(int colorTransfer)
+bool CWinSystemGbmVulkan::SetGuiCompositing(int colorTransfer)
 {
   m_guiCompositing = (colorTransfer != 0);
 
@@ -206,7 +206,7 @@ bool CWinSystemGbmGLESContext::SetGuiCompositing(int colorTransfer)
       m_compositeShader = std::make_unique<CGuiCompositeShaderGLES>(defines);
       if (!m_compositeShader->CompileAndLink())
       {
-        CLog::Log(LOGERROR, "CWinSystemGbmGLESContext: failed to compile GUI composite shader");
+        CLog::Log(LOGERROR, "CWinSystemGbmVulkan: failed to compile GUI composite shader");
         m_compositeShader.reset();
         m_guiCompositing = false;
         return false;
@@ -215,7 +215,7 @@ bool CWinSystemGbmGLESContext::SetGuiCompositing(int colorTransfer)
 
     if (!m_compositeShader->CreateLUTs(colorTransfer))
     {
-      CLog::Log(LOGERROR, "CWinSystemGbmGLESContext: failed to create LUTs");
+      CLog::Log(LOGERROR, "CWinSystemGbmVulkan: failed to create LUTs");
       m_compositeShader.reset();
       m_guiCompositing = false;
       return false;
@@ -232,7 +232,7 @@ bool CWinSystemGbmGLESContext::SetGuiCompositing(int colorTransfer)
   return m_guiCompositing;
 }
 
-bool CWinSystemGbmGLESContext::BeginGuiComposite(bool guiWillRender)
+bool CWinSystemGbmVulkan::BeginGuiComposite(bool guiWillRender)
 {
   if (!m_guiCompositing)
     return false;
@@ -249,13 +249,13 @@ bool CWinSystemGbmGLESContext::BeginGuiComposite(bool guiWillRender)
 
     if (!m_guiFbo.Initialize())
     {
-      CLog::Log(LOGERROR, "CWinSystemGbmGLESContext: failed to initialize GUI FBO");
+      CLog::Log(LOGERROR, "CWinSystemGbmVulkan: failed to initialize GUI FBO");
       return false;
     }
 
     if (!m_guiFbo.CreateAndBindToTexture(GL_TEXTURE_2D, width, height, GL_RGBA))
     {
-      CLog::Log(LOGERROR, "CWinSystemGbmGLESContext: failed to create GUI FBO texture {}x{}", width,
+      CLog::Log(LOGERROR, "CWinSystemGbmVulkan: failed to create GUI FBO texture {}x{}", width,
                 height);
       m_guiFbo.Cleanup();
       return false;
@@ -264,7 +264,7 @@ bool CWinSystemGbmGLESContext::BeginGuiComposite(bool guiWillRender)
     if (GetEnabledFrontToBackRendering() && !m_guiFbo.AttachDepthBuffer(width, height))
     {
       CLog::Log(LOGERROR,
-                "CWinSystemGbmGLESContext: failed to attach depth buffer to GUI FBO {}x{}", width,
+                "CWinSystemGbmVulkan: failed to attach depth buffer to GUI FBO {}x{}", width,
                 height);
       m_guiFbo.Cleanup();
       return false;
@@ -273,7 +273,7 @@ bool CWinSystemGbmGLESContext::BeginGuiComposite(bool guiWillRender)
     m_guiFboWidth = width;
     m_guiFboHeight = height;
     m_guiFboClean = false; // fresh FBO is undefined, force a clear
-    CLog::Log(LOGDEBUG, "CWinSystemGbmGLESContext: created GUI FBO {}x{}", width, height);
+    CLog::Log(LOGDEBUG, "CWinSystemGbmVulkan: created GUI FBO {}x{}", width, height);
   }
 
   // When GUI render is being skipped, leave the FBO bind/clear out: nothing
@@ -302,7 +302,7 @@ bool CWinSystemGbmGLESContext::BeginGuiComposite(bool guiWillRender)
   return true;
 }
 
-void CWinSystemGbmGLESContext::EndGuiComposite()
+void CWinSystemGbmVulkan::EndGuiComposite()
 {
   if (m_guiWillRender)
     m_guiFbo.EndRender();
@@ -328,7 +328,7 @@ void CWinSystemGbmGLESContext::EndGuiComposite()
 // CompositeGui is the last GL operation in the frame (called just before EndRender).
 // GL state (blend mode, active texture, vertex arrays) is not restored afterward;
 // the next frame's rendering sets its own state.
-void CWinSystemGbmGLESContext::CompositeGui()
+void CWinSystemGbmVulkan::CompositeGui()
 {
   if (!m_guiFbo.IsValid() || !m_guiFbo.IsBound() || !m_compositeShader)
     return;
@@ -403,7 +403,7 @@ void CWinSystemGbmGLESContext::CompositeGui()
   m_compositeShader->Disable();
 }
 
-bool CWinSystemGbmGLESContext::CreateContext()
+bool CWinSystemGbmVulkan::CreateContext()
 {
   const EGLint version = (m_renderableType == EGL_OPENGL_ES3_BIT) ? 3 : 2;
 

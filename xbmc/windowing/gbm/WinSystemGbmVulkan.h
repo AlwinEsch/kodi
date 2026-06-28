@@ -8,10 +8,9 @@
 
 #pragma once
 
-#include "WinSystemGbmEGLContext.h"
+#include "WinSystemGbm.h"
 #include "cores/VideoPlayer/VideoRenderers/FrameBufferObject.h"
-#include "rendering/gles/RenderSystemGLES.h"
-#include "utils/EGLUtils.h"
+#include "rendering/vulkan/gbm/VulkanRenderSystemGBM.h"
 
 #include <memory>
 
@@ -26,11 +25,11 @@ namespace WINDOWING
 namespace GBM
 {
 
-class CWinSystemGbmGLESContext : public CWinSystemGbmEGLContext, public CRenderSystemGLES
+class CWinSystemGbmVulkan : public CWinSystemGbm, public KODI::RENDERING::VULKAN::GBM::CVulkanRenderSystemGBM
 {
 public:
-  CWinSystemGbmGLESContext();
-  ~CWinSystemGbmGLESContext() override = default;
+  CWinSystemGbmVulkan();
+  ~CWinSystemGbmVulkan() override = default;
 
   static void Register();
   using CWinSystemGbm::Register;

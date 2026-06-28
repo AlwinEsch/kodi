@@ -9,10 +9,7 @@
 #pragma once
 
 #include "WinSystemWayland.h"
-#ifdef TARGET_WEBOS
-#include "WinSystemWaylandWebOS.h"
-#endif
-#include "rendering/vulkan/VulkanRenderSystem.h"
+#include "rendering/vulkan/wayland/VulkanRenderSystemWayland.h"
 
 namespace KODI
 {
@@ -21,19 +18,14 @@ namespace WINDOWING
 namespace WAYLAND
 {
 
-#ifdef TARGET_WEBOS
-using CWinSystemWaylandImpl = CWinSystemWaylandWebOS;
-#else
-using CWinSystemWaylandImpl = CWinSystemWayland;
-#endif
-
-class CWinSystemWaylandVulkan : public CWinSystemWaylandImpl, public CVulkanRenderSystem
+class CWinSystemWaylandVulkan : public CWinSystemWayland,
+                                public KODI::RENDERING::VULKAN::WAYLAND::CVulkanRenderSystemWayland
 {
 public:
   static void Register();
   static std::unique_ptr<CWinSystemBase> CreateWinSystem();
 
-  CRenderSystemBase *GetRenderSystem() override { return this; }
+  CRenderSystemBase* GetRenderSystem() override { return this; }
   bool InitWindowSystem() override;
   bool DestroyWindowSystem() override;
 
@@ -43,18 +35,15 @@ public:
   {
     //m_eglContext.SetDamagedRegions(dirtyRegions);
   }
-  int GetBufferAge() override { return 0/*m_eglContext.GetBufferAge()*/; }
+  int GetBufferAge() override { return 0 /*m_eglContext.GetBufferAge()*/; }
 
   bool BindTextureUploadContext() override;
   bool UnbindTextureUploadContext() override;
   bool HasContext() override;
 
-
 protected:
   //bool CreateContext() override;
   void SetContextSize(CSizeInt size) override;
-  void SetVSyncImpl(bool enable) override;
-  void PresentRenderImpl(bool rendered) override;
 };
 
 } // namespace WAYLAND

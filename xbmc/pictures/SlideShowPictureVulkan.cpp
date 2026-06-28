@@ -11,7 +11,7 @@
 #include "ServiceBroker.h"
 #include "guilib/Texture.h"
 #include "rendering/vulkan/VulkanRenderSystem.h"
-#include "utils/VulkanUtils.h"
+#include "rendering/vulkan/VulkanUtils.h"
 #include "windowing/WinSystem.h"
 
 std::unique_ptr<CSlideShowPic> CSlideShowPic::CreateSlideShowPicture()
@@ -65,10 +65,10 @@ void CSlideShowPicVulkan::Render(float* x,
   //glEnableVertexAttribArray(tex0Loc);
 
   //// Setup Colour values
-  //col[0] = KODI::UTILS::VULKAN::GetChannelFromARGB(KODI::UTILS::VULKAN::ColorChannel::R, color);
-  //col[1] = KODI::UTILS::VULKAN::GetChannelFromARGB(KODI::UTILS::VULKAN::ColorChannel::G, color);
-  //col[2] = KODI::UTILS::VULKAN::GetChannelFromARGB(KODI::UTILS::VULKAN::ColorChannel::B, color);
-  //col[3] = KODI::UTILS::VULKAN::GetChannelFromARGB(KODI::UTILS::VULKAN::ColorChannel::A, color);
+  //col[0] = KODI::UTILS::RENDER::GetChannelFromARGB(KODI::UTILS::VULKAN::ColorChannel::R, color);
+  //col[1] = KODI::UTILS::RENDER::GetChannelFromARGB(KODI::UTILS::VULKAN::ColorChannel::G, color);
+  //col[2] = KODI::UTILS::RENDER::GetChannelFromARGB(KODI::UTILS::VULKAN::ColorChannel::B, color);
+  //col[3] = KODI::UTILS::RENDER::GetChannelFromARGB(KODI::UTILS::VULKAN::ColorChannel::A, color);
 
   //if (CServiceBroker::GetWinSystem()->UseLimitedColor())
   //{

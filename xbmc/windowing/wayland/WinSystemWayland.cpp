@@ -249,6 +249,7 @@ bool CWinSystemWayland::CreateNewWindow(const std::string& name,
                                         bool fullScreen,
                                         RESOLUTION_INFO& res)
 {
+  fprintf(stderr, "---> %s\n", __PRETTY_FUNCTION__);
   CLog::LogF(LOGINFO, "Starting {} size {}x{}", fullScreen ? "full screen" : "windowed", res.iWidth,
              res.iHeight);
 
@@ -394,8 +395,6 @@ bool CWinSystemWayland::CreateNewWindow(const std::string& name,
   CWinEventsWayland::SetDisplay(&m_connection->GetDisplay());
 
   m_colorManager->SetSurface(m_surface);
-
-
 
   return true;
 }

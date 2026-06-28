@@ -53,6 +53,7 @@ set(SOURCES ActorProtocol.cpp
             PlayerUtils.cpp
             RecentlyAddedJob.cpp
             RegExp.cpp
+            RenderUtils.cpp
             RingBuffer.cpp
             RssManager.cpp
             RssReader.cpp
@@ -157,6 +158,7 @@ set(HEADERS ActorProtocol.h
             PlayerUtils.h
             ProgressJob.h
             RecentlyAddedJob.h
+            RenderUtils.h
             RegExp.h
             RingBuffer.h
             RssManager.h
@@ -207,10 +209,7 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL Clang)
   set_source_files_properties(Mime.cpp PROPERTIES COMPILE_FLAGS -O0)
 endif()
 
-if(TARGET ${APP_NAME_LC}::Vulkan)
-  list(APPEND SOURCES VulkanUtils.cpp)
-  list(APPEND HEADERS VulkanUtils.h)
-elseif(TARGET ${APP_NAME_LC}::OpenGl OR TARGET ${APP_NAME_LC}::OpenGLES)
+if(TARGET ${APP_NAME_LC}::OpenGl OR TARGET ${APP_NAME_LC}::OpenGLES)
   list(APPEND SOURCES GLUtils.cpp)
   list(APPEND HEADERS GLUtils.h)
 endif()

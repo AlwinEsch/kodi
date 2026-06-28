@@ -14,4 +14,4 @@ xbmc/platform/posix                   posix
 xbmc/platform/posix/filesystem        platform/posix/filesystem
 xbmc/platform/posix/threads           platform/posix/threads
 xbmc/platform/posix/utils             platform/posix/utils
-xbmc/rendering/vulkan/darwin          rendering/vulkan/darwin
+xbmc/rendering/vulkan/metal           rendering/vulkan/metal

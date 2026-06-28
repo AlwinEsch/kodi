@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2005-2018 Team Kodi
+ *  Copyright (C) 2005-2026 Team Kodi
  *  This file is part of Kodi - https://kodi.tv
  *
  *  SPDX-License-Identifier: GPL-2.0-or-later
@@ -21,28 +21,35 @@
 
 #include "system_vulkan.h"
 
-void CVulkanScreenshotSurface::Register()
+namespace KODI
 {
-  CScreenShot::Register(CVulkanScreenshotSurface::CreateSurface);
+namespace RENDERING
+{
+namespace VULKAN
+{
+
+void CScreenshotSurface::Register()
+{
+  CScreenShot::Register(CScreenshotSurface::CreateSurface);
 }
 
-std::unique_ptr<IScreenshotSurface> CVulkanScreenshotSurface::CreateSurface()
+std::unique_ptr<IScreenshotSurface> CScreenshotSurface::CreateSurface()
 {
-  return std::make_unique<CVulkanScreenshotSurface>();
+  return std::make_unique<CScreenshotSurface>();
 }
 
-bool CVulkanScreenshotSurface::Capture()
+bool CScreenshotSurface::Capture()
 {
-  //CWinSystemBase* winsystem = CServiceBroker::GetWinSystem();
-  //if (!winsystem)
-  //  return false;
+  CWinSystemBase* winsystem = CServiceBroker::GetWinSystem();
+  if (!winsystem)
+    return false;
 
-  //CGUIComponent* gui = CServiceBroker::GetGUI();
-  //if (!gui)
-  //  return false;
+  CGUIComponent* gui = CServiceBroker::GetGUI();
+  if (!gui)
+    return false;
 
-  //std::unique_lock lock(winsystem->GetGfxContext());
-  //gui->GetWindowManager().Render();
+  std::unique_lock lock(winsystem->GetGfxContext());
+  gui->GetWindowManager().Render();
 
   ////get current viewport
   //GLint viewport[4];
@@ -70,6 +77,9 @@ bool CVulkanScreenshotSurface::Capture()
   //  memcpy(m_buffer + y * m_stride, surface.data() + (m_height - y - 1) * m_stride, m_stride);
   //}
 
-  //return m_buffer != nullptr;
-  return true;
+  return m_buffer != nullptr;
 }
+
+} // namespace VULKAN
+} // namespace RENDERING
+} // namespace KODI

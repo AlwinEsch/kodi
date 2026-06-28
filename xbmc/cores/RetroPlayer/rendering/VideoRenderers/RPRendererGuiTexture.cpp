@@ -21,8 +21,7 @@ using namespace DirectX;
 #endif
 
 #if defined(HAS_VULKAN)
-#include "utils/VulkanUtils.h"
-
+#include "rendering/vulkan/VulkanUtils.h"
 #include "system_vulkan.h"
 #elif defined(HAS_GL) || defined(HAS_GLES)
 #include "utils/GLUtils.h"
@@ -143,10 +142,10 @@ void CRPRendererGuiTexture::RenderInternal(bool clear, uint8_t alpha)
   //glEnableVertexAttribArray(tex0Loc);
 
   //// Setup color values
-  //col[0] = UTILS::VULKAN::GetChannelFromARGB(UTILS::VULKAN::ColorChannel::R, color);
-  //col[1] = UTILS::VULKAN::GetChannelFromARGB(UTILS::VULKAN::ColorChannel::G, color);
-  //col[2] = UTILS::VULKAN::GetChannelFromARGB(UTILS::VULKAN::ColorChannel::B, color);
-  //col[3] = UTILS::VULKAN::GetChannelFromARGB(UTILS::VULKAN::ColorChannel::A, color);
+  //col[0] = UTILS::RENDER::GetChannelFromARGB(UTILS::RENDER::ColorChannel::R, color);
+  //col[1] = UTILS::RENDER::GetChannelFromARGB(UTILS::RENDER::ColorChannel::G, color);
+  //col[2] = UTILS::RENDER::GetChannelFromARGB(UTILS::RENDER::ColorChannel::B, color);
+  //col[3] = UTILS::RENDER::GetChannelFromARGB(UTILS::RENDER::ColorChannel::A, color);
 
   //for (unsigned int i = 0; i < 4; i++)
   //{
@@ -265,10 +264,10 @@ void CRPRendererGuiTexture::RenderInternal(bool clear, uint8_t alpha)
   glEnableVertexAttribArray(tex0Loc);
 
   // Setup Colour values
-  colour[0] = UTILS::GL::GetChannelFromARGB(UTILS::GL::ColorChannel::R, color);
-  colour[1] = UTILS::GL::GetChannelFromARGB(UTILS::GL::ColorChannel::G, color);
-  colour[2] = UTILS::GL::GetChannelFromARGB(UTILS::GL::ColorChannel::B, color);
-  colour[3] = UTILS::GL::GetChannelFromARGB(UTILS::GL::ColorChannel::A, color);
+  colour[0] = UTILS::RENDER::GetChannelFromARGB(UTILS::RENDER::ColorChannel::R, color);
+  colour[1] = UTILS::RENDER::GetChannelFromARGB(UTILS::RENDER::ColorChannel::G, color);
+  colour[2] = UTILS::RENDER::GetChannelFromARGB(UTILS::RENDER::ColorChannel::B, color);
+  colour[3] = UTILS::RENDER::GetChannelFromARGB(UTILS::RENDER::ColorChannel::A, color);
 
   if (m_context.UseLimitedColor())
   {
@@ -323,10 +322,10 @@ void CRPRendererGuiTexture::RenderInternal(bool clear, uint8_t alpha)
   glEnableVertexAttribArray(tex0Loc);
 
   // Setup color values
-  col[0] = UTILS::GL::GetChannelFromARGB(UTILS::GL::ColorChannel::R, color);
-  col[1] = UTILS::GL::GetChannelFromARGB(UTILS::GL::ColorChannel::G, color);
-  col[2] = UTILS::GL::GetChannelFromARGB(UTILS::GL::ColorChannel::B, color);
-  col[3] = UTILS::GL::GetChannelFromARGB(UTILS::GL::ColorChannel::A, color);
+  col[0] = UTILS::RENDER::GetChannelFromARGB(UTILS::RENDER::ColorChannel::R, color);
+  col[1] = UTILS::RENDER::GetChannelFromARGB(UTILS::RENDER::ColorChannel::G, color);
+  col[2] = UTILS::RENDER::GetChannelFromARGB(UTILS::RENDER::ColorChannel::B, color);
+  col[3] = UTILS::RENDER::GetChannelFromARGB(UTILS::RENDER::ColorChannel::A, color);
 
   for (unsigned int i = 0; i < 4; i++)
   {

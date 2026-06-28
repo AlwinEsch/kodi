@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2005-2018 Team Kodi
+ *  Copyright (C) 2005-2026 Team Kodi
  *  This file is part of Kodi - https://kodi.tv
  *
  *  SPDX-License-Identifier: GPL-2.0-or-later
@@ -12,7 +12,14 @@
 
 #include <memory>
 
-class CVulkanScreenshotSurface : public IScreenshotSurface
+namespace KODI
+{
+namespace RENDERING
+{
+namespace VULKAN
+{
+
+class CScreenshotSurface : public IScreenshotSurface
 {
 public:
   static void Register();
@@ -20,3 +27,7 @@ public:
 
   bool Capture() override;
 };
+
+} // namespace VULKAN
+} // namespace RENDERING
+} // namespace KODI

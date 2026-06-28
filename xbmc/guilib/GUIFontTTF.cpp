@@ -17,6 +17,7 @@
 #include "rendering/RenderSystem.h"
 #include "threads/SystemClock.h"
 #include "utils/MathUtils.h"
+#include "utils/RenderUtils.h"
 #include "utils/log.h"
 #include "windowing/GraphicContext.h"
 #include "windowing/WinSystem.h"
@@ -30,12 +31,8 @@
 #include <ft2build.h>
 #include <harfbuzz/hb-ft.h>
 #if defined(HAS_VULKAN)
-#include "utils/VulkanUtils.h"
-
 #include "system_vulkan.h"
 #elif defined(HAS_GL) || defined(HAS_GLES)
-#include "utils/GLUtils.h"
-
 #include "system_gl.h"
 #endif
 
@@ -220,7 +217,6 @@ void CGUIFontTTF::RemoveReference()
   if (!m_referenceCount)
     g_fontManager.FreeFontFile(this);
 }
-
 
 void CGUIFontTTF::ClearCharacterCache()
 {
@@ -1232,16 +1228,11 @@ void CGUIFontTTF::RenderCharacter(CGraphicContext& context,
   SVertex* v = &vertices[vertices.size() - VERTEX_PER_GLYPH];
   m_color = color;
 
-#if defined(HAS_VULKAN)
-  uint8_t r = KODI::UTILS::VULKAN::GetChannelFromARGB(KODI::UTILS::VULKAN::ColorChannel::R, color);
-  uint8_t g = KODI::UTILS::VULKAN::GetChannelFromARGB(KODI::UTILS::VULKAN::ColorChannel::G, color);
-  uint8_t b = KODI::UTILS::VULKAN::GetChannelFromARGB(KODI::UTILS::VULKAN::ColorChannel::B, color);
-  uint8_t a = KODI::UTILS::VULKAN::GetChannelFromARGB(KODI::UTILS::VULKAN::ColorChannel::A, color);
-#elif defined(HAS_GL) || defined(HAS_GLES)
-  uint8_t r = KODI::UTILS::GL::GetChannelFromARGB(KODI::UTILS::GL::ColorChannel::R, color);
-  uint8_t g = KODI::UTILS::GL::GetChannelFromARGB(KODI::UTILS::GL::ColorChannel::G, color);
-  uint8_t b = KODI::UTILS::GL::GetChannelFromARGB(KODI::UTILS::GL::ColorChannel::B, color);
-  uint8_t a = KODI::UTILS::GL::GetChannelFromARGB(KODI::UTILS::GL::ColorChannel::A, color);
+#if defined(HAS_VULKAN) || defined(HAS_GL) || defined(HAS_GLES)
+  uint8_t r = KODI::UTILS::RENDER::GetChannelFromARGB(KODI::UTILS::RENDER::ColorChannel::R, color);
+  uint8_t g = KODI::UTILS::RENDER::GetChannelFromARGB(KODI::UTILS::RENDER::ColorChannel::G, color);
+  uint8_t b = KODI::UTILS::RENDER::GetChannelFromARGB(KODI::UTILS::RENDER::ColorChannel::B, color);
+  uint8_t a = KODI::UTILS::RENDER::GetChannelFromARGB(KODI::UTILS::RENDER::ColorChannel::A, color);
 #endif
 
   for (int i = 0; i < VERTEX_PER_GLYPH; i++)

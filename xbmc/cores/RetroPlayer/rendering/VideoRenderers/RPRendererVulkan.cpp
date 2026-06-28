@@ -8,13 +8,13 @@
 
 #include "RPRendererVulkan.h"
 
-#include "cores/RetroPlayer/buffers/RenderBufferVulkan.h"
 #include "cores/RetroPlayer/buffers/RenderBufferPoolVulkan.h"
+#include "cores/RetroPlayer/buffers/RenderBufferVulkan.h"
 #include "cores/RetroPlayer/rendering/RenderContext.h"
 #include "cores/RetroPlayer/shaders/vulkan/ShaderPresetVulkan.h"
 #include "cores/RetroPlayer/shaders/vulkan/ShaderTextureVulkan.h"
 #include "cores/RetroPlayer/shaders/vulkan/ShaderTextureVulkanRef.h"
-#include "utils/VulkanUtils.h"
+#include "rendering/vulkan/VulkanUtils.h"
 #include "utils/log.h"
 
 #include <cstddef>
@@ -45,8 +45,8 @@ RenderBufferPoolVector CRendererFactoryVulkan::CreateBufferPools(CRenderContext&
 // --- CRPRendererVulkan -----------------------------------------------------
 
 CRPRendererVulkan::CRPRendererVulkan(const CRenderSettings& renderSettings,
-                                         CRenderContext& context,
-                                         std::shared_ptr<IRenderBufferPool> bufferPool)
+                                     CRenderContext& context,
+                                     std::shared_ptr<IRenderBufferPool> bufferPool)
   : CRPBaseRenderer(renderSettings, context, std::move(bufferPool))
 {
   //m_context.CaptureStateBlock();
@@ -337,10 +337,10 @@ void CRPRendererVulkan::Render(uint8_t alpha)
   //// Setup color values
   //GLubyte col[4];
   //const uint32_t color = (alpha << 24) | 0xFFFFFF;
-  //col[0] = UTILS::VULKAN::GetChannelFromARGB(UTILS::VULKAN::ColorChannel::R, color);
-  //col[1] = UTILS::VULKAN::GetChannelFromARGB(UTILS::VULKAN::ColorChannel::G, color);
-  //col[2] = UTILS::VULKAN::GetChannelFromARGB(UTILS::VULKAN::ColorChannel::B, color);
-  //col[3] = UTILS::VULKAN::GetChannelFromARGB(UTILS::VULKAN::ColorChannel::A, color);
+  //col[0] = UTILS::RENDER::GetChannelFromARGB(UTILS::RENDER::ColorChannel::R, color);
+  //col[1] = UTILS::RENDER::GetChannelFromARGB(UTILS::RENDER::ColorChannel::G, color);
+  //col[2] = UTILS::RENDER::GetChannelFromARGB(UTILS::RENDER::ColorChannel::B, color);
+  //col[3] = UTILS::RENDER::GetChannelFromARGB(UTILS::RENDER::ColorChannel::A, color);
 
   //glUniform4f(uniColLoc, (col[0] / 255.0f), (col[1] / 255.0f), (col[2] / 255.0f),
   //            (col[3] / 255.0f));

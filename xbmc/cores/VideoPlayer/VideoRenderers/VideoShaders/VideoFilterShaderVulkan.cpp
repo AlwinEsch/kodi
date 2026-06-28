@@ -13,7 +13,7 @@
 #include "ServiceBroker.h"
 #include "rendering/vulkan/VulkanExtensions.h"
 #include "rendering/vulkan/VulkanRenderSystem.h"
-#include "utils/VulkanUtils.h"
+#include "rendering/vulkan/VulkanUtils.h"
 #include "utils/log.h"
 
 #include <math.h>
@@ -187,10 +187,10 @@ void ConvolutionFilterShader::OnCompiledAndLinked()
 //                                                unsigned int ditherDepth,
 //                                                int ditherSize)
 //{
-  //m_ditherEnabled = enabled;
-  //m_ditherTex = ditherTex;
-  //m_ditherDepth = ditherDepth;
-  //m_ditherSize = ditherSize;
+//m_ditherEnabled = enabled;
+//m_ditherTex = ditherTex;
+//m_ditherDepth = ditherDepth;
+//m_ditherSize = ditherSize;
 //}
 
 bool ConvolutionFilterShader::OnEnabled()

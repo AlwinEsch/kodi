@@ -23,12 +23,12 @@
 
 namespace KODI
 {
-namespace UTILS
+namespace RENDERING
 {
 namespace VULKAN
 {
 
-constexpr uint32_t RequiredApiVersion = VK_API_VERSION_1_1;
+class CVulkanInfo;
 
 /*!
  * @brief Error callback function for Vulkan validation layers.
@@ -44,27 +44,8 @@ VkBool32 vulkanErrorCallback(VkDebugReportFlagsEXT flags,
                              const char* pMessage,
                              void* pUserData);
 
-//int vulkanFormatElementByteCount(GLenum format);
-//
-enum class ColorChannel
-{
-  A,
-  R,
-  G,
-  B,
-};
-
-uint8_t GetChannelFromARGB(const ColorChannel colorChannel, const uint32_t argb);
+void LogGraphicsInfo(const CVulkanInfo& vulkanInfo);
 
 } // namespace VULKAN
-} // namespace UTILS
+} // namespace RENDERING
 } // namespace KODI
-
-void _VerifyVulkanState(const char* szfile, const char* szfunction, int lineno);
-#if defined(VULKAN_DEBUGGING) && (defined(HAS_VULKAN))
-#define VerifyVulkanState() _VerifyVulkanState(__FILE__, __FUNCTION__, __LINE__)
-#else
-#define VerifyVulkanState()
-#endif
-
-void LogGraphicsInfo();

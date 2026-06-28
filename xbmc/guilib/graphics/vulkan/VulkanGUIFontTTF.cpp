@@ -18,7 +18,7 @@
 #include "rendering/vulkan/VulkanRenderSystem.h"
 #include "settings/AdvancedSettings.h"
 #include "settings/SettingsComponent.h"
-#include "utils/VulkanUtils.h"
+//#include "utils/VulkanUtils.h"
 #include "utils/log.h"
 #include "windowing/GraphicContext.h"
 #include "windowing/WinSystem.h"

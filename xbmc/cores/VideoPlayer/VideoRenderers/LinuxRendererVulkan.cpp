@@ -21,6 +21,7 @@
 #include "rendering/vulkan/VulkanExtensions.h"
 #include "rendering/vulkan/VulkanMatrix.h"
 #include "rendering/vulkan/VulkanRenderSystem.h"
+#include "rendering/vulkan/VulkanUtils.h"
 #include "settings/AdvancedSettings.h"
 #include "settings/DisplaySettings.h"
 #include "settings/MediaSettings.h"
@@ -28,7 +29,6 @@
 #include "settings/SettingsComponent.h"
 #include "utils/HDRUtils.h"
 #include "utils/MathUtils.h"
-#include "utils/VulkanUtils.h"
 #include "utils/log.h"
 #include "windowing/WinSystem.h"
 
@@ -39,71 +39,71 @@ using namespace Shaders::VULKAN;
 
 CLinuxRendererVulkan::CLinuxRendererVulkan()
 {
-//  m_format = AV_PIX_FMT_NONE;
-//
-//  m_fullRange = !CServiceBroker::GetWinSystem()->UseLimitedColor();
-//
-//  m_renderSystem = dynamic_cast<CVulkanRenderSystem*>(CServiceBroker::GetRenderSystem());
-//
-//  std::tie(m_useDithering, m_ditherDepth) = CServiceBroker::GetWinSystem()->GetDitherSettings();
-//  if (m_useDithering)
-//  {
-//    if (m_renderSystem && !m_renderSystem->IsExtSupported("GL_EXT_texture_norm16"))
-//    {
-//      CLog::Log(LOGWARNING,
-//                "Vulkan: dithering requested but GL_EXT_texture_norm16 not supported, disabling");
-//      m_useDithering = false;
-//    }
-//    else
-//    {
-//#if defined(GL_R16_EXT)
-//      glGenTextures(1, &m_ditherTex);
-//      glActiveTexture(GL_TEXTURE3);
-//      glBindTexture(GL_TEXTURE_2D, m_ditherTex);
-//      glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-//      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-//      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-//      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-//      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-//      glTexImage2D(GL_TEXTURE_2D, 0, GL_R16_EXT, dither_size, dither_size, 0, GL_RED,
-//                   GL_UNSIGNED_SHORT, dither_matrix);
-//      glActiveTexture(GL_TEXTURE0);
-//      if (m_ditherDepth == 0)
-//        CLog::Log(LOGDEBUG, "Vulkan: dithering auto");
-//      else
-//        CLog::Log(LOGDEBUG, "Vulkan: dithering enabled, depth={}", m_ditherDepth);
-//#else
-//      // GL_EXT_texture_norm16 not exposed by this GL header (e.g. iOS):
-//      // no 16-bit single-channel format available for the dither texture.
-//      CLog::Log(LOGWARNING, "Vulkan: GL_R16_EXT undefined at build time; dithering disabled");
-//      m_useDithering = false;
-//#endif
-//    }
-//  }
-//
-//#if defined(GL_ES_VERSION_3_0)
-//  int32_t intermediatePrecision = CServiceBroker::GetSettingsComponent()->GetSettings()->GetInt(
-//      CSettings::SETTING_VIDEOPLAYER_HQSCALERPRECISION);
-//  if (intermediatePrecision == 16)
-//  {
-//    m_intermediateFormat = GL_RGBA16F;
-//    m_intermediateType = GL_FLOAT;
-//  }
-//  else if (intermediatePrecision == 10)
-//  {
-//    m_intermediateFormat = GL_RGB10_A2;
-//    m_intermediateType = GL_UNSIGNED_INT_2_10_10_10_REV;
-//  }
-//  CLog::Log(LOGDEBUG, "Vulkan: HQ scaler precision={}, intermediate format={:#x}",
-//            intermediatePrecision, static_cast<unsigned>(m_intermediateFormat));
-//#endif
-//
-//#if defined(GL_UNPACK_ROW_LENGTH_EXT)
-//  if (CVulkanExtensions::IsExtensionSupported(CVulkanExtensions::EXT_unpack_subimage))
-//  {
-//    m_pixelStoreKey = GL_UNPACK_ROW_LENGTH_EXT;
-//  }
-//#endif
+  //  m_format = AV_PIX_FMT_NONE;
+  //
+  //  m_fullRange = !CServiceBroker::GetWinSystem()->UseLimitedColor();
+  //
+  //  m_renderSystem = dynamic_cast<CVulkanRenderSystem*>(CServiceBroker::GetRenderSystem());
+  //
+  //  std::tie(m_useDithering, m_ditherDepth) = CServiceBroker::GetWinSystem()->GetDitherSettings();
+  //  if (m_useDithering)
+  //  {
+  //    if (m_renderSystem && !m_renderSystem->IsExtSupported("GL_EXT_texture_norm16"))
+  //    {
+  //      CLog::Log(LOGWARNING,
+  //                "Vulkan: dithering requested but GL_EXT_texture_norm16 not supported, disabling");
+  //      m_useDithering = false;
+  //    }
+  //    else
+  //    {
+  //#if defined(GL_R16_EXT)
+  //      glGenTextures(1, &m_ditherTex);
+  //      glActiveTexture(GL_TEXTURE3);
+  //      glBindTexture(GL_TEXTURE_2D, m_ditherTex);
+  //      glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+  //      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  //      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  //      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+  //      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+  //      glTexImage2D(GL_TEXTURE_2D, 0, GL_R16_EXT, dither_size, dither_size, 0, GL_RED,
+  //                   GL_UNSIGNED_SHORT, dither_matrix);
+  //      glActiveTexture(GL_TEXTURE0);
+  //      if (m_ditherDepth == 0)
+  //        CLog::Log(LOGDEBUG, "Vulkan: dithering auto");
+  //      else
+  //        CLog::Log(LOGDEBUG, "Vulkan: dithering enabled, depth={}", m_ditherDepth);
+  //#else
+  //      // GL_EXT_texture_norm16 not exposed by this GL header (e.g. iOS):
+  //      // no 16-bit single-channel format available for the dither texture.
+  //      CLog::Log(LOGWARNING, "Vulkan: GL_R16_EXT undefined at build time; dithering disabled");
+  //      m_useDithering = false;
+  //#endif
+  //    }
+  //  }
+  //
+  //#if defined(GL_ES_VERSION_3_0)
+  //  int32_t intermediatePrecision = CServiceBroker::GetSettingsComponent()->GetSettings()->GetInt(
+  //      CSettings::SETTING_VIDEOPLAYER_HQSCALERPRECISION);
+  //  if (intermediatePrecision == 16)
+  //  {
+  //    m_intermediateFormat = GL_RGBA16F;
+  //    m_intermediateType = GL_FLOAT;
+  //  }
+  //  else if (intermediatePrecision == 10)
+  //  {
+  //    m_intermediateFormat = GL_RGB10_A2;
+  //    m_intermediateType = GL_UNSIGNED_INT_2_10_10_10_REV;
+  //  }
+  //  CLog::Log(LOGDEBUG, "Vulkan: HQ scaler precision={}, intermediate format={:#x}",
+  //            intermediatePrecision, static_cast<unsigned>(m_intermediateFormat));
+  //#endif
+  //
+  //#if defined(GL_UNPACK_ROW_LENGTH_EXT)
+  //  if (CVulkanExtensions::IsExtensionSupported(CVulkanExtensions::EXT_unpack_subimage))
+  //  {
+  //    m_pixelStoreKey = GL_UNPACK_ROW_LENGTH_EXT;
+  //  }
+  //#endif
 }
 
 CLinuxRendererVulkan::~CLinuxRendererVulkan()
@@ -1103,7 +1103,7 @@ bool CLinuxRendererVulkan::UploadTexture(int index)
 
   //if (m_buffers[index].loaded)
   //{
-    return true;
+  return true;
   //}
 
   //bool ret{false};
@@ -1689,109 +1689,109 @@ void CLinuxRendererVulkan::DeletePlanarYUVTexture(int index)
 
 bool CLinuxRendererVulkan::CreatePlanarYUVTexture(int index)
 {
-//  // since we also want the field textures, pitch must be texture aligned
-//  unsigned p;
-//  CPictureBuffer& buf = m_buffers[index];
-//  YuvImage& im = buf.image;
-//
-//  DeletePlanarYUVTexture(index);
-//
-//  im.height = m_sourceHeight;
-//  im.width = m_sourceWidth;
-//
-//  // Chroma subsampling derived from libavutil's pixdesc API. Works for any
-//  // planar YUV pix_fmt (4:2:0 / 4:2:2 / 4:4:4) without per-format checks.
-//  const AVPixFmtDescriptor* desc = av_pix_fmt_desc_get(m_format);
-//  im.cshift_x = desc ? desc->log2_chroma_w : 1;
-//  im.cshift_y = desc ? desc->log2_chroma_h : 1;
-//
-//  buf.m_srcTextureBits = desc ? desc->comp[0].depth : 8;
-//  im.bpp = (buf.m_srcTextureBits > 8) ? 2 : 1;
-//
-//  im.stride[0] = im.bpp * im.width;
-//  im.stride[1] = im.bpp * (im.width >> im.cshift_x);
-//  im.stride[2] = im.bpp * (im.width >> im.cshift_x);
-//
-//  im.planesize[0] = im.stride[0] * im.height;
-//  im.planesize[1] = im.stride[1] * (im.height >> im.cshift_y);
-//  im.planesize[2] = im.stride[2] * (im.height >> im.cshift_y);
-//
-//  for (int i = 0; i < 3; i++)
-//  {
-//    im.plane[i] = nullptr; // will be set in UploadTexture()
-//  }
-//
-//  for (int f = 0; f < MAX_FIELDS; f++)
-//  {
-//    for (p = 0; p < YuvImage::MAX_PLANES; p++)
-//    {
-//      if (!glIsTexture(m_buffers[index].fields[f][p].id))
-//      {
-//        glGenTextures(1, &m_buffers[index].fields[f][p].id);
-//        VerifyVulkanState();
-//      }
-//    }
-//  }
-//
-//  // YUV
-//  for (int f = FIELD_FULL; f <= FIELD_BOT; f++)
-//  {
-//    int fieldshift = (f == FIELD_FULL) ? 0 : 1;
-//    CYuvPlane(&planes)[YuvImage::MAX_PLANES] = m_buffers[index].fields[f];
-//
-//    planes[0].texwidth = im.width;
-//    planes[0].texheight = im.height >> fieldshift;
-//
-//    planes[1].texwidth = planes[0].texwidth >> im.cshift_x;
-//    planes[1].texheight = planes[0].texheight >> im.cshift_y;
-//    planes[2].texwidth = planes[0].texwidth >> im.cshift_x;
-//    planes[2].texheight = planes[0].texheight >> im.cshift_y;
-//
-//    for (int p = 0; p < 3; p++)
-//    {
-//      planes[p].pixpertex_x = 1;
-//      planes[p].pixpertex_y = 1;
-//    }
-//
-//    for (int p = 0; p < 3; p++)
-//    {
-//      CYuvPlane& plane = planes[p];
-//      if (plane.texwidth * plane.texheight == 0)
-//      {
-//        continue;
-//      }
-//
-//      glBindTexture(m_textureTarget, plane.id);
-//
-//      if (im.bpp == 2)
-//      {
-//#if defined(GL_R16_EXT)
-//        glTexImage2D(m_textureTarget, 0, GL_R16_EXT, plane.texwidth, plane.texheight, 0, GL_RED,
-//                     GL_UNSIGNED_SHORT, nullptr);
-//#else
-//        CLog::Log(LOGERROR, "Vulkan: GL_R16_EXT undefined; cannot render >8-bit YUV");
-//        return false;
-//#endif
-//      }
-//      else
-//      {
-//        GLint format;
-//        if (p == 2) // V plane needs an alpha texture
-//          format = GL_ALPHA;
-//        else
-//          format = GL_LUMINANCE;
-//
-//        glTexImage2D(m_textureTarget, 0, format, plane.texwidth, plane.texheight, 0, format,
-//                     GL_UNSIGNED_BYTE, nullptr);
-//      }
-//
-//      glTexParameteri(m_textureTarget, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-//      glTexParameteri(m_textureTarget, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-//      glTexParameteri(m_textureTarget, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-//      glTexParameteri(m_textureTarget, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-//      VerifyVulkanState();
-//    }
-//  }
+  //  // since we also want the field textures, pitch must be texture aligned
+  //  unsigned p;
+  //  CPictureBuffer& buf = m_buffers[index];
+  //  YuvImage& im = buf.image;
+  //
+  //  DeletePlanarYUVTexture(index);
+  //
+  //  im.height = m_sourceHeight;
+  //  im.width = m_sourceWidth;
+  //
+  //  // Chroma subsampling derived from libavutil's pixdesc API. Works for any
+  //  // planar YUV pix_fmt (4:2:0 / 4:2:2 / 4:4:4) without per-format checks.
+  //  const AVPixFmtDescriptor* desc = av_pix_fmt_desc_get(m_format);
+  //  im.cshift_x = desc ? desc->log2_chroma_w : 1;
+  //  im.cshift_y = desc ? desc->log2_chroma_h : 1;
+  //
+  //  buf.m_srcTextureBits = desc ? desc->comp[0].depth : 8;
+  //  im.bpp = (buf.m_srcTextureBits > 8) ? 2 : 1;
+  //
+  //  im.stride[0] = im.bpp * im.width;
+  //  im.stride[1] = im.bpp * (im.width >> im.cshift_x);
+  //  im.stride[2] = im.bpp * (im.width >> im.cshift_x);
+  //
+  //  im.planesize[0] = im.stride[0] * im.height;
+  //  im.planesize[1] = im.stride[1] * (im.height >> im.cshift_y);
+  //  im.planesize[2] = im.stride[2] * (im.height >> im.cshift_y);
+  //
+  //  for (int i = 0; i < 3; i++)
+  //  {
+  //    im.plane[i] = nullptr; // will be set in UploadTexture()
+  //  }
+  //
+  //  for (int f = 0; f < MAX_FIELDS; f++)
+  //  {
+  //    for (p = 0; p < YuvImage::MAX_PLANES; p++)
+  //    {
+  //      if (!glIsTexture(m_buffers[index].fields[f][p].id))
+  //      {
+  //        glGenTextures(1, &m_buffers[index].fields[f][p].id);
+  //        VerifyVulkanState();
+  //      }
+  //    }
+  //  }
+  //
+  //  // YUV
+  //  for (int f = FIELD_FULL; f <= FIELD_BOT; f++)
+  //  {
+  //    int fieldshift = (f == FIELD_FULL) ? 0 : 1;
+  //    CYuvPlane(&planes)[YuvImage::MAX_PLANES] = m_buffers[index].fields[f];
+  //
+  //    planes[0].texwidth = im.width;
+  //    planes[0].texheight = im.height >> fieldshift;
+  //
+  //    planes[1].texwidth = planes[0].texwidth >> im.cshift_x;
+  //    planes[1].texheight = planes[0].texheight >> im.cshift_y;
+  //    planes[2].texwidth = planes[0].texwidth >> im.cshift_x;
+  //    planes[2].texheight = planes[0].texheight >> im.cshift_y;
+  //
+  //    for (int p = 0; p < 3; p++)
+  //    {
+  //      planes[p].pixpertex_x = 1;
+  //      planes[p].pixpertex_y = 1;
+  //    }
+  //
+  //    for (int p = 0; p < 3; p++)
+  //    {
+  //      CYuvPlane& plane = planes[p];
+  //      if (plane.texwidth * plane.texheight == 0)
+  //      {
+  //        continue;
+  //      }
+  //
+  //      glBindTexture(m_textureTarget, plane.id);
+  //
+  //      if (im.bpp == 2)
+  //      {
+  //#if defined(GL_R16_EXT)
+  //        glTexImage2D(m_textureTarget, 0, GL_R16_EXT, plane.texwidth, plane.texheight, 0, GL_RED,
+  //                     GL_UNSIGNED_SHORT, nullptr);
+  //#else
+  //        CLog::Log(LOGERROR, "Vulkan: GL_R16_EXT undefined; cannot render >8-bit YUV");
+  //        return false;
+  //#endif
+  //      }
+  //      else
+  //      {
+  //        GLint format;
+  //        if (p == 2) // V plane needs an alpha texture
+  //          format = GL_ALPHA;
+  //        else
+  //          format = GL_LUMINANCE;
+  //
+  //        glTexImage2D(m_textureTarget, 0, format, plane.texwidth, plane.texheight, 0, format,
+  //                     GL_UNSIGNED_BYTE, nullptr);
+  //      }
+  //
+  //      glTexParameteri(m_textureTarget, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  //      glTexParameteri(m_textureTarget, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  //      glTexParameteri(m_textureTarget, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+  //      glTexParameteri(m_textureTarget, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+  //      VerifyVulkanState();
+  //    }
+  //  }
   return true;
 }
 
@@ -2127,24 +2127,24 @@ bool CLinuxRendererVulkan::CreatePackedYUVTexture(int index)
 //********************************************************************************************************
 //void CLinuxRendererVulkan::SetTextureFilter(GLenum method)
 //{
-  //for (int i = 0; i < m_NumYUVBuffers; i++)
-  //{
-  //  CPictureBuffer& buf = m_buffers[i];
+//for (int i = 0; i < m_NumYUVBuffers; i++)
+//{
+//  CPictureBuffer& buf = m_buffers[i];
 
-  //  for (int f = FIELD_FULL; f <= FIELD_BOT; f++)
-  //  {
-  //    for (int p = 0; p < 3; p++)
-  //    {
-  //      if (glIsTexture(buf.fields[f][p].id))
-  //      {
-  //        glBindTexture(m_textureTarget, buf.fields[f][p].id);
-  //        glTexParameteri(m_textureTarget, GL_TEXTURE_MIN_FILTER, method);
-  //        glTexParameteri(m_textureTarget, GL_TEXTURE_MAG_FILTER, method);
-  //        VerifyVulkanState();
-  //      }
-  //    }
-  //  }
-  //}
+//  for (int f = FIELD_FULL; f <= FIELD_BOT; f++)
+//  {
+//    for (int p = 0; p < 3; p++)
+//    {
+//      if (glIsTexture(buf.fields[f][p].id))
+//      {
+//        glBindTexture(m_textureTarget, buf.fields[f][p].id);
+//        glTexParameteri(m_textureTarget, GL_TEXTURE_MIN_FILTER, method);
+//        glTexParameteri(m_textureTarget, GL_TEXTURE_MAG_FILTER, method);
+//        VerifyVulkanState();
+//      }
+//    }
+//  }
+//}
 //}
 
 bool CLinuxRendererVulkan::Supports(ERENDERFEATURE feature) const
@@ -2161,7 +2161,7 @@ bool CLinuxRendererVulkan::Supports(ERENDERFEATURE feature) const
   //    feature == RENDERFEATURE_BRIGHTNESS || feature == RENDERFEATURE_CONTRAST ||
   //    feature == RENDERFEATURE_TONEMAP)
   //{
-    return true;
+  return true;
   //}
 
   //return false;
@@ -2182,7 +2182,7 @@ float CLinuxRendererVulkan::ScalingAboveThreshold() const
   //    CSettings::SETTING_VIDEOPLAYER_HQSCALERS);
 
   //if (scalePercent < minScale)
-    return 0.0f;
+  return 0.0f;
 
   //// < 1.0 = downscale, > 1.0 = upscale
   //return scaleFactor;
@@ -2194,7 +2194,7 @@ bool CLinuxRendererVulkan::Supports(ESCALINGMETHOD method) const
   //if (method == VS_SCALINGMETHOD_NEAREST && m_format != AV_PIX_FMT_YUYV422 &&
   //    m_format != AV_PIX_FMT_UYVY422)
   //{
-    return true;
+  return true;
   //}
 
   //if (method == VS_SCALINGMETHOD_LINEAR || method == VS_SCALINGMETHOD_AUTO)

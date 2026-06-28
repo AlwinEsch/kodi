@@ -17,6 +17,6 @@ xbmc/platform/posix/network           platform/posix/network
 xbmc/platform/posix/storage/discs     platform/posix/storage/discs
 xbmc/platform/posix/threads           platform/posix/threads
 xbmc/platform/posix/utils             platform/posix/utils
-xbmc/rendering/vulkan/darwin          rendering/vulkan/darwin
+xbmc/rendering/vulkan/metal           rendering/vulkan/metal
 xbmc/windowing/osx                    windowing/osx
 xbmc/windowing/osx/OpenGL             windowing/osx/OpenGL

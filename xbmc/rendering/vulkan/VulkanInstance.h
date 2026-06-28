@@ -8,6 +8,8 @@
 
 #pragma once
 
+#include "VulkanInfo.h"
+#include <vector>
 #include <vulkan/vulkan_core.h>
 
 namespace KODI
@@ -23,13 +25,20 @@ public:
   CVulkanInstance() = default;
   ~CVulkanInstance();
 
-  bool Create();
+  bool Create(const std::vector<const char*>& required_extensions,
+              const std::vector<const char*>& required_layers);
   void Destroy();
 
-  VkInstance GetInstance() const { return m_instance; }
+  VkInstance GetVkInstance() const { return m_vkInstance ; }
 
 private:
-  VkInstance m_instance{VK_NULL_HANDLE};
+  bool GetBasicInfos(const std::vector<const char*>& requiredLayers);
+
+  VkInstance m_vkInstance{VK_NULL_HANDLE};
+
+  CVulkanInfo m_vulkanInfo;
+
+  VkDebugReportCallbackEXT m_vkReportCallback{VK_NULL_HANDLE};
 };
 
 } // namespace VULKAN

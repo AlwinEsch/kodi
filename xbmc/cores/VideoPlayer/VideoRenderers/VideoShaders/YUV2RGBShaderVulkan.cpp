@@ -12,8 +12,8 @@
 #include "../RenderFlags.h"
 #include "ConvolutionKernels.h"
 #include "ToneMappers.h"
+#include "rendering/vulkan/VulkanUtils.h"
 #include "settings/AdvancedSettings.h"
-#include "utils/VulkanUtils.h"
 #include "utils/log.h"
 
 #include <sstream>
@@ -26,11 +26,11 @@ using namespace Shaders::VULKAN;
 //////////////////////////////////////////////////////////////////////
 
 BaseYUV2RGBVulkanShader::BaseYUV2RGBVulkanShader(EShaderFormat format,
-                                             AVColorPrimaries dstPrimaries,
-                                             AVColorPrimaries srcPrimaries,
-                                             bool toneMap,
-                                             ETONEMAPMETHOD toneMapMethod,
-                                             bool dither)
+                                                 AVColorPrimaries dstPrimaries,
+                                                 AVColorPrimaries srcPrimaries,
+                                                 bool toneMap,
+                                                 ETONEMAPMETHOD toneMapMethod,
+                                                 bool dither)
 {
   //m_width = 1;
   //m_height = 1;
@@ -224,9 +224,9 @@ bool BaseYUV2RGBVulkanShader::OnEnabled()
 }
 
 void BaseYUV2RGBVulkanShader::SetDitherUniforms(bool enabled,
-                                              unsigned int ditherTex,
-                                              unsigned int ditherDepth,
-                                              int ditherSize)
+                                                unsigned int ditherTex,
+                                                unsigned int ditherDepth,
+                                                int ditherSize)
 {
   m_ditherEnabled = enabled;
   m_ditherTex = ditherTex;
@@ -248,8 +248,10 @@ void BaseYUV2RGBVulkanShader::Free()
 {
 }
 
-void BaseYUV2RGBVulkanShader::SetColParams(AVColorSpace colSpace, int bits, bool limited,
-                                        int textureBits)
+void BaseYUV2RGBVulkanShader::SetColParams(AVColorSpace colSpace,
+                                           int bits,
+                                           bool limited,
+                                           int textureBits)
 {
   if (colSpace == AVCOL_SPC_UNSPECIFIED)
   {
@@ -266,9 +268,9 @@ void BaseYUV2RGBVulkanShader::SetColParams(AVColorSpace colSpace, int bits, bool
 }
 
 void BaseYUV2RGBVulkanShader::SetDisplayMetadata(bool hasDisplayMetadata,
-                                               const AVMasteringDisplayMetadata& displayMetadata,
-                                               bool hasLightMetadata,
-                                               AVContentLightMetadata lightMetadata)
+                                                 const AVMasteringDisplayMetadata& displayMetadata,
+                                                 bool hasLightMetadata,
+                                                 AVContentLightMetadata lightMetadata)
 {
   m_hasDisplayMetadata = hasDisplayMetadata;
   m_displayMetadata = displayMetadata;
@@ -294,7 +296,6 @@ YUV2RGBProgressiveShader::YUV2RGBProgressiveShader(EShaderFormat format,
   //PixelShader()->InsertSource("vulkan_dither_uniforms.frag", "void main()");
   //PixelShader()->InsertSource("vulkan_dither_body.frag", "gl_FragColor");
 }
-
 
 //////////////////////////////////////////////////////////////////////
 // YUV2RGBBobShader - YUV2RGB with Bob deinterlacing
@@ -365,33 +366,33 @@ YUV2RGBFilterShader::~YUV2RGBFilterShader()
 
 void YUV2RGBFilterShader::OnCompiledAndLinked()
 {
-//  BaseYUV2RGBVulkanShader::OnCompiledAndLinked();
-//  m_hKernTex = glGetUniformLocation(ProgramHandle(), "m_kernelTex");
-//
-//  if (m_scaling != VS_SCALINGMETHOD_LANCZOS3_FAST && m_scaling != VS_SCALINGMETHOD_SPLINE36_FAST)
-//    m_scaling = VS_SCALINGMETHOD_LANCZOS3_FAST;
-//
-//  CConvolutionKernel kernel(m_scaling, 256);
-//
-//  if (m_kernelTex)
-//  {
-//    glDeleteTextures(1, &m_kernelTex);
-//    m_kernelTex = 0;
-//  }
-//  glGenTextures(1, &m_kernelTex);
-//
-//  glActiveTexture(GL_TEXTURE3);
-//  glBindTexture(GL_TEXTURE_2D, m_kernelTex);
-//  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-//  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-//  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-//
-//  GLvoid* data = (GLvoid*)kernel.GetFloatPixels();
-//#if defined(GL_ES_VERSION_3_0)
-//  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, kernel.GetSize(), 1, 0, GL_RGBA, GL_FLOAT, data);
-//#endif
-//  glActiveTexture(GL_TEXTURE0);
-//  VerifyVulkanState();
+  //  BaseYUV2RGBVulkanShader::OnCompiledAndLinked();
+  //  m_hKernTex = glGetUniformLocation(ProgramHandle(), "m_kernelTex");
+  //
+  //  if (m_scaling != VS_SCALINGMETHOD_LANCZOS3_FAST && m_scaling != VS_SCALINGMETHOD_SPLINE36_FAST)
+  //    m_scaling = VS_SCALINGMETHOD_LANCZOS3_FAST;
+  //
+  //  CConvolutionKernel kernel(m_scaling, 256);
+  //
+  //  if (m_kernelTex)
+  //  {
+  //    glDeleteTextures(1, &m_kernelTex);
+  //    m_kernelTex = 0;
+  //  }
+  //  glGenTextures(1, &m_kernelTex);
+  //
+  //  glActiveTexture(GL_TEXTURE3);
+  //  glBindTexture(GL_TEXTURE_2D, m_kernelTex);
+  //  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  //  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  //  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+  //
+  //  GLvoid* data = (GLvoid*)kernel.GetFloatPixels();
+  //#if defined(GL_ES_VERSION_3_0)
+  //  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, kernel.GetSize(), 1, 0, GL_RGBA, GL_FLOAT, data);
+  //#endif
+  //  glActiveTexture(GL_TEXTURE0);
+  //  VerifyVulkanState();
 }
 
 bool YUV2RGBFilterShader::OnEnabled()

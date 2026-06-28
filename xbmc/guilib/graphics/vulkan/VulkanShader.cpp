@@ -11,8 +11,8 @@
 #include "ServiceBroker.h"
 #include "filesystem/File.h"
 #include "rendering/RenderSystem.h"
+#include "rendering/vulkan/VulkanUtils.h"
 #include "utils/StringUtils.h"
-#include "utils/VulkanUtils.h"
 #include "utils/log.h"
 
 //#define GLchar char
@@ -341,11 +341,11 @@ bool CVulkanSLShaderProgram::CompileAndLink()
   //OnCompiledAndLinked();
   //VerifyVulkanState();
   return true;
-//
-//error:
-//  m_ok = false;
-//  Free();
-//  return false;
+  //
+  //error:
+  //  m_ok = false;
+  //  Free();
+  //  return false;
 }
 
 bool CVulkanSLShaderProgram::Enable()

@@ -15,7 +15,16 @@
 #include <array>
 #include <vector>
 
+namespace KODI
+{
+namespace RENDERING
+{
+namespace VULKAN
+{
 class CVulkanRenderSystem;
+} // namespace VULKAN
+} // namespace RENDERING
+} // namespace KODI
 
 namespace KODI
 {
@@ -71,7 +80,7 @@ private:
 
   PackedVertices m_packedVertices;
   std::vector<uint16_t> m_idx;
-  CVulkanRenderSystem* m_renderSystem;
+  KODI::RENDERING::VULKAN::CVulkanRenderSystem* m_renderSystem;
 };
 
 } // namespace VULKAN

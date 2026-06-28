@@ -7,11 +7,7 @@
  */
 
 #pragma once
-
-#include "VulkanShader.h"
 #include "rendering/RenderSystem.h"
-#include "utils/ColorUtils.h"
-#include "utils/Map.h"
 
 #include <map>
 #include <vector>
@@ -85,6 +81,15 @@ private:
       "add/remove a mapping?");
 };
 
+namespace KODI
+{
+namespace RENDERING
+{
+namespace VULKAN
+{
+
+class CVulkanInstance;
+
 class CVulkanRenderSystem : public CRenderSystemBase
 {
 public:
@@ -101,10 +106,6 @@ public:
   void InvalidateColorBuffer() override;
   bool ClearBuffers(KODI::UTILS::COLOR::Color color) override;
   bool IsExtSupported(const char* extension) const override;
-
-  void SetVSync(bool vsync);
-  void ResetVSync() { m_bVsyncInit = false; }
-
   void SetViewPort(const CRect& viewPort) override;
   void GetViewPort(CRect& viewPort) override;
 
@@ -129,41 +130,15 @@ public:
 
   std::string GetShaderPath(const std::string& filename) override;
 
-  void InitialiseShaders();
-  void ReleaseShaders();
-  void EnableGUIShader(VulkanShaderMethod method);
-  void DisableGUIShader();
+  virtual CVulkanInstance* GetVulkanInstance() = 0;
 
-  //GLint GUIShaderGetPos();
-  //GLint GUIShaderGetCol();
-  //GLint GUIShaderGetCoord0();
-  //GLint GUIShaderGetCoord1();
-  //GLint GUIShaderGetUniCol();
-  //GLint GUIShaderGetCoord0Matrix();
-  //GLint GUIShaderGetField();
-  //GLint GUIShaderGetStep();
-  //GLint GUIShaderGetContrast();
-  //GLint GUIShaderGetBrightness();
-  //GLint GUIShaderGetModel();
-  //GLint GUIShaderGetMatrix();
-  //GLint GUIShaderGetClip();
-  //GLint GUIShaderGetCoordStep();
-  //GLint GUIShaderGetDepth();
-  //GLint GUIShaderGetPma();
-
-protected:
-  virtual void SetVSyncImpl(bool enable) = 0;
-  virtual void PresentRenderImpl(bool rendered) = 0;
-  void CalculateMaxTexturesize();
-
-  bool m_bVsyncInit{false};
-  int m_width;
-  int m_height;
+private:
+  int m_width{0};
+  int m_height{0};
 
   std::vector<std::pair<std::string, uint32_t>> m_vulkanExtensions;
-
-  std::map<VulkanShaderMethod, std::unique_ptr<CVulkanShader>> m_pShader;
-  VulkanShaderMethod m_method = VulkanShaderMethod::SM_DEFAULT;
-
-  //GLint      m_viewPort[4];
 };
+
+} // namespace VULKAN
+} // namespace RENDERING
+} // namespace KODI

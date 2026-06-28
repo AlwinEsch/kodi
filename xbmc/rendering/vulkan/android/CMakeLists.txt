@@ -1,7 +1,7 @@
 if(TARGET ${APP_NAME_LC}::Vulkan AND CORE_SYSTEM_NAME STREQUAL android)
-  set(SOURCES VulkanImplementationAndroid.cpp)
+  set(SOURCES VulkanRenderSystemAndroid.cpp)
 
-  set(HEADERS VulkanImplementationAndroid.h)
+  set(HEADERS VulkanRenderSystemAndroid.h)
 
   core_add_library(rendering_vulkan_android)
 endif()

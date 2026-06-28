@@ -20,7 +20,7 @@
 #include "rendering/vulkan/VulkanExtensions.h"
 #include "rendering/vulkan/VulkanMatrix.h"
 #include "rendering/vulkan/VulkanRenderSystem.h"
-#include "utils/VulkanUtils.h"
+#include "rendering/vulkan/VulkanUtils.h"
 #include "utils/MathUtils.h"
 #include "utils/log.h"
 #include "windowing/WinSystem.h"

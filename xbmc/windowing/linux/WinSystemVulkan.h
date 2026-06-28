@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "utils/VulkanUtils.h"
+#include "rendering/vulkan/VulkanUtils.h"
 
 namespace KODI
 {

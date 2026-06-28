@@ -148,10 +148,10 @@ void CRPRendererDMAOpenGL::Render(uint8_t alpha)
   // Setup color values
   GLubyte col[4];
   const uint32_t color = (alpha << 24) | 0xFFFFFF;
-  col[0] = UTILS::GL::GetChannelFromARGB(UTILS::GL::ColorChannel::R, color);
-  col[1] = UTILS::GL::GetChannelFromARGB(UTILS::GL::ColorChannel::G, color);
-  col[2] = UTILS::GL::GetChannelFromARGB(UTILS::GL::ColorChannel::B, color);
-  col[3] = UTILS::GL::GetChannelFromARGB(UTILS::GL::ColorChannel::A, color);
+  col[0] = UTILS::RENDER::GetChannelFromARGB(UTILS::RENDER::ColorChannel::R, color);
+  col[1] = UTILS::RENDER::GetChannelFromARGB(UTILS::RENDER::ColorChannel::G, color);
+  col[2] = UTILS::RENDER::GetChannelFromARGB(UTILS::RENDER::ColorChannel::B, color);
+  col[3] = UTILS::RENDER::GetChannelFromARGB(UTILS::RENDER::ColorChannel::A, color);
 
   glUniform4f(uniColLoc, (col[0] / 255.0f), (col[1] / 255.0f), (col[2] / 255.0f),
               (col[3] / 255.0f));

@@ -1,4 +1,3 @@
 xbmc/platform/darwin/ios              platform/ios
 xbmc/platform/darwin/speech           platform/darwin/speech
-xbmc/rendering/vulkan/darwin          rendering/vulkan/darwin
 xbmc/windowing/ios                    windowing/ios

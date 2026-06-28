@@ -6,25 +6,25 @@
  *  See LICENSES/README.md for more information.
  */
 
-#include "WinSystemIOS.h"
+#include "WinSystemIOSVulkan.h"
 
 #include "ServiceBroker.h"
 #include "VideoSyncIos.h"
 #include "WinEventsIOS.h"
 #include "cores/AudioEngine/Sinks/AESinkDARWINIOS.h"
 #include "cores/RetroPlayer/process/ios/RPProcessInfoIOS.h"
-#include "cores/RetroPlayer/rendering/VideoRenderers/RPRendererOpenGLES.h"
+#include "cores/RetroPlayer/rendering/VideoRenderers/RPRendererVulkan.h"
 #include "cores/VideoPlayer/DVDCodecs/DVDFactoryCodec.h"
 #include "cores/VideoPlayer/DVDCodecs/Video/VTB.h"
 #include "cores/VideoPlayer/Process/ios/ProcessInfoIOS.h"
-#include "cores/VideoPlayer/VideoRenderers/HwDecRender/RendererVTBGLES.h"
-#include "cores/VideoPlayer/VideoRenderers/LinuxRendererGLES.h"
+#include "cores/VideoPlayer/VideoRenderers/HwDecRender/RendererVTBVulkan.h"
+#include "cores/VideoPlayer/VideoRenderers/LinuxRendererVulkan.h"
 #include "cores/VideoPlayer/VideoRenderers/RenderFactory.h"
 #include "filesystem/SpecialProtocol.h"
 #include "guilib/DispResource.h"
 #include "guilib/Texture.h"
 #include "messaging/ApplicationMessenger.h"
-#include "rendering/gles/ScreenshotSurfaceGLES.h"
+#include "rendering/vulkan/metal/ScreenshotSurfaceVulkan.h"
 #include "settings/DisplaySettings.h"
 #include "settings/Settings.h"
 #include "settings/SettingsComponent.h"
@@ -67,17 +67,17 @@ struct CADisplayLinkWrapper
   IOSDisplayLinkCallback *callbackClass;
 };
 
-void CWinSystemIOS::Register()
+void CWinSystemIOSVulkan::Register()
 {
   KODI::WINDOWING::CWindowSystemFactory::RegisterWindowSystem(CreateWinSystem);
 }
 
-std::unique_ptr<CWinSystemBase> CWinSystemIOS::CreateWinSystem()
+std::unique_ptr<CWinSystemBase> CWinSystemIOSVulkan::CreateWinSystem()
 {
-  return std::make_unique<CWinSystemIOS>();
+  return std::make_unique<CWinSystemIOSVulkan>();
 }
 
-int CWinSystemIOS::GetDisplayIndexFromSettings()
+int CWinSystemIOSVulkan::GetDisplayIndexFromSettings()
 {
   std::string currentScreen = CServiceBroker::GetSettingsComponent()->GetSettings()->GetString(CSettings::SETTING_VIDEOSCREEN_MONITOR);
 
@@ -98,7 +98,7 @@ int CWinSystemIOS::GetDisplayIndexFromSettings()
   return screenIdx;
 }
 
-CWinSystemIOS::CWinSystemIOS() : CWinSystemBase()
+CWinSystemIOSVulkan::CWinSystemIOSVulkan() : CWinSystemBase()
 {
   m_bIsBackgrounded = false;
   m_pDisplayLink = new CADisplayLinkWrapper;
@@ -108,22 +108,22 @@ CWinSystemIOS::CWinSystemIOS() : CWinSystemBase()
   CAESinkDARWINIOS::Register();
 }
 
-CWinSystemIOS::~CWinSystemIOS()
+CWinSystemIOSVulkan::~CWinSystemIOSVulkan()
 {
   delete m_pDisplayLink;
 }
 
-bool CWinSystemIOS::InitWindowSystem()
+bool CWinSystemIOSVulkan::InitWindowSystem()
 {
 	return CWinSystemBase::InitWindowSystem();
 }
 
-bool CWinSystemIOS::DestroyWindowSystem()
+bool CWinSystemIOSVulkan::DestroyWindowSystem()
 {
   return true;
 }
 
-bool CWinSystemIOS::CreateNewWindow(const std::string& name, bool fullScreen, RESOLUTION_INFO& res)
+bool CWinSystemIOSVulkan::CreateNewWindow(const std::string& name, bool fullScreen, RESOLUTION_INFO& res)
 {
   //NSLog(@"%s", __PRETTY_FUNCTION__);
 
@@ -160,12 +160,12 @@ bool CWinSystemIOS::CreateNewWindow(const std::string& name, bool fullScreen, RE
   return true;
 }
 
-bool CWinSystemIOS::DestroyWindow()
+bool CWinSystemIOSVulkan::DestroyWindow()
 {
   return true;
 }
 
-bool CWinSystemIOS::ResizeWindow(int newWidth, int newHeight, int newLeft, int newTop)
+bool CWinSystemIOSVulkan::ResizeWindow(int newWidth, int newHeight, int newLeft, int newTop)
 {
   //NSLog(@"%s", __PRETTY_FUNCTION__);
 
@@ -180,7 +180,7 @@ bool CWinSystemIOS::ResizeWindow(int newWidth, int newHeight, int newLeft, int n
   return true;
 }
 
-bool CWinSystemIOS::SetFullScreen(bool fullScreen, RESOLUTION_INFO& res, bool blankOtherDisplays)
+bool CWinSystemIOSVulkan::SetFullScreen(bool fullScreen, RESOLUTION_INFO& res, bool blankOtherDisplays)
 {
   //NSLog(@"%s", __PRETTY_FUNCTION__);
 
@@ -214,7 +214,7 @@ UIScreenMode *getModeForResolution(int width, int height, unsigned int screenIdx
   return nil;
 }
 
-bool CWinSystemIOS::SwitchToVideoMode(int width, int height, double refreshrate)
+bool CWinSystemIOSVulkan::SwitchToVideoMode(int width, int height, double refreshrate)
 {
   bool ret = false;
   int screenIdx = GetDisplayIndexFromSettings();
@@ -229,7 +229,7 @@ bool CWinSystemIOS::SwitchToVideoMode(int width, int height, double refreshrate)
   return ret;
 }
 
-bool CWinSystemIOS::GetScreenResolution(int* w, int* h, double* fps, int screenIdx)
+bool CWinSystemIOSVulkan::GetScreenResolution(int* w, int* h, double* fps, int screenIdx)
 {
   UIScreen *screen = [[UIScreen screens] objectAtIndex:screenIdx];
   CGSize screenSize = [screen currentMode].size;
@@ -271,7 +271,7 @@ bool CWinSystemIOS::GetScreenResolution(int* w, int* h, double* fps, int screenI
   return true;
 }
 
-void CWinSystemIOS::UpdateResolutions()
+void CWinSystemIOSVulkan::UpdateResolutions()
 {
   // Add display resolution
   int w, h;
@@ -291,7 +291,7 @@ void CWinSystemIOS::UpdateResolutions()
   FillInVideoModes(screenIdx);
 }
 
-void CWinSystemIOS::FillInVideoModes(int screenIdx)
+void CWinSystemIOSVulkan::FillInVideoModes(int screenIdx)
 {
   // Add full screen settings for additional monitors
   RESOLUTION_INFO res;
@@ -317,7 +317,7 @@ void CWinSystemIOS::FillInVideoModes(int screenIdx)
   }
 }
 
-bool CWinSystemIOS::IsExtSupported(const char* extension) const
+bool CWinSystemIOSVulkan::IsExtSupported(const char* extension) const
 {
   if(strncmp(extension, "EGL_", 4) != 0)
     return CRenderSystemGLES::IsExtSupported(extension);
@@ -331,7 +331,7 @@ bool CWinSystemIOS::IsExtSupported(const char* extension) const
   return m_eglext.find(name) != std::string::npos;
 }
 
-bool CWinSystemIOS::BeginRender()
+bool CWinSystemIOSVulkan::BeginRender()
 {
   bool rtn;
 
@@ -341,7 +341,7 @@ bool CWinSystemIOS::BeginRender()
   return rtn;
 }
 
-bool CWinSystemIOS::EndRender()
+bool CWinSystemIOSVulkan::EndRender()
 {
   bool rtn;
 
@@ -349,13 +349,13 @@ bool CWinSystemIOS::EndRender()
   return rtn;
 }
 
-void CWinSystemIOS::Register(IDispResource *resource)
+void CWinSystemIOSVulkan::Register(IDispResource *resource)
 {
   std::unique_lock lock(m_resourceSection);
   m_resources.push_back(resource);
 }
 
-void CWinSystemIOS::Unregister(IDispResource* resource)
+void CWinSystemIOSVulkan::Unregister(IDispResource* resource)
 {
   std::unique_lock lock(m_resourceSection);
   std::vector<IDispResource*>::iterator i = find(m_resources.begin(), m_resources.end(), resource);
@@ -363,11 +363,11 @@ void CWinSystemIOS::Unregister(IDispResource* resource)
     m_resources.erase(i);
 }
 
-void CWinSystemIOS::OnAppFocusChange(bool focus)
+void CWinSystemIOSVulkan::OnAppFocusChange(bool focus)
 {
   std::unique_lock lock(m_resourceSection);
   m_bIsBackgrounded = !focus;
-  CLog::Log(LOGDEBUG, "CWinSystemIOS::OnAppFocusChange: {}", focus ? 1 : 0);
+  CLog::Log(LOGDEBUG, "CWinSystemIOSVulkan::OnAppFocusChange: {}", focus ? 1 : 0);
   for (std::vector<IDispResource *>::iterator i = m_resources.begin(); i != m_resources.end(); i++)
     (*i)->OnAppFocusChange(focus);
 }
@@ -389,7 +389,7 @@ void CWinSystemIOS::OnAppFocusChange(bool focus)
 }
 @end
 
-bool CWinSystemIOS::InitDisplayLink(CVideoSyncIos *syncImpl)
+bool CWinSystemIOSVulkan::InitDisplayLink(CVideoSyncIos *syncImpl)
 {
   //init with the appropriate display link for the
   //used screen
@@ -412,7 +412,7 @@ bool CWinSystemIOS::InitDisplayLink(CVideoSyncIos *syncImpl)
   return m_pDisplayLink->impl != nil;
 }
 
-void CWinSystemIOS::DeinitDisplayLink(void)
+void CWinSystemIOSVulkan::DeinitDisplayLink(void)
 {
   if (m_pDisplayLink->impl)
   {
@@ -424,26 +424,26 @@ void CWinSystemIOS::DeinitDisplayLink(void)
 //------------DisplayLink stuff end
 //--------------------------------------------------------------
 
-void CWinSystemIOS::PresentRenderImpl(bool rendered)
+void CWinSystemIOSVulkan::PresentRenderImpl(bool rendered)
 {
   //glFlush;
   if (rendered)
     [g_xbmcController presentFramebuffer];
 }
 
-bool CWinSystemIOS::HasCursor()
+bool CWinSystemIOSVulkan::HasCursor()
 {
   // apple touch devices
   return false;
 }
 
-void CWinSystemIOS::NotifyAppActiveChange(bool bActivated)
+void CWinSystemIOSVulkan::NotifyAppActiveChange(bool bActivated)
 {
   if (bActivated && m_bWasFullScreenBeforeMinimize && !CServiceBroker::GetWinSystem()->GetGfxContext().IsFullScreenRoot())
     CServiceBroker::GetAppMessenger()->PostMsg(TMSG_TOGGLEFULLSCREEN);
 }
 
-bool CWinSystemIOS::Minimize()
+bool CWinSystemIOSVulkan::Minimize()
 {
   m_bWasFullScreenBeforeMinimize = CServiceBroker::GetWinSystem()->GetGfxContext().IsFullScreenRoot();
   if (m_bWasFullScreenBeforeMinimize)
@@ -452,27 +452,27 @@ bool CWinSystemIOS::Minimize()
   return true;
 }
 
-bool CWinSystemIOS::Restore()
+bool CWinSystemIOSVulkan::Restore()
 {
   return false;
 }
 
-bool CWinSystemIOS::Hide()
+bool CWinSystemIOSVulkan::Hide()
 {
   return true;
 }
 
-bool CWinSystemIOS::Show(bool raise)
+bool CWinSystemIOSVulkan::Show(bool raise)
 {
   return true;
 }
 
-CVEAGLContext CWinSystemIOS::GetEAGLContextObj()
+CVEAGLContext CWinSystemIOSVulkan::GetEAGLContextObj()
 {
   return [g_xbmcController getEAGLContextObj];
 }
 
-std::vector<std::string> CWinSystemIOS::GetConnectedOutputs()
+std::vector<std::string> CWinSystemIOSVulkan::GetConnectedOutputs()
 {
   std::vector<std::string> outputs;
   outputs.emplace_back("Default");
@@ -485,18 +485,18 @@ std::vector<std::string> CWinSystemIOS::GetConnectedOutputs()
   return outputs;
 }
 
-void CWinSystemIOS::MoveToTouchscreen()
+void CWinSystemIOSVulkan::MoveToTouchscreen()
 {
   CDisplaySettings::GetInstance().SetMonitor(CONST_TOUCHSCREEN);
 }
 
-std::unique_ptr<CVideoSync> CWinSystemIOS::GetVideoSync(CVideoReferenceClock* clock)
+std::unique_ptr<CVideoSync> CWinSystemIOSVulkan::GetVideoSync(CVideoReferenceClock* clock)
 {
   std::unique_ptr<CVideoSync> pVSync(new CVideoSyncIos(clock, *this));
   return pVSync;
 }
 
-bool CWinSystemIOS::MessagePump()
+bool CWinSystemIOSVulkan::MessagePump()
 {
   return m_winEvents->MessagePump();
 }

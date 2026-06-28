@@ -11,8 +11,8 @@ set(HEADERS OSScreenSaverAndroid.h
             VideoSyncAndroid.h)
 
 if(TARGET ${APP_NAME_LC}::Vulkan)
-  list(APPEND SOURCES WinSystemAndroidVulkanContext.cpp)
-  list(APPEND HEADERS WinSystemAndroidVulkanContext.h)
+  list(APPEND SOURCES WinSystemAndroidVulkan.cpp)
+  list(APPEND HEADERS WinSystemAndroidVulkan.h)
 endif()
 
 if(TARGET ${APP_NAME_LC}::OpenGLES)
