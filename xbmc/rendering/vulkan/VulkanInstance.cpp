@@ -44,10 +44,10 @@ bool CVulkanInstance::Create(const std::vector<const char*>& required_extensions
 
   for (const VkExtensionProperties& ext_property : m_vulkanInfo.instanceExtensions)
   {
-    if (strcmp(ext_property.extensionName, VK_EXT_DEBUG_REPORT_EXTENSION_NAME) == 0)
+    if (strcmp(ext_property.extensionName, VK_EXT_DEBUG_UTILS_EXTENSION_NAME) == 0)
     {
-      m_vulkanInfo.debugReportEnabled = true;
-      m_vulkanInfo.enabledInstanceExtensions.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
+      m_vulkanInfo.debugUtilsEnabled = true;
+      m_vulkanInfo.enabledInstanceExtensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
     }
   }
 
@@ -78,7 +78,7 @@ bool CVulkanInstance::Create(const std::vector<const char*>& required_extensions
     .sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
     .pNext = nullptr,
     .pApplicationName = CCompileInfo::GetAppName(),
-    .applicationVersion = static_cast<uint32_t>(CCompileInfo::GetMajor()),
+    .applicationVersion = VK_MAKE_VERSION(CCompileInfo::GetMajor(), CCompileInfo::GetMinor(), 0),
     .pEngineName = nullptr,
     .engineVersion = 0,
     .apiVersion = m_vulkanInfo.usedAPIVersion
@@ -106,27 +106,31 @@ bool CVulkanInstance::Create(const std::vector<const char*>& required_extensions
   if (!GetVulkanFunctionPointers()->BindInstanceFunctionPointers(m_vkInstance,
                                                                  m_vulkanInfo.instanceExtensions))
   {
+    // Logging is done in BindInstanceFunctionPointers.
     return false;
   }
 
 #ifndef NDEBUG
   // Register our error logging function.
-  if (m_vulkanInfo.debugReportEnabled)
+  if (m_vulkanInfo.debugUtilsEnabled)
   {
-    VkDebugReportCallbackCreateInfoEXT cb_create_info = {};
-    cb_create_info.sType = VK_STRUCTURE_TYPE_DEBUG_REPORT_CREATE_INFO_EXT;
+    // Setting up the debug messenger
+    VkDebugUtilsMessengerCreateInfoEXT createInfo{};
+    createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
+    createInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
+                                 VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT |
+                                 VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
+                                 VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+    createInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
+                             VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
+                             VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+    createInfo.pfnUserCallback = &vulkanErrorCallback;
+    createInfo.pUserData = nullptr; // Optional user data
 
-    cb_create_info.flags = VK_DEBUG_REPORT_INFORMATION_BIT_EXT | VK_DEBUG_REPORT_WARNING_BIT_EXT |
-                           VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT |
-                           VK_DEBUG_REPORT_ERROR_BIT_EXT | VK_DEBUG_REPORT_DEBUG_BIT_EXT;
-    cb_create_info.pfnCallback = &vulkanErrorCallback;
-    result =
-        vkCreateDebugReportCallbackEXT(m_vkInstance, &cb_create_info, nullptr, &m_vkReportCallback);
-    if (VK_SUCCESS != result)
+    if (vkCreateDebugUtilsMessengerEXT(m_vkInstance, &createInfo, nullptr, &m_vkDebugMessenger) !=
+        VK_SUCCESS)
     {
-      m_vkReportCallback = VK_NULL_HANDLE;
-      CLog::Log(LOGERROR, "vkCreateDebugReportCallbackEXT failed: {0}", result);
-      return false;
+      throw std::runtime_error("Failed to set up debug messenger!");
     }
   }
 #endif
@@ -142,10 +146,10 @@ bool CVulkanInstance::Create(const std::vector<const char*>& required_extensions
 void CVulkanInstance::Destroy()
 {
 #ifndef NDEBUG
-  if (m_vulkanInfo.debugReportEnabled && m_vkReportCallback != VK_NULL_HANDLE)
+  if (m_vulkanInfo.debugUtilsEnabled && m_vkDebugMessenger != VK_NULL_HANDLE)
   {
-    vkDestroyDebugReportCallbackEXT(m_vkInstance, m_vkReportCallback, nullptr);
-    m_vkReportCallback = VK_NULL_HANDLE;
+    vkDestroyDebugUtilsMessengerEXT(m_vkInstance, m_vkDebugMessenger, nullptr);
+    m_vkDebugMessenger = VK_NULL_HANDLE;
   }
 #endif
 
@@ -193,7 +197,7 @@ bool CVulkanInstance::GetBasicInfos(const std::vector<const char*>& requiredLaye
     result = vkEnumerateInstanceExtensionProperties(layer_name, &num_instance_exts, nullptr);
     if (result != VK_SUCCESS)
     {
-      CLog::Log(LOGERROR, "vkEnumerateInstanceExtensionProperties({0}) failed: {1}",
+      CLog::Log(LOGERROR, "vkEnumerateInstanceExtensionProperties({0}) failed to get size: {1}",
                 (layer_name ? layer_name : "nullptr"), result);
       return false;
     }
@@ -206,18 +210,9 @@ bool CVulkanInstance::GetBasicInfos(const std::vector<const char*>& requiredLaye
         &m_vulkanInfo.instanceExtensions.data()[previous_extension_count]);
     if (result != VK_SUCCESS)
     {
-      CLog::Log(LOGERROR, "vkEnumerateInstanceExtensionProperties({0}) failed: {1}",
+      CLog::Log(LOGERROR, "vkEnumerateInstanceExtensionProperties({0}) failed to get properties: {1}",
                 (layer_name ? layer_name : "nullptr"), result);
       return false;
-    }
-  }
-
-  for (const VkExtensionProperties& ext_property : m_vulkanInfo.instanceExtensions)
-  {
-    if (strcmp(ext_property.extensionName, VK_EXT_DEBUG_REPORT_EXTENSION_NAME) == 0)
-    {
-      m_vulkanInfo.debugReportEnabled = true;
-      m_vulkanInfo.enabledInstanceExtensions.emplace_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
     }
   }
 

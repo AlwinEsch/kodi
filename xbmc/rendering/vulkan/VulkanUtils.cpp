@@ -20,34 +20,33 @@ namespace RENDERING
 namespace VULKAN
 {
 
-VkBool32 vulkanErrorCallback(VkDebugReportFlagsEXT flags,
-                             VkDebugReportObjectTypeEXT objectType,
-                             uint64_t object,
-                             size_t location,
-                             int32_t messageCode,
-                             const char* pLayerPrefix,
-                             const char* pMessage,
+VkBool32 vulkanErrorCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+                             VkDebugUtilsMessageTypeFlagsEXT messageType,
+                             const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
                              void* pUserData)
 {
+  if (!pCallbackData)
+    return VK_FALSE;
+
   int logLevel;
-  if (flags & VK_DEBUG_REPORT_ERROR_BIT_EXT)
+  if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)
     logLevel = LOGERROR;
-  else if (flags & VK_DEBUG_REPORT_WARNING_BIT_EXT ||
-           flags & VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT)
+  else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
     logLevel = LOGWARNING;
-  else if (flags & VK_DEBUG_REPORT_DEBUG_BIT_EXT)
+  else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT)
     logLevel = LOGDEBUG;
-  else if (flags & VK_DEBUG_REPORT_INFORMATION_BIT_EXT)
+  else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT)
     logLevel = LOGINFO;
-  else // For VK_DEBUG_REPORT_FLAG_BITS_MAX_ENUM_EXT and unknown flags
+  else // For VK_DEBUG_UTILS_MESSAGE_SEVERITY_FLAG_BITS_MAX_ENUM_EXT and unknown flags
     logLevel = LOGINFO;
 
   /*!
    * @remark pLayerPrefix and pMessage should not be nullptr, but we check them
    * just in case to avoid potential crashes.
    */
-  CLog::Log(logLevel, "Vulkan: {}: {}", pLayerPrefix ? pLayerPrefix : "Unknown",
-            pMessage ? pMessage : "No message text");
+  CLog::Log(logLevel, "Vulkan: {}: {}",
+            pCallbackData->pMessageIdName ? pCallbackData->pMessageIdName : "Unknown",
+            pCallbackData->pMessage ? pCallbackData->pMessage : "No message text");
   return VK_FALSE;
 }
 
@@ -63,8 +62,8 @@ void LogGraphicsInfo(const CVulkanInfo& vulkanInfo)
             VK_VERSION_MAJOR(vulkanInfo.usedAPIVersion),
             VK_VERSION_MINOR(vulkanInfo.usedAPIVersion),
             VK_VERSION_PATCH(vulkanInfo.usedAPIVersion));
-  CLog::Log(LOGINFO, "        - Debug Report Enabled: {0}",
-            vulkanInfo.debugReportEnabled ? "Yes" : "No");
+  CLog::Log(LOGINFO, "        - Debug Utils Enabled: {0}",
+            vulkanInfo.debugUtilsEnabled ? "Yes" : "No");
   for (const auto& deviceInfo : vulkanInfo.instanceExtensions)
   {
     bool isEnabled = std::find_if(vulkanInfo.enabledInstanceExtensions.begin(),
@@ -74,7 +73,7 @@ void LogGraphicsInfo(const CVulkanInfo& vulkanInfo)
                                     return strcmp(enabledExtension, deviceInfo.extensionName) == 0;
                                   }) != vulkanInfo.enabledInstanceExtensions.end();
     CLog::Log(LOGINFO, "        - Instance Extension: {0} (Version {1}), Is Enabled: {2}",
-                deviceInfo.extensionName, deviceInfo.specVersion, isEnabled ? "Yes" : "No");
+              deviceInfo.extensionName, deviceInfo.specVersion, isEnabled ? "Yes" : "No");
   }
   for (const auto& deviceInfo : vulkanInfo.physicalDevices)
   {

@@ -1,5 +1,6 @@
 if(TARGET ${APP_NAME_LC}::Vulkan)
-  set(SOURCES VulkanExtensions.cpp
+  set(SOURCES VulkanDeviceQueue.cpp
+              VulkanExtensions.cpp
               VulkanFunctionPointers.cpp
               VulkanGuiCompositeShader.cpp
               VulkanImplementation.cpp
@@ -10,7 +11,8 @@ if(TARGET ${APP_NAME_LC}::Vulkan)
               VulkanShader.cpp
               VulkanUtils.cpp)
 
-  set(HEADERS VulkanExtensions.h
+  set(HEADERS VulkanDeviceQueue.h
+              VulkanExtensions.h
               VulkanFunctionPointers.h
               VulkanGuiCompositeShader.h
               VulkanImplementation.h

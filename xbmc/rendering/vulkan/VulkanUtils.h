@@ -33,15 +33,12 @@ class CVulkanInfo;
 /*!
  * @brief Error callback function for Vulkan validation layers.
  *
- * See https://docs.vulkan.org/refpages/latest/refpages/source/PFN_vkDebugReportCallbackEXT.html
+ * See https://docs.vulkan.org/refpages/latest/refpages/source/vkCreateDebugUtilsMessengerEXT.html
+ *     https://docs.vulkan.org/guide/latest/extensions/VK_EXT_debug_utils.html
  */
-VkBool32 vulkanErrorCallback(VkDebugReportFlagsEXT flags,
-                             VkDebugReportObjectTypeEXT objectType,
-                             uint64_t object,
-                             size_t location,
-                             int32_t messageCode,
-                             const char* pLayerPrefix,
-                             const char* pMessage,
+VkBool32 vulkanErrorCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+                             VkDebugUtilsMessageTypeFlagsEXT messageType,
+                             const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
                              void* pUserData);
 
 void LogGraphicsInfo(const CVulkanInfo& vulkanInfo);

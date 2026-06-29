@@ -32,6 +32,9 @@ public:
   VkInstance GetVkInstance() const { return m_vkInstance ; }
 
 private:
+  CVulkanInstance(const CVulkanInstance&) = delete;
+  CVulkanInstance& operator=(const CVulkanInstance&) = delete;
+
   bool GetBasicInfos(const std::vector<const char*>& requiredLayers);
   bool GetDeviceInfos(VkPhysicalDevice physicalDevice = VK_NULL_HANDLE);
 
@@ -39,7 +42,7 @@ private:
 
   CVulkanInfo m_vulkanInfo;
 
-  VkDebugReportCallbackEXT m_vkReportCallback{VK_NULL_HANDLE};
+  VkDebugUtilsMessengerEXT m_vkDebugMessenger{VK_NULL_HANDLE};
 };
 
 } // namespace VULKAN

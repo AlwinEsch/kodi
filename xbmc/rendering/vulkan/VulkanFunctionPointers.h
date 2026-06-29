@@ -74,8 +74,8 @@ struct CVulkanFunctionPointers
   };
 
 #ifndef NDEBUG
-  VulkanFunction<PFN_vkCreateDebugReportCallbackEXT> vkCreateDebugReportCallbackEXT;
-  VulkanFunction<PFN_vkDestroyDebugReportCallbackEXT> vkDestroyDebugReportCallbackEXT;
+  VulkanFunction<PFN_vkCreateDebugUtilsMessengerEXT> vkCreateDebugUtilsMessengerEXT;
+  VulkanFunction<PFN_vkDestroyDebugUtilsMessengerEXT> vkDestroyDebugUtilsMessengerEXT;
 #endif // NDEBUG
 };
 
@@ -85,22 +85,22 @@ struct CVulkanFunctionPointers
 
 #ifndef NDEBUG
 ATTR_FORCEINLINE VkResult
-vkCreateDebugReportCallbackEXT(VkInstance instance,
-                               const VkDebugReportCallbackCreateInfoEXT* pCreateInfo,
+vkCreateDebugUtilsMessengerEXT(VkInstance instance,
+                               const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo,
                                const VkAllocationCallbacks* pAllocator,
-                               VkDebugReportCallbackEXT* pCallback)
+                               VkDebugUtilsMessengerEXT* pMessenger)
 {
   using KODI::RENDERING::VULKAN::GetVulkanFunctionPointers;
-  return GetVulkanFunctionPointers()->vkCreateDebugReportCallbackEXT(instance, pCreateInfo,
-                                                                     pAllocator, pCallback);
+  return GetVulkanFunctionPointers()->vkCreateDebugUtilsMessengerEXT(instance, pCreateInfo,
+                                                                     pAllocator, pMessenger);
 }
 
-ATTR_FORCEINLINE void vkDestroyDebugReportCallbackEXT(VkInstance instance,
-                                                      VkDebugReportCallbackEXT callback,
+ATTR_FORCEINLINE void vkDestroyDebugUtilsMessengerEXT(VkInstance instance,
+                                                      VkDebugUtilsMessengerEXT messenger,
                                                       const VkAllocationCallbacks* pAllocator)
 {
   using KODI::RENDERING::VULKAN::GetVulkanFunctionPointers;
-  return GetVulkanFunctionPointers()->vkDestroyDebugReportCallbackEXT(instance, callback,
+  return GetVulkanFunctionPointers()->vkDestroyDebugUtilsMessengerEXT(instance, messenger,
                                                                       pAllocator);
 }
 #endif // NDEBUG

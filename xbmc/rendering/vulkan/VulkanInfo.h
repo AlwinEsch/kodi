@@ -47,7 +47,7 @@ struct CVulkanInfo
   std::vector<const char*> enabledInstanceExtensions;
   std::vector<VkLayerProperties> instanceLayers;
   std::vector<CVulkanPhysicalDeviceInfo> physicalDevices;
-  bool debugReportEnabled{false};
+  bool debugUtilsEnabled{false};
 };
 
 } // namespace VULKAN

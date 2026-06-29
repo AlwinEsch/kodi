@@ -36,17 +36,17 @@ bool CVulkanFunctionPointers::BindInstanceFunctionPointers(
                      { return strcmp(prop.extensionName, "VK_EXT_debug_report") == 0; });
     if (it != extensions.end())
     {
-      constexpr char kvkCreateDebugReportCallbackEXT[] = "vkCreateDebugReportCallbackEXT";
-      vkCreateDebugReportCallbackEXT = reinterpret_cast<PFN_vkCreateDebugReportCallbackEXT>(
-          vkGetInstanceProcAddr(vkInstance, kvkCreateDebugReportCallbackEXT));
-      if (!vkCreateDebugReportCallbackEXT)
-        throw std::runtime_error("Failed to load vkCreateDebugReportCallbackEXT function pointer");
+      constexpr char kvkCreateDebugUtilsMessengerEXT[] = "vkCreateDebugUtilsMessengerEXT";
+      vkCreateDebugUtilsMessengerEXT = reinterpret_cast<PFN_vkCreateDebugUtilsMessengerEXT>(
+          vkGetInstanceProcAddr(vkInstance, kvkCreateDebugUtilsMessengerEXT));
+      if (!vkCreateDebugUtilsMessengerEXT)
+        throw std::runtime_error("Failed to load vkCreateDebugUtilsMessengerEXT function pointer");
 
-      constexpr char kvkDestroyDebugReportCallbackEXT[] = "vkDestroyDebugReportCallbackEXT";
-      vkDestroyDebugReportCallbackEXT = reinterpret_cast<PFN_vkDestroyDebugReportCallbackEXT>(
-          vkGetInstanceProcAddr(vkInstance, kvkDestroyDebugReportCallbackEXT));
-      if (!vkDestroyDebugReportCallbackEXT)
-        throw std::runtime_error("Failed to load vkDestroyDebugReportCallbackEXT function pointer");
+      constexpr char kvkDestroyDebugUtilsMessengerEXT[] = "vkDestroyDebugUtilsMessengerEXT";
+      vkDestroyDebugUtilsMessengerEXT = reinterpret_cast<PFN_vkDestroyDebugUtilsMessengerEXT>(
+          vkGetInstanceProcAddr(vkInstance, kvkDestroyDebugUtilsMessengerEXT));
+      if (!vkDestroyDebugUtilsMessengerEXT)
+        throw std::runtime_error("Failed to load vkDestroyDebugUtilsMessengerEXT function pointer");
     }
 #endif // NDEBUG
   }
