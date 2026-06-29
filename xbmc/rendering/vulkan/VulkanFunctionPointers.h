@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include <vector>
 #include <vulkan/vulkan_core.h>
 
 // Generic helper definitions for inline function support
@@ -42,7 +43,7 @@ struct CVulkanFunctionPointers
   CVulkanFunctionPointers() = default;
   ~CVulkanFunctionPointers() = default;
 
-  bool BindInstanceFunctionPointers(VkInstance vkInstance);
+  bool BindInstanceFunctionPointers(VkInstance vkInstance, const std::vector<VkExtensionProperties>& extensions);
 
   template<typename T>
   class VulkanFunction;
@@ -72,14 +73,17 @@ struct CVulkanFunctionPointers
     Fn fn_ = nullptr;
   };
 
+#ifndef NDEBUG
   VulkanFunction<PFN_vkCreateDebugReportCallbackEXT> vkCreateDebugReportCallbackEXT;
   VulkanFunction<PFN_vkDestroyDebugReportCallbackEXT> vkDestroyDebugReportCallbackEXT;
+#endif // NDEBUG
 };
 
 } // namespace VULKAN
 } // namespace RENDERING
 } // namespace KODI
 
+#ifndef NDEBUG
 ATTR_FORCEINLINE VkResult
 vkCreateDebugReportCallbackEXT(VkInstance instance,
                                const VkDebugReportCallbackCreateInfoEXT* pCreateInfo,
@@ -99,3 +103,4 @@ ATTR_FORCEINLINE void vkDestroyDebugReportCallbackEXT(VkInstance instance,
   return GetVulkanFunctionPointers()->vkDestroyDebugReportCallbackEXT(instance, callback,
                                                                       pAllocator);
 }
+#endif // NDEBUG

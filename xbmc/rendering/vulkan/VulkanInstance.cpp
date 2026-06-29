@@ -13,6 +13,8 @@
 #include "VulkanUtils.h"
 #include "utils/log.h"
 
+#include <algorithm>
+
 namespace KODI
 {
 namespace RENDERING
@@ -49,24 +51,50 @@ bool CVulkanInstance::Create(const std::vector<const char*>& required_extensions
     }
   }
 
-  VkApplicationInfo app_info = {};
-  app_info.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-  app_info.pApplicationName = CCompileInfo::GetAppName();
-  app_info.apiVersion = m_vulkanInfo.usedAPIVersion;
+#ifndef NDEBUG
+  for (const char* enabledExtension : m_vulkanInfo.enabledInstanceExtensions)
+  {
+    bool found = false;
+    for (const VkExtensionProperties& ext_property : m_vulkanInfo.instanceExtensions)
+    {
+      if (strcmp(ext_property.extensionName, enabledExtension) == 0)
+      {
+        found = true;
+        break;
+      }
+    }
+    if (!found)
+    {
+      CLog::Log(LOGERROR,
+                "Required extension {0} missing from enumerated Vulkan extensions. "
+                "vkCreateInstance will likely fail.",
+                enabledExtension);
+    }
+  }
+#endif
+
+  // clang-format off
+  VkApplicationInfo app_info = {
+    .sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
+    .pNext = nullptr,
+    .pApplicationName = CCompileInfo::GetAppName(),
+    .applicationVersion = static_cast<uint32_t>(CCompileInfo::GetMajor()),
+    .pEngineName = nullptr,
+    .engineVersion = 0,
+    .apiVersion = m_vulkanInfo.usedAPIVersion
+  };
 
   VkInstanceCreateInfo instance_create_info = {
-      VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO, // sType
-      nullptr, // pNext
-      0, // flags
-      &app_info, // pApplicationInfo
-      static_cast<uint32_t>(required_layers.size()),
-      // enableLayerCount
-      required_layers.data(), // ppEnabledLayerNames
-      static_cast<uint32_t>(m_vulkanInfo.enabledInstanceExtensions.size()),
-      // enabledExtensionCount
-      m_vulkanInfo.enabledInstanceExtensions.data(),
-      // ppEnabledExtensionNames
+    .sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
+    .pNext = nullptr,
+    .flags = 0,
+    .pApplicationInfo = &app_info,
+    .enabledLayerCount = static_cast<uint32_t>(required_layers.size()),
+    .ppEnabledLayerNames = required_layers.data(),
+    .enabledExtensionCount = static_cast<uint32_t>(m_vulkanInfo.enabledInstanceExtensions.size()),
+    .ppEnabledExtensionNames = m_vulkanInfo.enabledInstanceExtensions.data()
   };
+  // clang-format on
 
   VkResult result = vkCreateInstance(&instance_create_info, nullptr, &m_vkInstance);
   if (VK_SUCCESS != result)
@@ -75,11 +103,13 @@ bool CVulkanInstance::Create(const std::vector<const char*>& required_extensions
     return false;
   }
 
-  if (!GetVulkanFunctionPointers()->BindInstanceFunctionPointers(m_vkInstance))
+  if (!GetVulkanFunctionPointers()->BindInstanceFunctionPointers(m_vkInstance,
+                                                                 m_vulkanInfo.instanceExtensions))
   {
     return false;
   }
 
+#ifndef NDEBUG
   // Register our error logging function.
   if (m_vulkanInfo.debugReportEnabled)
   {
@@ -99,19 +129,25 @@ bool CVulkanInstance::Create(const std::vector<const char*>& required_extensions
       return false;
     }
   }
+#endif
+
+  if (!GetDeviceInfos())
+    return false;
 
   LogGraphicsInfo(m_vulkanInfo);
 
   return true;
-}
+} // namespace VULKAN
 
 void CVulkanInstance::Destroy()
 {
+#ifndef NDEBUG
   if (m_vulkanInfo.debugReportEnabled && m_vkReportCallback != VK_NULL_HANDLE)
   {
     vkDestroyDebugReportCallbackEXT(m_vkInstance, m_vkReportCallback, nullptr);
     m_vkReportCallback = VK_NULL_HANDLE;
   }
+#endif
 
   if (m_vkInstance != VK_NULL_HANDLE)
   {
@@ -200,6 +236,123 @@ bool CVulkanInstance::GetBasicInfos(const std::vector<const char*>& requiredLaye
   {
     CLog::Log(LOGERROR, "vkEnumerateInstanceLayerProperties() failed: {0}", result);
     return false;
+  }
+
+  return true;
+}
+
+bool CVulkanInstance::GetDeviceInfos(VkPhysicalDevice physicalDevice /* = VK_NULL_HANDLE*/)
+{
+  std::vector<VkPhysicalDevice> physical_devices;
+  if (physicalDevice == VK_NULL_HANDLE)
+  {
+    uint32_t count = 0;
+    VkResult result = vkEnumeratePhysicalDevices(m_vkInstance, &count, nullptr);
+    if (result != VK_SUCCESS)
+    {
+      CLog::Log(LOGERROR, "vkEnumeratePhysicalDevices failed: {0}", result);
+      return false;
+    }
+
+    if (!count)
+    {
+      CLog::Log(LOGERROR, "vkEnumeratePhysicalDevices returns zero device.");
+      return false;
+    }
+
+    physical_devices.resize(count);
+    result = vkEnumeratePhysicalDevices(m_vkInstance, &count, physical_devices.data());
+    if (VK_SUCCESS != result)
+    {
+      CLog::Log(LOGERROR, "vkEnumeratePhysicalDevices() failed: {0}", result);
+      return false;
+    }
+  }
+  else
+  {
+    physical_devices.push_back(physicalDevice);
+  }
+
+  m_vulkanInfo.physicalDevices.reserve(physical_devices.size());
+  for (VkPhysicalDevice device : physical_devices)
+  {
+    m_vulkanInfo.physicalDevices.emplace_back();
+    auto& info = m_vulkanInfo.physicalDevices.back();
+    info.device = device;
+
+    vkGetPhysicalDeviceProperties(device, &info.properties);
+
+    uint32_t count = 0;
+    VkResult result =
+        vkEnumerateDeviceExtensionProperties(device, nullptr /* pLayerName */, &count, nullptr);
+    if (result != VK_SUCCESS)
+    {
+      CLog::Log(LOGERROR, "vkEnumerateDeviceExtensionProperties failed: {0}", result);
+    }
+
+    info.extensions.resize(count);
+    result = vkEnumerateDeviceExtensionProperties(device, nullptr /* pLayerName */, &count,
+                                                  info.extensions.data());
+    if (result != VK_SUCCESS)
+    {
+      CLog::Log(LOGERROR, "vkEnumerateDeviceExtensionProperties failed: {0}", result);
+    }
+
+    if (info.properties.apiVersion >= REQUIRED_VK_API_VERSION)
+    {
+      bool has_drm_extension = std::ranges::any_of(
+          info.extensions, [](const auto& ext)
+          { return strcmp(ext.extensionName, VK_EXT_PHYSICAL_DEVICE_DRM_EXTENSION_NAME) == 0; });
+
+      // clang-format off
+      info.driverProperties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DRIVER_PROPERTIES;
+
+      VkPhysicalDeviceDrmPropertiesEXT drm_properties{};
+      drm_properties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DRM_PROPERTIES_EXT;
+
+      if (has_drm_extension)
+      {
+        info.driverProperties.pNext = &drm_properties;
+      }
+
+      VkPhysicalDeviceProperties2 properties2 = {
+        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2,
+        .pNext = &info.driverProperties,
+        .properties = {}
+      };
+      vkGetPhysicalDeviceProperties2(device, &properties2);
+
+      VkPhysicalDeviceProtectedMemoryFeatures protected_memory_feature = {
+        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROTECTED_MEMORY_FEATURES,
+        .pNext = nullptr,
+        .protectedMemory = VK_FALSE,
+      };
+      VkPhysicalDeviceSamplerYcbcrConversionFeatures ycbcr_conversion_features = {
+        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SAMPLER_YCBCR_CONVERSION_FEATURES,
+        .pNext = &protected_memory_feature,
+        .samplerYcbcrConversion = VK_FALSE,
+      };
+      VkPhysicalDeviceFeatures2 features_2 = {
+        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
+        .pNext = &ycbcr_conversion_features,
+        .features = {}
+      };
+      // clang-format on
+
+      vkGetPhysicalDeviceFeatures2(device, &features_2);
+
+      info.features = features_2.features;
+      info.featureSamplerYCBCRconversion = ycbcr_conversion_features.samplerYcbcrConversion;
+      info.featureProtectedMemory = protected_memory_feature.protectedMemory;
+    }
+
+    count = 0;
+    vkGetPhysicalDeviceQueueFamilyProperties(device, &count, nullptr);
+    if (count)
+    {
+      info.queueFamilies.resize(count);
+      vkGetPhysicalDeviceQueueFamilyProperties(device, &count, info.queueFamilies.data());
+    }
   }
 
   return true;

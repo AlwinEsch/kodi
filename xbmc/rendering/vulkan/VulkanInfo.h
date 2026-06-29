@@ -20,6 +20,25 @@ namespace VULKAN
 
 constexpr uint32_t REQUIRED_VK_API_VERSION{VK_API_VERSION_1_1};
 
+struct CVulkanPhysicalDeviceInfo
+{
+  VkPhysicalDevice device{VK_NULL_HANDLE};
+
+  VkPhysicalDeviceProperties properties = {};
+  VkPhysicalDeviceDriverProperties driverProperties = {};
+  uint64_t drmDeviceId{0};
+
+  std::vector<VkExtensionProperties> extensions;
+
+  VkPhysicalDeviceFeatures features = {};
+
+  // Extended physical device features:
+  bool featureSamplerYCBCRconversion = false;
+  bool featureProtectedMemory = false;
+
+  std::vector<VkQueueFamilyProperties> queueFamilies;
+};
+
 struct CVulkanInfo
 {
   uint32_t availableAPIVersion{VK_MAKE_VERSION(1, 0, 0)};
@@ -27,7 +46,7 @@ struct CVulkanInfo
   std::vector<VkExtensionProperties> instanceExtensions;
   std::vector<const char*> enabledInstanceExtensions;
   std::vector<VkLayerProperties> instanceLayers;
-  //std::vector<VulkanPhysicalDeviceInfo> physical_devices;
+  std::vector<CVulkanPhysicalDeviceInfo> physicalDevices;
   bool debugReportEnabled{false};
 };
 

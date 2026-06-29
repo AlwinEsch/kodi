@@ -33,6 +33,7 @@ public:
 
 private:
   bool GetBasicInfos(const std::vector<const char*>& requiredLayers);
+  bool GetDeviceInfos(VkPhysicalDevice physicalDevice = VK_NULL_HANDLE);
 
   VkInstance m_vkInstance{VK_NULL_HANDLE};
 

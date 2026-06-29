@@ -55,12 +55,43 @@ void LogGraphicsInfo(const CVulkanInfo& vulkanInfo)
 {
   // Log the Vulkan API information
   CLog::Log(LOGINFO, "Vulkan: Logging graphics information...");
-  CLog::Log(LOGINFO, "        - Available API Version: {}.{}.{}", VK_VERSION_MAJOR(vulkanInfo.availableAPIVersion),
-            VK_VERSION_MINOR(vulkanInfo.availableAPIVersion), VK_VERSION_PATCH(vulkanInfo.availableAPIVersion));
-  CLog::Log(LOGINFO, "        - Used API Version: {}.{}.{}",
+  CLog::Log(LOGINFO, "        - Available API Version: {}.{}.{}",
+            VK_VERSION_MAJOR(vulkanInfo.availableAPIVersion),
+            VK_VERSION_MINOR(vulkanInfo.availableAPIVersion),
+            VK_VERSION_PATCH(vulkanInfo.availableAPIVersion));
+  CLog::Log(LOGINFO, "        - Used API Version: {0}.{1}.{2}",
             VK_VERSION_MAJOR(vulkanInfo.usedAPIVersion),
             VK_VERSION_MINOR(vulkanInfo.usedAPIVersion),
             VK_VERSION_PATCH(vulkanInfo.usedAPIVersion));
+  CLog::Log(LOGINFO, "        - Debug Report Enabled: {0}",
+            vulkanInfo.debugReportEnabled ? "Yes" : "No");
+  for (const auto& deviceInfo : vulkanInfo.instanceExtensions)
+  {
+    bool isEnabled = std::find_if(vulkanInfo.enabledInstanceExtensions.begin(),
+                                  vulkanInfo.enabledInstanceExtensions.end(),
+                                  [&deviceInfo](const char* enabledExtension)
+                                  {
+                                    return strcmp(enabledExtension, deviceInfo.extensionName) == 0;
+                                  }) != vulkanInfo.enabledInstanceExtensions.end();
+    CLog::Log(LOGINFO, "        - Instance Extension: {0} (Version {1}), Is Enabled: {2}",
+                deviceInfo.extensionName, deviceInfo.specVersion, isEnabled ? "Yes" : "No");
+  }
+  for (const auto& deviceInfo : vulkanInfo.physicalDevices)
+  {
+    CLog::Log(LOGINFO, "        - Physical Device: {0}", deviceInfo.properties.deviceName);
+    CLog::Log(LOGINFO, "            - Vendor ID: {0:#X}", deviceInfo.properties.vendorID);
+    CLog::Log(LOGINFO, "            - Device ID: {0:#X}", deviceInfo.properties.deviceID);
+    CLog::Log(LOGINFO, "            - Driver Version: {0}.{1}.{2}",
+              VK_VERSION_MAJOR(deviceInfo.properties.driverVersion),
+              VK_VERSION_MINOR(deviceInfo.properties.driverVersion),
+              VK_VERSION_PATCH(deviceInfo.properties.driverVersion));
+    CLog::Log(LOGINFO, "            - DRM Device ID: {0:#X}", deviceInfo.drmDeviceId);
+    CLog::Log(LOGINFO, "            - Queue Families: {0}", deviceInfo.queueFamilies.size());
+    CLog::Log(LOGINFO, "            - Sampler YCbCr Conversion: {0}",
+              deviceInfo.featureSamplerYCBCRconversion ? "Supported" : "Not supported");
+    CLog::Log(LOGINFO, "            - Protected Memory: {0}",
+              deviceInfo.featureProtectedMemory ? "Supported" : "Not supported");
+  }
 }
 
 } // namespace VULKAN

@@ -25,21 +25,30 @@ CVulkanFunctionPointers* GetVulkanFunctionPointers()
   return &s_vulkanFunctionPointers;
 }
 
-bool CVulkanFunctionPointers::BindInstanceFunctionPointers(VkInstance vkInstance)
+bool CVulkanFunctionPointers::BindInstanceFunctionPointers(
+    VkInstance vkInstance, const std::vector<VkExtensionProperties>& extensions)
 {
   try
   {
-    constexpr char kvkCreateDebugReportCallbackEXT[] = "vkCreateDebugReportCallbackEXT";
-    vkCreateDebugReportCallbackEXT = reinterpret_cast<PFN_vkCreateDebugReportCallbackEXT>(
-        vkGetInstanceProcAddr(vkInstance, kvkCreateDebugReportCallbackEXT));
-    if (!vkCreateDebugReportCallbackEXT)
-      throw std::runtime_error("Failed to load vkCreateDebugReportCallbackEXT function pointer");
+#ifndef NDEBUG
+    auto it =
+        std::find_if(extensions.begin(), extensions.end(), [](const VkExtensionProperties& prop)
+                     { return strcmp(prop.extensionName, "VK_EXT_debug_report") == 0; });
+    if (it != extensions.end())
+    {
+      constexpr char kvkCreateDebugReportCallbackEXT[] = "vkCreateDebugReportCallbackEXT";
+      vkCreateDebugReportCallbackEXT = reinterpret_cast<PFN_vkCreateDebugReportCallbackEXT>(
+          vkGetInstanceProcAddr(vkInstance, kvkCreateDebugReportCallbackEXT));
+      if (!vkCreateDebugReportCallbackEXT)
+        throw std::runtime_error("Failed to load vkCreateDebugReportCallbackEXT function pointer");
 
-    constexpr char kvkDestroyDebugReportCallbackEXT[] = "vkDestroyDebugReportCallbackEXT";
-    vkDestroyDebugReportCallbackEXT = reinterpret_cast<PFN_vkDestroyDebugReportCallbackEXT>(
-        vkGetInstanceProcAddr(vkInstance, kvkDestroyDebugReportCallbackEXT));
-    if (!vkDestroyDebugReportCallbackEXT)
-      throw std::runtime_error("Failed to load vkDestroyDebugReportCallbackEXT function pointer");
+      constexpr char kvkDestroyDebugReportCallbackEXT[] = "vkDestroyDebugReportCallbackEXT";
+      vkDestroyDebugReportCallbackEXT = reinterpret_cast<PFN_vkDestroyDebugReportCallbackEXT>(
+          vkGetInstanceProcAddr(vkInstance, kvkDestroyDebugReportCallbackEXT));
+      if (!vkDestroyDebugReportCallbackEXT)
+        throw std::runtime_error("Failed to load vkDestroyDebugReportCallbackEXT function pointer");
+    }
+#endif // NDEBUG
   }
   catch (const std::exception& e)
   {
