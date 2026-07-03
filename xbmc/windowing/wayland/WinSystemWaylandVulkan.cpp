@@ -88,11 +88,15 @@ bool CWinSystemWaylandVulkan::CreateNewWindow(const std::string& name,
     return false;
   }
 
+  wl_display* display = GetConnection()->GetDisplay();
+  wl_surface* surface = GetMainSurface();
+
+  SetRenderSystemWaylandInfo(display, surface);
+
   //if (!CreateContext())
   //{
   //  return false;
   //}
-
 
   return true;
 }

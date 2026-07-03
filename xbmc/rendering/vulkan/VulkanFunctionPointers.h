@@ -9,6 +9,7 @@
 #pragma once
 
 #include <vector>
+
 #include <vulkan/vulkan_core.h>
 
 // Generic helper definitions for inline function support
@@ -43,7 +44,8 @@ struct CVulkanFunctionPointers
   CVulkanFunctionPointers() = default;
   ~CVulkanFunctionPointers() = default;
 
-  bool BindInstanceFunctionPointers(VkInstance vkInstance, const std::vector<VkExtensionProperties>& extensions);
+  bool BindInstanceFunctionPointers(VkInstance vkInstance,
+                                    const std::vector<VkExtensionProperties>& extensions);
 
   template<typename T>
   class VulkanFunction;

@@ -30,6 +30,7 @@ public:
   void Destroy();
 
   VkInstance GetVkInstance() const { return m_vkInstance ; }
+  const CVulkanInfo& GetVulkanInfo() const { return m_vulkanInfo; }
 
 private:
   CVulkanInstance(const CVulkanInstance&) = delete;

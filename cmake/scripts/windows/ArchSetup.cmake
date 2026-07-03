@@ -28,13 +28,13 @@ endif()
 
 set(PLATFORM_DIR platform/win32)
 
-if(NOT APP_RENDER_SYSTEM OR APP_RENDER_SYSTEM STREQUAL "vulkan"
-  list(APPEND PLATFORM_REQUIRED_DEPS Vulkan)
+if(NOT APP_RENDER_SYSTEM OR APP_RENDER_SYSTEM STREQUAL "vulkan")
+  list(APPEND PLATFORM_REQUIRED_DEPS Vulkan VulkanMemoryAllocator GLM)
   set(APP_RENDER_SYSTEM vulkan)
 elseif(APP_RENDER_SYSTEM STREQUAL "dx11")
 
 else()
-  message(SEND_ERROR "Currently only Vulkan or OpenGLES rendering is supported. Please set APP_RENDER_SYSTEM to \"vulkan\" or \"gles\"")
+  message(SEND_ERROR "Currently only Vulkan or DX11 rendering is supported. Please set APP_RENDER_SYSTEM to \"vulkan\" or \"dx11\"")
 endif()
 
 set(CORE_MAIN_SOURCE ${CMAKE_SOURCE_DIR}/xbmc/platform/win32/WinMain.cpp)

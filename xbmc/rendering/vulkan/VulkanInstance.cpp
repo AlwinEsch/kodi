@@ -141,7 +141,7 @@ bool CVulkanInstance::Create(const std::vector<const char*>& required_extensions
   LogGraphicsInfo(m_vulkanInfo);
 
   return true;
-} // namespace VULKAN
+}
 
 void CVulkanInstance::Destroy()
 {

@@ -7,9 +7,12 @@
  */
 
 #pragma once
+
+#include "VulkanDeviceQueue.h"
 #include "rendering/RenderSystem.h"
 
 #include <map>
+#include <memory>
 #include <vector>
 
 #include <fmt/format.h>
@@ -88,7 +91,15 @@ namespace RENDERING
 namespace VULKAN
 {
 
+class CVulkanDeviceQueue;
 class CVulkanInstance;
+class CVulkanRenderSystem;
+
+std::unique_ptr<CVulkanDeviceQueue> CreateVulkanDeviceQueue(CVulkanRenderSystem* vulkanRenderSystem,
+                                                            DeviceQueueOptions options,
+                                                            uint32_t heapMemoryLimit,
+                                                            bool allowProtectedMemory = false,
+                                                            bool isThreadSafe = false);
 
 class CVulkanRenderSystem : public CRenderSystemBase
 {
@@ -131,10 +142,21 @@ public:
   std::string GetShaderPath(const std::string& filename) override;
 
   virtual CVulkanInstance* GetVulkanInstance() = 0;
+  virtual VkSurfaceKHR GetVulkanSurface() = 0;
+  virtual std::vector<const char*> GetRequiredDeviceExtensions() = 0;
+  virtual std::vector<const char*> GetOptionalDeviceExtensions() = 0;
+  virtual bool GetPhysicalDevicePresentationSupport(
+      VkPhysicalDevice device,
+      const std::vector<VkQueueFamilyProperties>& queueFamilyProperties,
+      uint32_t queueFamilyIndex)
+  {
+    return false;
+  }
 
 private:
   int m_width{0};
   int m_height{0};
+  std::unique_ptr<CVulkanDeviceQueue> m_deviceQueue;
 
   std::vector<std::pair<std::string, uint32_t>> m_vulkanExtensions;
 };

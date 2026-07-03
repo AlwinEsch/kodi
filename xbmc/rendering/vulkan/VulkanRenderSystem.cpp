@@ -27,6 +27,8 @@
 #include "windowing/GraphicContext.h"
 #include "windowing/WinSystem.h"
 
+#include <cassert>
+
 using namespace std::chrono_literals;
 using namespace KODI::GUILIB::GRAPHICS::VULKAN;
 
@@ -37,6 +39,32 @@ namespace RENDERING
 namespace VULKAN
 {
 
+std::unique_ptr<CVulkanDeviceQueue> CreateVulkanDeviceQueue(CVulkanRenderSystem* vulkanRenderSystem,
+                                                            DeviceQueueOptions options,
+                                                            uint32_t heapMemoryLimit,
+                                                            bool allowProtectedMemory,
+                                                            bool isThreadSafe)
+{
+  assert(vulkanRenderSystem != nullptr);
+
+  std::vector<const char*> requiredExtensions = vulkanRenderSystem->GetRequiredDeviceExtensions();
+  std::vector<const char*> optionalExtensions = vulkanRenderSystem->GetOptionalDeviceExtensions();
+
+  uint32_t gpuVendorId{0};
+  uint32_t gpuDeviceId{0};
+
+  auto deviceQueue = std::make_unique<CVulkanDeviceQueue>(vulkanRenderSystem);
+  if (!deviceQueue->Initialize(options, gpuVendorId, gpuDeviceId, requiredExtensions,
+                               optionalExtensions, heapMemoryLimit, allowProtectedMemory,
+                               isThreadSafe))
+  {
+    CLog::Log(LOGERROR, "Vulkan: Failed to initialize device queue");
+    return nullptr;
+  }
+
+  return deviceQueue;
+}
+
 CVulkanRenderSystem::CVulkanRenderSystem() : CRenderSystemBase()
 {
 }
@@ -45,10 +73,18 @@ bool CVulkanRenderSystem::InitRenderSystem()
 {
   fprintf(stderr, "---> %s\n", __PRETTY_FUNCTION__);
 
+  m_deviceQueue = CreateVulkanDeviceQueue(this,
+                                          DeviceQueueOption::GRAPHICS_QUEUE_FLAG |
+                                              DeviceQueueOption::PRESENTATION_SUPPORT_QUEUE_FLAG,
+                                          0, false, false);
+  if (!m_deviceQueue)
+  {
+    return false;
+  }
+
   m_bRenderCreated = true;
 
   CVulkanGUITexture::Register();
-
 
   return true;
 }
@@ -65,6 +101,9 @@ bool CVulkanRenderSystem::ResetRenderSystem(int width, int height)
 bool CVulkanRenderSystem::DestroyRenderSystem()
 {
   fprintf(stderr, "---> %s\n", __PRETTY_FUNCTION__);
+
+  m_deviceQueue.reset();
+
 
   m_bRenderCreated = false;
 
