@@ -16,6 +16,7 @@
 #include <vector>
 
 #include <fmt/format.h>
+#include <glm/glm.hpp>
 #include <vulkan/vulkan_core.h>
 
 //#include "system_vulkan.h"
@@ -159,6 +160,67 @@ private:
   std::unique_ptr<CVulkanDeviceQueue> m_deviceQueue;
 
   std::vector<std::pair<std::string, uint32_t>> m_vulkanExtensions;
+
+  VkSurfaceFormatKHR TEST___select_surface_format(VkPhysicalDevice gpu,
+                                                  VkSurfaceKHR surface,
+                                                  std::vector<VkFormat> const& preferred_formats = {
+                                                      VK_FORMAT_R8G8B8A8_SRGB,
+                                                      VK_FORMAT_B8G8R8A8_SRGB,
+                                                      VK_FORMAT_A8B8G8R8_SRGB_PACK32});
+  void TEST___init_vertex_buffer();
+  void TEST___deinit_vertex_buffer();
+  void TEST___init_swapchain();
+  void TEST___init_render_pass();
+  void TEST___init_pipeline();
+
+  /// Properties of the vertices used in this sample.
+  struct Vertex
+  {
+    glm::vec3 position;
+    glm::vec3 color;
+  };
+
+  struct SwapchainDimensions
+  {
+    /// Width of the swapchain.
+    uint32_t width = 0;
+
+    /// Height of the swapchain.
+    uint32_t height = 0;
+
+    /// Pixel format of the swapchain.
+    VkFormat format = VK_FORMAT_UNDEFINED;
+  };
+
+  SwapchainDimensions TEST___swapchain_dimensions;
+  VkSwapchainKHR TEST___m_swapchain = VK_NULL_HANDLE;
+  std::vector<VkImageView> TEST___swapchain_image_views;
+
+  /// The Vulkan buffer object that holds the vertex data for the triangle.
+  VkBuffer TEST___vertex_buffer = VK_NULL_HANDLE;
+
+  /// The device memory allocated for the vertex buffer.
+  VkDeviceMemory TEST___vertex_buffer_memory = VK_NULL_HANDLE;
+
+  /// Vulkan Memory Allocator (VMA) allocation info for the vertex buffer.
+  VmaAllocation TEST___vertex_buffer_allocation = VK_NULL_HANDLE;
+  VkRenderPass TEST___render_pass = VK_NULL_HANDLE;
+  VkShaderModule TEST___load_shader_module(const std::string& filename) const;
+  VkPipelineLayout TEST___pipeline_layout = VK_NULL_HANDLE;
+  VkPipeline TEST___pipeline = VK_NULL_HANDLE;
+
+  struct TEST___PerFrame
+  {
+    VkFence queue_submit_fence = VK_NULL_HANDLE;
+    VkCommandPool primary_command_pool = VK_NULL_HANDLE;
+    VkCommandBuffer primary_command_buffer = VK_NULL_HANDLE;
+    VkSemaphore swapchain_acquire_semaphore = VK_NULL_HANDLE;
+    VkSemaphore swapchain_release_semaphore = VK_NULL_HANDLE;
+  };
+  std::vector<TEST___PerFrame> TEST___per_frame;
+
+  void TEST___init_per_frame(TEST___PerFrame& per_frame);
+  void TEST___teardown_per_frame(TEST___PerFrame& per_frame);
 };
 
 } // namespace VULKAN
