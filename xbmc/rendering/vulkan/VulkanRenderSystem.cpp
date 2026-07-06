@@ -12,19 +12,20 @@
 #include "URL.h"
 #include "VulkanExtensions.h"
 #include "VulkanMatrix.h"
+#include "VulkanUtils.h"
 #include "filesystem/File.h"
 #include "filesystem/SpecialProtocol.h"
 #include "guilib/DirtyRegion.h"
 #include "guilib/graphics/vulkan/VulkanGUITexture.h"
 #include "platform/MessagePrinter.h"
 #include "settings/AdvancedSettings.h"
+#include "settings/DisplaySettings.h"
 #include "settings/SettingsComponent.h"
 #include "utils/FileUtils.h"
 #include "utils/MathUtils.h"
+#include "utils/StringUtils.h"
 #include "utils/SystemInfo.h"
 #include "utils/TimeUtils.h"
-#include "utils/StringUtils.h"
-//#include "utils/VulkanUtils.h"
 #include "utils/XTimeUtils.h"
 #include "utils/log.h"
 #include "windowing/GraphicContext.h"
@@ -75,8 +76,6 @@ CVulkanRenderSystem::CVulkanRenderSystem() : CRenderSystemBase()
 
 bool CVulkanRenderSystem::InitRenderSystem()
 {
-  fprintf(stderr, "---> %s\n", __PRETTY_FUNCTION__);
-
   m_deviceQueue = CreateVulkanDeviceQueue(this,
                                           DeviceQueueOption::GRAPHICS_QUEUE_FLAG |
                                               DeviceQueueOption::PRESENTATION_SUPPORT_QUEUE_FLAG,
@@ -86,13 +85,33 @@ bool CVulkanRenderSystem::InitRenderSystem()
     return false;
   }
 
-  TEST___swapchain_dimensions.width = 640;
-  TEST___swapchain_dimensions.height = 480;
-  TEST___init_vertex_buffer();
+  auto instance = m_deviceQueue->GetVulkanInstance();
+  auto device = m_deviceQueue->GetVulkanDevice();
+  auto physicalDevice = m_deviceQueue->GetVulkanPhysicalDevice();
+
+  VkDeviceSize buffer_size = sizeof(TEST___vertices[0]) * TEST___vertices.size();
+  UTILS::vulkanCreateBuffer(
+      instance, device, physicalDevice, buffer_size, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+      TEST___vertex_buffer, TEST___vertex_buffer_memory);
+  // Map the memory and copy the vertex data
+  void* data;
+  if (vkMapMemory(device, TEST___vertex_buffer_memory, 0, buffer_size, 0, &data) != VK_SUCCESS)
+  {
+    throw std::runtime_error("Failed to map vertex buffer memory");
+  }
+  memcpy(data, TEST___vertices.data(), static_cast<size_t>(buffer_size));
+  vkUnmapMemory(device, TEST___vertex_buffer_memory);
+
+  //m_swapChain = std::make_unique<CVulkanSwapChain>(m_deviceQueue.get());
+  //if (!m_swapChain->Initialize(m_width, m_height))
+  //{
+  //  CLog::Log(LOGERROR, "Vulkan: Failed to initialize swap chain");
+  //  return false;
+  //}
+
   TEST___init_swapchain();
-  TEST___init_render_pass();
   TEST___init_pipeline();
-  //TEST___init_framebuffers();
 
   m_bRenderCreated = true;
 
@@ -104,8 +123,14 @@ bool CVulkanRenderSystem::InitRenderSystem()
 bool CVulkanRenderSystem::ResetRenderSystem(int width, int height)
 {
   fprintf(stderr, "---> %s\n", __PRETTY_FUNCTION__);
-  m_width = width;
-  m_height = height;
+  if (!m_bRenderCreated)
+    return false;
+
+  if (static_cast<uint32_t>(width) == m_width && static_cast<uint32_t>(height) == m_height)
+    return true;
+
+  m_width = static_cast<uint32_t>(width);
+  m_height = static_cast<uint32_t>(height);
 
   return true;
 }
@@ -114,7 +139,7 @@ bool CVulkanRenderSystem::DestroyRenderSystem()
 {
   fprintf(stderr, "---> %s\n", __PRETTY_FUNCTION__);
 
-  TEST___deinit_vertex_buffer();
+  TEST___Deinit();
 
   m_deviceQueue.reset();
 
@@ -178,6 +203,8 @@ void CVulkanRenderSystem::PresentRender(bool rendered, bool videoLayer)
 
   if (!m_bRenderCreated)
     return;
+
+  TEST___update(0.0f);
 }
 
 void CVulkanRenderSystem::CaptureStateBlock()
@@ -266,71 +293,78 @@ std::string CVulkanRenderSystem::GetShaderPath(const std::string& filename)
   return "Vulkan/";
 }
 
-void CVulkanRenderSystem::TEST___init_vertex_buffer()
+void CVulkanRenderSystem::TEST___Deinit()
 {
-  // Vertex data for a single colored triangle
-  const std::vector<Vertex> vertices = {{{0.5f, -0.5f, 0.5f}, {1.0f, 0.0f, 0.0f}},
-                                        {{0.5f, 0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}},
-                                        {{-0.5f, 0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}}};
-
-  const VkDeviceSize buffer_size = sizeof(vertices[0]) * vertices.size();
-
-  // Copy Vertex data to a buffer accessible by the device
-
-  VkBufferCreateInfo buffer_info{};
-  buffer_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-  buffer_info.size = buffer_size;
-  buffer_info.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
-
-  // We use the Vulkan Memory Allocator to find a memory type that can be written and mapped from the host
-  // On most setups this will return a memory type that resides in VRAM and is accessible from the host
-  VmaAllocationCreateInfo buffer_alloc_ci{};
-  buffer_alloc_ci.flags =
-      VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
-  buffer_alloc_ci.usage = VMA_MEMORY_USAGE_AUTO;
-  buffer_alloc_ci.requiredFlags = VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
-
-  VmaAllocationInfo buffer_alloc_info{};
-  VkResult ret =
-      vmaCreateBuffer(m_deviceQueue->GetVMAAllocator(), &buffer_info, &buffer_alloc_ci,
-                      &TEST___vertex_buffer, &TEST___vertex_buffer_allocation, &buffer_alloc_info);
-  if (ret == VK_SUCCESS && buffer_alloc_info.pMappedData)
+  // Don't release anything until the GPU is completely idle.
+  if (m_deviceQueue->GetVulkanDevice() != VK_NULL_HANDLE)
   {
-    memcpy(buffer_alloc_info.pMappedData, vertices.data(), buffer_size);
+    vkDeviceWaitIdle(m_deviceQueue->GetVulkanDevice());
   }
-  else
-  {
-    throw std::runtime_error("Could not map vertex buffer.");
-  }
-}
 
-void CVulkanRenderSystem::TEST___deinit_vertex_buffer()
-{
+  for (auto& per_frame : TEST___per_frame)
+  {
+    TEST___teardown_per_frame(per_frame);
+  }
+
+  TEST___per_frame.clear();
+
+  for (auto semaphore : TEST___recycled_semaphores)
+  {
+    vkDestroySemaphore(m_deviceQueue->GetVulkanDevice(), semaphore, nullptr);
+  }
+
+  if (TEST___pipeline != VK_NULL_HANDLE)
+  {
+    vkDestroyPipeline(m_deviceQueue->GetVulkanDevice(), TEST___pipeline, nullptr);
+  }
+
+  if (TEST___pipeline_layout != VK_NULL_HANDLE)
+  {
+    vkDestroyPipelineLayout(m_deviceQueue->GetVulkanDevice(), TEST___pipeline_layout, nullptr);
+  }
+
+  for (VkImageView image_view : TEST___swapchain_image_views)
+  {
+    vkDestroyImageView(m_deviceQueue->GetVulkanDevice(), image_view, nullptr);
+  }
+
+  if (TEST___m_swapchain != VK_NULL_HANDLE)
+  {
+    vkDestroySwapchainKHR(m_deviceQueue->GetVulkanDevice(), TEST___m_swapchain, nullptr);
+    TEST___m_swapchain = VK_NULL_HANDLE;
+  }
+
   if (TEST___vertex_buffer != VK_NULL_HANDLE)
   {
-    vmaDestroyBuffer(m_deviceQueue->GetVMAAllocator(), TEST___vertex_buffer,
-                     TEST___vertex_buffer_allocation);
+    vkDestroyBuffer(m_deviceQueue->GetVulkanDevice(), TEST___vertex_buffer, nullptr);
     TEST___vertex_buffer = VK_NULL_HANDLE;
-    TEST___vertex_buffer_allocation = VK_NULL_HANDLE;
+  }
+
+  if (TEST___vertex_buffer_memory != VK_NULL_HANDLE)
+  {
+    vkFreeMemory(m_deviceQueue->GetVulkanDevice(), TEST___vertex_buffer_memory, nullptr);
+    TEST___vertex_buffer_memory = VK_NULL_HANDLE;
   }
 }
 
 void CVulkanRenderSystem::TEST___init_swapchain()
 {
-  VkSurfaceCapabilitiesKHR surface_properties{};
+  VkSurfaceCapabilitiesKHR surface_properties;
   if (vkGetPhysicalDeviceSurfaceCapabilitiesKHR(m_deviceQueue->GetVulkanPhysicalDevice(),
                                                 GetVulkanSurface(),
                                                 &surface_properties) != VK_SUCCESS)
-    throw std::runtime_error("Could not get surface capabilities.");
+  {
+    throw std::runtime_error("Failed to get physical device surface capabilities\n");
+  }
 
   VkSurfaceFormatKHR format =
       TEST___select_surface_format(m_deviceQueue->GetVulkanPhysicalDevice(), GetVulkanSurface());
 
-  VkExtent2D swapchain_size{};
+  VkExtent2D swapchain_size;
   if (surface_properties.currentExtent.width == 0xFFFFFFFF)
   {
-    swapchain_size.width = TEST___swapchain_dimensions.width;
-    swapchain_size.height = TEST___swapchain_dimensions.height;
+    swapchain_size.width = m_width;
+    swapchain_size.height = m_height;
   }
   else
   {
@@ -361,7 +395,7 @@ void CVulkanRenderSystem::TEST___init_swapchain()
 
   VkSwapchainKHR old_swapchain = TEST___m_swapchain;
 
-  // Find a supported composite type.
+  // one bitmask needs to be set according to the priority of presentation engine
   VkCompositeAlphaFlagBitsKHR composite = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
   if (surface_properties.supportedCompositeAlpha & VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR)
   {
@@ -379,9 +413,6 @@ void CVulkanRenderSystem::TEST___init_swapchain()
   {
     composite = VK_COMPOSITE_ALPHA_POST_MULTIPLIED_BIT_KHR;
   }
-
-  fprintf(stderr, "Vulkan: Creating swapchain with %d images of size %dx%d\n",
-          desired_swapchain_images, swapchain_size.width, swapchain_size.height);
 
   VkSwapchainCreateInfoKHR info{.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
                                 .pNext = nullptr,
@@ -405,7 +436,7 @@ void CVulkanRenderSystem::TEST___init_swapchain()
   if (vkCreateSwapchainKHR(m_deviceQueue->GetVulkanDevice(), &info, nullptr, &TEST___m_swapchain) !=
       VK_SUCCESS)
   {
-    throw std::runtime_error("Failed to create swapchain.");
+    throw std::runtime_error("Failed to create swapchain");
   }
 
   if (old_swapchain != VK_NULL_HANDLE)
@@ -425,13 +456,15 @@ void CVulkanRenderSystem::TEST___init_swapchain()
     vkDestroySwapchainKHR(m_deviceQueue->GetVulkanDevice(), old_swapchain, nullptr);
   }
 
-  TEST___swapchain_dimensions = {swapchain_size.width, swapchain_size.height, format.format};
+  m_width = swapchain_size.width;
+  m_height = swapchain_size.height;
+  m_SwapchainFormat = format.format;
 
   uint32_t image_count;
   if (vkGetSwapchainImagesKHR(m_deviceQueue->GetVulkanDevice(), TEST___m_swapchain, &image_count,
                               nullptr) != VK_SUCCESS)
   {
-    throw std::runtime_error("Failed to get swapchain images.");
+    throw std::runtime_error("Failed to get swapchain images");
   }
 
   /// The swapchain images.
@@ -439,8 +472,11 @@ void CVulkanRenderSystem::TEST___init_swapchain()
   if (vkGetSwapchainImagesKHR(m_deviceQueue->GetVulkanDevice(), TEST___m_swapchain, &image_count,
                               swapchain_images.data()) != VK_SUCCESS)
   {
-    throw std::runtime_error("Failed to get swapchain images.");
+    throw std::runtime_error("Failed to get swapchain images");
   }
+
+  // Store swapchain images
+  TEST___swapchain_images = swapchain_images;
 
   // Initialize per-frame resources.
   // Every swapchain image has its own command pool and fence manager.
@@ -461,7 +497,7 @@ void CVulkanRenderSystem::TEST___init_swapchain()
                                     .flags = 0,
                                     .image = swapchain_images[i],
                                     .viewType = VK_IMAGE_VIEW_TYPE_2D,
-                                    .format = TEST___swapchain_dimensions.format,
+                                    .format = m_SwapchainFormat,
                                     .components = {.r = VK_COMPONENT_SWIZZLE_IDENTITY,
                                                    .g = VK_COMPONENT_SWIZZLE_IDENTITY,
                                                    .b = VK_COMPONENT_SWIZZLE_IDENTITY,
@@ -475,83 +511,18 @@ void CVulkanRenderSystem::TEST___init_swapchain()
     VkImageView image_view;
     if (vkCreateImageView(m_deviceQueue->GetVulkanDevice(), &view_info, nullptr, &image_view) !=
         VK_SUCCESS)
-      throw std::runtime_error("Failed to create image view.");
+    {
+      throw std::runtime_error("Failed to create image view");
+    }
 
     TEST___swapchain_image_views.push_back(image_view);
   }
 }
 
-void CVulkanRenderSystem::TEST___init_render_pass()
-{
-  VkAttachmentDescription attachment{
-      .flags = 0,
-      .format = TEST___swapchain_dimensions.format, // Backbuffer format.
-      .samples = VK_SAMPLE_COUNT_1_BIT, // Not multisampled.
-      .loadOp =
-          VK_ATTACHMENT_LOAD_OP_CLEAR, // When starting the frame, we want tiles to be cleared.
-      .storeOp =
-          VK_ATTACHMENT_STORE_OP_STORE, // When ending the frame, we want tiles to be written out.
-      .stencilLoadOp =
-          VK_ATTACHMENT_LOAD_OP_DONT_CARE, // Don't care about stencil since we're not using it.
-      .stencilStoreOp =
-          VK_ATTACHMENT_STORE_OP_DONT_CARE, // Don't care about stencil since we're not using it.
-      .initialLayout =
-          VK_IMAGE_LAYOUT_UNDEFINED, // The image layout will be undefined when the render pass begins.
-      .finalLayout =
-          VK_IMAGE_LAYOUT_PRESENT_SRC_KHR // After the render pass is complete, we will transition to PRESENT_SRC_KHR
-  };
-
-  // We have one subpass. This subpass has one color attachment.
-  // While executing this subpass, the attachment will be in attachment optimal layout.
-  VkAttachmentReference color_ref = {0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL};
-
-  // We will end up with two transitions.
-  // The first one happens right before we start subpass #0, where
-  // UNDEFINED is transitioned into COLOR_ATTACHMENT_OPTIMAL.
-  // The final layout in the render pass attachment states PRESENT_SRC_KHR, so we
-  // will get a final transition from COLOR_ATTACHMENT_OPTIMAL to PRESENT_SRC_KHR.
-  VkSubpassDescription subpass{.flags = 0,
-                               .pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS,
-                               .inputAttachmentCount = 0,
-                               .pInputAttachments = nullptr,
-                               .colorAttachmentCount = 1,
-                               .pColorAttachments = &color_ref,
-                               .pResolveAttachments = nullptr,
-                               .pDepthStencilAttachment = nullptr,
-                               .preserveAttachmentCount = 0,
-                               .pPreserveAttachments = nullptr};
-
-  // Create a dependency to external events.
-  // We need to wait for the WSI semaphore to signal.
-  // Only pipeline stages which depend on COLOR_ATTACHMENT_OUTPUT_BIT will
-  // actually wait for the semaphore, so we must also wait for that pipeline stage.
-  VkSubpassDependency dependency{.srcSubpass = VK_SUBPASS_EXTERNAL,
-                                 .dstSubpass = 0,
-                                 .srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-                                 .dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-                                 .srcAccessMask = 0,
-                                 .dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT |
-                                                  VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-                                 .dependencyFlags = 0};
-
-  // Finally, create the renderpass.
-  VkRenderPassCreateInfo rp_info{.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
-                                 .pNext = nullptr,
-                                 .flags = 0,
-                                 .attachmentCount = 1,
-                                 .pAttachments = &attachment,
-                                 .subpassCount = 1,
-                                 .pSubpasses = &subpass,
-                                 .dependencyCount = 1,
-                                 .pDependencies = &dependency};
-
-  if (vkCreateRenderPass(m_deviceQueue->GetVulkanDevice(), &rp_info, nullptr,
-                         &TEST___render_pass) != VK_SUCCESS)
-    throw std::runtime_error("Failed to create render pass.");
-}
-
 void CVulkanRenderSystem::TEST___init_pipeline()
 {
+  auto device = m_deviceQueue->GetVulkanDevice();
+
   // Create a blank pipeline layout.
   // We are not binding any resources to the pipeline in this first sample.
   VkPipelineLayoutCreateInfo layout_info{.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
@@ -561,25 +532,16 @@ void CVulkanRenderSystem::TEST___init_pipeline()
                                          .pSetLayouts = nullptr,
                                          .pushConstantRangeCount = 0,
                                          .pPushConstantRanges = nullptr};
-  if (vkCreatePipelineLayout(m_deviceQueue->GetVulkanDevice(), &layout_info, nullptr,
-                             &TEST___pipeline_layout) != VK_SUCCESS)
+  if (vkCreatePipelineLayout(device, &layout_info, nullptr, &TEST___pipeline_layout) != VK_SUCCESS)
+  {
     throw std::runtime_error("Failed to create pipeline layout");
+  }
 
-  // The Vertex input properties define the interface between the vertex buffer and the vertex shader.
-
-  // Specify we will use triangle lists to draw geometry.
-  VkPipelineInputAssemblyStateCreateInfo input_assembly{
-      .sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
-      .pNext = nullptr,
-      .flags = 0,
-      .topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
-      .primitiveRestartEnable = VK_FALSE};
-
-  // Define the vertex input binding.
+  // Define the vertex input binding description
   VkVertexInputBindingDescription binding_description{
       .binding = 0, .stride = sizeof(Vertex), .inputRate = VK_VERTEX_INPUT_RATE_VERTEX};
 
-  // Define the vertex input attribute.
+  // Define the vertex input attribute descriptions
   std::array<VkVertexInputAttributeDescription, 2> attribute_descriptions{
       {{.location = 0,
         .binding = 0,
@@ -590,7 +552,7 @@ void CVulkanRenderSystem::TEST___init_pipeline()
         .format = VK_FORMAT_R32G32B32_SFLOAT,
         .offset = offsetof(Vertex, color)}}};
 
-  // Define the pipeline vertex input.
+  // Create the vertex input state
   VkPipelineVertexInputStateCreateInfo vertex_input{
       .sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
       .pNext = nullptr,
@@ -599,6 +561,14 @@ void CVulkanRenderSystem::TEST___init_pipeline()
       .pVertexBindingDescriptions = &binding_description,
       .vertexAttributeDescriptionCount = static_cast<uint32_t>(attribute_descriptions.size()),
       .pVertexAttributeDescriptions = attribute_descriptions.data()};
+
+  // Specify we will use triangle lists to draw geometry.
+  VkPipelineInputAssemblyStateCreateInfo input_assembly{
+      .sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
+      .pNext = nullptr,
+      .flags = 0,
+      .topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
+      .primitiveRestartEnable = VK_FALSE};
 
   // Specify rasterization state.
   VkPipelineRasterizationStateCreateInfo raster{
@@ -615,6 +585,11 @@ void CVulkanRenderSystem::TEST___init_pipeline()
       .depthBiasClamp = 0.0f,
       .depthBiasSlopeFactor = 0.0f,
       .lineWidth = 1.0f};
+
+  // Specify that these states will be dynamic, i.e. not part of pipeline state object.
+  std::vector<VkDynamicState> dynamic_states = {
+      VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR, VK_DYNAMIC_STATE_CULL_MODE,
+      VK_DYNAMIC_STATE_FRONT_FACE, VK_DYNAMIC_STATE_PRIMITIVE_TOPOLOGY};
 
   // Our attachment will write to all color channels, but no blending is enabled.
   VkPipelineColorBlendAttachmentState blend_attachment{
@@ -676,27 +651,23 @@ void CVulkanRenderSystem::TEST___init_pipeline()
       .alphaToCoverageEnable = VK_FALSE,
       .alphaToOneEnable = VK_FALSE};
 
-  // Specify that these states will be dynamic, i.e. not part of pipeline state object.
-  std::array<VkDynamicState, 2>
-      dynamics{VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
-
-  VkPipelineDynamicStateCreateInfo dynamic{
+  VkPipelineDynamicStateCreateInfo dynamic_state_info{
       .sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
       .pNext = nullptr,
       .flags = 0,
-      .dynamicStateCount = static_cast<uint32_t>(dynamics.size()),
-      .pDynamicStates = dynamics.data()};
+      .dynamicStateCount = static_cast<uint32_t>(dynamic_states.size()),
+      .pDynamicStates = dynamic_states.data()};
 
   // Load our SPIR-V shaders.
 
+  // Vertex stage of the pipeline
   std::array<VkPipelineShaderStageCreateInfo, 2> shader_stages{};
 
-  // Vertex stage of the pipeline
   shader_stages[0] = {.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
                       .pNext = nullptr,
                       .flags = 0,
                       .stage = VK_SHADER_STAGE_VERTEX_BIT,
-                      .module = TEST___load_shader_module("triangle.vert.spv"),
+                      .module = UTILS::vulkanCreateShaderModule(device, "triangle.vert.spv"),
                       .pName = "main",
                       .pSpecializationInfo = nullptr};
 
@@ -705,13 +676,24 @@ void CVulkanRenderSystem::TEST___init_pipeline()
                       .pNext = nullptr,
                       .flags = 0,
                       .stage = VK_SHADER_STAGE_FRAGMENT_BIT,
-                      .module = TEST___load_shader_module("triangle.frag.spv"),
+                      .module = UTILS::vulkanCreateShaderModule(device, "triangle.frag.spv"),
                       .pName = "main",
                       .pSpecializationInfo = nullptr};
 
+  // Pipeline rendering info (for dynamic rendering).
+  VkPipelineRenderingCreateInfo pipeline_rendering_info{
+      .sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO,
+      .pNext = nullptr,
+      .viewMask = 0,
+      .colorAttachmentCount = 1,
+      .pColorAttachmentFormats = &m_SwapchainFormat,
+      .depthAttachmentFormat = VK_FORMAT_UNDEFINED,
+      .stencilAttachmentFormat = VK_FORMAT_UNDEFINED};
+
+  // Create the graphics pipeline.
   VkGraphicsPipelineCreateInfo pipe{
       .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
-      .pNext = nullptr,
+      .pNext = &pipeline_rendering_info,
       .flags = 0,
       .stageCount = static_cast<uint32_t>(shader_stages.size()),
       .pStages = shader_stages.data(),
@@ -723,74 +705,379 @@ void CVulkanRenderSystem::TEST___init_pipeline()
       .pMultisampleState = &multisample,
       .pDepthStencilState = &depth_stencil,
       .pColorBlendState = &blend,
-      .pDynamicState = &dynamic,
+      .pDynamicState = &dynamic_state_info,
       .layout = TEST___pipeline_layout, // We need to specify the pipeline layout up front
-      .renderPass = TEST___render_pass, // We need to specify the render pass up front
+      .renderPass = VK_NULL_HANDLE, // Since we are using dynamic rendering this will set as null
       .subpass = 0, // We will be using the first subpass in the render pass
       .basePipelineHandle = VK_NULL_HANDLE,
-      .basePipelineIndex = -1
-  };
+      .basePipelineIndex = -1};
 
-  if (vkCreateGraphicsPipelines(m_deviceQueue->GetVulkanDevice(), VK_NULL_HANDLE, 1, &pipe, nullptr,
-                                &TEST___pipeline) != VK_SUCCESS)
-    throw std::runtime_error("Failed to create graphics pipeline.");
+  if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipe, nullptr, &TEST___pipeline) !=
+      VK_SUCCESS)
+  {
+    throw std::runtime_error("Failed to create graphics pipeline");
+  }
 
   // Pipeline is baked, we can delete the shader modules now.
-  vkDestroyShaderModule(m_deviceQueue->GetVulkanDevice(), shader_stages[0].module, nullptr);
-  vkDestroyShaderModule(m_deviceQueue->GetVulkanDevice(), shader_stages[1].module, nullptr);
+  vkDestroyShaderModule(device, shader_stages[0].module, nullptr);
+  vkDestroyShaderModule(device, shader_stages[1].module, nullptr);
 }
 
-VkSurfaceFormatKHR CVulkanRenderSystem::TEST___select_surface_format(
-    VkPhysicalDevice gpu, VkSurfaceKHR surface, std::vector<VkFormat> const& preferred_formats)
+void CVulkanRenderSystem::TEST___update(float delta_time)
 {
-  uint32_t surface_format_count;
-  vkGetPhysicalDeviceSurfaceFormatsKHR(gpu, surface, &surface_format_count, nullptr);
-  assert(0 < surface_format_count);
-  std::vector<VkSurfaceFormatKHR> supported_surface_formats(surface_format_count);
-  vkGetPhysicalDeviceSurfaceFormatsKHR(gpu, surface, &surface_format_count,
-                                       supported_surface_formats.data());
+  uint32_t index;
 
-  auto it = std::ranges::find_if(supported_surface_formats,
-                                 [&preferred_formats](VkSurfaceFormatKHR surface_format)
-                                 {
-                                   return std::ranges::any_of(
-                                       preferred_formats, [&surface_format](VkFormat format)
-                                       { return format == surface_format.format; });
-                                 });
+  auto res = TEST___acquire_next_swapchain_image(&index);
 
-  // We use the first supported format as a fallback in case none of the preferred formats is available
-  return it != supported_surface_formats.end() ? *it : supported_surface_formats[0];
+  // Handle outdated error in acquire.
+  if (res == VK_SUBOPTIMAL_KHR || res == VK_ERROR_OUT_OF_DATE_KHR)
+  {
+    if (!TEST___resize(m_width, m_height))
+    {
+      CLog::Log(LOGERROR, "Vulkan: Resize failed");
+    }
+    res = TEST___acquire_next_swapchain_image(&index);
+  }
+
+  if (res != VK_SUCCESS)
+  {
+    vkQueueWaitIdle(m_deviceQueue->GetVulkanQueue());
+    return;
+  }
+
+  TEST___render_triangle(index);
+  res = TEST___present_image(index);
+
+  // Handle Outdated error in present.
+  if (res == VK_SUBOPTIMAL_KHR || res == VK_ERROR_OUT_OF_DATE_KHR)
+  {
+    if (!TEST___resize(m_width, m_height))
+    {
+      CLog::Log(LOGINFO, "Vulkan: Resize failed");
+    }
+  }
+  else if (res != VK_SUCCESS)
+  {
+    CLog::Log(LOGERROR, "Vulkan: Failed to present swapchain image.");
+  }
 }
 
-void CVulkanRenderSystem::TEST___init_per_frame(TEST___PerFrame& per_frame)
+VkResult CVulkanRenderSystem::TEST___acquire_next_swapchain_image(uint32_t* image)
 {
-  VkFenceCreateInfo info{.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
-                         .pNext = nullptr,
-                         .flags = VK_FENCE_CREATE_SIGNALED_BIT};
-  if (vkCreateFence(m_deviceQueue->GetVulkanDevice(), &info, nullptr,
-                    &per_frame.queue_submit_fence) != VK_SUCCESS)
-    throw std::runtime_error("Failed to create fence.");
+  VkSemaphore acquire_semaphore;
+  if (TEST___recycled_semaphores.empty())
+  {
+    VkSemaphoreCreateInfo info = {
+        .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO, .pNext = nullptr, .flags = 0};
+    if (vkCreateSemaphore(m_deviceQueue->GetVulkanDevice(), &info, nullptr, &acquire_semaphore) !=
+        VK_SUCCESS)
+    {
+      throw std::runtime_error("Failed to create semaphore");
+    }
+  }
+  else
+  {
+    acquire_semaphore = TEST___recycled_semaphores.back();
+    TEST___recycled_semaphores.pop_back();
+  }
 
-  VkCommandPoolCreateInfo cmd_pool_info{
-      .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+  VkResult res = vkAcquireNextImageKHR(m_deviceQueue->GetVulkanDevice(), TEST___m_swapchain,
+                                       UINT64_MAX, acquire_semaphore, VK_NULL_HANDLE, image);
+
+  if (res != VK_SUCCESS)
+  {
+    TEST___recycled_semaphores.push_back(acquire_semaphore);
+    return res;
+  }
+
+  // If we have outstanding fences for this swapchain image, wait for them to complete first.
+  // After begin frame returns, it is safe to reuse or delete resources which
+  // were used previously.
+  //
+  // We wait for fences which completes N frames earlier, so we do not stall,
+  // waiting for all GPU work to complete before this returns.
+  // Normally, this doesn't really block at all,
+  // since we're waiting for old frames to have been completed, but just in case.
+  if (TEST___per_frame[*image].queue_submit_fence != VK_NULL_HANDLE)
+  {
+    vkWaitForFences(m_deviceQueue->GetVulkanDevice(), 1,
+                    &TEST___per_frame[*image].queue_submit_fence, true, UINT64_MAX);
+    vkResetFences(m_deviceQueue->GetVulkanDevice(), 1,
+                  &TEST___per_frame[*image].queue_submit_fence);
+  }
+
+  if (TEST___per_frame[*image].primary_command_pool != VK_NULL_HANDLE)
+  {
+    vkResetCommandPool(m_deviceQueue->GetVulkanDevice(),
+                       TEST___per_frame[*image].primary_command_pool, 0);
+  }
+
+  // Recycle the old semaphore back into the semaphore manager.
+  VkSemaphore old_semaphore = TEST___per_frame[*image].swapchain_acquire_semaphore;
+
+  if (old_semaphore != VK_NULL_HANDLE)
+  {
+    TEST___recycled_semaphores.push_back(old_semaphore);
+  }
+
+  TEST___per_frame[*image].swapchain_acquire_semaphore = acquire_semaphore;
+
+  return VK_SUCCESS;
+}
+
+void CVulkanRenderSystem::TEST___render_triangle(uint32_t swapchain_index)
+{
+  // Allocate or re-use a primary command buffer.
+  VkCommandBuffer cmd = TEST___per_frame[swapchain_index].primary_command_buffer;
+
+  // We will only submit this once before it's recycled.
+  VkCommandBufferBeginInfo begin_info{.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+                                      .pNext = nullptr,
+                                      .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
+                                      .pInheritanceInfo = nullptr};
+
+  // Begin command recording
+  if (vkBeginCommandBuffer(cmd, &begin_info) != VK_SUCCESS)
+  {
+    throw std::runtime_error("Failed to begin command buffer");
+  }
+
+  // Before starting rendering, transition the swapchain image to COLOR_ATTACHMENT_OPTIMAL
+  TEST___transition_image_layout(cmd, TEST___swapchain_images[swapchain_index],
+                                 VK_IMAGE_LAYOUT_UNDEFINED,
+                                 VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                                 0, // srcAccessMask (no need to wait for previous operations)
+                                 VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT, // dstAccessMask
+                                 VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT, // srcStage
+                                 VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT // dstStage
+  );
+  // Set clear color values.
+  VkClearValue clear_value{.color = {{0.01f, 0.01f, 0.033f, 1.0f}}};
+
+  // Set up the rendering attachment info
+  VkRenderingAttachmentInfo color_attachment{
+      .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
       .pNext = nullptr,
-      .flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT,
-      .queueFamilyIndex = static_cast<uint32_t>(m_deviceQueue->GetVulkanQueueIndex())};
-  if (vkCreateCommandPool(m_deviceQueue->GetVulkanDevice(), &cmd_pool_info, nullptr,
-                          &per_frame.primary_command_pool) != VK_SUCCESS)
-    throw std::runtime_error("Failed to create command pool.");
+      .imageView = TEST___swapchain_image_views[swapchain_index],
+      .imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+      .resolveMode = VK_RESOLVE_MODE_NONE,
+      .resolveImageView = VK_NULL_HANDLE,
+      .resolveImageLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+      .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+      .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+      .clearValue = clear_value};
 
-  VkCommandBufferAllocateInfo cmd_buf_info{.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
-                                           .pNext = nullptr,
-                                           .commandPool = per_frame.primary_command_pool,
-                                           .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-                                           .commandBufferCount = 1};
-  if (vkAllocateCommandBuffers(m_deviceQueue->GetVulkanDevice(), &cmd_buf_info,
-                               &per_frame.primary_command_buffer) != VK_SUCCESS)
-    throw std::runtime_error("Failed to allocate command buffer.");
+  // Begin rendering
+  VkRenderingInfo rendering_info{
+      .sType = VK_STRUCTURE_TYPE_RENDERING_INFO_KHR,
+      .pNext = nullptr,
+      .flags = 0,
+      .renderArea =
+          {// Initialize the nested `VkRect2D` structure
+           .offset = {0, 0}, // Initialize the `VkOffset2D` inside `renderArea`
+           .extent =
+               {// Initialize the `VkExtent2D` inside `renderArea`
+                .width = m_width,
+                .height = m_height}},
+      .layerCount = 1,
+      .viewMask = 0,
+      .colorAttachmentCount = 1,
+      .pColorAttachments = &color_attachment,
+      .pDepthAttachment = nullptr,
+      .pStencilAttachment = nullptr};
+
+  vkCmdBeginRendering(cmd, &rendering_info);
+
+  // Bind the graphics pipeline.
+  vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, TEST___pipeline);
+
+  // Set dynamic states
+
+  // Set viewport dynamically
+  VkViewport vp{.x = 0.0f,
+                .y = 0.0f,
+                .width = static_cast<float>(m_width),
+                .height = static_cast<float>(m_height),
+                .minDepth = 0.0f,
+                .maxDepth = 1.0f};
+
+  vkCmdSetViewport(cmd, 0, 1, &vp);
+
+  // Set scissor dynamically
+  VkRect2D scissor{.offset = {.x = 0, .y = 0}, .extent = {.width = m_width, .height = m_height}};
+
+  vkCmdSetScissor(cmd, 0, 1, &scissor);
+
+  // Since we declared VK_DYNAMIC_STATE_CULL_MODE as dynamic in the pipeline,
+  // we need to set the cull mode here. VK_CULL_MODE_NONE disables face culling,
+  // meaning both front and back faces will be rendered.
+  vkCmdSetCullMode(cmd, VK_CULL_MODE_NONE);
+
+  // Since we declared VK_DYNAMIC_STATE_FRONT_FACE as dynamic,
+  // we need to specify the winding order considered as the front face.
+  // VK_FRONT_FACE_CLOCKWISE indicates that vertices defined in clockwise order
+  // are considered front-facing.
+  vkCmdSetFrontFace(cmd, VK_FRONT_FACE_CLOCKWISE);
+
+  // Since we declared VK_DYNAMIC_STATE_PRIMITIVE_TOPOLOGY as dynamic,
+  // we need to set the primitive topology here. VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST
+  // tells Vulkan that the input vertex data should be interpreted as a list of triangles.
+  vkCmdSetPrimitiveTopology(cmd, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
+
+  // Bind the vertex buffer
+  VkDeviceSize offset = {0};
+  vkCmdBindVertexBuffers(cmd, 0, 1, &TEST___vertex_buffer, &offset);
+
+  // Draw three vertices with one instance.
+  vkCmdDraw(cmd, static_cast<uint32_t>(TEST___vertices.size()), 1, 0, 0);
+
+  // Complete rendering.
+  vkCmdEndRendering(cmd);
+
+  // After rendering , transition the swapchain image to PRESENT_SRC
+  TEST___transition_image_layout(cmd, TEST___swapchain_images[swapchain_index],
+                                 VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                                 VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+                                 VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT, // srcAccessMask
+                                 0, // dstAccessMask
+                                 VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT, // srcStage
+                                 VK_PIPELINE_STAGE_2_BOTTOM_OF_PIPE_BIT // dstStage
+  );
+
+  // Complete the command buffer.
+  if (vkEndCommandBuffer(cmd) != VK_SUCCESS)
+  {
+    CLog::Log(LOGERROR, "Vulkan: Failed to end command buffer");
+    return;
+  }
+
+  // Submit it to the queue with a release semaphore.
+  if (TEST___per_frame[swapchain_index].swapchain_release_semaphore == VK_NULL_HANDLE)
+  {
+    VkSemaphoreCreateInfo semaphore_info = {
+        .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO, .pNext = nullptr, .flags = 0};
+    if (vkCreateSemaphore(m_deviceQueue->GetVulkanDevice(), &semaphore_info, nullptr,
+                          &TEST___per_frame[swapchain_index].swapchain_release_semaphore) !=
+        VK_SUCCESS)
+    {
+      CLog::Log(LOGERROR, "Vulkan: Failed to create release semaphore");
+      return;
+    }
+  }
+
+  // Using TOP_OF_PIPE here to ensure that the command buffer does not begin executing any pipeline stages
+  // (including the layout transition) until the swapchain image is actually acquired (signaled by the semaphore).
+  // This prevents the GPU from starting operations too early and guarantees that the image is ready
+  // before any rendering commands run.
+  VkPipelineStageFlags wait_stage{VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT};
+
+  VkSubmitInfo info{
+      .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+      .pNext = nullptr,
+      .waitSemaphoreCount = 1,
+      .pWaitSemaphores = &TEST___per_frame[swapchain_index].swapchain_acquire_semaphore,
+      .pWaitDstStageMask = &wait_stage,
+      .commandBufferCount = 1,
+      .pCommandBuffers = &cmd,
+      .signalSemaphoreCount = 1,
+      .pSignalSemaphores = &TEST___per_frame[swapchain_index].swapchain_release_semaphore};
+
+  // Submit command buffer to graphics queue
+  if (vkQueueSubmit(m_deviceQueue->GetVulkanQueue(), 1, &info,
+                    TEST___per_frame[swapchain_index].queue_submit_fence) != VK_SUCCESS)
+  {
+    CLog::Log(LOGERROR, "Vulkan: Failed to submit command buffer");
+    return;
+  }
 }
 
-void CVulkanRenderSystem::TEST___teardown_per_frame(TEST___PerFrame& per_frame)
+void CVulkanRenderSystem::TEST___transition_image_layout(VkCommandBuffer cmd,
+                                                         VkImage image,
+                                                         VkImageLayout oldLayout,
+                                                         VkImageLayout newLayout,
+                                                         VkAccessFlags2 srcAccessMask,
+                                                         VkAccessFlags2 dstAccessMask,
+                                                         VkPipelineStageFlags2 srcStage,
+                                                         VkPipelineStageFlags2 dstStage)
+{
+  // Initialize the VkImageMemoryBarrier2 structure
+  VkImageMemoryBarrier2 image_barrier{
+      .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
+      .pNext = nullptr,
+
+      // Specify the pipeline stages and access masks for the barrier
+      .srcStageMask = srcStage, // Source pipeline stage mask
+      .srcAccessMask = srcAccessMask, // Source access mask
+      .dstStageMask = dstStage, // Destination pipeline stage mask
+      .dstAccessMask = dstAccessMask, // Destination access mask
+
+      // Specify the old and new layouts of the image
+      .oldLayout = oldLayout, // Current layout of the image
+      .newLayout = newLayout, // Target layout of the image
+
+      // We are not changing the ownership between queues
+      .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+      .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+
+      // Specify the image to be affected by this barrier
+      .image = image,
+
+      // Define the subresource range (which parts of the image are affected)
+      .subresourceRange = {
+          .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT, // Affects the color aspect of the image
+          .baseMipLevel = 0, // Start at mip level 0
+          .levelCount = 1, // Number of mip levels affected
+          .baseArrayLayer = 0, // Start at array layer 0
+          .layerCount = 1 // Number of array layers affected
+      }};
+
+  // Initialize the VkDependencyInfo structure
+  VkDependencyInfo dependency_info{
+      .sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+      .pNext = nullptr,
+      .dependencyFlags = 0, // No special dependency flags
+      .memoryBarrierCount = 0, // No memory barriers
+      .pMemoryBarriers = nullptr, // No memory barriers
+      .bufferMemoryBarrierCount = 0, // No buffer memory barriers
+      .pBufferMemoryBarriers = nullptr, // No buffer memory barriers
+      .imageMemoryBarrierCount = 1, // Number of image memory barriers
+      .pImageMemoryBarriers = &image_barrier // Pointer to the image memory barrier(s)
+  };
+
+  // Record the pipeline barrier into the command buffer
+  vkCmdPipelineBarrier2(cmd, &dependency_info);
+}
+
+bool CVulkanRenderSystem::TEST___resize(const uint32_t, const uint32_t)
+{
+  if (m_deviceQueue->GetVulkanDevice() == VK_NULL_HANDLE)
+  {
+    return false;
+  }
+
+  VkSurfaceCapabilitiesKHR surface_properties;
+  if (vkGetPhysicalDeviceSurfaceCapabilitiesKHR(m_deviceQueue->GetVulkanPhysicalDevice(),
+                                                GetVulkanSurface(),
+                                                &surface_properties) != VK_SUCCESS)
+  {
+    CLog::Log(LOGERROR, "Vulkan: Failed to get surface capabilities");
+    return false;
+  }
+
+  // Only rebuild the swapchain if the dimensions have changed
+  if (surface_properties.currentExtent.width == m_width &&
+      surface_properties.currentExtent.height == m_height)
+  {
+    return false;
+  }
+
+  vkDeviceWaitIdle(m_deviceQueue->GetVulkanDevice());
+
+  TEST___init_swapchain();
+  return true;
+}
+
+void CVulkanRenderSystem::TEST___teardown_per_frame(PerFrame& per_frame)
 {
   if (per_frame.queue_submit_fence != VK_NULL_HANDLE)
   {
@@ -831,37 +1118,75 @@ void CVulkanRenderSystem::TEST___teardown_per_frame(TEST___PerFrame& per_frame)
   }
 }
 
-VkShaderModule CVulkanRenderSystem::TEST___load_shader_module(const std::string& filename) const
+void CVulkanRenderSystem::TEST___init_per_frame(PerFrame& per_frame)
 {
-  XFILE::CFileStream file;
-
-  std::string path = CSpecialProtocol::TranslatePath(KODI::UTILS::StringUtils::Format(
-      "special://xbmc/system/shaders/Vulkan/{}", filename));
-  if (!file.Open(path))
+  VkFenceCreateInfo info{.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
+                         .pNext = nullptr,
+                         .flags = VK_FENCE_CREATE_SIGNALED_BIT};
+  if (vkCreateFence(m_deviceQueue->GetVulkanDevice(), &info, nullptr,
+                    &per_frame.queue_submit_fence) != VK_SUCCESS)
   {
-    CLog::Log(LOGERROR, "CYUVShaderGLSL::CYUVShaderGLSL - failed to open file {}", path);
-    return nullptr;
+    throw std::runtime_error("Failed to create fence for per frame data.");
   }
 
-  std::vector<uint8_t> spirv;
-  if (XFILE::CFile().LoadFile(path, spirv) <= 0)
+  VkCommandPoolCreateInfo cmd_pool_info{.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+                                        .pNext = nullptr,
+                                        .flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT,
+                                        .queueFamilyIndex =
+                                            static_cast<uint32_t>(TEST___graphics_queue_index)};
+  if (vkCreateCommandPool(m_deviceQueue->GetVulkanDevice(), &cmd_pool_info, nullptr,
+                          &per_frame.primary_command_pool) != VK_SUCCESS)
   {
-    CLog::LogF(LOGERROR, "Failed to load file {}", path);
-    return nullptr;
+    throw std::runtime_error("Failed to create command pool for per frame data.");
   }
 
-  VkShaderModuleCreateInfo module_info{.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
-                                       .pNext = nullptr,
-                                       .flags = 0,
-                                       .codeSize = spirv.size(),
-                                       .pCode = reinterpret_cast<uint32_t*>(spirv.data())};
+  VkCommandBufferAllocateInfo cmd_buf_info{.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+                                           .pNext = nullptr,
+                                           .commandPool = per_frame.primary_command_pool,
+                                           .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+                                           .commandBufferCount = 1};
+  if (vkAllocateCommandBuffers(m_deviceQueue->GetVulkanDevice(), &cmd_buf_info,
+                               &per_frame.primary_command_buffer) != VK_SUCCESS)
+  {
+    throw std::runtime_error("Failed to create command buffer for per frame data.");
+  }
+}
 
-  VkShaderModule shader_module;
-  if (vkCreateShaderModule(m_deviceQueue->GetVulkanDevice(), &module_info, nullptr,
-                           &shader_module) != VK_SUCCESS)
-    throw std::runtime_error("Failed to create shader module.");
+VkResult CVulkanRenderSystem::TEST___present_image(uint32_t index)
+{
+  VkPresentInfoKHR present{.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
+                           .pNext = nullptr,
+                           .waitSemaphoreCount = 1,
+                           .pWaitSemaphores = &TEST___per_frame[index].swapchain_release_semaphore,
+                           .swapchainCount = 1,
+                           .pSwapchains = &TEST___m_swapchain,
+                           .pImageIndices = &index,
+                           .pResults = nullptr};
 
-  return shader_module;
+  // Present swapchain image
+  return vkQueuePresentKHR(m_deviceQueue->GetVulkanQueue(), &present);
+}
+
+VkSurfaceFormatKHR CVulkanRenderSystem::TEST___select_surface_format(
+    VkPhysicalDevice gpu, VkSurfaceKHR surface, std::vector<VkFormat> const& preferredFormats)
+{
+  uint32_t surfaceFormatCount;
+  vkGetPhysicalDeviceSurfaceFormatsKHR(gpu, surface, &surfaceFormatCount, nullptr);
+  assert(0 < surfaceFormatCount);
+
+  std::vector<VkSurfaceFormatKHR> formats(surfaceFormatCount);
+  vkGetPhysicalDeviceSurfaceFormatsKHR(gpu, surface, &surfaceFormatCount, formats.data());
+
+  auto it = std::ranges::find_if(formats,
+                                 [&preferredFormats](VkSurfaceFormatKHR surface_format)
+                                 {
+                                   return std::ranges::any_of(
+                                       preferredFormats, [&surface_format](VkFormat format)
+                                       { return format == surface_format.format; });
+                                 });
+
+  // We use the first supported format as a fallback in case none of the preferred formats is available
+  return it != formats.end() ? *it : formats[0];
 }
 
 } // namespace VULKAN

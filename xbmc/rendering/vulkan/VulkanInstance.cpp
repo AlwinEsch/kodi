@@ -124,7 +124,7 @@ bool CVulkanInstance::Create(const std::vector<const char*>& required_extensions
     createInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
                              VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
                              VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
-    createInfo.pfnUserCallback = &vulkanErrorCallback;
+    createInfo.pfnUserCallback = &UTILS::vulkanErrorCallback;
     createInfo.pUserData = nullptr; // Optional user data
 
     if (vkCreateDebugUtilsMessengerEXT(m_vkInstance, &createInfo, nullptr, &m_vkDebugMessenger) !=
@@ -138,7 +138,7 @@ bool CVulkanInstance::Create(const std::vector<const char*>& required_extensions
   if (!GetDeviceInfos())
     return false;
 
-  LogGraphicsInfo(m_vulkanInfo);
+  UTILS::LogGraphicsInfo(m_vulkanInfo);
 
   return true;
 }

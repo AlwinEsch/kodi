@@ -47,30 +47,30 @@ bool CWinSystemWaylandVulkan::InitWindowSystem()
 
   CLinuxRendererVulkan::Register();
 
-//  CDVDVideoCodecDRMPRIME::Register();
-//  CRendererDRMPRIMEVulkan::Register();
-//
-//  RETRO::CRPProcessInfo::RegisterRendererFactory(new RETRO::CRendererFactoryDMAVulkan);
-//  RETRO::CRPProcessInfo::RegisterRendererFactory(new RETRO::CRendererFactoryVulkan);
-//
-//  bool general, deepColor;
-//  m_vaapiProxy.reset(WAYLAND::VaapiProxyCreate());
-//  WAYLAND::VaapiProxyConfig(m_vaapiProxy.get(), GetConnection()->GetDisplay(),
-//                            m_eglContext.GetEGLDisplay());
-//  WAYLAND::VAAPIRegisterRenderVulkan(m_vaapiProxy.get(), general, deepColor);
-//  if (general)
-//  {
-//    WAYLAND::VAAPIRegister(m_vaapiProxy.get(), deepColor);
-//  }
-//
-//  CBufferObjectFactory::ClearBufferObjects();
-//#if defined(HAVE_LINUX_MEMFD) && defined(HAVE_LINUX_UDMABUF)
-//  CUDMABufferObject::Register();
-//#endif
-//#if defined(HAVE_LINUX_DMA_HEAP)
-//  CDMAHeapBufferObject::Register();
-//#endif
-//
+  //  CDVDVideoCodecDRMPRIME::Register();
+  //  CRendererDRMPRIMEVulkan::Register();
+  //
+  //  RETRO::CRPProcessInfo::RegisterRendererFactory(new RETRO::CRendererFactoryDMAVulkan);
+  //  RETRO::CRPProcessInfo::RegisterRendererFactory(new RETRO::CRendererFactoryVulkan);
+  //
+  //  bool general, deepColor;
+  //  m_vaapiProxy.reset(WAYLAND::VaapiProxyCreate());
+  //  WAYLAND::VaapiProxyConfig(m_vaapiProxy.get(), GetConnection()->GetDisplay(),
+  //                            m_eglContext.GetEGLDisplay());
+  //  WAYLAND::VAAPIRegisterRenderVulkan(m_vaapiProxy.get(), general, deepColor);
+  //  if (general)
+  //  {
+  //    WAYLAND::VAAPIRegister(m_vaapiProxy.get(), deepColor);
+  //  }
+  //
+  //  CBufferObjectFactory::ClearBufferObjects();
+  //#if defined(HAVE_LINUX_MEMFD) && defined(HAVE_LINUX_UDMABUF)
+  //  CUDMABufferObject::Register();
+  //#endif
+  //#if defined(HAVE_LINUX_DMA_HEAP)
+  //  CDMAHeapBufferObject::Register();
+  //#endif
+  //
   KODI::RENDERING::VULKAN::CScreenshotSurface::Register();
 
   fprintf(stderr, "-22--> %s\n", __PRETTY_FUNCTION__);
@@ -79,8 +79,8 @@ bool CWinSystemWaylandVulkan::InitWindowSystem()
 }
 
 bool CWinSystemWaylandVulkan::CreateNewWindow(const std::string& name,
-                                                  bool fullScreen,
-                                                  RESOLUTION_INFO& res)
+                                              bool fullScreen,
+                                              RESOLUTION_INFO& res)
 {
   fprintf(stderr, "---> %s\n", __PRETTY_FUNCTION__);
   if (!CWinSystemWayland::CreateNewWindow(name, fullScreen, res))
@@ -91,7 +91,7 @@ bool CWinSystemWaylandVulkan::CreateNewWindow(const std::string& name,
   wl_display* display = GetConnection()->GetDisplay();
   wl_surface* surface = GetMainSurface();
 
-  SetRenderSystemWaylandInfo(display, surface);
+  SetRenderSystemWaylandInfo(display, surface, res.iWidth, res.iHeight);
 
   //if (!CreateContext())
   //{
@@ -147,13 +147,21 @@ bool CWinSystemWaylandVulkan::HasContext()
 
 void CWinSystemWaylandVulkan::SetContextSize(CSizeInt size)
 {
-  fprintf(stderr, "---> %s\n", __PRETTY_FUNCTION__);
-  //CWinSystemWaylandEGLContext::SetContextSize(size);
+  fprintf(stderr, "---> %s (%d x %d)\n", __PRETTY_FUNCTION__, size.Width(), size.Height());
 
-  //// Propagate changed dimensions to render system if necessary
-  //if (CVulkanRenderSystem::m_width != size.Width() || CVulkanRenderSystem::m_height != size.Height())
-  //{
-  //  CLog::LogF(LOGDEBUG, "Resetting render system to {}x{}", size.Width(), size.Height());
-  //  CVulkanRenderSystem::ResetRenderSystem(size.Width(), size.Height());
-  //}
+  //CWinSystemWaylandEGLContext::SetContextSize(size);
+  ////// Change EGL surface size if necessary
+  ////if (GetNativeWindowAttachedSize() != size)
+  ////{
+  ////  CLog::LogF(LOGDEBUG, "Updating egl_window size to {}x{}", size.Width(), size.Height());
+  ////  m_nativeWindow.resize(size.Width(), size.Height(), 0, 0);
+  ////}
+
+  // Propagate changed dimensions to render system if necessary
+  if (CVulkanRenderSystem::m_width != static_cast<uint32_t>(size.Width()) ||
+      CVulkanRenderSystem::m_height != static_cast<uint32_t>(size.Height()))
+  {
+    CLog::LogF(LOGDEBUG, "Resetting render system to {}x{}", size.Width(), size.Height());
+    CVulkanRenderSystem::ResetRenderSystem(size.Width(), size.Height());
+  }
 }

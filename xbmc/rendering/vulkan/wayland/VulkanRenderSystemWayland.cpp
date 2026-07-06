@@ -28,7 +28,7 @@ CVulkanRenderSystemWayland::CVulkanRenderSystemWayland() : CVulkanRenderSystem()
 bool CVulkanRenderSystemWayland::InitRenderSystem()
 {
   // Check if Wayland display and surface are set, should be set by the windowing
-  // system before calling this function.
+  // system before calling this function. Done via `SetRenderSystemWaylandInfo()` function.
   if (!m_waylandDisplay || !m_waylandSurface)
   {
     CLog::Log(LOGERROR, "Vulkan: Rendersystem Wayland display or surface is not set");
@@ -41,18 +41,16 @@ bool CVulkanRenderSystemWayland::InitRenderSystem()
   if (!m_vulkanInstance.Create(required_extensions, required_layers))
     return false;
 
-  // clang-format off
   VkWaylandSurfaceCreateInfoKHR createInfo = {
-    .sType = VK_STRUCTURE_TYPE_WAYLAND_SURFACE_CREATE_INFO_KHR,
-    .pNext = nullptr,
-    .flags = 0,
-    .display = m_waylandDisplay,
-    .surface = m_waylandSurface
+      .sType = VK_STRUCTURE_TYPE_WAYLAND_SURFACE_CREATE_INFO_KHR,
+      .pNext = nullptr,
+      .flags = 0,
+      .display = m_waylandDisplay,
+      .surface = m_waylandSurface,
   };
-  // clang-format on
 
-  VkResult result = vkCreateWaylandSurfaceKHR(m_vulkanInstance.GetVkInstance(), &createInfo, NULL,
-                                              &m_vulkanSurface);
+  VkResult result = vkCreateWaylandSurfaceKHR(m_vulkanInstance.GetVkInstance(), &createInfo,
+                                              nullptr, &m_vulkanSurface);
   if (VK_SUCCESS != result)
   {
     CLog::Log(LOGERROR, "Vulkan: vkCreateWaylandSurfaceKHR() failed: {0}", result);
@@ -60,6 +58,21 @@ bool CVulkanRenderSystemWayland::InitRenderSystem()
   }
 
   return CVulkanRenderSystem::InitRenderSystem();
+}
+
+bool CVulkanRenderSystemWayland::DestroyRenderSystem()
+{
+  CVulkanRenderSystem::DestroyRenderSystem();
+
+  if (m_vulkanSurface != VK_NULL_HANDLE)
+  {
+    vkDestroySurfaceKHR(m_vulkanInstance.GetVkInstance(), m_vulkanSurface, nullptr);
+    m_vulkanSurface = VK_NULL_HANDLE;
+  }
+
+  m_vulkanInstance.Destroy();
+
+  return true;
 }
 
 std::vector<const char*> CVulkanRenderSystemWayland::GetRequiredDeviceExtensions()

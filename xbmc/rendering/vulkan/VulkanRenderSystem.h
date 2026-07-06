@@ -93,6 +93,7 @@ namespace VULKAN
 {
 
 class CVulkanDeviceQueue;
+class CVulkanSwapChain;
 class CVulkanInstance;
 class CVulkanRenderSystem;
 
@@ -154,62 +155,40 @@ public:
     return false;
   }
 
+protected:
+  /**
+   * @brief Gets the width and height of the render system.
+   *
+   * Can be becomes set by calling @ref ResetRenderSystem() and by child classes
+   * during initialization that implement the @ref CVulkanRenderSystem as a parent class.
+   */
+  /**@{*/
+  uint32_t m_width{0};
+  uint32_t m_height{0};
+  /**@}*/
+
 private:
-  int m_width{0};
-  int m_height{0};
   std::unique_ptr<CVulkanDeviceQueue> m_deviceQueue;
+  //std::unique_ptr<CVulkanSwapChain> m_swapChain;
 
   std::vector<std::pair<std::string, uint32_t>> m_vulkanExtensions;
 
-  VkSurfaceFormatKHR TEST___select_surface_format(VkPhysicalDevice gpu,
-                                                  VkSurfaceKHR surface,
-                                                  std::vector<VkFormat> const& preferred_formats = {
-                                                      VK_FORMAT_R8G8B8A8_SRGB,
-                                                      VK_FORMAT_B8G8R8A8_SRGB,
-                                                      VK_FORMAT_A8B8G8R8_SRGB_PACK32});
-  void TEST___init_vertex_buffer();
-  void TEST___deinit_vertex_buffer();
-  void TEST___init_swapchain();
-  void TEST___init_render_pass();
-  void TEST___init_pipeline();
+  VkFormat m_SwapchainFormat = VK_FORMAT_UNDEFINED;
 
-  /// Properties of the vertices used in this sample.
   struct Vertex
   {
-    glm::vec3 position;
+    glm::vec2 position;
     glm::vec3 color;
   };
 
-  struct SwapchainDimensions
-  {
-    /// Width of the swapchain.
-    uint32_t width = 0;
-
-    /// Height of the swapchain.
-    uint32_t height = 0;
-
-    /// Pixel format of the swapchain.
-    VkFormat format = VK_FORMAT_UNDEFINED;
+  // Define the vertex data
+  const std::vector<Vertex> TEST___vertices = {
+      {{0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}}, // Vertex 1: Red
+      {{0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}}, // Vertex 2: Green
+      {{-0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}} // Vertex 3: Blue
   };
 
-  SwapchainDimensions TEST___swapchain_dimensions;
-  VkSwapchainKHR TEST___m_swapchain = VK_NULL_HANDLE;
-  std::vector<VkImageView> TEST___swapchain_image_views;
-
-  /// The Vulkan buffer object that holds the vertex data for the triangle.
-  VkBuffer TEST___vertex_buffer = VK_NULL_HANDLE;
-
-  /// The device memory allocated for the vertex buffer.
-  VkDeviceMemory TEST___vertex_buffer_memory = VK_NULL_HANDLE;
-
-  /// Vulkan Memory Allocator (VMA) allocation info for the vertex buffer.
-  VmaAllocation TEST___vertex_buffer_allocation = VK_NULL_HANDLE;
-  VkRenderPass TEST___render_pass = VK_NULL_HANDLE;
-  VkShaderModule TEST___load_shader_module(const std::string& filename) const;
-  VkPipelineLayout TEST___pipeline_layout = VK_NULL_HANDLE;
-  VkPipeline TEST___pipeline = VK_NULL_HANDLE;
-
-  struct TEST___PerFrame
+  struct PerFrame
   {
     VkFence queue_submit_fence = VK_NULL_HANDLE;
     VkCommandPool primary_command_pool = VK_NULL_HANDLE;
@@ -217,10 +196,43 @@ private:
     VkSemaphore swapchain_acquire_semaphore = VK_NULL_HANDLE;
     VkSemaphore swapchain_release_semaphore = VK_NULL_HANDLE;
   };
-  std::vector<TEST___PerFrame> TEST___per_frame;
 
-  void TEST___init_per_frame(TEST___PerFrame& per_frame);
-  void TEST___teardown_per_frame(TEST___PerFrame& per_frame);
+  void TEST___Deinit();
+  void TEST___init_swapchain();
+  void TEST___init_pipeline();
+  VkResult TEST___acquire_next_swapchain_image(uint32_t* image);
+  void TEST___update(float delta_time);
+  void TEST___render_triangle(uint32_t swapchain_index);
+  bool TEST___resize(const uint32_t, const uint32_t);
+  void TEST___teardown_per_frame(PerFrame& per_frame);
+  void TEST___init_per_frame(PerFrame& per_frame);
+  VkResult TEST___present_image(uint32_t index);
+  void TEST___transition_image_layout(VkCommandBuffer cmd,
+                                      VkImage image,
+                                      VkImageLayout oldLayout,
+                                      VkImageLayout newLayout,
+                                      VkAccessFlags2 srcAccessMask,
+                                      VkAccessFlags2 dstAccessMask,
+                                      VkPipelineStageFlags2 srcStage,
+                                      VkPipelineStageFlags2 dstStage);
+
+  VkSurfaceFormatKHR TEST___select_surface_format(VkPhysicalDevice gpu,
+                                                  VkSurfaceKHR surface,
+                                                  std::vector<VkFormat> const& preferredFormats = {
+                                                      VK_FORMAT_R8G8B8A8_SRGB,
+                                                      VK_FORMAT_B8G8R8A8_SRGB,
+                                                      VK_FORMAT_A8B8G8R8_SRGB_PACK32});
+
+  std::vector<VkImageView> TEST___swapchain_image_views;
+  std::vector<VkImage> TEST___swapchain_images;
+  VkSwapchainKHR TEST___m_swapchain = VK_NULL_HANDLE;
+  std::vector<PerFrame> TEST___per_frame;
+  int32_t TEST___graphics_queue_index = -1;
+  std::vector<VkSemaphore> TEST___recycled_semaphores;
+  VkBuffer TEST___vertex_buffer = VK_NULL_HANDLE;
+  VkDeviceMemory TEST___vertex_buffer_memory = VK_NULL_HANDLE;
+  VkPipelineLayout TEST___pipeline_layout = VK_NULL_HANDLE;
+  VkPipeline TEST___pipeline = VK_NULL_HANDLE;
 };
 
 } // namespace VULKAN

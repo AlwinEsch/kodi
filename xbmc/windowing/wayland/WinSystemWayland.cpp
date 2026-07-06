@@ -674,6 +674,7 @@ bool CWinSystemWayland::SetFullScreen(bool fullScreen, RESOLUTION_INFO& res, boo
 
 void CWinSystemWayland::ApplySizeUpdate(SizeUpdateInformation update)
 {
+fprintf(stderr, "##########################---> %s\n", __PRETTY_FUNCTION__);
   if (update.bufferScaleChanged)
   {
     // Buffer scale must also match egl size configuration

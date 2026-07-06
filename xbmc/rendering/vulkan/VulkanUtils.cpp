@@ -9,15 +9,78 @@
 #include "VulkanUtils.h"
 
 #include "VulkanInfo.h"
+#include "filesystem/File.h"
+#include "filesystem/SpecialProtocol.h"
+#include "utils/StringUtils.h"
 #include "utils/log.h"
 
 #include <stdexcept>
+
+namespace
+{
+
+/**
+ * @brief Finds a suitable memory type based on the given filter and properties.
+ *
+ * @param vk_instance The Vulkan instance.
+ * @param typeFilter The filter for the memory type.
+ * @param properties The required memory properties.
+ * @return The index of the found memory type, or 0 if not found.
+ *
+ * @note This function is only used internally and should not be called directly. Use FindMemoryType instead.
+ */
+uint32_t internalFindMemoryType(VkInstance vk_instance,
+                                VkPhysicalDevice physicalDevice,
+                                int32_t typeFilter,
+                                VkMemoryPropertyFlags properties)
+{
+  // Fall back to first available physical device if none is provided
+  if (physicalDevice == VK_NULL_HANDLE)
+  {
+    uint32_t physical_devices_number = 1;
+    VkResult result =
+        vkEnumeratePhysicalDevices(vk_instance, &physical_devices_number, &physicalDevice);
+    if (result != VK_SUCCESS)
+    {
+
+      CLog::Log(LOGERROR, "Vulkan: Failed to enumerate physical devices (Error code: {0})", result);
+      return 0;
+    }
+  }
+
+  VkPhysicalDeviceMemoryProperties memProperties;
+  vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memProperties);
+
+  // Iterate over all memory types available on the physical device
+  for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++)
+  {
+    // Check if the current memory type is acceptable based on the type_filter
+    // The type_filter is a bitmask where each bit represents a memory type that is suitable
+    if (typeFilter & (1 << i))
+    {
+      // Check if the memory type has all the desired property flags
+      // properties is a bitmask of the required memory properties
+      if ((memProperties.memoryTypes[i].propertyFlags & properties) == properties)
+      {
+        // Found a suitable memory type; return its index
+        return i;
+      }
+    }
+  }
+
+  CLog::Log(LOGERROR, "Vulkan: Failed to find suitable memory type");
+  return 0;
+}
+
+} // namespace
 
 namespace KODI
 {
 namespace RENDERING
 {
 namespace VULKAN
+{
+namespace UTILS
 {
 
 VkBool32 vulkanErrorCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
@@ -48,6 +111,97 @@ VkBool32 vulkanErrorCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSever
             pCallbackData->pMessageIdName ? pCallbackData->pMessageIdName : "Unknown",
             pCallbackData->pMessage ? pCallbackData->pMessage : "No message text");
   return VK_FALSE;
+}
+
+bool vulkanCreateBuffer(VkInstance vkInstance,
+                        VkDevice device,
+                        VkPhysicalDevice physicalDevice,
+                        VkDeviceSize size,
+                        VkBufferUsageFlags usage,
+                        VkMemoryPropertyFlags properties,
+                        VkBuffer& buffer,
+                        VkDeviceMemory& bufferMemory)
+{
+  // Create the vertex buffer
+  VkBufferCreateInfo bufferInfo{
+      .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+      .pNext = nullptr,
+      .flags = 0,
+      .size = size,
+      .usage = usage,
+      .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
+      .queueFamilyIndexCount = 0,
+      .pQueueFamilyIndices = nullptr,
+  };
+
+  if (vkCreateBuffer(device, &bufferInfo, nullptr, &buffer) != VK_SUCCESS)
+  {
+    CLog::Log(LOGERROR, "Vulkan: Failed to create buffer (Function: %s)", __func__);
+    return false;
+  }
+
+  // Get memory requirements
+  VkMemoryRequirements memoryRequirements{};
+  vkGetBufferMemoryRequirements(device, buffer, &memoryRequirements);
+
+  // Allocate memory for the buffer
+  VkMemoryAllocateInfo alloc_info{
+      .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+      .pNext = nullptr,
+      .allocationSize = memoryRequirements.size,
+      .memoryTypeIndex = internalFindMemoryType(vkInstance, physicalDevice,
+                                                memoryRequirements.memoryTypeBits, properties),
+  };
+
+  if (vkAllocateMemory(device, &alloc_info, nullptr, &bufferMemory) != VK_SUCCESS)
+  {
+    CLog::Log(LOGERROR, "Vulkan: Failed to allocate buffer memory (Function: %s)", __func__);
+    return false;
+  }
+
+  // Bind the buffer with the allocated memory
+  if (vkBindBufferMemory(device, buffer, bufferMemory, 0) != VK_SUCCESS)
+  {
+    CLog::Log(LOGERROR, "Vulkan: Failed to bind buffer memory (Function: %s)", __func__);
+    return false;
+  }
+
+  return true;
+}
+
+VkShaderModule vulkanCreateShaderModule(VkDevice device, const std::string& filename)
+{
+  XFILE::CFileStream file;
+
+  std::string path = CSpecialProtocol::TranslatePath(
+      KODI::UTILS::StringUtils::Format("special://xbmc/system/shaders/Vulkan/{}", filename));
+  if (!file.Open(path))
+  {
+    CLog::Log(LOGERROR, "Vulkan: Failed to open file {} (Function: {})", path, __func__);
+    return nullptr;
+  }
+
+  std::vector<uint8_t> spirv;
+  if (XFILE::CFile().LoadFile(path, spirv) <= 0)
+  {
+    CLog::Log(LOGERROR, "Vulkan: Failed to load file {} (Function: {})", path, __func__);
+    return nullptr;
+  }
+
+  VkShaderModuleCreateInfo module_info{.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
+                                       .pNext = nullptr,
+                                       .flags = 0,
+                                       .codeSize = spirv.size(),
+                                       .pCode = reinterpret_cast<uint32_t*>(spirv.data())};
+
+  VkShaderModule shader_module;
+  if (vkCreateShaderModule(device, &module_info, nullptr, &shader_module) != VK_SUCCESS)
+  {
+    CLog::Log(LOGERROR, "Vulkan: Failed to create shader module (Function: {})", __func__);
+    return nullptr;
+  }
+
+  return shader_module;
 }
 
 void LogGraphicsInfo(const CVulkanInfo& vulkanInfo)
@@ -93,6 +247,7 @@ void LogGraphicsInfo(const CVulkanInfo& vulkanInfo)
   }
 }
 
+} // namespace UTILS
 } // namespace VULKAN
 } // namespace RENDERING
 } // namespace KODI

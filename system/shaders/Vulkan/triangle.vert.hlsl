@@ -28,7 +28,7 @@ struct VSOutput
 };
 
 VSOutput main(VSInput input)
-{        
+{
     VSOutput output;
     output.Position = float4(input.Position, 1.0);
     output.Color = input.Color;
