@@ -150,7 +150,7 @@ bool CVulkanDeviceQueue::Initialize(DeviceQueueOptions options,
   m_vkPhysicalDeviceDriverProperties = physicalDeviceInfo.driverProperties;
   m_drmDeviceId = physicalDeviceInfo.drmDeviceId;
   m_vkQueueIndex = static_cast<uint32_t>(queueIndex);
-  
+
   float queuePriority = 0.0f;
   VkDeviceQueueCreateInfo queueCreateInfo = {
       .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,

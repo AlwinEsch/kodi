@@ -9,7 +9,6 @@ if(TARGET ${APP_NAME_LC}::Vulkan)
               VulkanRenderSystem.cpp
               VulkanScreenshotSurface.cpp
               VulkanShader.cpp
-              VulkanSurface.cpp
               VulkanSwapChain.cpp
               VulkanUtils.cpp)
 
@@ -23,7 +22,6 @@ if(TARGET ${APP_NAME_LC}::Vulkan)
               VulkanMatrix.h
               VulkanRenderSystem.h
               VulkanScreenshotSurface.h
-              VulkanSurface.h
               VulkanShader.h
               VulkanSwapChain.h
               VulkanUtils.h)

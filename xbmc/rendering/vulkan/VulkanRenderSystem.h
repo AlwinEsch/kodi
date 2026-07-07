@@ -97,17 +97,11 @@ class CVulkanSwapChain;
 class CVulkanInstance;
 class CVulkanRenderSystem;
 
-std::unique_ptr<CVulkanDeviceQueue> CreateVulkanDeviceQueue(CVulkanRenderSystem* vulkanRenderSystem,
-                                                            DeviceQueueOptions options,
-                                                            uint32_t heapMemoryLimit,
-                                                            bool allowProtectedMemory = false,
-                                                            bool isThreadSafe = false);
-
 class CVulkanRenderSystem : public CRenderSystemBase
 {
 public:
   CVulkanRenderSystem();
-  ~CVulkanRenderSystem() override = default;
+  ~CVulkanRenderSystem() override;
 
   bool InitRenderSystem() override;
   bool DestroyRenderSystem() override;
@@ -143,6 +137,11 @@ public:
 
   std::string GetShaderPath(const std::string& filename) override;
 
+  /**
+   * @brief Following in group defined functions are given by child classes
+   * where relates to the used windowing system.
+   */
+  /**@{*/
   virtual CVulkanInstance* GetVulkanInstance() = 0;
   virtual VkSurfaceKHR GetVulkanSurface() = 0;
   virtual std::vector<const char*> GetRequiredDeviceExtensions() = 0;
@@ -154,6 +153,10 @@ public:
   {
     return false;
   }
+  /**@}*/
+
+  VkImageUsageFlags GetVkImageUsageFlags() const { return m_vkImageUsageFlags; }
+  VkSurfaceFormatKHR GetVkSurfaceFormat() const { return m_vkSurfaceFormat; }
 
 protected:
   /**
@@ -168,8 +171,27 @@ protected:
   /**@}*/
 
 private:
+  bool InitializeVkSurface();
+
   std::unique_ptr<CVulkanDeviceQueue> m_deviceQueue;
-  //std::unique_ptr<CVulkanSwapChain> m_swapChain;
+
+  VkImageUsageFlags m_vkImageUsageFlags{0};
+  VkSurfaceFormatKHR m_vkSurfaceFormat{};
+  VkSurfaceCapabilitiesKHR m_vkSurfaceCapabilities{};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
   std::vector<std::pair<std::string, uint32_t>> m_vulkanExtensions;
 
@@ -215,13 +237,6 @@ private:
                                       VkAccessFlags2 dstAccessMask,
                                       VkPipelineStageFlags2 srcStage,
                                       VkPipelineStageFlags2 dstStage);
-
-  VkSurfaceFormatKHR TEST___select_surface_format(VkPhysicalDevice gpu,
-                                                  VkSurfaceKHR surface,
-                                                  std::vector<VkFormat> const& preferredFormats = {
-                                                      VK_FORMAT_R8G8B8A8_SRGB,
-                                                      VK_FORMAT_B8G8R8A8_SRGB,
-                                                      VK_FORMAT_A8B8G8R8_SRGB_PACK32});
 
   std::vector<VkImageView> TEST___swapchain_image_views;
   std::vector<VkImage> TEST___swapchain_images;

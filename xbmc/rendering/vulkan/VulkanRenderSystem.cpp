@@ -11,6 +11,7 @@
 #include "ServiceBroker.h"
 #include "URL.h"
 #include "VulkanExtensions.h"
+#include "VulkanInstance.h"
 #include "VulkanMatrix.h"
 #include "VulkanUtils.h"
 #include "filesystem/File.h"
@@ -37,6 +38,14 @@
 using namespace std::chrono_literals;
 using namespace KODI::GUILIB::GRAPHICS::VULKAN;
 
+namespace
+{
+const std::vector<VkFormat> kPreferredVkFormats32 = {
+    VK_FORMAT_B8G8R8A8_UNORM, // FORMAT_BGRA8888,
+    VK_FORMAT_R8G8B8A8_UNORM, // FORMAT_RGBA8888,
+};
+}
+
 namespace KODI
 {
 namespace RENDERING
@@ -44,44 +53,50 @@ namespace RENDERING
 namespace VULKAN
 {
 
-std::unique_ptr<CVulkanDeviceQueue> CreateVulkanDeviceQueue(CVulkanRenderSystem* vulkanRenderSystem,
-                                                            DeviceQueueOptions options,
-                                                            uint32_t heapMemoryLimit,
-                                                            bool allowProtectedMemory,
-                                                            bool isThreadSafe)
-{
-  assert(vulkanRenderSystem != nullptr);
-
-  std::vector<const char*> requiredExtensions = vulkanRenderSystem->GetRequiredDeviceExtensions();
-  std::vector<const char*> optionalExtensions = vulkanRenderSystem->GetOptionalDeviceExtensions();
-
-  uint32_t gpuVendorId{0};
-  uint32_t gpuDeviceId{0};
-
-  auto deviceQueue = std::make_unique<CVulkanDeviceQueue>(vulkanRenderSystem);
-  if (!deviceQueue->Initialize(options, gpuVendorId, gpuDeviceId, requiredExtensions,
-                               optionalExtensions, heapMemoryLimit, allowProtectedMemory,
-                               isThreadSafe))
-  {
-    CLog::Log(LOGERROR, "Vulkan: Failed to initialize device queue");
-    return nullptr;
-  }
-
-  return deviceQueue;
-}
-
 CVulkanRenderSystem::CVulkanRenderSystem() : CRenderSystemBase()
 {
 }
 
+CVulkanRenderSystem::~CVulkanRenderSystem() = default;
+
 bool CVulkanRenderSystem::InitRenderSystem()
 {
-  m_deviceQueue = CreateVulkanDeviceQueue(this,
-                                          DeviceQueueOption::GRAPHICS_QUEUE_FLAG |
-                                              DeviceQueueOption::PRESENTATION_SUPPORT_QUEUE_FLAG,
-                                          0, false, false);
-  if (!m_deviceQueue)
+  // VkSurfaceKHR becomes created in the platform-specific implementation of CVulkanRenderSystem,
+  // so we need to get it from there.
+  // Further confirm with an assert that it is not null and child classes have initialized it.
+  VkSurfaceKHR surface = GetVulkanSurface();
+  assert(surface);
+
+  // Get the required and optional device extensions from the platform-specific implementation of
+  // CVulkanRenderSystem.
+  std::vector<const char*> requiredExtensions = GetRequiredDeviceExtensions();
+  std::vector<const char*> optionalExtensions = GetOptionalDeviceExtensions();
+
+  // Set the GPU vendor and device IDs to 0, which means any GPU will be accepted.
+  // TODO: In the future, we may want to allow select a specific GPU, automatically or manually.
+  uint32_t gpuVendorId{0};
+  uint32_t gpuDeviceId{0};
+
+  // Create now the device queue, which will handle the Vulkan device and queue creation.
+  auto deviceQueue = std::make_unique<CVulkanDeviceQueue>(this);
+  if (!deviceQueue->Initialize(DeviceQueueOption::GRAPHICS_QUEUE_FLAG |
+                                   DeviceQueueOption::PRESENTATION_SUPPORT_QUEUE_FLAG,
+                               gpuVendorId, gpuDeviceId, requiredExtensions, optionalExtensions, 0,
+                               false, false))
   {
+    CLog::Log(LOGERROR, "Vulkan: Failed to initialize device queue");
+    return false;
+  }
+  m_deviceQueue = std::move(deviceQueue);
+
+  // Create now the other Vulkan objects, such as the surface, swap chain, and pipeline where are
+  // independent from OS type. The Vulkan surface is created in the platform-specific implementation
+  // of CVulkanRenderSystem, so we need to get it from there and initialize it with the surface and
+  // swap chain.
+
+  if (!InitializeVkSurface())
+  {
+    CLog::Log(LOGERROR, "Vulkan: Failed to initialize Vulkan surface");
     return false;
   }
 
@@ -293,6 +308,119 @@ std::string CVulkanRenderSystem::GetShaderPath(const std::string& filename)
   return "Vulkan/";
 }
 
+bool CVulkanRenderSystem::InitializeVkSurface()
+{
+  VkResult result = VK_SUCCESS;
+  auto physicalDevice = m_deviceQueue->GetVulkanPhysicalDevice();
+  auto surface = GetVulkanSurface();
+
+  // Querying for WSI Support
+  VkBool32 presentSupport;
+  result = vkGetPhysicalDeviceSurfaceSupportKHR(
+      physicalDevice, m_deviceQueue->GetVulkanQueueIndex(), surface, &presentSupport);
+  if (result != VK_SUCCESS)
+  {
+    CLog::Log(LOGERROR, "Vulkan: vkGetPhysicalDeviceSurfaceSupportKHR() failed: {0}", result);
+    return false;
+  }
+  if (!presentSupport)
+  {
+    CLog::Log(LOGERROR, "Vulkan: Surface not supported by present queue.");
+    return false;
+  }
+
+  VkPhysicalDeviceSurfaceInfo2KHR surfaceInfo = {
+      .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SURFACE_INFO_2_KHR,
+      .pNext = nullptr,
+      .surface = surface,
+  };
+
+  uint32_t formatCount = 0;
+  result =
+      vkGetPhysicalDeviceSurfaceFormats2KHR(physicalDevice, &surfaceInfo, &formatCount, nullptr);
+  if (result != VK_SUCCESS)
+  {
+    CLog::Log(LOGERROR,
+              "Vulkan: vkGetPhysicalDeviceSurfaceFormats2KHR() failed to get format count.");
+    return false;
+  }
+
+  std::vector<VkSurfaceFormat2KHR> surfaceFormats(formatCount);
+  for (auto& format : surfaceFormats)
+  {
+    format.sType = VK_STRUCTURE_TYPE_SURFACE_FORMAT_2_KHR;
+    format.pNext = nullptr;
+  }
+
+  result = vkGetPhysicalDeviceSurfaceFormats2KHR(physicalDevice, &surfaceInfo, &formatCount,
+                                                 surfaceFormats.data());
+  if (result != VK_SUCCESS)
+  {
+    CLog::Log(LOGERROR, "Vulkan: vkGetPhysicalDeviceSurfaceFormats2KHR() failed.");
+    return false;
+  }
+
+  if (surfaceFormats.size() == 1 && surfaceFormats[0].surfaceFormat.format == VK_FORMAT_UNDEFINED)
+  {
+    m_vkSurfaceFormat.format = kPreferredVkFormats32[0];
+    m_vkSurfaceFormat.colorSpace = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
+  }
+  else
+  {
+    bool formatSet = false;
+    for (VkSurfaceFormat2KHR supported_format : surfaceFormats)
+    {
+      for (const auto& preferred_format : kPreferredVkFormats32)
+      {
+        if (supported_format.surfaceFormat.format == preferred_format)
+        {
+          m_vkSurfaceFormat = supported_format.surfaceFormat;
+          m_vkSurfaceFormat.colorSpace = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
+          formatSet = true;
+          break;
+        }
+      }
+      if (formatSet)
+      {
+        break;
+      }
+    }
+    if (!formatSet)
+    {
+      CLog::Log(LOGERROR, "Vulkan: Format not supported.");
+      return false;
+    }
+  }
+
+  VkSurfaceCapabilitiesKHR surfaceCaps;
+  result =
+      vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, GetVulkanSurface(), &surfaceCaps);
+  if (VK_SUCCESS != result)
+  {
+    CLog::Log(LOGERROR, "Vulkan: vkGetPhysicalDeviceSurfaceCapabilitiesKHR() failed: {0}", result);
+    return false;
+  }
+
+  constexpr auto kRequiredUsageFlags =
+      VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+  constexpr auto kOptionalUsageFlags = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+  if ((surfaceCaps.supportedUsageFlags & kRequiredUsageFlags) != kRequiredUsageFlags)
+  {
+    CLog::Log(
+        LOGERROR,
+        "Vulkan: Vulkan surface doesn't support necessary usage. supportedUsageFlags: 0x{0:08X}",
+        surfaceCaps.supportedUsageFlags);
+  }
+
+  m_vkImageUsageFlags =
+      (kRequiredUsageFlags | kOptionalUsageFlags) & surfaceCaps.supportedUsageFlags;
+
+  return true;
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------------------------------
+//##########################################################################################################################################################
+//----------------------------------------------------------------------------------------------------------------------------------------------------------
 void CVulkanRenderSystem::TEST___Deinit()
 {
   // Don't release anything until the GPU is completely idle.
@@ -354,11 +482,9 @@ void CVulkanRenderSystem::TEST___init_swapchain()
                                                 GetVulkanSurface(),
                                                 &surface_properties) != VK_SUCCESS)
   {
-    throw std::runtime_error("Failed to get physical device surface capabilities\n");
+    CLog::Log(LOGERROR, "Vulkan: Failed to get surface capabilities");
+    return;
   }
-
-  VkSurfaceFormatKHR format =
-      TEST___select_surface_format(m_deviceQueue->GetVulkanPhysicalDevice(), GetVulkanSurface());
 
   VkExtent2D swapchain_size;
   if (surface_properties.currentExtent.width == 0xFFFFFFFF)
@@ -414,24 +540,26 @@ void CVulkanRenderSystem::TEST___init_swapchain()
     composite = VK_COMPOSITE_ALPHA_POST_MULTIPLIED_BIT_KHR;
   }
 
-  VkSwapchainCreateInfoKHR info{.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
-                                .pNext = nullptr,
-                                .flags = 0,
-                                .surface = GetVulkanSurface(),
-                                .minImageCount = desired_swapchain_images,
-                                .imageFormat = format.format,
-                                .imageColorSpace = format.colorSpace,
-                                .imageExtent = swapchain_size,
-                                .imageArrayLayers = 1,
-                                .imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
-                                .imageSharingMode = VK_SHARING_MODE_EXCLUSIVE,
-                                .queueFamilyIndexCount = 0,
-                                .pQueueFamilyIndices = nullptr,
-                                .preTransform = pre_transform,
-                                .compositeAlpha = composite,
-                                .presentMode = VK_PRESENT_MODE_FIFO_KHR,
-                                .clipped = true,
-                                .oldSwapchain = old_swapchain};
+  VkSwapchainCreateInfoKHR info{
+      .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
+      .pNext = nullptr,
+      .flags = 0,
+      .surface = GetVulkanSurface(),
+      .minImageCount = desired_swapchain_images,
+      .imageFormat = m_vkSurfaceFormat.format,
+      .imageColorSpace = m_vkSurfaceFormat.colorSpace,
+      .imageExtent = {m_width, m_height},
+      .imageArrayLayers = 1,
+      .imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+      .imageSharingMode = VK_SHARING_MODE_EXCLUSIVE,
+      .queueFamilyIndexCount = 0,
+      .pQueueFamilyIndices = nullptr,
+      .preTransform = pre_transform,
+      .compositeAlpha = composite,
+      .presentMode = VK_PRESENT_MODE_FIFO_KHR,
+      .clipped = true,
+      .oldSwapchain = old_swapchain,
+  };
 
   if (vkCreateSwapchainKHR(m_deviceQueue->GetVulkanDevice(), &info, nullptr, &TEST___m_swapchain) !=
       VK_SUCCESS)
@@ -458,7 +586,7 @@ void CVulkanRenderSystem::TEST___init_swapchain()
 
   m_width = swapchain_size.width;
   m_height = swapchain_size.height;
-  m_SwapchainFormat = format.format;
+  m_SwapchainFormat = m_vkSurfaceFormat.format;
 
   uint32_t image_count;
   if (vkGetSwapchainImagesKHR(m_deviceQueue->GetVulkanDevice(), TEST___m_swapchain, &image_count,
@@ -1165,28 +1293,6 @@ VkResult CVulkanRenderSystem::TEST___present_image(uint32_t index)
 
   // Present swapchain image
   return vkQueuePresentKHR(m_deviceQueue->GetVulkanQueue(), &present);
-}
-
-VkSurfaceFormatKHR CVulkanRenderSystem::TEST___select_surface_format(
-    VkPhysicalDevice gpu, VkSurfaceKHR surface, std::vector<VkFormat> const& preferredFormats)
-{
-  uint32_t surfaceFormatCount;
-  vkGetPhysicalDeviceSurfaceFormatsKHR(gpu, surface, &surfaceFormatCount, nullptr);
-  assert(0 < surfaceFormatCount);
-
-  std::vector<VkSurfaceFormatKHR> formats(surfaceFormatCount);
-  vkGetPhysicalDeviceSurfaceFormatsKHR(gpu, surface, &surfaceFormatCount, formats.data());
-
-  auto it = std::ranges::find_if(formats,
-                                 [&preferredFormats](VkSurfaceFormatKHR surface_format)
-                                 {
-                                   return std::ranges::any_of(
-                                       preferredFormats, [&surface_format](VkFormat format)
-                                       { return format == surface_format.format; });
-                                 });
-
-  // We use the first supported format as a fallback in case none of the preferred formats is available
-  return it != formats.end() ? *it : formats[0];
 }
 
 } // namespace VULKAN
