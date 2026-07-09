@@ -9,6 +9,7 @@
 #pragma once
 
 #include "VulkanDeviceQueue.h"
+#include "VulkanInfo.h"
 #include "rendering/RenderSystem.h"
 
 #include <map>
@@ -155,6 +156,8 @@ public:
   }
   /**@}*/
 
+  CVulkanSwapChain* GetVulkanSwapChain() const { return m_swapChain.get(); }
+
   VkImageUsageFlags GetVkImageUsageFlags() const { return m_vkImageUsageFlags; }
   VkSurfaceFormatKHR GetVkSurfaceFormat() const { return m_vkSurfaceFormat; }
 
@@ -166,32 +169,17 @@ protected:
    * during initialization that implement the @ref CVulkanRenderSystem as a parent class.
    */
   /**@{*/
-  uint32_t m_width{0};
-  uint32_t m_height{0};
+  VkExtent2D m_size{0, 0};
   /**@}*/
 
 private:
   bool InitializeVkSurface();
 
   std::unique_ptr<CVulkanDeviceQueue> m_deviceQueue;
+  std::unique_ptr<CVulkanSwapChain> m_swapChain;
 
   VkImageUsageFlags m_vkImageUsageFlags{0};
   VkSurfaceFormatKHR m_vkSurfaceFormat{};
-  VkSurfaceCapabilitiesKHR m_vkSurfaceCapabilities{};
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
   std::vector<std::pair<std::string, uint32_t>> m_vulkanExtensions;
 
@@ -220,7 +208,6 @@ private:
   };
 
   void TEST___Deinit();
-  void TEST___init_swapchain();
   void TEST___init_pipeline();
   VkResult TEST___acquire_next_swapchain_image(uint32_t* image);
   void TEST___update(float delta_time);

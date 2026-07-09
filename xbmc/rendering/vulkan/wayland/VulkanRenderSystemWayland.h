@@ -45,8 +45,8 @@ public:
   {
     m_waylandDisplay = display;
     m_waylandSurface = surface;
-    m_width = width;
-    m_height = height;
+    m_size.width = width;
+    m_size.height = height;
   }
 
   /**

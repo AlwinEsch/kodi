@@ -13,6 +13,7 @@
 #include "VulkanExtensions.h"
 #include "VulkanInstance.h"
 #include "VulkanMatrix.h"
+#include "VulkanSwapChain.h"
 #include "VulkanUtils.h"
 #include "filesystem/File.h"
 #include "filesystem/SpecialProtocol.h"
@@ -44,6 +45,7 @@ const std::vector<VkFormat> kPreferredVkFormats32 = {
     VK_FORMAT_B8G8R8A8_UNORM, // FORMAT_BGRA8888,
     VK_FORMAT_R8G8B8A8_UNORM, // FORMAT_RGBA8888,
 };
+
 }
 
 namespace KODI
@@ -100,6 +102,26 @@ bool CVulkanRenderSystem::InitRenderSystem()
     return false;
   }
 
+  auto swapChain = std::make_unique<CVulkanSwapChain>(m_deviceQueue.get());
+  if (!swapChain->InitializeSwapChain(surface, m_vkSurfaceFormat, m_size, m_vkImageUsageFlags,
+                                      std::move(m_swapChain)))
+  {
+    CLog::Log(LOGERROR, "Vulkan: Failed to initialize swap chain");
+    return false;
+  }
+  m_swapChain = std::move(swapChain);
+
+  /*
+
+
+
+
+
+
+
+
+
+  */
   auto instance = m_deviceQueue->GetVulkanInstance();
   auto device = m_deviceQueue->GetVulkanDevice();
   auto physicalDevice = m_deviceQueue->GetVulkanPhysicalDevice();
@@ -118,16 +140,18 @@ bool CVulkanRenderSystem::InitRenderSystem()
   memcpy(data, TEST___vertices.data(), static_cast<size_t>(buffer_size));
   vkUnmapMemory(device, TEST___vertex_buffer_memory);
 
-  //m_swapChain = std::make_unique<CVulkanSwapChain>(m_deviceQueue.get());
-  //if (!m_swapChain->Initialize(m_width, m_height))
-  //{
-  //  CLog::Log(LOGERROR, "Vulkan: Failed to initialize swap chain");
-  //  return false;
-  //}
-
-  TEST___init_swapchain();
   TEST___init_pipeline();
+  /*
 
+
+
+
+
+
+
+
+
+  */
   m_bRenderCreated = true;
 
   CVulkanGUITexture::Register();
@@ -141,11 +165,12 @@ bool CVulkanRenderSystem::ResetRenderSystem(int width, int height)
   if (!m_bRenderCreated)
     return false;
 
-  if (static_cast<uint32_t>(width) == m_width && static_cast<uint32_t>(height) == m_height)
+  if (static_cast<uint32_t>(width) == m_size.width &&
+      static_cast<uint32_t>(height) == m_size.height)
     return true;
 
-  m_width = static_cast<uint32_t>(width);
-  m_height = static_cast<uint32_t>(height);
+  m_size.width = static_cast<uint32_t>(width);
+  m_size.height = static_cast<uint32_t>(height);
 
   return true;
 }
@@ -154,9 +179,15 @@ bool CVulkanRenderSystem::DestroyRenderSystem()
 {
   fprintf(stderr, "---> %s\n", __PRETTY_FUNCTION__);
 
-  TEST___Deinit();
+  if (m_swapChain)
+  {
+    m_swapChain->DeinitializeSwapChain();
+    m_swapChain = nullptr;
+  }
 
   m_deviceQueue.reset();
+
+  TEST___Deinit();
 
   m_bRenderCreated = false;
 
@@ -456,11 +487,7 @@ void CVulkanRenderSystem::TEST___Deinit()
     vkDestroyImageView(m_deviceQueue->GetVulkanDevice(), image_view, nullptr);
   }
 
-  if (TEST___m_swapchain != VK_NULL_HANDLE)
-  {
-    vkDestroySwapchainKHR(m_deviceQueue->GetVulkanDevice(), TEST___m_swapchain, nullptr);
-    TEST___m_swapchain = VK_NULL_HANDLE;
-  }
+  m_swapChain->DeinitializeSwapChain();
 
   if (TEST___vertex_buffer != VK_NULL_HANDLE)
   {
@@ -472,178 +499,6 @@ void CVulkanRenderSystem::TEST___Deinit()
   {
     vkFreeMemory(m_deviceQueue->GetVulkanDevice(), TEST___vertex_buffer_memory, nullptr);
     TEST___vertex_buffer_memory = VK_NULL_HANDLE;
-  }
-}
-
-void CVulkanRenderSystem::TEST___init_swapchain()
-{
-  VkSurfaceCapabilitiesKHR surface_properties;
-  if (vkGetPhysicalDeviceSurfaceCapabilitiesKHR(m_deviceQueue->GetVulkanPhysicalDevice(),
-                                                GetVulkanSurface(),
-                                                &surface_properties) != VK_SUCCESS)
-  {
-    CLog::Log(LOGERROR, "Vulkan: Failed to get surface capabilities");
-    return;
-  }
-
-  VkExtent2D swapchain_size;
-  if (surface_properties.currentExtent.width == 0xFFFFFFFF)
-  {
-    swapchain_size.width = m_width;
-    swapchain_size.height = m_height;
-  }
-  else
-  {
-    swapchain_size = surface_properties.currentExtent;
-  }
-
-  // Determine the number of VkImage's to use in the swapchain.
-  // Ideally, we desire to own 1 image at a time, the rest of the images can
-  // either be rendered to and/or being queued up for display.
-  uint32_t desired_swapchain_images = surface_properties.minImageCount + 1;
-  if ((surface_properties.maxImageCount > 0) &&
-      (desired_swapchain_images > surface_properties.maxImageCount))
-  {
-    // Application must settle for fewer images than desired.
-    desired_swapchain_images = surface_properties.maxImageCount;
-  }
-
-  // Figure out a suitable surface transform.
-  VkSurfaceTransformFlagBitsKHR pre_transform;
-  if (surface_properties.supportedTransforms & VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR)
-  {
-    pre_transform = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR;
-  }
-  else
-  {
-    pre_transform = surface_properties.currentTransform;
-  }
-
-  VkSwapchainKHR old_swapchain = TEST___m_swapchain;
-
-  // one bitmask needs to be set according to the priority of presentation engine
-  VkCompositeAlphaFlagBitsKHR composite = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-  if (surface_properties.supportedCompositeAlpha & VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR)
-  {
-    composite = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-  }
-  else if (surface_properties.supportedCompositeAlpha & VK_COMPOSITE_ALPHA_INHERIT_BIT_KHR)
-  {
-    composite = VK_COMPOSITE_ALPHA_INHERIT_BIT_KHR;
-  }
-  else if (surface_properties.supportedCompositeAlpha & VK_COMPOSITE_ALPHA_PRE_MULTIPLIED_BIT_KHR)
-  {
-    composite = VK_COMPOSITE_ALPHA_PRE_MULTIPLIED_BIT_KHR;
-  }
-  else if (surface_properties.supportedCompositeAlpha & VK_COMPOSITE_ALPHA_POST_MULTIPLIED_BIT_KHR)
-  {
-    composite = VK_COMPOSITE_ALPHA_POST_MULTIPLIED_BIT_KHR;
-  }
-
-  VkSwapchainCreateInfoKHR info{
-      .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
-      .pNext = nullptr,
-      .flags = 0,
-      .surface = GetVulkanSurface(),
-      .minImageCount = desired_swapchain_images,
-      .imageFormat = m_vkSurfaceFormat.format,
-      .imageColorSpace = m_vkSurfaceFormat.colorSpace,
-      .imageExtent = {m_width, m_height},
-      .imageArrayLayers = 1,
-      .imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
-      .imageSharingMode = VK_SHARING_MODE_EXCLUSIVE,
-      .queueFamilyIndexCount = 0,
-      .pQueueFamilyIndices = nullptr,
-      .preTransform = pre_transform,
-      .compositeAlpha = composite,
-      .presentMode = VK_PRESENT_MODE_FIFO_KHR,
-      .clipped = true,
-      .oldSwapchain = old_swapchain,
-  };
-
-  if (vkCreateSwapchainKHR(m_deviceQueue->GetVulkanDevice(), &info, nullptr, &TEST___m_swapchain) !=
-      VK_SUCCESS)
-  {
-    throw std::runtime_error("Failed to create swapchain");
-  }
-
-  if (old_swapchain != VK_NULL_HANDLE)
-  {
-    for (VkImageView image_view : TEST___swapchain_image_views)
-    {
-      vkDestroyImageView(m_deviceQueue->GetVulkanDevice(), image_view, nullptr);
-    }
-
-    for (auto& per_frame : TEST___per_frame)
-    {
-      TEST___teardown_per_frame(per_frame);
-    }
-
-    TEST___swapchain_image_views.clear();
-
-    vkDestroySwapchainKHR(m_deviceQueue->GetVulkanDevice(), old_swapchain, nullptr);
-  }
-
-  m_width = swapchain_size.width;
-  m_height = swapchain_size.height;
-  m_SwapchainFormat = m_vkSurfaceFormat.format;
-
-  uint32_t image_count;
-  if (vkGetSwapchainImagesKHR(m_deviceQueue->GetVulkanDevice(), TEST___m_swapchain, &image_count,
-                              nullptr) != VK_SUCCESS)
-  {
-    throw std::runtime_error("Failed to get swapchain images");
-  }
-
-  /// The swapchain images.
-  std::vector<VkImage> swapchain_images(image_count);
-  if (vkGetSwapchainImagesKHR(m_deviceQueue->GetVulkanDevice(), TEST___m_swapchain, &image_count,
-                              swapchain_images.data()) != VK_SUCCESS)
-  {
-    throw std::runtime_error("Failed to get swapchain images");
-  }
-
-  // Store swapchain images
-  TEST___swapchain_images = swapchain_images;
-
-  // Initialize per-frame resources.
-  // Every swapchain image has its own command pool and fence manager.
-  // This makes it very easy to keep track of when we can reset command buffers and such.
-  TEST___per_frame.clear();
-  TEST___per_frame.resize(image_count);
-
-  for (size_t i = 0; i < image_count; i++)
-  {
-    TEST___init_per_frame(TEST___per_frame[i]);
-  }
-
-  for (size_t i = 0; i < image_count; i++)
-  {
-    // Create an image view which we can render into.
-    VkImageViewCreateInfo view_info{.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-                                    .pNext = nullptr,
-                                    .flags = 0,
-                                    .image = swapchain_images[i],
-                                    .viewType = VK_IMAGE_VIEW_TYPE_2D,
-                                    .format = m_SwapchainFormat,
-                                    .components = {.r = VK_COMPONENT_SWIZZLE_IDENTITY,
-                                                   .g = VK_COMPONENT_SWIZZLE_IDENTITY,
-                                                   .b = VK_COMPONENT_SWIZZLE_IDENTITY,
-                                                   .a = VK_COMPONENT_SWIZZLE_IDENTITY},
-                                    .subresourceRange = {.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-                                                         .baseMipLevel = 0,
-                                                         .levelCount = 1,
-                                                         .baseArrayLayer = 0,
-                                                         .layerCount = 1}};
-
-    VkImageView image_view;
-    if (vkCreateImageView(m_deviceQueue->GetVulkanDevice(), &view_info, nullptr, &image_view) !=
-        VK_SUCCESS)
-    {
-      throw std::runtime_error("Failed to create image view");
-    }
-
-    TEST___swapchain_image_views.push_back(image_view);
   }
 }
 
@@ -860,7 +715,7 @@ void CVulkanRenderSystem::TEST___update(float delta_time)
   // Handle outdated error in acquire.
   if (res == VK_SUBOPTIMAL_KHR || res == VK_ERROR_OUT_OF_DATE_KHR)
   {
-    if (!TEST___resize(m_width, m_height))
+    if (!TEST___resize(m_size.width, m_size.height))
     {
       CLog::Log(LOGERROR, "Vulkan: Resize failed");
     }
@@ -879,7 +734,7 @@ void CVulkanRenderSystem::TEST___update(float delta_time)
   // Handle Outdated error in present.
   if (res == VK_SUBOPTIMAL_KHR || res == VK_ERROR_OUT_OF_DATE_KHR)
   {
-    if (!TEST___resize(m_width, m_height))
+    if (!TEST___resize(m_size.width, m_size.height))
     {
       CLog::Log(LOGINFO, "Vulkan: Resize failed");
     }
@@ -1005,8 +860,8 @@ void CVulkanRenderSystem::TEST___render_triangle(uint32_t swapchain_index)
            .offset = {0, 0}, // Initialize the `VkOffset2D` inside `renderArea`
            .extent =
                {// Initialize the `VkExtent2D` inside `renderArea`
-                .width = m_width,
-                .height = m_height}},
+                .width = m_size.width,
+                .height = m_size.height}},
       .layerCount = 1,
       .viewMask = 0,
       .colorAttachmentCount = 1,
@@ -1024,15 +879,15 @@ void CVulkanRenderSystem::TEST___render_triangle(uint32_t swapchain_index)
   // Set viewport dynamically
   VkViewport vp{.x = 0.0f,
                 .y = 0.0f,
-                .width = static_cast<float>(m_width),
-                .height = static_cast<float>(m_height),
+                .width = static_cast<float>(m_size.width),
+                .height = static_cast<float>(m_size.height),
                 .minDepth = 0.0f,
                 .maxDepth = 1.0f};
 
   vkCmdSetViewport(cmd, 0, 1, &vp);
 
   // Set scissor dynamically
-  VkRect2D scissor{.offset = {.x = 0, .y = 0}, .extent = {.width = m_width, .height = m_height}};
+  VkRect2D scissor{.offset = {.x = 0, .y = 0}, .extent = {m_size.width, m_size.height}};
 
   vkCmdSetScissor(cmd, 0, 1, &scissor);
 
@@ -1193,15 +1048,15 @@ bool CVulkanRenderSystem::TEST___resize(const uint32_t, const uint32_t)
   }
 
   // Only rebuild the swapchain if the dimensions have changed
-  if (surface_properties.currentExtent.width == m_width &&
-      surface_properties.currentExtent.height == m_height)
+  if (surface_properties.currentExtent.width == m_size.width &&
+      surface_properties.currentExtent.height == m_size.height)
   {
     return false;
   }
 
   vkDeviceWaitIdle(m_deviceQueue->GetVulkanDevice());
 
-  TEST___init_swapchain();
+  //TEST___init_swapchain();
   return true;
 }
 

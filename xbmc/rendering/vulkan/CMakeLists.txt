@@ -1,5 +1,7 @@
 if(TARGET ${APP_NAME_LC}::Vulkan)
-  set(SOURCES VulkanDeviceQueue.cpp
+  set(SOURCES VulkanCommandBuffer.cpp
+              VulkanCommandPool.cpp
+              VulkanDeviceQueue.cpp
               VulkanExtensions.cpp
               VulkanFunctionPointers.cpp
               VulkanGuiCompositeShader.cpp
@@ -9,10 +11,13 @@ if(TARGET ${APP_NAME_LC}::Vulkan)
               VulkanRenderSystem.cpp
               VulkanScreenshotSurface.cpp
               VulkanShader.cpp
+              VulkanSurface.cpp
               VulkanSwapChain.cpp
               VulkanUtils.cpp)
 
-  set(HEADERS VulkanDeviceQueue.h
+  set(HEADERS VulkanCommandBuffer.h
+              VulkanCommandPool.h
+              VulkanDeviceQueue.h
               VulkanExtensions.h
               VulkanFunctionPointers.h
               VulkanGuiCompositeShader.h
@@ -23,6 +28,7 @@ if(TARGET ${APP_NAME_LC}::Vulkan)
               VulkanRenderSystem.h
               VulkanScreenshotSurface.h
               VulkanShader.h
+              VulkanSurface.h
               VulkanSwapChain.h
               VulkanUtils.h)
 
