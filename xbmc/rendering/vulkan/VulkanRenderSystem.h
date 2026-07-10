@@ -97,6 +97,7 @@ class CVulkanDeviceQueue;
 class CVulkanSwapChain;
 class CVulkanInstance;
 class CVulkanRenderSystem;
+class CVulkanSurface;
 
 class CVulkanRenderSystem : public CRenderSystemBase
 {
@@ -156,8 +157,6 @@ public:
   }
   /**@}*/
 
-  CVulkanSwapChain* GetVulkanSwapChain() const { return m_swapChain.get(); }
-
   VkImageUsageFlags GetVkImageUsageFlags() const { return m_vkImageUsageFlags; }
   VkSurfaceFormatKHR GetVkSurfaceFormat() const { return m_vkSurfaceFormat; }
 
@@ -176,7 +175,7 @@ private:
   bool InitializeVkSurface();
 
   std::unique_ptr<CVulkanDeviceQueue> m_deviceQueue;
-  std::unique_ptr<CVulkanSwapChain> m_swapChain;
+  std::unique_ptr<CVulkanSurface> m_surface;
 
   VkImageUsageFlags m_vkImageUsageFlags{0};
   VkSurfaceFormatKHR m_vkSurfaceFormat{};
@@ -185,56 +184,55 @@ private:
 
   VkFormat m_SwapchainFormat = VK_FORMAT_UNDEFINED;
 
-  struct Vertex
-  {
-    glm::vec2 position;
-    glm::vec3 color;
-  };
+  //struct Vertex
+  //{
+  //  glm::vec2 position;
+  //  glm::vec3 color;
+  //};
 
-  // Define the vertex data
-  const std::vector<Vertex> TEST___vertices = {
-      {{0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}}, // Vertex 1: Red
-      {{0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}}, // Vertex 2: Green
-      {{-0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}} // Vertex 3: Blue
-  };
+  //// Define the vertex data
+  //const std::vector<Vertex> TEST___vertices = {
+  //    {{0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}}, // Vertex 1: Red
+  //    {{0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}}, // Vertex 2: Green
+  //    {{-0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}} // Vertex 3: Blue
+  //};
 
-  struct PerFrame
-  {
-    VkFence queue_submit_fence = VK_NULL_HANDLE;
-    VkCommandPool primary_command_pool = VK_NULL_HANDLE;
-    VkCommandBuffer primary_command_buffer = VK_NULL_HANDLE;
-    VkSemaphore swapchain_acquire_semaphore = VK_NULL_HANDLE;
-    VkSemaphore swapchain_release_semaphore = VK_NULL_HANDLE;
-  };
+  //struct PerFrame
+  //{
+  //  VkFence queue_submit_fence = VK_NULL_HANDLE;
+  //  VkCommandPool primary_command_pool = VK_NULL_HANDLE;
+  //  VkCommandBuffer primary_command_buffer = VK_NULL_HANDLE;
+  //  VkSemaphore swapchain_acquire_semaphore = VK_NULL_HANDLE;
+  //  VkSemaphore swapchain_release_semaphore = VK_NULL_HANDLE;
+  //};
 
-  void TEST___Deinit();
-  void TEST___init_pipeline();
-  VkResult TEST___acquire_next_swapchain_image(uint32_t* image);
-  void TEST___update(float delta_time);
-  void TEST___render_triangle(uint32_t swapchain_index);
-  bool TEST___resize(const uint32_t, const uint32_t);
-  void TEST___teardown_per_frame(PerFrame& per_frame);
-  void TEST___init_per_frame(PerFrame& per_frame);
-  VkResult TEST___present_image(uint32_t index);
-  void TEST___transition_image_layout(VkCommandBuffer cmd,
-                                      VkImage image,
-                                      VkImageLayout oldLayout,
-                                      VkImageLayout newLayout,
-                                      VkAccessFlags2 srcAccessMask,
-                                      VkAccessFlags2 dstAccessMask,
-                                      VkPipelineStageFlags2 srcStage,
-                                      VkPipelineStageFlags2 dstStage);
+  //void TEST___Deinit();
+  //void TEST___init_pipeline();
+  //void TEST___update(float delta_time);
+  //void TEST___render_triangle(uint32_t swapchain_index);
+  //bool TEST___resize(const uint32_t, const uint32_t);
+  //void TEST___teardown_per_frame(PerFrame& per_frame);
+  //void TEST___init_per_frame(PerFrame& per_frame);
+  //VkResult TEST___present_image(uint32_t index);
+  //void TEST___transition_image_layout(VkCommandBuffer cmd,
+  //                                    VkImage image,
+  //                                    VkImageLayout oldLayout,
+  //                                    VkImageLayout newLayout,
+  //                                    VkAccessFlags2 srcAccessMask,
+  //                                    VkAccessFlags2 dstAccessMask,
+  //                                    VkPipelineStageFlags2 srcStage,
+  //                                    VkPipelineStageFlags2 dstStage);
 
-  std::vector<VkImageView> TEST___swapchain_image_views;
-  std::vector<VkImage> TEST___swapchain_images;
-  VkSwapchainKHR TEST___m_swapchain = VK_NULL_HANDLE;
-  std::vector<PerFrame> TEST___per_frame;
-  int32_t TEST___graphics_queue_index = -1;
-  std::vector<VkSemaphore> TEST___recycled_semaphores;
-  VkBuffer TEST___vertex_buffer = VK_NULL_HANDLE;
-  VkDeviceMemory TEST___vertex_buffer_memory = VK_NULL_HANDLE;
-  VkPipelineLayout TEST___pipeline_layout = VK_NULL_HANDLE;
-  VkPipeline TEST___pipeline = VK_NULL_HANDLE;
+  //std::vector<VkImageView> TEST___swapchain_image_views;
+  //std::vector<VkImage> TEST___swapchain_images;
+  //VkSwapchainKHR TEST___m_swapchain = VK_NULL_HANDLE;
+  //std::vector<PerFrame> TEST___per_frame;
+  //int32_t TEST___graphics_queue_index = -1;
+  //std::vector<VkSemaphore> TEST___recycled_semaphores;
+  //VkBuffer TEST___vertex_buffer = VK_NULL_HANDLE;
+  //VkDeviceMemory TEST___vertex_buffer_memory = VK_NULL_HANDLE;
+  //VkPipelineLayout TEST___pipeline_layout = VK_NULL_HANDLE;
+  //VkPipeline TEST___pipeline = VK_NULL_HANDLE;
 };
 
 } // namespace VULKAN

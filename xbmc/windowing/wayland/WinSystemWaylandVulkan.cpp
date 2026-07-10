@@ -165,3 +165,4 @@ void CWinSystemWaylandVulkan::SetContextSize(CSizeInt size)
     CVulkanRenderSystem::ResetRenderSystem(size.Width(), size.Height());
   }
 }
+

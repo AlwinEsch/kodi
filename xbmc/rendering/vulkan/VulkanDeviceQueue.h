@@ -45,6 +45,8 @@ public:
                   bool isThreadSafe);
   void Deinitialize();
 
+  bool SupportsExtension(const char* extension) const;
+
   VkInstance GetVulkanInstance() const { return m_vkInstance; }
   VkDevice GetVulkanDevice() const { return m_vkDevice; }
   VkPhysicalDevice GetVulkanPhysicalDevice() const { return m_vkPhysicalDevice; }
@@ -64,6 +66,8 @@ public:
 private:
   CVulkanDeviceQueue(const CVulkanDeviceQueue&) = delete;
   CVulkanDeviceQueue& operator=(const CVulkanDeviceQueue&) = delete;
+
+  std::vector<const char*> m_enabledExtensions;
 
   VkInstance m_vkInstance{VK_NULL_HANDLE};
   VkDevice m_ownedVkDevice{VK_NULL_HANDLE};

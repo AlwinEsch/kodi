@@ -49,6 +49,9 @@ bool CVulkanSwapChain::InitializeSwapChain(VkSurfaceKHR surface,
   VkDevice device = m_deviceQueue->GetVulkanDevice();
   VkResult result = VK_SUCCESS;
 
+  m_incrementalPresentSupported =
+      m_deviceQueue->SupportsExtension(VK_KHR_INCREMENTAL_PRESENT_EXTENSION_NAME);
+
   VkSurfaceCapabilitiesKHR surfaceCaps;
   if (vkGetPhysicalDeviceSurfaceCapabilitiesKHR(m_deviceQueue->GetVulkanPhysicalDevice(), surface,
                                                 &surfaceCaps) != VK_SUCCESS)
@@ -162,6 +165,12 @@ bool CVulkanSwapChain::InitializeSwapChain(VkSurfaceKHR surface,
   m_vkSwapChain = newSwapChain;
   m_vkImageUsageFlags = imageUsageFlags;
 
+  fprintf(stderr, "--------------------> Vulkan: Swap chain created with %u images.\n", imageCount);
+  if (!AcquireNextSwapchainImage()) [[unlikely]]
+  {
+    return false;
+  }
+
   return true;
 }
 
@@ -203,6 +212,21 @@ void CVulkanSwapChain::DeinitializeSwapChain()
       vkDestroySwapchainKHR(device, m_vkSwapChain, nullptr);
     m_vkSwapChain = VK_NULL_HANDLE;
   }
+}
+
+bool CVulkanSwapChain::SwapBuffers(const VkExtent2D& size)
+{
+  if (!PresentImage(size)) [[unlikely]]
+  {
+    return false;
+  }
+
+  if (!AcquireNextSwapchainImage()) [[unlikely]]
+  {
+    return false;
+  }
+
+  return true;
 }
 
 bool CVulkanSwapChain::AcquireNextSwapchainImage()
@@ -319,6 +343,133 @@ void CVulkanSwapChain::ReturnSemaphores(VkSemaphore acquireSemaphore, VkSemaphor
   }
 
   m_pendingSemaphoresQueue.push_back({acquireSemaphore, presentSemaphore});
+}
+
+bool VulkanSwapChain::BeginWriteCurrentImage(VkImage* image,
+                                             uint32_t* image_index,
+                                             VkImageLayout* image_layout,
+                                             VkImageUsageFlags* image_usage,
+                                             VkSemaphore* begin_semaphore,
+                                             VkSemaphore* end_semaphore)
+{
+  std::unique_lock lock(m_criticalSection);
+
+  assert(image);
+  assert(image_index);
+  assert(image_layout);
+  assert(image_usage);
+  assert(begin_semaphore);
+  assert(end_semaphore);
+  assert(!m_isWriting);
+
+  if (m_vkState != VK_SUCCESS) [[unlikely]]
+  {
+    return false;
+  }
+
+  if (!m_acquiredImage) [[unlikely]]
+  {
+    return false;
+  }
+
+  auto& currentImageData = m_images[*m_acquiredImage];
+
+  if (!m_newAcquired) [[unlikely]]
+  {
+    // In this case, {Begin,End}WriteCurrentImage has been called, but
+    // PostSubBuffer() is not call, so |acquire_semaphore| has been wait on for
+    // the previous write request, release it with FenceHelper.
+    m_deviceQueue->GetFenceHelper()->EnqueueSemaphoreCleanupForSubmittedWork(
+        currentImageData.acquire_semaphore);
+    // Use |end_semaphore| from previous write as |begin_semaphore| for the new
+    // write request, and create a new semaphore for |end_semaphore|.
+    currentImageData.acquire_semaphore = currentImageData.present_semaphore;
+    currentImageData.present_semaphore = CreateSemaphore(m_deviceQueue->GetVulkanDevice());
+    if (currentImageData.present_semaphore == VK_NULL_HANDLE) [[unlikely]]
+    {
+      return false;
+    }
+  }
+
+  *image = currentImageData.image;
+  *image_index = *m_acquiredImage;
+  *image_layout = currentImageData.image_layout;
+  *image_usage = m_vkImageUsageFlags;
+  *begin_semaphore = currentImageData.acquire_semaphore;
+  *end_semaphore = currentImageData.present_semaphore;
+  m_isWriting = true;
+
+  return true;
+}
+
+void VulkanSwapChain::EndWriteCurrentImage()
+{
+  std::unique_lock lock(m_criticalSection);
+
+  DCHECK(m_isWriting);
+  DCHECK(m_acquiredImage);
+
+  auto& currentImageData = m_images[*m_acquiredImage];
+  currentImageData.imageLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+  m_isWriting = false;
+  m_newAcquired = false;
+}
+
+bool CVulkanSwapChain::PresentImage(const VkExtent2D& size)
+{
+  fprintf(stderr, "PresentImage: %dx%d - %d\n", size.width, size.height, m_vkState);
+  assert(m_vkState == VK_SUCCESS);
+  assert(m_acquiredImage);
+
+  auto& currentImageData = m_images[*m_acquiredImage];
+  assert(currentImageData.presentSemaphore != VK_NULL_HANDLE);
+
+  VkRectLayerKHR rectLayer = {
+      .offset = {0, 0},
+      .extent = {size.width, size.height},
+      .layer = 0,
+  };
+
+  VkPresentRegionKHR present_region = {
+      .rectangleCount = 1,
+      .pRectangles = &rectLayer,
+  };
+
+  VkPresentRegionsKHR present_regions = {
+      .sType = VK_STRUCTURE_TYPE_PRESENT_REGIONS_KHR,
+      .pNext = VK_NULL_HANDLE,
+      .swapchainCount = 1,
+      .pRegions = &present_region,
+  };
+
+  VkPresentInfoKHR present_info = {
+      .sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
+      .pNext = m_incrementalPresentSupported ? &present_regions : VK_NULL_HANDLE,
+      .waitSemaphoreCount = 1,
+      .pWaitSemaphores = &currentImageData.presentSemaphore,
+      .swapchainCount = 1,
+      .pSwapchains = &m_vkSwapChain,
+      .pImageIndices = &m_acquiredImage.value(),
+      .pResults = nullptr,
+  };
+
+  VkQueue queue = m_deviceQueue->GetVulkanQueue();
+  auto result = vkQueuePresentKHR(queue, &present_info);
+  if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) [[unlikely]]
+  {
+    CLog::Log(LOGFATAL, "Vulkan: vkQueuePresentKHR() failed: {}", result);
+    m_vkState = result;
+    return false;
+  }
+
+  if (result == VK_SUBOPTIMAL_KHR)
+  {
+    CLog::Log(LOGWARNING, "Vulkan: Swapchain is suboptimal.");
+  }
+
+  m_acquiredImage.reset();
+
+  return true;
 }
 
 } // namespace VULKAN

@@ -47,6 +47,8 @@ bool CVulkanDeviceQueue::Initialize(DeviceQueueOptions options,
   if (m_vkInstance == VK_NULL_HANDLE)
     return false;
 
+  m_enabledExtensions.clear();
+
   const CVulkanInfo& info = m_vulkanRenderSystem->GetVulkanInstance()->GetVulkanInfo();
 
   m_allowProtectedMemory = allowProtectedMemory;
@@ -161,7 +163,6 @@ bool CVulkanDeviceQueue::Initialize(DeviceQueueOptions options,
       .pQueuePriorities = &queuePriority,
   };
 
-  std::vector<const char*> enabledExtensions;
   for (const char* extension : requiredExtensions)
   {
     if (std::ranges::none_of(physicalDeviceInfo.extensions,
@@ -171,7 +172,7 @@ bool CVulkanDeviceQueue::Initialize(DeviceQueueOptions options,
       CLog::Log(LOGERROR, "Vulkan: Required Vulkan extension {0} is not supported", extension);
       return false;
     }
-    enabledExtensions.push_back(extension);
+    m_enabledExtensions.push_back(extension);
   }
 
   for (const char* extension : optionalExtensions)
@@ -184,7 +185,7 @@ bool CVulkanDeviceQueue::Initialize(DeviceQueueOptions options,
     }
     else
     {
-      enabledExtensions.push_back(extension);
+      m_enabledExtensions.push_back(extension);
     }
   }
 
@@ -249,8 +250,8 @@ bool CVulkanDeviceQueue::Initialize(DeviceQueueOptions options,
     .pQueueCreateInfos = &queueCreateInfo,
     .enabledLayerCount = 0,
     .ppEnabledLayerNames = nullptr,
-    .enabledExtensionCount = enabledExtensions.size(),
-    .ppEnabledExtensionNames = enabledExtensions.data(),
+    .enabledExtensionCount = m_enabledExtensions.size(),
+    .ppEnabledExtensionNames = m_enabledExtensions.data(),
     .pEnabledFeatures = &m_enabledDeviceFeatures2.features
   };
   // clang-format on
@@ -334,6 +335,12 @@ void CVulkanDeviceQueue::Deinitialize()
   m_vkQueue = VK_NULL_HANDLE;
   m_vkQueueIndex = 0;
   m_vkPhysicalDevice = VK_NULL_HANDLE;
+}
+
+bool CVulkanDeviceQueue::SupportsExtension(const char* extension) const
+{
+  return std::ranges::any_of(m_enabledExtensions,
+                             [extension](const char* p) { return std::strcmp(extension, p) == 0; });
 }
 
 } // namespace VULKAN

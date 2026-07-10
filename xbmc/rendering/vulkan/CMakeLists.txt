@@ -3,6 +3,7 @@ if(TARGET ${APP_NAME_LC}::Vulkan)
               VulkanCommandPool.cpp
               VulkanDeviceQueue.cpp
               VulkanExtensions.cpp
+              VulkanFenceHelper.cpp
               VulkanFunctionPointers.cpp
               VulkanGuiCompositeShader.cpp
               VulkanImplementation.cpp
@@ -19,6 +20,7 @@ if(TARGET ${APP_NAME_LC}::Vulkan)
               VulkanCommandPool.h
               VulkanDeviceQueue.h
               VulkanExtensions.h
+              VulkanFenceHelper.h
               VulkanFunctionPointers.h
               VulkanGuiCompositeShader.h
               VulkanImplementation.h

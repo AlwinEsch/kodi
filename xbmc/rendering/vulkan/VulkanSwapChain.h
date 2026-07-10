@@ -42,6 +42,16 @@ public:
                            std::unique_ptr<CVulkanSwapChain> oldSwapChain);
   void DeinitializeSwapChain();
 
+  bool BeginWriteCurrentImage(VkImage* image,
+                              uint32_t* image_index,
+                              VkImageLayout* layout,
+                              VkImageUsageFlags* usage,
+                              VkSemaphore* begin_semaphore,
+                              VkSemaphore* end_semaphore);
+  void EndWriteCurrentImage();
+
+  bool SwapBuffers(const VkExtent2D& size);
+
   VkResult GetState() const
   {
     std::unique_lock lock(m_criticalSection);
@@ -89,6 +99,7 @@ private:
   bool GetOrCreateSemaphores(VkSemaphore& acquireSemaphore, VkSemaphore& presentSemaphore);
   VkSemaphore CreateSemaphore(VkDevice vk_device);
   void ReturnSemaphores(VkSemaphore acquireSemaphore, VkSemaphore presentSemaphore);
+  bool PresentImage(const VkExtent2D& size);
 
   CVulkanDeviceQueue* const m_deviceQueue;
   const uint64_t m_acquireNextImageTimeoutNs;
@@ -98,6 +109,7 @@ private:
   // Images in the swap chain.
   bool m_newAcquired{true};
   bool m_destroySwapchainWillHang{false};
+  bool m_incrementalPresentSupported{false};
   std::optional<uint32_t> m_acquiredImage;
   std::vector<ImageData> m_images;
   std::deque<PendingSemaphores> m_pendingSemaphoresQueue;
@@ -106,6 +118,7 @@ private:
   VkSwapchainKHR m_vkSwapChain{VK_NULL_HANDLE};
   VkImageUsageFlags m_vkImageUsageFlags{0};
   VkResult m_vkState{VK_SUCCESS};
+  bool m_isWriting{false};
 };
 
 } // namespace VULKAN

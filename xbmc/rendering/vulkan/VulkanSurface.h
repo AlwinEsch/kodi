@@ -23,7 +23,7 @@ class CVulkanDeviceQueue;
 class CVulkanSwapChain;
 
 // Minimum bit depth of surface.
-enum SurfaceFormat
+enum SurfaceFormat : uint32_t
 {
   FORMAT_RGBA_32,
   FORMAT_RGB_16,
@@ -43,27 +43,31 @@ public:
   bool InitializeSurface(CVulkanDeviceQueue* deviceQueue, SurfaceFormat format);
   void DeinitializeSurface();
 
+  bool SwapBuffers();
+  bool Reshape(const VkExtent2D& size);
+
   CVulkanSwapChain* GetSwapChain() const { return m_swapChain.get(); }
   uint32_t GetSwapChainGeneration() const { return m_swapChainGeneration; }
   const VkExtent2D& GetImageSize() const { return m_imageSize; }
-  VkImageUsageFlags GetImageUsageFlags() const { return m_imageUsageFlags; }
+  VkImageUsageFlags GetImageUsageFlags() const { return m_vkImageUsageFlags; }
   VkSurfaceFormatKHR GetSurfaceFormat() const { return m_vkSurfaceFormat; }
 
 private:
   CVulkanSurface(const CVulkanSurface&) = delete;
   CVulkanSurface& operator=(const CVulkanSurface&) = delete;
 
+  bool CreateSwapChain(const VkExtent2D& size);
+
   const VkInstance m_vkInstance;
-  const VkSurfaceKHR m_vkSurface;
+  VkSurfaceKHR m_vkSurface;
   const uint64_t m_acquireNextImageTimeoutNs;
 
   CVulkanDeviceQueue* m_deviceQueue{nullptr};
   uint32_t m_swapChainGeneration{0u};
 
   VkExtent2D m_imageSize;
-  VkImageUsageFlags m_imageUsageFlags{0};
+  VkImageUsageFlags m_vkImageUsageFlags{0};
   VkSurfaceFormatKHR m_vkSurfaceFormat{};
-  VkCompositeAlphaFlagBitsKHR m_compositeAlpha{VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR};
 
   std::unique_ptr<CVulkanSwapChain> m_swapChain;
 };
