@@ -18,6 +18,8 @@
 #include "guilib/DirtyRegion.h"
 #include "guilib/graphics/vulkan/VulkanGUITexture.h"
 #include "platform/MessagePrinter.h"
+#include "rendering/vulkan/VulkanCommandBuffer.h"
+#include "rendering/vulkan/VulkanCommandPool.h"
 #include "rendering/vulkan/VulkanSwapChain.h"
 #include "settings/AdvancedSettings.h"
 #include "settings/DisplaySettings.h"
@@ -72,6 +74,10 @@ std::unique_ptr<CVulkanDeviceQueue> CreateVulkanDeviceQueue(CVulkanRenderSystem*
 }
 
 CVulkanRenderSystem::CVulkanRenderSystem() : CRenderSystemBase()
+{
+}
+
+CVulkanRenderSystem::~CVulkanRenderSystem()
 {
 }
 
@@ -218,7 +224,10 @@ void CVulkanRenderSystem::PresentRender(bool rendered, bool videoLayer)
   if (!m_bRenderCreated)
     return;
 
-  TEST___update(0.0f);
+  uint32_t index = m_surface->GetSwapChain()->CurrentImageIndex();
+
+  TEST___render_triangle(index);
+  m_surface->SwapBuffers();
 }
 
 void CVulkanRenderSystem::CaptureStateBlock()
@@ -252,16 +261,33 @@ void CVulkanRenderSystem::Project(float& x, float& y, float& z)
 
 void CVulkanRenderSystem::GetViewPort(CRect& viewPort)
 {
-  fprintf(stderr, "---> %s\n", __PRETTY_FUNCTION__);
   if (!m_bRenderCreated)
     return;
+
+  const VkRect2D& imageSize = m_surface->GetImageSize();
+
+  viewPort.x1 = imageSize.offset.x;
+  viewPort.y1 = m_height - imageSize.offset.y - imageSize.extent.height;
+  viewPort.x2 = imageSize.offset.x + imageSize.extent.width;
+  viewPort.y2 = viewPort.y1 + imageSize.extent.height;
 }
 
 void CVulkanRenderSystem::SetViewPort(const CRect& viewPort)
 {
-  fprintf(stderr, "---> %s\n", __PRETTY_FUNCTION__);
   if (!m_bRenderCreated)
     return;
+
+  VkViewport viewport{};
+  viewport.x = viewPort.x1;
+  viewport.y = viewPort.y1;
+  viewport.width = viewPort.x2 - viewPort.x1;
+  viewport.height = viewPort.y2 - viewPort.y1;
+  viewport.minDepth = 0.0f;
+  viewport.maxDepth = 1.0f;
+
+  // TODO: Is this correct? Should we set the viewport for all command buffers or just the current one?
+  for (const auto& per_frame : TEST___per_frame)
+    vkCmdSetViewport(per_frame.primary_command_buffer->GetVulkanCommandBuffer(), 0, 1, &viewport);
 }
 
 bool CVulkanRenderSystem::ScissorsCanEffectClipping()
@@ -280,14 +306,23 @@ CRect CVulkanRenderSystem::ClipRectToScissorRect(const CRect& rect)
 
 void CVulkanRenderSystem::SetScissors(const CRect& rect)
 {
-  fprintf(stderr, "---> %s\n", __PRETTY_FUNCTION__);
   if (!m_bRenderCreated)
     return;
+
+  VkRect2D scissor{};
+  scissor.offset.x = MathUtils::round_int(static_cast<double>(rect.x1));
+  scissor.offset.y = MathUtils::round_int(static_cast<double>(rect.y1));
+  scissor.extent.width = MathUtils::round_int(static_cast<double>(rect.x2 - rect.x1));
+  scissor.extent.height = MathUtils::round_int(static_cast<double>(rect.y2 - rect.y1));
+
+  // TODO: Is this correct? Should we set the viewport for all command buffers or just the current one?
+  for (const auto& per_frame : TEST___per_frame)
+    vkCmdSetScissor(per_frame.primary_command_buffer->GetVulkanCommandBuffer(), 0, 1, &scissor);
 }
 
 void CVulkanRenderSystem::ResetScissors()
 {
-  fprintf(stderr, "---> %s\n", __PRETTY_FUNCTION__);
+  SetScissors(CRect(0, 0, static_cast<float>(m_width), static_cast<float>(m_height)));
 }
 
 void CVulkanRenderSystem::SetDepthCulling(DepthCulling culling)
@@ -319,7 +354,17 @@ void CVulkanRenderSystem::TEST___Deinit()
 
   for (auto& per_frame : TEST___per_frame)
   {
-    TEST___teardown_per_frame(per_frame);
+    if (per_frame.queue_submit_fence != VK_NULL_HANDLE)
+    {
+      vkDestroyFence(m_deviceQueue->GetVulkanDevice(), per_frame.queue_submit_fence, nullptr);
+
+      per_frame.queue_submit_fence = VK_NULL_HANDLE;
+    }
+
+    per_frame.primary_command_buffer->Deinitialize();
+    per_frame.primary_command_buffer.reset();
+    per_frame.commandPool->Deinitialize();
+    per_frame.commandPool.reset();
   }
 
   TEST___per_frame.clear();
@@ -363,7 +408,21 @@ void CVulkanRenderSystem::TEST___init_swapchain()
 
   for (size_t i = 0; i < image_count; i++)
   {
-    TEST___init_per_frame(TEST___per_frame[i]);
+    PerFrame& per_frame = TEST___per_frame[i];
+
+    VkFenceCreateInfo info{
+        .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
+        .pNext = nullptr,
+        .flags = VK_FENCE_CREATE_SIGNALED_BIT,
+    };
+    if (vkCreateFence(m_deviceQueue->GetVulkanDevice(), &info, nullptr,
+                      &per_frame.queue_submit_fence) != VK_SUCCESS)
+    {
+      throw std::runtime_error("Failed to create fence for per frame data.");
+    }
+
+    per_frame.commandPool = m_deviceQueue->CreateCommandPool();
+    per_frame.primary_command_buffer = per_frame.commandPool->CreatePrimaryCommandBuffer();
   }
 
   for (size_t i = 0; i < image_count; i++)
@@ -610,38 +669,12 @@ void CVulkanRenderSystem::TEST___init_pipeline()
   vkDestroyShaderModule(device, shader_stages[1].module, nullptr);
 }
 
-void CVulkanRenderSystem::TEST___update(float delta_time)
-{
-  //if (!m_surface->GetSwapChain()->AcquireNextSwapchainImage())
-  //{
-  //  vkQueueWaitIdle(m_deviceQueue->GetVulkanQueue());
-  //  return;
-  //}
-
-  uint32_t index = m_surface->GetSwapChain()->CurrentImageIndex();
-
-  TEST___render_triangle(index);
-  m_surface->SwapBuffers();
-  //auto res = TEST___present_image(index);
-
-  //// Handle Outdated error in present.
-  //if (res == VK_SUBOPTIMAL_KHR || res == VK_ERROR_OUT_OF_DATE_KHR)
-  //{
-  //  if (!TEST___resize(m_width, m_height))
-  //  {
-  //    CLog::Log(LOGINFO, "Vulkan: Resize failed");
-  //  }
-  //}
-  //else if (res != VK_SUCCESS)
-  //{
-  //  CLog::Log(LOGERROR, "Vulkan: Failed to present swapchain image.");
-  //}
-}
-
 void CVulkanRenderSystem::TEST___render_triangle(uint32_t swapchain_index)
 {
+  auto& primary_command_buffer = TEST___per_frame[swapchain_index].primary_command_buffer;
+
   // Allocate or re-use a primary command buffer.
-  VkCommandBuffer cmd = TEST___per_frame[swapchain_index].primary_command_buffer;
+  VkCommandBuffer cmd = primary_command_buffer->GetVulkanCommandBuffer();
 
   // We will only submit this once before it's recycled.
   VkCommandBufferBeginInfo begin_info{.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
@@ -661,18 +694,14 @@ void CVulkanRenderSystem::TEST___render_triangle(uint32_t swapchain_index)
   VkSemaphore acquireSemaphore;
   VkSemaphore presentSemaphore;
   if (!m_surface->GetSwapChain()->GetImage(swapchain_index, &image, &layout, &acquireSemaphore,
-                             &presentSemaphore))
+                                           &presentSemaphore))
   {
     throw std::runtime_error("Failed to get swapchain image");
   }
 
-  TEST___transition_image_layout(cmd, image, VK_IMAGE_LAYOUT_UNDEFINED,
-                                 VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-                                 0, // srcAccessMask (no need to wait for previous operations)
-                                 VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT, // dstAccessMask
-                                 VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT, // srcStage
-                                 VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT // dstStage
-  );
+  primary_command_buffer->TransitionImageLayout(image, VK_IMAGE_LAYOUT_UNDEFINED,
+                                                VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+
   // Set clear color values.
   VkClearValue clear_value{.color = {{0.01f, 0.01f, 0.033f, 1.0f}}};
 
@@ -757,13 +786,8 @@ void CVulkanRenderSystem::TEST___render_triangle(uint32_t swapchain_index)
   vkCmdEndRendering(cmd);
 
   // After rendering , transition the swapchain image to PRESENT_SRC
-  TEST___transition_image_layout(cmd, image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-                                 VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-                                 VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT, // srcAccessMask
-                                 0, // dstAccessMask
-                                 VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT, // srcStage
-                                 VK_PIPELINE_STAGE_2_BOTTOM_OF_PIPE_BIT // dstStage
-  );
+  primary_command_buffer->TransitionImageLayout(image, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                                                VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
 
   // Complete the command buffer.
   if (vkEndCommandBuffer(cmd) != VK_SUCCESS)
@@ -817,63 +841,6 @@ void CVulkanRenderSystem::TEST___render_triangle(uint32_t swapchain_index)
   }
 }
 
-void CVulkanRenderSystem::TEST___transition_image_layout(VkCommandBuffer cmd,
-                                                         VkImage image,
-                                                         VkImageLayout oldLayout,
-                                                         VkImageLayout newLayout,
-                                                         VkAccessFlags2 srcAccessMask,
-                                                         VkAccessFlags2 dstAccessMask,
-                                                         VkPipelineStageFlags2 srcStage,
-                                                         VkPipelineStageFlags2 dstStage)
-{
-  // Initialize the VkImageMemoryBarrier2 structure
-  VkImageMemoryBarrier2 image_barrier{
-      .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
-      .pNext = nullptr,
-
-      // Specify the pipeline stages and access masks for the barrier
-      .srcStageMask = srcStage, // Source pipeline stage mask
-      .srcAccessMask = srcAccessMask, // Source access mask
-      .dstStageMask = dstStage, // Destination pipeline stage mask
-      .dstAccessMask = dstAccessMask, // Destination access mask
-
-      // Specify the old and new layouts of the image
-      .oldLayout = oldLayout, // Current layout of the image
-      .newLayout = newLayout, // Target layout of the image
-
-      // We are not changing the ownership between queues
-      .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-      .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-
-      // Specify the image to be affected by this barrier
-      .image = image,
-
-      // Define the subresource range (which parts of the image are affected)
-      .subresourceRange = {
-          .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT, // Affects the color aspect of the image
-          .baseMipLevel = 0, // Start at mip level 0
-          .levelCount = 1, // Number of mip levels affected
-          .baseArrayLayer = 0, // Start at array layer 0
-          .layerCount = 1 // Number of array layers affected
-      }};
-
-  // Initialize the VkDependencyInfo structure
-  VkDependencyInfo dependency_info{
-      .sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
-      .pNext = nullptr,
-      .dependencyFlags = 0, // No special dependency flags
-      .memoryBarrierCount = 0, // No memory barriers
-      .pMemoryBarriers = nullptr, // No memory barriers
-      .bufferMemoryBarrierCount = 0, // No buffer memory barriers
-      .pBufferMemoryBarriers = nullptr, // No buffer memory barriers
-      .imageMemoryBarrierCount = 1, // Number of image memory barriers
-      .pImageMemoryBarriers = &image_barrier // Pointer to the image memory barrier(s)
-  };
-
-  // Record the pipeline barrier into the command buffer
-  vkCmdPipelineBarrier2(cmd, &dependency_info);
-}
-
 bool CVulkanRenderSystem::TEST___resize(const uint32_t, const uint32_t)
 {
   if (m_deviceQueue->GetVulkanDevice() == VK_NULL_HANDLE)
@@ -901,70 +868,6 @@ bool CVulkanRenderSystem::TEST___resize(const uint32_t, const uint32_t)
 
   TEST___init_swapchain();
   return true;
-}
-
-void CVulkanRenderSystem::TEST___teardown_per_frame(PerFrame& per_frame)
-{
-  if (per_frame.queue_submit_fence != VK_NULL_HANDLE)
-  {
-    vkDestroyFence(m_deviceQueue->GetVulkanDevice(), per_frame.queue_submit_fence, nullptr);
-
-    per_frame.queue_submit_fence = VK_NULL_HANDLE;
-  }
-
-  if (per_frame.primary_command_buffer != VK_NULL_HANDLE)
-  {
-    vkFreeCommandBuffers(m_deviceQueue->GetVulkanDevice(), per_frame.primary_command_pool, 1,
-                         &per_frame.primary_command_buffer);
-
-    per_frame.primary_command_buffer = VK_NULL_HANDLE;
-  }
-
-  if (per_frame.primary_command_pool != VK_NULL_HANDLE)
-  {
-    vkDestroyCommandPool(m_deviceQueue->GetVulkanDevice(), per_frame.primary_command_pool, nullptr);
-
-    per_frame.primary_command_pool = VK_NULL_HANDLE;
-  }
-}
-
-void CVulkanRenderSystem::TEST___init_per_frame(PerFrame& per_frame)
-{
-  VkFenceCreateInfo info{
-      .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
-      .pNext = nullptr,
-      .flags = VK_FENCE_CREATE_SIGNALED_BIT,
-  };
-  if (vkCreateFence(m_deviceQueue->GetVulkanDevice(), &info, nullptr,
-                    &per_frame.queue_submit_fence) != VK_SUCCESS)
-  {
-    throw std::runtime_error("Failed to create fence for per frame data.");
-  }
-
-  VkCommandPoolCreateInfo cmd_pool_info{
-      .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
-      .pNext = nullptr,
-      .flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT,
-      .queueFamilyIndex = m_deviceQueue->GetVulkanQueueIndex(),
-  };
-  if (vkCreateCommandPool(m_deviceQueue->GetVulkanDevice(), &cmd_pool_info, nullptr,
-                          &per_frame.primary_command_pool) != VK_SUCCESS)
-  {
-    throw std::runtime_error("Failed to create command pool for per frame data.");
-  }
-
-  VkCommandBufferAllocateInfo cmd_buf_info{
-      .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
-      .pNext = nullptr,
-      .commandPool = per_frame.primary_command_pool,
-      .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-      .commandBufferCount = 1,
-  };
-  if (vkAllocateCommandBuffers(m_deviceQueue->GetVulkanDevice(), &cmd_buf_info,
-                               &per_frame.primary_command_buffer) != VK_SUCCESS)
-  {
-    throw std::runtime_error("Failed to create command buffer for per frame data.");
-  }
 }
 
 } // namespace VULKAN

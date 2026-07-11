@@ -27,8 +27,8 @@ public:
   CVulkanCommandPool(CVulkanDeviceQueue* deviceQueue);
   ~CVulkanCommandPool();
 
-  bool InitializeCommandPool(bool allowProtectedMemory);
-  void DeinitializeCommandPool();
+  bool Initialize(bool allowProtectedMemory);
+  void Deinitialize();
 
   std::unique_ptr<CVulkanCommandBuffer> CreatePrimaryCommandBuffer();
   std::unique_ptr<CVulkanCommandBuffer> CreateSecondaryCommandBuffer();

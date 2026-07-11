@@ -95,6 +95,7 @@ namespace RENDERING
 namespace VULKAN
 {
 
+class CVulkanCommandBuffer;
 class CVulkanDeviceQueue;
 class CVulkanSurface;
 class CVulkanInstance;
@@ -110,7 +111,7 @@ class CVulkanRenderSystem : public CRenderSystemBase
 {
 public:
   CVulkanRenderSystem();
-  ~CVulkanRenderSystem() override = default;
+  ~CVulkanRenderSystem() override;
 
   bool InitRenderSystem() override;
   bool DestroyRenderSystem() override;
@@ -177,6 +178,10 @@ private:
   std::vector<std::pair<std::string, uint32_t>> m_vulkanExtensions;
 
   VkFormat m_SwapchainFormat = VK_FORMAT_UNDEFINED;
+  /*
+
+
+  */
 
   /*
 
@@ -214,26 +219,15 @@ private:
   struct PerFrame
   {
     VkFence queue_submit_fence = VK_NULL_HANDLE;
-    VkCommandPool primary_command_pool = VK_NULL_HANDLE;
-    VkCommandBuffer primary_command_buffer = VK_NULL_HANDLE;
+    std::unique_ptr<CVulkanCommandPool> commandPool;
+    std::unique_ptr<CVulkanCommandBuffer> primary_command_buffer;
   };
 
   void TEST___Deinit();
   void TEST___init_swapchain();
   void TEST___init_pipeline();
-  void TEST___update(float delta_time);
   void TEST___render_triangle(uint32_t swapchain_index);
   bool TEST___resize(const uint32_t, const uint32_t);
-  void TEST___teardown_per_frame(PerFrame& per_frame);
-  void TEST___init_per_frame(PerFrame& per_frame);
-  void TEST___transition_image_layout(VkCommandBuffer cmd,
-                                      VkImage image,
-                                      VkImageLayout oldLayout,
-                                      VkImageLayout newLayout,
-                                      VkAccessFlags2 srcAccessMask,
-                                      VkAccessFlags2 dstAccessMask,
-                                      VkPipelineStageFlags2 srcStage,
-                                      VkPipelineStageFlags2 dstStage);
 
   std::vector<VkImageView> TEST___swapchain_image_views;
   std::vector<PerFrame> TEST___per_frame;

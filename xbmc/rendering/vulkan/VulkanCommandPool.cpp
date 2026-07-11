@@ -31,7 +31,7 @@ CVulkanCommandPool::~CVulkanCommandPool()
   assert(m_vkCommandPool == VK_NULL_HANDLE);
 }
 
-bool CVulkanCommandPool::InitializeCommandPool(bool allowProtectedMemory)
+bool CVulkanCommandPool::Initialize(bool allowProtectedMemory)
 {
   VkCommandPoolCreateInfo info{
       .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
@@ -53,7 +53,7 @@ bool CVulkanCommandPool::InitializeCommandPool(bool allowProtectedMemory)
   return true;
 }
 
-void CVulkanCommandPool::DeinitializeCommandPool()
+void CVulkanCommandPool::Deinitialize()
 {
   assert(m_commandBufferCount == 0u);
   if (m_vkCommandPool != VK_NULL_HANDLE)
@@ -66,7 +66,7 @@ void CVulkanCommandPool::DeinitializeCommandPool()
 std::unique_ptr<CVulkanCommandBuffer> CVulkanCommandPool::CreatePrimaryCommandBuffer()
 {
   auto commandBuffer = std::make_unique<CVulkanCommandBuffer>(m_deviceQueue, this, true);
-  if (!commandBuffer->InitializeCommandBuffer())
+  if (!commandBuffer->Initialize())
     return nullptr;
 
   return commandBuffer;
@@ -75,7 +75,7 @@ std::unique_ptr<CVulkanCommandBuffer> CVulkanCommandPool::CreatePrimaryCommandBu
 std::unique_ptr<CVulkanCommandBuffer> CVulkanCommandPool::CreateSecondaryCommandBuffer()
 {
   auto commandBuffer = std::make_unique<CVulkanCommandBuffer>(m_deviceQueue, this, false);
-  if (!commandBuffer->InitializeCommandBuffer())
+  if (!commandBuffer->Initialize())
     return nullptr;
 
   return commandBuffer;

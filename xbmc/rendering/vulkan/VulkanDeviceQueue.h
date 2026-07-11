@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include <memory>
 #include <vector>
 
 #include <vk_mem_alloc.h>
@@ -21,6 +22,7 @@ namespace VULKAN
 {
 
 class CVulkanRenderSystem;
+class CVulkanCommandPool;
 
 enum DeviceQueueOption : uint32_t
 {
@@ -47,6 +49,8 @@ public:
 
   bool SupportsExtension(const char* extension) const;
 
+  std::unique_ptr<CVulkanCommandPool> CreateCommandPool();
+
   VkInstance GetVulkanInstance() const { return m_vkInstance; }
   VkDevice GetVulkanDevice() const { return m_vkDevice; }
   VkPhysicalDevice GetVulkanPhysicalDevice() const { return m_vkPhysicalDevice; }
@@ -62,6 +66,14 @@ public:
   uint32_t GetVulkanQueueIndex() const { return m_vkQueueIndex; }
   bool AllowProtectedMemory() const { return m_allowProtectedMemory; }
   VmaAllocator GetVMAAllocator() const { return m_vmaAllocator; }
+  const VkPhysicalDeviceFeatures2& GetEnabledDeviceFeatures2() const
+  {
+    return m_enabledDeviceFeatures2;
+  }
+  const VkPhysicalDeviceFeatures& GetEnabledDeviceFeatures() const
+  {
+    return m_enabledDeviceFeatures2.features;
+  }
 
 private:
   CVulkanDeviceQueue(const CVulkanDeviceQueue&) = delete;

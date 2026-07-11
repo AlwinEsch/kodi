@@ -24,12 +24,20 @@ class CVulkanCommandBuffer
 {
 public:
   CVulkanCommandBuffer(CVulkanDeviceQueue* deviceQueue,
-                      CVulkanCommandPool* commandPool,
-                      bool primary);
+                       CVulkanCommandPool* commandPool,
+                       bool primary);
   ~CVulkanCommandBuffer();
 
-  bool InitializeCommandBuffer();
-  void DeinitializeCommandBuffer();
+  bool Initialize();
+  void Deinitialize();
+
+  VkCommandBuffer GetVulkanCommandBuffer() const { return m_vKCommandBuffer; }
+
+  void TransitionImageLayout(VkImage image,
+                             VkImageLayout oldLayout,
+                             VkImageLayout newLayout,
+                             uint32_t srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+                             uint32_t dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED);
 
 private:
   CVulkanCommandBuffer(const CVulkanCommandBuffer&) = delete;

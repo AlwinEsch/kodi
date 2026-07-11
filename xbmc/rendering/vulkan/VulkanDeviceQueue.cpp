@@ -8,8 +8,9 @@
 
 #include "VulkanDeviceQueue.h"
 
-#include "VulkanInstance.h"
-#include "VulkanRenderSystem.h"
+#include "rendering/vulkan/VulkanCommandPool.h"
+#include "rendering/vulkan/VulkanInstance.h"
+#include "rendering/vulkan/VulkanRenderSystem.h"
 #include "utils/log.h"
 
 #define VMA_IMPLEMENTATION
@@ -250,7 +251,7 @@ bool CVulkanDeviceQueue::Initialize(DeviceQueueOptions options,
     .pQueueCreateInfos = &queueCreateInfo,
     .enabledLayerCount = 0,
     .ppEnabledLayerNames = nullptr,
-    .enabledExtensionCount = m_enabledExtensions.size(),
+    .enabledExtensionCount = static_cast<uint32_t>(m_enabledExtensions.size()),
     .ppEnabledExtensionNames = m_enabledExtensions.data(),
     .pEnabledFeatures = &m_enabledDeviceFeatures2.features
   };
@@ -341,6 +342,14 @@ bool CVulkanDeviceQueue::SupportsExtension(const char* extension) const
 {
   return std::ranges::any_of(m_enabledExtensions,
                              [extension](const char* p) { return std::strcmp(extension, p) == 0; });
+}
+
+std::unique_ptr<CVulkanCommandPool> CVulkanDeviceQueue::CreateCommandPool()
+{
+  auto commandPool = std::make_unique<CVulkanCommandPool>(this);
+  if (!commandPool->Initialize(m_allowProtectedMemory))
+    return nullptr;
+  return commandPool;
 }
 
 } // namespace VULKAN
