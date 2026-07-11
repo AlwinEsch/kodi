@@ -35,28 +35,19 @@ public:
                    uint64_t acquireNextImageTimeoutNs = UINT64_MAX);
   ~CVulkanSwapChain();
 
-  bool InitializeSwapChain(VkSurfaceKHR surface,
-                           const VkSurfaceFormatKHR& surfaceFormat,
-                           const VkExtent2D& size,
-                           VkImageUsageFlags imageUsageFlags,
-                           std::unique_ptr<CVulkanSwapChain> oldSwapChain);
-  void DeinitializeSwapChain();
+  bool Initialize(VkSurfaceKHR surface,
+                  const VkSurfaceFormatKHR& surfaceFormat,
+                  const VkRect2D& size,
+                  uint32_t minImageCount,
+                  VkImageUsageFlags imageUsageFlags,
+                  VkSurfaceTransformFlagBitsKHR preTransform,
+                  VkCompositeAlphaFlagBitsKHR compositeAlpha,
+                  std::unique_ptr<CVulkanSwapChain> oldSwapChain = nullptr);
+  void Destroy();
 
-  bool BeginWriteCurrentImage(VkImage* image,
-                              uint32_t* image_index,
-                              VkImageLayout* layout,
-                              VkImageUsageFlags* usage,
-                              VkSemaphore* begin_semaphore,
-                              VkSemaphore* end_semaphore);
-  void EndWriteCurrentImage();
+  bool PostSubBuffer(const VkRect2D& rect);
 
-  bool SwapBuffers(const VkExtent2D& size);
-
-  VkResult GetState() const
-  {
-    std::unique_lock lock(m_criticalSection);
-    return m_vkState;
-  }
+  VkResult State() const { return m_state; }
 
   uint32_t AmmountSwapChainImages() const
   {
@@ -74,9 +65,42 @@ public:
     return *m_acquiredImage;
   }
 
+  bool AcquireNextSwapchainImage();
+
+  bool GetImage(uint32_t index,
+                VkImage* image,
+                VkImageLayout* layout,
+                VkSemaphore* acquireSemaphore,
+                VkSemaphore* presentSemaphore) const;
+
+  VkSwapchainKHR GetSwapchain() const { return m_swapchain; }
+
 private:
   CVulkanSwapChain(const CVulkanSwapChain&) = delete;
   CVulkanSwapChain& operator=(const CVulkanSwapChain&) = delete;
+
+  bool InitializeSwapChain(VkSurfaceKHR surface,
+                           const VkSurfaceFormatKHR& surfaceFormat,
+                           const VkRect2D& size,
+                           uint32_t minImageCount,
+                           VkImageUsageFlags imageUsageFlags,
+                           VkSurfaceTransformFlagBitsKHR preTransform,
+                           VkCompositeAlphaFlagBitsKHR compositeAlpha,
+                           std::unique_ptr<CVulkanSwapChain> oldSwapChain);
+  void DestroySwapChain();
+
+  bool InitializeSwapImages(const VkSurfaceFormatKHR& surfaceFormat);
+  void DestroySwapImages();
+
+  bool InitializeSemaphores();
+  void DestroySemaphores();
+  bool GetOrCreateSemaphores(VkSemaphore* acquireSemaphore, VkSemaphore* presentSemaphore);
+  void ReturnSemaphores(VkSemaphore acquireSemaphore, VkSemaphore presentSemaphore);
+
+  bool PresentBuffer(const VkRect2D& rect);
+
+  CVulkanDeviceQueue* const m_deviceQueue;
+  const uint64_t m_acquireNextImageTimeoutNs;
 
   // Available semaphores can be reused when waiting semaphores is over.
   struct PendingSemaphores
@@ -95,30 +119,18 @@ private:
     VkSemaphore presentSemaphore{VK_NULL_HANDLE};
   };
 
-  bool AcquireNextSwapchainImage();
-  bool GetOrCreateSemaphores(VkSemaphore& acquireSemaphore, VkSemaphore& presentSemaphore);
-  VkSemaphore CreateSemaphore(VkDevice vk_device);
-  void ReturnSemaphores(VkSemaphore acquireSemaphore, VkSemaphore presentSemaphore);
-  bool PresentImage(const VkExtent2D& size);
-
-  CVulkanDeviceQueue* const m_deviceQueue;
-  const uint64_t m_acquireNextImageTimeoutNs;
-
   mutable CCriticalSection m_criticalSection;
 
-  // Images in the swap chain.
+  std::deque<PendingSemaphores> m_pendingSemaphoresQueue;
+  std::vector<ImageData> m_images;
+  std::optional<uint32_t> m_acquiredImage;
   bool m_newAcquired{true};
   bool m_destroySwapchainWillHang{false};
+  VkResult m_state{VK_SUCCESS};
+  VkSwapchainKHR m_swapchain{VK_NULL_HANDLE};
+  VkImageUsageFlags m_imageUsage{0};
+  VkRect2D m_size{{0, 0}, {0, 0}};
   bool m_incrementalPresentSupported{false};
-  std::optional<uint32_t> m_acquiredImage;
-  std::vector<ImageData> m_images;
-  std::deque<PendingSemaphores> m_pendingSemaphoresQueue;
-
-  VkExtent2D m_size{0, 0};
-  VkSwapchainKHR m_vkSwapChain{VK_NULL_HANDLE};
-  VkImageUsageFlags m_vkImageUsageFlags{0};
-  VkResult m_vkState{VK_SUCCESS};
-  bool m_isWriting{false};
 };
 
 } // namespace VULKAN

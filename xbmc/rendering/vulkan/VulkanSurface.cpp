@@ -27,20 +27,26 @@ namespace
 {
 
 const std::vector<VkFormat> PREFERRED_VK_FORMATS32 = {
-    VK_FORMAT_B8G8R8A8_UNORM, // FORMAT_BGRA8888,
-    VK_FORMAT_R8G8B8A8_UNORM, // FORMAT_RGBA8888,
+    VK_FORMAT_R8G8B8A8_SRGB,
+    VK_FORMAT_B8G8R8A8_SRGB,
+    VK_FORMAT_A8B8G8R8_SRGB_PACK32,
+    //VK_FORMAT_B8G8R8A8_UNORM, // FORMAT_BGRA8888,
+    //VK_FORMAT_R8G8B8A8_UNORM, // FORMAT_RGBA8888,
 };
 
 const std::vector<VkFormat> PREFERRED_VK_FORMATS16 = {
     VK_FORMAT_R5G6B5_UNORM_PACK16, // FORMAT_RGB565,
 };
 
+// Minimum VkImages in a vulkan swap chain.
+constexpr uint32_t MIN_IMAGE_COUNT = 3u;
+
 } // namespace
 
-CVulkanSurface::CVulkanSurface(VkInstance vkInstance,
+CVulkanSurface::CVulkanSurface(VkInstance vk_instance,
                                VkSurfaceKHR surface,
-                               uint64_t acquireNextImageTimeoutNs /*= UINT64_MAX*/)
-  : m_vkInstance(vkInstance),
+                               uint64_t acquireNextImageTimeoutNs /* = UINT64_MAX*/)
+  : m_vkInstance(vk_instance),
     m_vkSurface(surface),
     m_acquireNextImageTimeoutNs(acquireNextImageTimeoutNs)
 {
@@ -48,29 +54,22 @@ CVulkanSurface::CVulkanSurface(VkInstance vkInstance,
 
 CVulkanSurface::~CVulkanSurface()
 {
-  assert(m_swapChain == nullptr);
 }
 
-bool CVulkanSurface::InitializeSurface(CVulkanDeviceQueue* deviceQueue, SurfaceFormat format)
+bool CVulkanSurface::Initialize(CVulkanDeviceQueue* deviceQueue, SurfaceFormat format)
 {
-  assert(format >= 0u && format < SurfaceFormat::NUM_SURFACE_FORMATS);
-  assert(deviceQueue != nullptr);
-
-  VkResult result;
-  auto vkPhysicalDevice = deviceQueue->GetVulkanPhysicalDevice();
-  auto vkQueueIndex = deviceQueue->GetVulkanQueueIndex();
-
   m_deviceQueue = deviceQueue;
 
-  VkBool32 presentSupport{VK_FALSE};
-  result = vkGetPhysicalDeviceSurfaceSupportKHR(vkPhysicalDevice, vkQueueIndex, m_vkSurface,
-                                                &presentSupport);
+  VkBool32 present_support;
+  VkResult result = vkGetPhysicalDeviceSurfaceSupportKHR(m_deviceQueue->GetVulkanPhysicalDevice(),
+                                                         m_deviceQueue->GetVulkanQueueIndex(),
+                                                         m_vkSurface, &present_support);
   if (result != VK_SUCCESS)
   {
     CLog::Log(LOGERROR, "Vulkan: vkGetPhysicalDeviceSurfaceSupportKHR() failed: {}", result);
     return false;
   }
-  if (!presentSupport)
+  if (!present_support)
   {
     CLog::Log(LOGERROR, "Vulkan: Surface not supported by present queue.");
     return false;
@@ -78,8 +77,8 @@ bool CVulkanSurface::InitializeSurface(CVulkanDeviceQueue* deviceQueue, SurfaceF
 
   // Get list of supported formats.
   uint32_t formatCount = 0;
-  result =
-      vkGetPhysicalDeviceSurfaceFormatsKHR(vkPhysicalDevice, m_vkSurface, &formatCount, nullptr);
+  result = vkGetPhysicalDeviceSurfaceFormatsKHR(m_deviceQueue->GetVulkanPhysicalDevice(),
+                                                m_vkSurface, &formatCount, nullptr);
   if (VK_SUCCESS != result)
   {
     CLog::Log(LOGERROR, "Vulkan: vkGetPhysicalDeviceSurfaceFormatsKHR() failed: {}", result);
@@ -87,8 +86,8 @@ bool CVulkanSurface::InitializeSurface(CVulkanDeviceQueue* deviceQueue, SurfaceF
   }
 
   std::vector<VkSurfaceFormatKHR> formats(formatCount);
-  result = vkGetPhysicalDeviceSurfaceFormatsKHR(vkPhysicalDevice, m_vkSurface, &formatCount,
-                                                formats.data());
+  result = vkGetPhysicalDeviceSurfaceFormatsKHR(m_deviceQueue->GetVulkanPhysicalDevice(),
+                                                m_vkSurface, &formatCount, formats.data());
   if (VK_SUCCESS != result)
   {
     CLog::Log(LOGERROR, "Vulkan: vkGetPhysicalDeviceSurfaceFormatsKHR() failed: {}", result);
@@ -105,10 +104,10 @@ bool CVulkanSurface::InitializeSurface(CVulkanDeviceQueue* deviceQueue, SurfaceF
     preferredFormats = PREFERRED_VK_FORMATS16;
   }
 
-  if (formats.size() == 1 && formats[0].format == VK_FORMAT_UNDEFINED)
+  if (formats.size() == 1 && VK_FORMAT_UNDEFINED == formats[0].format)
   {
-    m_vkSurfaceFormat.format = preferredFormats[0];
-    m_vkSurfaceFormat.colorSpace = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
+    m_surfaceFormat.format = preferredFormats[0];
+    m_surfaceFormat.colorSpace = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
   }
   else
   {
@@ -119,8 +118,8 @@ bool CVulkanSurface::InitializeSurface(CVulkanDeviceQueue* deviceQueue, SurfaceF
       {
         if (supportedFormat.format == preferredFormat)
         {
-          m_vkSurfaceFormat = supportedFormat;
-          m_vkSurfaceFormat.colorSpace = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
+          m_surfaceFormat = supportedFormat;
+          m_surfaceFormat.colorSpace = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
           formatSet = true;
           break;
         }
@@ -138,11 +137,11 @@ bool CVulkanSurface::InitializeSurface(CVulkanDeviceQueue* deviceQueue, SurfaceF
   }
 
   VkSurfaceCapabilitiesKHR surfaceCaps;
-  result = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(deviceQueue->GetVulkanPhysicalDevice(),
+  result = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(m_deviceQueue->GetVulkanPhysicalDevice(),
                                                      m_vkSurface, &surfaceCaps);
   if (VK_SUCCESS != result)
   {
-    CLog::Log(LOGERROR, "Vulkan: vkGetPhysicalDeviceSurfaceCapabilitiesKHR() failed: {}", result);
+    CLog::Log(LOGERROR, "vkGetPhysicalDeviceSurfaceCapabilitiesKHR() failed: {}", result);
     return false;
   }
 
@@ -152,41 +151,45 @@ bool CVulkanSurface::InitializeSurface(CVulkanDeviceQueue* deviceQueue, SurfaceF
   if ((surfaceCaps.supportedUsageFlags & kRequiredUsageFlags) != kRequiredUsageFlags)
   {
     CLog::Log(LOGERROR,
-              "Vulkan: Surface doesn't support necessary usage. supportedUsageFlags: 0x{:X}",
+              "Vulkan: Vulkan surface doesn't support necessary usage. supportedUsageFlags: 0x{:X}",
               surfaceCaps.supportedUsageFlags);
   }
 
-  m_vkImageUsageFlags =
-      (kRequiredUsageFlags | kOptionalUsageFlags) & surfaceCaps.supportedUsageFlags;
+  m_imageUsageFlags = (kRequiredUsageFlags | kOptionalUsageFlags) & surfaceCaps.supportedUsageFlags;
 
   return true;
 }
 
-void CVulkanSurface::DeinitializeSurface()
+void CVulkanSurface::Destroy()
 {
   if (m_swapChain)
   {
-    m_swapChain->DeinitializeSwapChain();
+    m_swapChain->Destroy();
     m_swapChain = nullptr;
   }
-  if (m_vkSurface)
-  {
-    vkDestroySurfaceKHR(m_vkInstance, m_vkSurface, nullptr);
-    m_vkSurface = VK_NULL_HANDLE;
-  }
+}
+
+bool CVulkanSurface::Reshape(
+    const VkRect2D& size,
+    VkSurfaceTransformFlagBitsKHR vkTransform /* = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR*/)
+{
+  return CreateSwapChain(size, vkTransform);
 }
 
 bool CVulkanSurface::SwapBuffers()
 {
-  return m_swapChain->SwapBuffers(m_imageSize);
+  return PostSubBuffer(m_imageSize);
 }
 
-bool CVulkanSurface::Reshape(const VkExtent2D& size)
+bool CVulkanSurface::PostSubBuffer(const VkRect2D& rect)
 {
-  return CreateSwapChain(size);
+  bool result = m_swapChain->PostSubBuffer(rect);
+
+  return result;
 }
 
-bool CVulkanSurface::CreateSwapChain(const VkExtent2D& size)
+bool CVulkanSurface::CreateSwapChain(const VkRect2D& size,
+                                     VkSurfaceTransformFlagBitsKHR vkTransform)
 {
   // Get Surface Information.
   VkSurfaceCapabilitiesKHR surfaceCaps;
@@ -194,20 +197,22 @@ bool CVulkanSurface::CreateSwapChain(const VkExtent2D& size)
       m_deviceQueue->GetVulkanPhysicalDevice(), m_vkSurface, &surfaceCaps);
   if (result != VK_SUCCESS)
   {
-    CLog::Log(LOGFATAL, "Vulkan: vkGetPhysicalDeviceSurfaceCapabilitiesKHR() failed: {}", result);
+    CLog::Log(LOGFATAL, "vkGetPhysicalDeviceSurfaceCapabilitiesKHR() failed: {}", result);
     return false;
   }
 
-  // TODO: Implemenet for various surface transforms. For now, we just use the current transform.
-  auto vkTransform = surfaceCaps.currentTransform;
-  assert(vkTransform == (vkTransform & surfaceCaps.supportedTransforms));
+  // TODO: Implement transform support. The current transform is the transform that the surface is
+  // currently using, and it must be one of the supported transforms.
+  VkSurfaceTransformFlagBitsKHR vkTransformUsed =
+      vkTransform != 0 ? vkTransform : surfaceCaps.currentTransform;
+  assert(vkTransformUsed == (vkTransformUsed & surfaceCaps.supportedTransforms));
 
   // For Android, the current vulkan surface size may not match the new size
   // (the current window size), in that case, we will create a swap chain with
   // the requested new size, and vulkan surface size should match the swapchain
   // images size soon.
-  VkExtent2D imageSize = size;
-  if (imageSize.width == 0 || imageSize.height == 0)
+  VkRect2D imageSize = size;
+  if (imageSize.extent.width == 0 || imageSize.extent.height == 0)
   {
     // If width and height of the surface are 0xFFFFFFFF, it means the surface
     // size will be determined by the extent of a swapchain targeting the
@@ -216,41 +221,66 @@ bool CVulkanSurface::CreateSwapChain(const VkExtent2D& size)
     if (surfaceCaps.currentExtent.width == kUndefinedExtent &&
         surfaceCaps.currentExtent.height == kUndefinedExtent)
     {
-      imageSize.width = surfaceCaps.minImageExtent.width;
-      imageSize.height = surfaceCaps.minImageExtent.height;
+      imageSize.extent.width = surfaceCaps.minImageExtent.width;
+      imageSize.extent.height = surfaceCaps.minImageExtent.height;
     }
     else
     {
-      imageSize.width = surfaceCaps.currentExtent.width;
-      imageSize.height = surfaceCaps.currentExtent.height;
+      imageSize.extent.width = surfaceCaps.currentExtent.width;
+      imageSize.extent.height = surfaceCaps.currentExtent.height;
+    }
+    if (vkTransformUsed == VK_SURFACE_TRANSFORM_ROTATE_90_BIT_KHR ||
+        vkTransformUsed == VK_SURFACE_TRANSFORM_ROTATE_270_BIT_KHR)
+    {
+      std::swap(imageSize.extent.width, imageSize.extent.height);
     }
   }
 
-  assert(imageSize.width >= surfaceCaps.minImageExtent.width);
-  assert(imageSize.height >= surfaceCaps.minImageExtent.height);
-  assert(imageSize.width <= surfaceCaps.maxImageExtent.width);
-  assert(imageSize.height <= surfaceCaps.maxImageExtent.height);
-  assert(imageSize.width > 0u);
-  assert(imageSize.height > 0u);
+  assert(static_cast<uint32_t>(imageSize.extent.width) >= surfaceCaps.minImageExtent.width);
+  assert(static_cast<uint32_t>(imageSize.extent.height) >= surfaceCaps.minImageExtent.height);
+  assert(static_cast<uint32_t>(imageSize.extent.width) <= surfaceCaps.maxImageExtent.width);
+  assert(static_cast<uint32_t>(imageSize.extent.height) <= surfaceCaps.maxImageExtent.height);
+  assert(static_cast<uint32_t>(imageSize.extent.width) > 0u);
+  assert(static_cast<uint32_t>(imageSize.extent.height) > 0u);
 
-  if (m_imageSize.width == imageSize.width && m_imageSize.height == imageSize.height &&
-      m_swapChain->GetState() == VK_SUCCESS)
+  if (m_imageSize.extent.width == imageSize.extent.width &&
+      m_imageSize.extent.height == imageSize.extent.height && m_vkTransform == vkTransformUsed &&
+      m_swapChain->State() == VK_SUCCESS)
   {
     return true;
   }
 
   m_imageSize = imageSize;
+  m_vkTransform = vkTransformUsed;
+
+  const VkCompositeAlphaFlagBitsKHR kCompositeAlphaBits[] = {
+      VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
+      VK_COMPOSITE_ALPHA_PRE_MULTIPLIED_BIT_KHR,
+      VK_COMPOSITE_ALPHA_POST_MULTIPLIED_BIT_KHR,
+      VK_COMPOSITE_ALPHA_INHERIT_BIT_KHR,
+  };
+
+  for (auto compositeAlphaBit : kCompositeAlphaBits)
+  {
+    if (surfaceCaps.supportedCompositeAlpha & compositeAlphaBit)
+    {
+      m_compositeAlpha = compositeAlphaBit;
+      break;
+    }
+  }
 
   auto swapChain = std::make_unique<CVulkanSwapChain>(m_deviceQueue, m_acquireNextImageTimeoutNs);
-  if (!swapChain->InitializeSwapChain(m_vkSurface, m_vkSurfaceFormat, m_imageSize,
-                                      m_vkImageUsageFlags, std::move(m_swapChain)))
+  // Create swap chain.
+  auto minImageCount = std::max(surfaceCaps.minImageCount, MIN_IMAGE_COUNT);
+  if (!swapChain->Initialize(m_vkSurface, m_surfaceFormat, m_imageSize, minImageCount,
+                             m_imageUsageFlags, m_vkTransform, m_compositeAlpha,
+                             std::move(m_swapChain)))
   {
     return false;
   }
 
   m_swapChain = std::move(swapChain);
   ++m_swapChainGeneration;
-
   return true;
 }
 

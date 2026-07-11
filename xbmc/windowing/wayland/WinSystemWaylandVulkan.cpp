@@ -158,11 +158,11 @@ void CWinSystemWaylandVulkan::SetContextSize(CSizeInt size)
   ////}
 
   // Propagate changed dimensions to render system if necessary
-  if (CVulkanRenderSystem::m_size.width != static_cast<uint32_t>(size.Width()) ||
-      CVulkanRenderSystem::m_size.height != static_cast<uint32_t>(size.Height()))
-  {
-    CLog::LogF(LOGDEBUG, "Resetting render system to {}x{}", size.Width(), size.Height());
-    CVulkanRenderSystem::ResetRenderSystem(size.Width(), size.Height());
-  }
+  //if (CVulkanRenderSystem::m_size.width != static_cast<uint32_t>(size.Width()) ||
+  //    CVulkanRenderSystem::m_size.height != static_cast<uint32_t>(size.Height()))
+  //{
+  //  CLog::LogF(LOGDEBUG, "Resetting render system to {}x{}", size.Width(), size.Height());
+  //  CVulkanRenderSystem::ResetRenderSystem(size.Width(), size.Height());
+  //}
 }
 
