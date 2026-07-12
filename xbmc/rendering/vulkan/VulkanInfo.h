@@ -18,7 +18,7 @@ namespace RENDERING
 namespace VULKAN
 {
 
-constexpr uint32_t REQUIRED_VK_API_VERSION{VK_API_VERSION_1_3};
+constexpr uint32_t REQUIRED_VK_API_VERSION{VK_API_VERSION_1_2};
 
 struct CVulkanPhysicalDeviceInfo
 {

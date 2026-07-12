@@ -131,6 +131,7 @@ bool CVulkanRenderSystem::InitRenderSystem()
   m_SwapchainFormat = m_surface->GetSurfaceFormat().format;
 
   TEST___init_swapchain();
+  init_render_pass();
   TEST___init_pipeline();
 
   m_bRenderCreated = true;
@@ -658,7 +659,8 @@ void CVulkanRenderSystem::TEST___init_pipeline()
       .pColorBlendState = &blend,
       .pDynamicState = &dynamic_state_info,
       .layout = TEST___pipeline_layout, // We need to specify the pipeline layout up front
-      .renderPass = VK_NULL_HANDLE, // Since we are using dynamic rendering this will set as null
+      .renderPass =
+          TEST___render_pass, // Since we are using dynamic rendering this will set as null
       .subpass = 0, // We will be using the first subpass in the render pass
       .basePipelineHandle = VK_NULL_HANDLE,
       .basePipelineIndex = -1};
@@ -874,6 +876,90 @@ bool CVulkanRenderSystem::TEST___resize(const uint32_t, const uint32_t)
   TEST___init_swapchain();
   return true;
 }
+
+
+
+
+
+
+
+void CVulkanRenderSystem::init_render_pass()
+{
+  VkAttachmentDescription attachment{
+      .flags = 0,
+      .format = m_SwapchainFormat, // Backbuffer format.
+      .samples = VK_SAMPLE_COUNT_1_BIT, // Not multisampled.
+      .loadOp =
+          VK_ATTACHMENT_LOAD_OP_CLEAR, // When starting the frame, we want tiles to be cleared.
+      .storeOp =
+          VK_ATTACHMENT_STORE_OP_STORE, // When ending the frame, we want tiles to be written out.
+      .stencilLoadOp =
+          VK_ATTACHMENT_LOAD_OP_DONT_CARE, // Don't care about stencil since we're not using it.
+      .stencilStoreOp =
+          VK_ATTACHMENT_STORE_OP_DONT_CARE, // Don't care about stencil since we're not using it.
+      .initialLayout =
+          VK_IMAGE_LAYOUT_UNDEFINED, // The image layout will be undefined when the render pass begins.
+      .finalLayout =
+          VK_IMAGE_LAYOUT_PRESENT_SRC_KHR // After the render pass is complete, we will transition to PRESENT_SRC_KHR layout.
+  };
+
+  // We have one subpass. This subpass has one color attachment.
+  // While executing this subpass, the attachment will be in attachment optimal layout.
+  VkAttachmentReference color_ref = {0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL};
+
+  // We will end up with two transitions.
+  // The first one happens right before we start subpass #0, where
+  // UNDEFINED is transitioned into COLOR_ATTACHMENT_OPTIMAL.
+  // The final layout in the render pass attachment states PRESENT_SRC_KHR, so we
+  // will get a final transition from COLOR_ATTACHMENT_OPTIMAL to PRESENT_SRC_KHR.
+  VkSubpassDescription subpass{.flags = 0,
+                               .pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS,
+                               .inputAttachmentCount = 0,
+                               .pInputAttachments = nullptr,
+                               .colorAttachmentCount = 1,
+                               .pColorAttachments = &color_ref,
+                               .pResolveAttachments = nullptr,
+                               .pDepthStencilAttachment = nullptr,
+                               .preserveAttachmentCount = 0,
+                               .pPreserveAttachments = nullptr};
+
+  // Create a dependency to external events.
+  // We need to wait for the WSI semaphore to signal.
+  // Only pipeline stages which depend on COLOR_ATTACHMENT_OUTPUT_BIT will
+  // actually wait for the semaphore, so we must also wait for that pipeline stage.
+  VkSubpassDependency dependency{.srcSubpass = VK_SUBPASS_EXTERNAL,
+                                 .dstSubpass = 0,
+                                 .srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                                 .dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                                 .srcAccessMask = 0,
+                                 .dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT |
+                                                  VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+                                 .dependencyFlags = 0};
+
+  // Since we changed the image layout, we need to make the memory visible to
+  // color attachment to modify.
+  dependency.srcAccessMask = 0;
+  dependency.dstAccessMask =
+      VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+
+  // Finally, create the renderpass.
+  VkRenderPassCreateInfo rp_info{.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
+                                 .pNext = nullptr,
+                                 .flags = 0,
+                                 .attachmentCount = 1,
+                                 .pAttachments = &attachment,
+                                 .subpassCount = 1,
+                                 .pSubpasses = &subpass,
+                                 .dependencyCount = 1,
+                                 .pDependencies = &dependency};
+
+  if (vkCreateRenderPass(m_deviceQueue->GetVulkanDevice(), &rp_info, nullptr,
+                         &TEST___render_pass) != VK_SUCCESS)
+  {
+    throw std::runtime_error("failed to create render pass!");
+  }
+}
+
 
 } // namespace VULKAN
 } // namespace RENDERING

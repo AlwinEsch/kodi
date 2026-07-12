@@ -228,6 +228,7 @@ private:
   void TEST___init_pipeline();
   void TEST___render_triangle(uint32_t swapchain_index);
   bool TEST___resize(const uint32_t, const uint32_t);
+  void init_render_pass();
 
   std::vector<VkImageView> TEST___swapchain_image_views;
   std::vector<PerFrame> TEST___per_frame;
@@ -235,6 +236,7 @@ private:
   VkDeviceMemory TEST___vertex_buffer_memory = VK_NULL_HANDLE;
   VkPipelineLayout TEST___pipeline_layout = VK_NULL_HANDLE;
   VkPipeline TEST___pipeline = VK_NULL_HANDLE;
+  VkRenderPass TEST___render_pass = VK_NULL_HANDLE;
 };
 
 } // namespace VULKAN

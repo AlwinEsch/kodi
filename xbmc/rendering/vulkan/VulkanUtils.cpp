@@ -232,12 +232,18 @@ void LogGraphicsInfo(const CVulkanInfo& vulkanInfo)
   for (const auto& deviceInfo : vulkanInfo.physicalDevices)
   {
     CLog::Log(LOGINFO, "        - Physical Device: {0}", deviceInfo.properties.deviceName);
+    CLog::Log(LOGINFO, "            - Supported: {0}",
+              deviceInfo.properties.apiVersion >= REQUIRED_VK_API_VERSION ? "Yes" : "No");
     CLog::Log(LOGINFO, "            - Vendor ID: {0:#X}", deviceInfo.properties.vendorID);
     CLog::Log(LOGINFO, "            - Device ID: {0:#X}", deviceInfo.properties.deviceID);
     CLog::Log(LOGINFO, "            - Driver Version: {0}.{1}.{2}",
               VK_VERSION_MAJOR(deviceInfo.properties.driverVersion),
               VK_VERSION_MINOR(deviceInfo.properties.driverVersion),
               VK_VERSION_PATCH(deviceInfo.properties.driverVersion));
+    CLog::Log(LOGINFO, "            - API Version: {0}.{1}.{2}",
+              VK_VERSION_MAJOR(deviceInfo.properties.apiVersion),
+              VK_VERSION_MINOR(deviceInfo.properties.apiVersion),
+              VK_VERSION_PATCH(deviceInfo.properties.apiVersion));
     CLog::Log(LOGINFO, "            - DRM Device ID: {0:#X}", deviceInfo.drmDeviceId);
     CLog::Log(LOGINFO, "            - Queue Families: {0}", deviceInfo.queueFamilies.size());
     CLog::Log(LOGINFO, "            - Sampler YCbCr Conversion: {0}",
