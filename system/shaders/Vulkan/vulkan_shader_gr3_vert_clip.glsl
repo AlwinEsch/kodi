@@ -1,0 +1,48 @@
+/*
+ *  Copyright (C) 2024 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
+ *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
+ */
+
+#version 450
+
+layout(location = 0) in vec2 in_attrpos;
+layout(location = 1) in vec4 in_attrcol;
+layout(location = 2) in vec2 in_attrcord0;
+layout(location = 3) in vec2 in_attrcord1;
+
+layout(set = 0, binding = 0) uniform UBO
+{
+  mat4 matrix;
+  vec4 shaderClip;
+  vec4 cordStep;
+  float depth;
+} u_ubo;
+
+layout(location = 0) out vec2 frag_cord0;
+layout(location = 1) out vec2 frag_cord1;
+layout(location = 2) out vec4 frag_colour;
+
+// this shader can be used in cases where clipping via glScissor() is not
+// possible (e.g. when rotating). it can't discard triangles, but it may
+// degenerate them.
+
+void main()
+{
+  // limit the vertices to the clipping area
+  vec4 position = vec4(0., 0., 0., 1.);
+  position.xy = clamp(in_attrpos, u_ubo.shaderClip.xy, u_ubo.shaderClip.zw);
+  gl_Position = u_ubo.matrix * position;
+
+  // set rendering depth
+  gl_Position.z = u_ubo.depth * gl_Position.w;
+
+  // correct texture coordinates for clipped vertices
+  vec2 clipDist = in_attrpos - position.xy;
+  frag_cord0 = in_attrcord0 - clipDist * u_ubo.cordStep.xy;
+  frag_cord1 = in_attrcord1 - clipDist * u_ubo.cordStep.zw;
+
+  frag_colour = in_attrcol;
+}

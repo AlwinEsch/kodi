@@ -471,13 +471,15 @@ void CVulkanRenderSystem::TEST___init_pipeline()
 
   // Create a blank pipeline layout.
   // We are not binding any resources to the pipeline in this first sample.
-  VkPipelineLayoutCreateInfo layout_info{.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-                                         .pNext = nullptr,
-                                         .flags = 0,
-                                         .setLayoutCount = 0,
-                                         .pSetLayouts = nullptr,
-                                         .pushConstantRangeCount = 0,
-                                         .pPushConstantRanges = nullptr};
+  VkPipelineLayoutCreateInfo layout_info{
+      .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+      .pNext = nullptr,
+      .flags = 0,
+      .setLayoutCount = 0,
+      .pSetLayouts = nullptr,
+      .pushConstantRangeCount = 0,
+      .pPushConstantRanges = nullptr,
+  };
   if (vkCreatePipelineLayout(device, &layout_info, nullptr, &TEST___pipeline_layout) != VK_SUCCESS)
   {
     throw std::runtime_error("Failed to create pipeline layout");
@@ -485,7 +487,10 @@ void CVulkanRenderSystem::TEST___init_pipeline()
 
   // Define the vertex input binding description
   VkVertexInputBindingDescription binding_description{
-      .binding = 0, .stride = sizeof(Vertex), .inputRate = VK_VERTEX_INPUT_RATE_VERTEX};
+      .binding = 0,
+      .stride = sizeof(Vertex),
+      .inputRate = VK_VERTEX_INPUT_RATE_VERTEX,
+  };
 
   // Define the vertex input attribute descriptions
   std::array<VkVertexInputAttributeDescription, 2> attribute_descriptions{
@@ -613,7 +618,7 @@ void CVulkanRenderSystem::TEST___init_pipeline()
                       .pNext = nullptr,
                       .flags = 0,
                       .stage = VK_SHADER_STAGE_VERTEX_BIT,
-                      .module = UTILS::vulkanCreateShaderModule(device, "triangle.vert.spv"),
+                      .module = UTILS::vulkanCreateShaderModule(device, "vulkan_shader_gr0_vert_test_triangle.spv"),
                       .pName = "main",
                       .pSpecializationInfo = nullptr};
 
@@ -622,7 +627,7 @@ void CVulkanRenderSystem::TEST___init_pipeline()
                       .pNext = nullptr,
                       .flags = 0,
                       .stage = VK_SHADER_STAGE_FRAGMENT_BIT,
-                      .module = UTILS::vulkanCreateShaderModule(device, "triangle.frag.spv"),
+                      .module = UTILS::vulkanCreateShaderModule(device, "vulkan_shader_gr0_frag_test_triangle.spv"),
                       .pName = "main",
                       .pSpecializationInfo = nullptr};
 

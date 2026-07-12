@@ -1,4 +1,5 @@
-/* Copyright (c) 2025, Sascha Willems
+#version 450
+/* Copyright (c) 2024-2025, Huawei Technologies Co., Ltd.
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -15,22 +16,11 @@
  * limitations under the License.
  */
 
-struct VSInput
-{
-    [[vk::location(0)]] float3 Position : POSITION0;
-    [[vk::location(1)]] float3 Color : COLOR0;
-};
+layout(location = 0) in vec3 frag_color;
 
-struct VSOutput
-{
-    float4 Position : SV_POSITION;
-    [[vk::location(0)]] float3 Color : COLOR0;
-};
+layout(location = 0) out vec4 out_color;
 
-VSOutput main(VSInput input)
+void main()
 {
-    VSOutput output;
-    output.Position = float4(input.Position, 1.0);
-    output.Color = input.Color;
-    return output;
+  out_color = vec4(frag_color, 1.0);
 }
