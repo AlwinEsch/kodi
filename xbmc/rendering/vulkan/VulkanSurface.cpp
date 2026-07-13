@@ -10,6 +10,7 @@
 
 #include "rendering/vulkan/VulkanDeviceQueue.h"
 #include "rendering/vulkan/VulkanSwapChain.h"
+#include "rendering/vulkan/VulkanUtils.h"
 #include "utils/log.h"
 
 #include <array>
@@ -22,6 +23,8 @@ namespace RENDERING
 {
 namespace VULKAN
 {
+
+using KODI::RENDERING::VULKAN::UTILS::ErrorString;
 
 namespace
 {
@@ -43,33 +46,35 @@ constexpr uint32_t MIN_IMAGE_COUNT = 3u;
 
 } // namespace
 
-CVulkanSurface::CVulkanSurface(VkInstance vk_instance,
-                               VkSurfaceKHR surface,
+CVulkanSurface::CVulkanSurface(VkInstance vkInstance,
+                               VkSurfaceKHR vkSurface,
                                uint64_t acquireNextImageTimeoutNs /* = UINT64_MAX*/)
-  : m_vkInstance(vk_instance),
-    m_vkSurface(surface),
+  : m_vkInstance(vkInstance),
+    m_vkSurface(vkSurface),
     m_acquireNextImageTimeoutNs(acquireNextImageTimeoutNs)
 {
 }
 
 CVulkanSurface::~CVulkanSurface()
 {
+  assert(!m_swapChain);
 }
 
 bool CVulkanSurface::Initialize(CVulkanDeviceQueue* deviceQueue, SurfaceFormat format)
 {
   m_deviceQueue = deviceQueue;
 
-  VkBool32 present_support;
-  VkResult result = vkGetPhysicalDeviceSurfaceSupportKHR(m_deviceQueue->GetVulkanPhysicalDevice(),
-                                                         m_deviceQueue->GetVulkanQueueIndex(),
-                                                         m_vkSurface, &present_support);
+  VkBool32 presentSupport;
+  VkResult result = vkGetPhysicalDeviceSurfaceSupportKHR(m_deviceQueue->VulkanPhysicalDevice(),
+                                                         m_deviceQueue->VulkanQueueIndex(),
+                                                         m_vkSurface, &presentSupport);
   if (result != VK_SUCCESS)
   {
-    CLog::Log(LOGERROR, "Vulkan: vkGetPhysicalDeviceSurfaceSupportKHR() failed: {}", result);
+    CLog::Log(LOGERROR, "Vulkan: vkGetPhysicalDeviceSurfaceSupportKHR() failed: {}",
+              ErrorString(result));
     return false;
   }
-  if (!present_support)
+  if (!presentSupport)
   {
     CLog::Log(LOGERROR, "Vulkan: Surface not supported by present queue.");
     return false;
@@ -77,20 +82,22 @@ bool CVulkanSurface::Initialize(CVulkanDeviceQueue* deviceQueue, SurfaceFormat f
 
   // Get list of supported formats.
   uint32_t formatCount = 0;
-  result = vkGetPhysicalDeviceSurfaceFormatsKHR(m_deviceQueue->GetVulkanPhysicalDevice(),
+  result = vkGetPhysicalDeviceSurfaceFormatsKHR(m_deviceQueue->VulkanPhysicalDevice(),
                                                 m_vkSurface, &formatCount, nullptr);
-  if (VK_SUCCESS != result)
+  if (result != VK_SUCCESS)
   {
-    CLog::Log(LOGERROR, "Vulkan: vkGetPhysicalDeviceSurfaceFormatsKHR() failed: {}", result);
+    CLog::Log(LOGERROR, "Vulkan: vkGetPhysicalDeviceSurfaceFormatsKHR() failed: {}",
+              ErrorString(result));
     return false;
   }
 
   std::vector<VkSurfaceFormatKHR> formats(formatCount);
-  result = vkGetPhysicalDeviceSurfaceFormatsKHR(m_deviceQueue->GetVulkanPhysicalDevice(),
+  result = vkGetPhysicalDeviceSurfaceFormatsKHR(m_deviceQueue->VulkanPhysicalDevice(),
                                                 m_vkSurface, &formatCount, formats.data());
-  if (VK_SUCCESS != result)
+  if (result != VK_SUCCESS)
   {
-    CLog::Log(LOGERROR, "Vulkan: vkGetPhysicalDeviceSurfaceFormatsKHR() failed: {}", result);
+    CLog::Log(LOGERROR, "Vulkan: vkGetPhysicalDeviceSurfaceFormatsKHR() failed: {}",
+              ErrorString(result));
     return false;
   }
 
@@ -106,8 +113,8 @@ bool CVulkanSurface::Initialize(CVulkanDeviceQueue* deviceQueue, SurfaceFormat f
 
   if (formats.size() == 1 && VK_FORMAT_UNDEFINED == formats[0].format)
   {
-    m_surfaceFormat.format = preferredFormats[0];
-    m_surfaceFormat.colorSpace = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
+    m_vkSurfaceFormat.format = preferredFormats[0];
+    m_vkSurfaceFormat.colorSpace = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
   }
   else
   {
@@ -118,8 +125,8 @@ bool CVulkanSurface::Initialize(CVulkanDeviceQueue* deviceQueue, SurfaceFormat f
       {
         if (supportedFormat.format == preferredFormat)
         {
-          m_surfaceFormat = supportedFormat;
-          m_surfaceFormat.colorSpace = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
+          m_vkSurfaceFormat = supportedFormat;
+          m_vkSurfaceFormat.colorSpace = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
           formatSet = true;
           break;
         }
@@ -137,11 +144,12 @@ bool CVulkanSurface::Initialize(CVulkanDeviceQueue* deviceQueue, SurfaceFormat f
   }
 
   VkSurfaceCapabilitiesKHR surfaceCaps;
-  result = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(m_deviceQueue->GetVulkanPhysicalDevice(),
+  result = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(m_deviceQueue->VulkanPhysicalDevice(),
                                                      m_vkSurface, &surfaceCaps);
-  if (VK_SUCCESS != result)
+  if (result != VK_SUCCESS)
   {
-    CLog::Log(LOGERROR, "vkGetPhysicalDeviceSurfaceCapabilitiesKHR() failed: {}", result);
+    CLog::Log(LOGERROR, "vkGetPhysicalDeviceSurfaceCapabilitiesKHR() failed: {}",
+              ErrorString(result));
     return false;
   }
 
@@ -155,7 +163,7 @@ bool CVulkanSurface::Initialize(CVulkanDeviceQueue* deviceQueue, SurfaceFormat f
               surfaceCaps.supportedUsageFlags);
   }
 
-  m_imageUsageFlags = (kRequiredUsageFlags | kOptionalUsageFlags) & surfaceCaps.supportedUsageFlags;
+  m_vkImageUsageFlags = (kRequiredUsageFlags | kOptionalUsageFlags) & surfaceCaps.supportedUsageFlags;
 
   return true;
 }
@@ -178,7 +186,7 @@ bool CVulkanSurface::Reshape(
 
 bool CVulkanSurface::SwapBuffers()
 {
-  return PostSubBuffer(m_imageSize);
+  return PostSubBuffer(m_vkImageSize);
 }
 
 bool CVulkanSurface::PostSubBuffer(const VkRect2D& rect)
@@ -194,10 +202,11 @@ bool CVulkanSurface::CreateSwapChain(const VkRect2D& size,
   // Get Surface Information.
   VkSurfaceCapabilitiesKHR surfaceCaps;
   VkResult result = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(
-      m_deviceQueue->GetVulkanPhysicalDevice(), m_vkSurface, &surfaceCaps);
+      m_deviceQueue->VulkanPhysicalDevice(), m_vkSurface, &surfaceCaps);
   if (result != VK_SUCCESS)
   {
-    CLog::Log(LOGFATAL, "vkGetPhysicalDeviceSurfaceCapabilitiesKHR() failed: {}", result);
+    CLog::Log(LOGFATAL, "vkGetPhysicalDeviceSurfaceCapabilitiesKHR() failed: {}",
+              ErrorString(result));
     return false;
   }
 
@@ -243,14 +252,14 @@ bool CVulkanSurface::CreateSwapChain(const VkRect2D& size,
   assert(static_cast<uint32_t>(imageSize.extent.width) > 0u);
   assert(static_cast<uint32_t>(imageSize.extent.height) > 0u);
 
-  if (m_imageSize.extent.width == imageSize.extent.width &&
-      m_imageSize.extent.height == imageSize.extent.height && m_vkTransform == vkTransformUsed &&
+  if (m_vkImageSize.extent.width == imageSize.extent.width &&
+      m_vkImageSize.extent.height == imageSize.extent.height && m_vkTransform == vkTransformUsed &&
       m_swapChain->State() == VK_SUCCESS)
   {
     return true;
   }
 
-  m_imageSize = imageSize;
+  m_vkImageSize = imageSize;
   m_vkTransform = vkTransformUsed;
 
   const VkCompositeAlphaFlagBitsKHR kCompositeAlphaBits[] = {
@@ -264,7 +273,7 @@ bool CVulkanSurface::CreateSwapChain(const VkRect2D& size,
   {
     if (surfaceCaps.supportedCompositeAlpha & compositeAlphaBit)
     {
-      m_compositeAlpha = compositeAlphaBit;
+      m_vkCompositeAlpha = compositeAlphaBit;
       break;
     }
   }
@@ -272,8 +281,8 @@ bool CVulkanSurface::CreateSwapChain(const VkRect2D& size,
   auto swapChain = std::make_unique<CVulkanSwapChain>(m_deviceQueue, m_acquireNextImageTimeoutNs);
   // Create swap chain.
   auto minImageCount = std::max(surfaceCaps.minImageCount, MIN_IMAGE_COUNT);
-  if (!swapChain->Initialize(m_vkSurface, m_surfaceFormat, m_imageSize, minImageCount,
-                             m_imageUsageFlags, m_vkTransform, m_compositeAlpha,
+  if (!swapChain->Initialize(m_vkSurface, m_vkSurfaceFormat, m_vkImageSize, minImageCount,
+                             m_vkImageUsageFlags, m_vkTransform, m_vkCompositeAlpha,
                              std::move(m_swapChain)))
   {
     return false;

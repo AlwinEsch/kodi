@@ -30,6 +30,8 @@ public:
   VkResult GetFence(VkFence* fence);
 
   void PerformImmediateCleanup();
+  void EnqueueSemaphoreCleanupForSubmittedWork(VkSemaphore semaphore);
+  void EnqueueSemaphoresCleanupForSubmittedWork(std::vector<VkSemaphore> semaphores);
 
 private:
   CVulkanFenceHelper(const CVulkanFenceHelper&) = delete;

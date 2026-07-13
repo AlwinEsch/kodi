@@ -220,12 +220,12 @@ void LogGraphicsInfo(const CVulkanInfo& vulkanInfo)
             vulkanInfo.debugUtilsEnabled ? "Yes" : "No");
   for (const auto& deviceInfo : vulkanInfo.instanceExtensions)
   {
-    bool isEnabled = std::find_if(vulkanInfo.enabledInstanceExtensions.begin(),
-                                  vulkanInfo.enabledInstanceExtensions.end(),
+    bool isEnabled = std::find_if(vulkanInfo.requiredInstanceExtensions.begin(),
+                                  vulkanInfo.requiredInstanceExtensions.end(),
                                   [&deviceInfo](const char* enabledExtension)
                                   {
                                     return strcmp(enabledExtension, deviceInfo.extensionName) == 0;
-                                  }) != vulkanInfo.enabledInstanceExtensions.end();
+                                  }) != vulkanInfo.requiredInstanceExtensions.end();
     CLog::Log(LOGINFO, "        - Instance Extension: {0} (Version {1}), Is Enabled: {2}",
               deviceInfo.extensionName, deviceInfo.specVersion, isEnabled ? "Yes" : "No");
   }
@@ -250,6 +250,42 @@ void LogGraphicsInfo(const CVulkanInfo& vulkanInfo)
               deviceInfo.featureSamplerYCBCRconversion ? "Supported" : "Not supported");
     CLog::Log(LOGINFO, "            - Protected Memory: {0}",
               deviceInfo.featureProtectedMemory ? "Supported" : "Not supported");
+  }
+}
+
+std::string ErrorString(VkResult errorCode)
+{
+  switch (errorCode)
+  {
+#define STR(r) \
+  case VK_##r: \
+    return #r
+    STR(NOT_READY);
+    STR(TIMEOUT);
+    STR(EVENT_SET);
+    STR(EVENT_RESET);
+    STR(INCOMPLETE);
+    STR(ERROR_OUT_OF_HOST_MEMORY);
+    STR(ERROR_OUT_OF_DEVICE_MEMORY);
+    STR(ERROR_INITIALIZATION_FAILED);
+    STR(ERROR_DEVICE_LOST);
+    STR(ERROR_MEMORY_MAP_FAILED);
+    STR(ERROR_LAYER_NOT_PRESENT);
+    STR(ERROR_EXTENSION_NOT_PRESENT);
+    STR(ERROR_FEATURE_NOT_PRESENT);
+    STR(ERROR_INCOMPATIBLE_DRIVER);
+    STR(ERROR_TOO_MANY_OBJECTS);
+    STR(ERROR_FORMAT_NOT_SUPPORTED);
+    STR(ERROR_SURFACE_LOST_KHR);
+    STR(ERROR_NATIVE_WINDOW_IN_USE_KHR);
+    STR(SUBOPTIMAL_KHR);
+    STR(ERROR_OUT_OF_DATE_KHR);
+    STR(ERROR_INCOMPATIBLE_DISPLAY_KHR);
+    STR(ERROR_VALIDATION_FAILED_EXT);
+    STR(ERROR_INVALID_SHADER_NV);
+#undef STR
+    default:
+      return "UNKNOWN_ERROR";
   }
 }
 

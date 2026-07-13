@@ -95,6 +95,14 @@ VkShaderModule vulkanCreateShaderModule(VkDevice device, const std::string& file
  */
 void LogGraphicsInfo(const CVulkanInfo& vulkanInfo);
 
+/**
+ * @brief Converts a Vulkan error code to a human-readable string.
+ *
+ * @param[in] errorCode The Vulkan error code.
+ * @return A string representing the Vulkan error code.
+ */
+std::string ErrorString(VkResult errorCode);
+
 } // namespace UTILS
 } // namespace VULKAN
 } // namespace RENDERING

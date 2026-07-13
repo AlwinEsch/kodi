@@ -9,7 +9,9 @@
 #pragma once
 
 #include "VulkanInfo.h"
+
 #include <vector>
+
 #include <vulkan/vulkan_core.h>
 
 namespace KODI
@@ -29,8 +31,11 @@ public:
               const std::vector<const char*>& required_layers);
   void Destroy();
 
-  VkInstance GetVkInstance() const { return m_vkInstance ; }
+  VkInstance GetVkInstance() const { return m_vkInstance; }
   const CVulkanInfo& GetVulkanInfo() const { return m_vulkanInfo; }
+
+  static bool ValidateExtensions(const char* extension,
+                                 const std::vector<VkExtensionProperties>& available);
 
 private:
   CVulkanInstance(const CVulkanInstance&) = delete;

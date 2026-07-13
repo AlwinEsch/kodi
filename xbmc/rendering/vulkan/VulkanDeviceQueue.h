@@ -21,8 +21,9 @@ namespace RENDERING
 namespace VULKAN
 {
 
-class CVulkanRenderSystem;
 class CVulkanCommandPool;
+class CVulkanFenceHelper;
+class CVulkanRenderSystem;
 
 enum DeviceQueueOption : uint32_t
 {
@@ -45,54 +46,55 @@ public:
                   VkDeviceSize heapMemoryLimit,
                   bool allowProtectedMemory,
                   bool isThreadSafe);
-  void Deinitialize();
+  void Destroy();
 
   bool SupportsExtension(const char* extension) const;
 
   std::unique_ptr<CVulkanCommandPool> CreateCommandPool();
 
-  VkInstance GetVulkanInstance() const { return m_vkInstance; }
-  VkDevice GetVulkanDevice() const { return m_vkDevice; }
-  VkPhysicalDevice GetVulkanPhysicalDevice() const { return m_vkPhysicalDevice; }
-  const VkPhysicalDeviceProperties& GetVulkanPhysicalDeviceProperties() const
+  VkInstance VulkanInstance() const { return m_vkInstance; }
+  VkDevice VulkanDevice() const { return m_vkDevice; }
+  VkPhysicalDevice VulkanPhysicalDevice() const { return m_vkPhysicalDevice; }
+  const VkPhysicalDeviceProperties& VulkanPhysicalDeviceProperties() const
   {
     return m_vkPhysicalDeviceProperties;
   }
-  const VkPhysicalDeviceDriverProperties& GetVulkanPhysicalDeviceDriverProperties() const
+  const VkPhysicalDeviceDriverProperties& VulkanPhysicalDeviceDriverProperties() const
   {
     return m_vkPhysicalDeviceDriverProperties;
   }
-  VkQueue GetVulkanQueue() const { return m_vkQueue; }
-  uint32_t GetVulkanQueueIndex() const { return m_vkQueueIndex; }
+  VkQueue VulkanQueue() const { return m_vkQueue; }
+  int32_t VulkanQueueIndex() const { return m_vkQueueIndex; }
   bool AllowProtectedMemory() const { return m_allowProtectedMemory; }
-  VmaAllocator GetVMAAllocator() const { return m_vmaAllocator; }
-  const VkPhysicalDeviceFeatures2& GetEnabledDeviceFeatures2() const
+  VmaAllocator VMAAllocator() const { return m_vmaAllocator; }
+  const VkPhysicalDeviceFeatures2& EnabledDeviceFeatures2() const
   {
-    return m_enabledDeviceFeatures2;
+    return m_vkEnabledDeviceFeatures2;
   }
-  const VkPhysicalDeviceFeatures& GetEnabledDeviceFeatures() const
+  const VkPhysicalDeviceFeatures& EnabledDeviceFeatures() const
   {
-    return m_enabledDeviceFeatures2.features;
+    return m_vkEnabledDeviceFeatures2.features;
   }
+  CVulkanFenceHelper* FenceHelper() const { return m_cleanupHelper.get(); }
 
 private:
   CVulkanDeviceQueue(const CVulkanDeviceQueue&) = delete;
   CVulkanDeviceQueue& operator=(const CVulkanDeviceQueue&) = delete;
 
   std::vector<const char*> m_enabledExtensions;
+  std::unique_ptr<CVulkanFenceHelper> m_cleanupHelper;
 
   VkInstance m_vkInstance{VK_NULL_HANDLE};
-  VkDevice m_ownedVkDevice{VK_NULL_HANDLE};
   VkDevice m_vkDevice{VK_NULL_HANDLE};
   VkQueue m_vkQueue{VK_NULL_HANDLE};
-  uint32_t m_vkQueueIndex{0};
+  int32_t m_vkQueueIndex{-1};
   VkPhysicalDevice m_vkPhysicalDevice{VK_NULL_HANDLE};
   VkPhysicalDeviceProperties m_vkPhysicalDeviceProperties{};
   VkPhysicalDeviceDriverProperties m_vkPhysicalDeviceDriverProperties{};
-  VkPhysicalDeviceFeatures2 m_enabledDeviceFeatures2{};
-  VkPhysicalDeviceProtectedMemoryFeatures m_protectedMemoryFeatures{};
+  VkPhysicalDeviceFeatures2 m_vkEnabledDeviceFeatures2{};
+  VkPhysicalDeviceProtectedMemoryFeatures m_vkProtectedMemoryFeatures{};
 #if defined(TARGET_ANDROID) || defined(TARGET_LINUX)
-  VkPhysicalDeviceSamplerYcbcrConversionFeatures m_samplerYCBCRConversionFeatures{};
+  VkPhysicalDeviceSamplerYcbcrConversionFeatures m_vkSamplerYCBCRConversionFeatures{};
 #endif // defined(TARGET_ANDROID) || defined(TARGET_LINUX)
   VmaAllocator m_vmaAllocator{VK_NULL_HANDLE};
 

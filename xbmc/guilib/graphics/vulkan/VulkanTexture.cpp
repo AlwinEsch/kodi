@@ -12,7 +12,6 @@
 #include "guilib/TextureFormats.h"
 #include "guilib/TextureManager.h"
 #include "rendering/RenderSystem.h"
-#include "rendering/vulkan/VulkanExtensions.h"
 #include "rendering/vulkan/VulkanUtils.h"
 #include "settings/AdvancedSettings.h"
 #include "settings/SettingsComponent.h"

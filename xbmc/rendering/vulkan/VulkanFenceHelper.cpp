@@ -38,7 +38,7 @@ VkResult CVulkanFenceHelper::GetFence(VkFence* fence)
       .pNext = nullptr,
       .flags = 0,
   };
-  return vkCreateFence(m_deviceQueue->GetVulkanDevice(), &createInfo, nullptr, fence);
+  return vkCreateFence(m_deviceQueue->VulkanDevice(), &createInfo, nullptr, fence);
 }
 
 void CVulkanFenceHelper::PerformImmediateCleanup()
@@ -68,7 +68,7 @@ void CVulkanFenceHelper::PerformImmediateCleanup()
   //while (!cleanup_tasks_.empty())
   //{
   //  auto& tasks_for_fence = cleanup_tasks_.front();
-  //  vkDestroyFence(m_deviceQueue->GetVulkanDevice(), tasks_for_fence.fence, nullptr);
+  //  vkDestroyFence(m_deviceQueue->VulkanDevice(), tasks_for_fence.fence, nullptr);
   //  tasks_to_run.insert(tasks_to_run.end(), std::make_move_iterator(tasks_for_fence.tasks.begin()),
   //                      std::make_move_iterator(tasks_for_fence.tasks.end()));
   //  cleanup_tasks_.pop_front();
@@ -78,6 +78,26 @@ void CVulkanFenceHelper::PerformImmediateCleanup()
   //tasks_pending_fence_.clear();
   //for (auto& task : tasks_to_run)
   //  std::move(task).Run(m_deviceQueue.get(), device_lost);
+}
+
+void CVulkanFenceHelper::EnqueueSemaphoreCleanupForSubmittedWork(VkSemaphore semaphore)
+{
+  if (semaphore == VK_NULL_HANDLE)
+    return;
+
+  EnqueueSemaphoresCleanupForSubmittedWork({semaphore});
+}
+
+void CVulkanFenceHelper::EnqueueSemaphoresCleanupForSubmittedWork(
+    std::vector<VkSemaphore> semaphores)
+{
+  if (semaphores.empty())
+    return;
+
+  for (VkSemaphore semaphore : semaphores)
+  {
+    vkDestroySemaphore(m_deviceQueue->VulkanDevice(), semaphore, nullptr);
+  }
 }
 
 } // namespace VULKAN

@@ -100,6 +100,8 @@ class CVulkanDeviceQueue;
 class CVulkanSurface;
 class CVulkanInstance;
 class CVulkanRenderSystem;
+class CVulkanCommandPool;
+class CVulkanFramebuffer;
 
 std::unique_ptr<CVulkanDeviceQueue> CreateVulkanDeviceQueue(CVulkanRenderSystem* vulkanRenderSystem,
                                                             DeviceQueueOptions options,
@@ -172,10 +174,12 @@ protected:
   /**@}*/
 
 private:
+  bool CreateFramebuffers();
+  void DestroyFramebuffers();
+
   std::unique_ptr<CVulkanDeviceQueue> m_deviceQueue;
   std::unique_ptr<CVulkanSurface> m_surface;
-
-  std::vector<std::pair<std::string, uint32_t>> m_vulkanExtensions;
+  std::vector<std::unique_ptr<CVulkanFramebuffer>> m_framebuffers;
 
   VkFormat m_SwapchainFormat = VK_FORMAT_UNDEFINED;
   /*
@@ -203,40 +207,166 @@ private:
 
 
   */
-  struct Vertex
+  ////////struct Vertex
+  ////////{
+  ////////  glm::vec2 position;
+  ////////  glm::vec3 color;
+  ////////};
+
+  ////////// Define the vertex data
+  ////////const std::vector<Vertex> TEST___vertices = {
+  ////////    {{0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}}, // Vertex 1: Red
+  ////////    {{0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}}, // Vertex 2: Green
+  ////////    {{-0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}} // Vertex 3: Blue
+  ////////};
+
+  ////////struct PerFrame
+  ////////{
+  ////////  VkFence queue_submit_fence = VK_NULL_HANDLE;
+  ////////  std::unique_ptr<CVulkanCommandPool> commandPool;
+  ////////  std::unique_ptr<CVulkanCommandBuffer> primary_command_buffer;
+  ////////};
+
+  ////////void TEST___Deinit();
+  ////////void TEST___init_swapchain();
+  ////////void TEST___init_pipeline();
+  ////////void TEST___render_triangle(uint32_t swapchain_index);
+  ////////bool TEST___resize(const uint32_t, const uint32_t);
+  ////////void init_render_pass();
+
+  ////////std::vector<VkImageView> TEST___swapchain_image_views;
+  ////////std::vector<PerFrame> TEST___per_frame;
+  ////////VkBuffer TEST___vertex_buffer = VK_NULL_HANDLE;
+  ////////VkDeviceMemory TEST___vertex_buffer_memory = VK_NULL_HANDLE;
+  ////////VkPipelineLayout TEST___pipeline_layout = VK_NULL_HANDLE;
+  ////////VkPipeline TEST___pipeline = VK_NULL_HANDLE;
+  ////////VkRenderPass TEST___render_pass = VK_NULL_HANDLE;
+  /**
+	 * @brief Swapchain state
+	 */
+  struct SwapchainDimensions
   {
-    glm::vec2 position;
-    glm::vec3 color;
+    /// Width of the swapchain.
+    uint32_t width = 0;
+
+    /// Height of the swapchain.
+    uint32_t height = 0;
+
+    /// Pixel format of the swapchain.
+    VkFormat format = VK_FORMAT_UNDEFINED;
   };
 
-  // Define the vertex data
-  const std::vector<Vertex> TEST___vertices = {
-      {{0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}}, // Vertex 1: Red
-      {{0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}}, // Vertex 2: Green
-      {{-0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}} // Vertex 3: Blue
-  };
-
+  /**
+	 * @brief Per-frame data
+	 */
   struct PerFrame
   {
     VkFence queue_submit_fence = VK_NULL_HANDLE;
-    std::unique_ptr<CVulkanCommandPool> commandPool;
+    std::unique_ptr<CVulkanCommandPool> primary_command_pool;
     std::unique_ptr<CVulkanCommandBuffer> primary_command_buffer;
+    VkSemaphore swapchain_acquire_semaphore = VK_NULL_HANDLE;
+    VkSemaphore swapchain_release_semaphore = VK_NULL_HANDLE;
   };
 
-  void TEST___Deinit();
-  void TEST___init_swapchain();
-  void TEST___init_pipeline();
-  void TEST___render_triangle(uint32_t swapchain_index);
-  bool TEST___resize(const uint32_t, const uint32_t);
+  /**
+	 * @brief Vulkan objects and global state
+	 */
+  struct Context
+  {
+    /// The Vulkan physical device.
+    //VkPhysicalDevice gpu = VK_NULL_HANDLE;
+
+    /// The Vulkan device.
+    //VkDevice device = VK_NULL_HANDLE;
+
+    /// The Vulkan device queue.
+    //VkQueue queue = VK_NULL_HANDLE;
+
+    /// The swapchain.
+    //VkSwapchainKHR swapchain = VK_NULL_HANDLE;
+
+    /// The swapchain dimensions.
+    //SwapchainDimensions swapchain_dimensions;
+
+    /// The surface we will render to.
+    //VkSurfaceKHR surface = VK_NULL_HANDLE;
+
+    /// The queue family index where graphics work will be submitted.
+    //int32_t graphics_queue_index = -1;
+
+    /// The image view for each swapchain image.
+    std::vector<VkImageView> swapchain_image_views;
+
+    /// The framebuffer for each swapchain image view.
+    std::vector<VkFramebuffer> swapchain_framebuffers;
+
+    /// The renderpass description.
+    VkRenderPass render_pass = VK_NULL_HANDLE;
+
+    /// The graphics pipeline.
+    VkPipeline pipeline = VK_NULL_HANDLE;
+
+    /**
+		 * The pipeline layout for resources.
+		 * Not used in this sample, but we still need to provide a dummy one.
+		 */
+    VkPipelineLayout pipeline_layout = VK_NULL_HANDLE;
+
+    /// The debug utility callback.
+    VkDebugUtilsMessengerEXT debug_callback = VK_NULL_HANDLE;
+
+    /// A set of semaphores that can be reused.
+    std::vector<VkSemaphore> recycled_semaphores;
+
+    /// A set of per-frame data.
+    std::vector<PerFrame> per_frame;
+
+    VmaAllocator vma_allocator = VK_NULL_HANDLE;
+  };
+
+  /// Properties of the vertices used in this sample.
+  struct Vertex
+  {
+    glm::vec3 position;
+    glm::vec3 color;
+  };
+
+  /// The Vulkan buffer object that holds the vertex data for the triangle.
+  VkBuffer vertex_buffer = VK_NULL_HANDLE;
+
+  /// The device memory allocated for the vertex buffer.
+  VkDeviceMemory vertex_buffer_memory = VK_NULL_HANDLE;
+
+  /// Vulkan Memory Allocator (VMA) allocation info for the vertex buffer.
+  VmaAllocation vertex_buffer_allocation = VK_NULL_HANDLE;
+
+public:
+  void Destroy();
+
+  void update(float delta_time);
+
+  bool resize(const uint32_t width, const uint32_t height);
+
+  void init_vertex_buffer();
+
+  void init_per_frame(PerFrame& per_frame);
+
+  void init_swapchain();
+
   void init_render_pass();
 
-  std::vector<VkImageView> TEST___swapchain_image_views;
-  std::vector<PerFrame> TEST___per_frame;
-  VkBuffer TEST___vertex_buffer = VK_NULL_HANDLE;
-  VkDeviceMemory TEST___vertex_buffer_memory = VK_NULL_HANDLE;
-  VkPipelineLayout TEST___pipeline_layout = VK_NULL_HANDLE;
-  VkPipeline TEST___pipeline = VK_NULL_HANDLE;
-  VkRenderPass TEST___render_pass = VK_NULL_HANDLE;
+  void init_pipeline();
+
+  VkResult acquire_next_image(uint32_t* image);
+
+  void render_triangle(uint32_t swapchain_index);
+
+  VkResult present_image(uint32_t index);
+
+  void init_framebuffers();
+
+private:
+  Context context;
 };
 
 } // namespace VULKAN

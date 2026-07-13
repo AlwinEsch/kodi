@@ -9,9 +9,14 @@
 #include "VulkanDeviceQueue.h"
 
 #include "rendering/vulkan/VulkanCommandPool.h"
+#include "rendering/vulkan/VulkanDeviceQueue.h"
+#include "rendering/vulkan/VulkanFenceHelper.h"
 #include "rendering/vulkan/VulkanInstance.h"
 #include "rendering/vulkan/VulkanRenderSystem.h"
+#include "rendering/vulkan/VulkanUtils.h"
 #include "utils/log.h"
+
+#include <cassert>
 
 #define VMA_IMPLEMENTATION
 #include <vk_mem_alloc.h>
@@ -23,15 +28,19 @@ namespace RENDERING
 namespace VULKAN
 {
 
+using KODI::RENDERING::VULKAN::UTILS::ErrorString;
+
 CVulkanDeviceQueue::CVulkanDeviceQueue(CVulkanRenderSystem* vulkanRenderSystem)
-  : m_vulkanRenderSystem(vulkanRenderSystem),
-    m_vkInstance(vulkanRenderSystem->GetVulkanInstance()->GetVkInstance())
+  : m_vkInstance(vulkanRenderSystem->GetVulkanInstance()->GetVkInstance()),
+    m_vulkanRenderSystem(vulkanRenderSystem)
+
 {
+  assert(m_vkInstance);
 }
 
 CVulkanDeviceQueue::~CVulkanDeviceQueue()
 {
-  Deinitialize();
+  Destroy();
 }
 
 bool CVulkanDeviceQueue::Initialize(DeviceQueueOptions options,
@@ -43,23 +52,21 @@ bool CVulkanDeviceQueue::Initialize(DeviceQueueOptions options,
                                     bool allowProtectedMemory,
                                     bool isThreadSafe)
 {
-  VkResult result = VK_SUCCESS;
+  CLog::Log(LOGINFO, "Vulkan: Initializing vulkan device.");
 
-  if (m_vkInstance == VK_NULL_HANDLE)
-    return false;
+  VkResult result;
 
+  m_allowProtectedMemory = allowProtectedMemory;
   m_enabledExtensions.clear();
 
   const CVulkanInfo& info = m_vulkanRenderSystem->GetVulkanInstance()->GetVulkanInfo();
 
-  m_allowProtectedMemory = allowProtectedMemory;
-
   VkQueueFlags queueFlags = 0;
-  if (options & DeviceQueueOption::GRAPHICS_QUEUE_FLAG)
+  if (options & DeviceQueueOption::GRAPHICS_QUEUE_FLAG) [[likely]]
   {
     queueFlags |= VK_QUEUE_GRAPHICS_BIT;
   }
-  if (m_allowProtectedMemory)
+  if (m_allowProtectedMemory) [[likely]]
   {
     queueFlags |= VK_QUEUE_PROTECTED_BIT;
   }
@@ -67,11 +74,11 @@ bool CVulkanDeviceQueue::Initialize(DeviceQueueOptions options,
   // We prefer to use discrete GPU, integrated GPU is the second, and then
   // others.
   static constexpr auto kDeviceTypeScores = std::to_array<int>({
-      0, // m_vkPhysicalDeviceTYPE_OTHER
-      3, // m_vkPhysicalDeviceTYPE_INTEGRATED_GPU
-      4, // m_vkPhysicalDeviceTYPE_DISCRETE_GPU
-      2, // m_vkPhysicalDeviceTYPE_VIRTUAL_GPU
-      1, // m_vkPhysicalDeviceTYPE_CPU
+      0, // VK_PHYSICAL_DEVICE_TYPE_OTHER
+      3, // VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU
+      4, // VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU
+      2, // VK_PHYSICAL_DEVICE_TYPE_VIRTUAL_GPU
+      1, // VK_PHYSICAL_DEVICE_TYPE_CPU
   });
 
   int deviceIndex = -1;
@@ -81,7 +88,7 @@ bool CVulkanDeviceQueue::Initialize(DeviceQueueOptions options,
   {
     const auto& deviceInfo = info.physicalDevices[i];
     const auto& deviceProperties = deviceInfo.properties;
-    if (deviceProperties.apiVersion < info.usedAPIVersion)
+    if (deviceProperties.apiVersion < info.usedAPIVersion) [[likely]]
       continue;
 
     // In dual-CPU cases, we cannot detect the active GPU correctly on Linux,
@@ -96,7 +103,7 @@ bool CVulkanDeviceQueue::Initialize(DeviceQueueOptions options,
 #endif
 
     if (deviceProperties.deviceType < 0 ||
-        deviceProperties.deviceType > VK_PHYSICAL_DEVICE_TYPE_CPU)
+        deviceProperties.deviceType > VK_PHYSICAL_DEVICE_TYPE_CPU) [[unlikely]]
     {
       CLog::Log(LOGERROR, "Vulkan: Unsupported device type: {0}", deviceProperties.deviceType);
       continue;
@@ -106,19 +113,19 @@ bool CVulkanDeviceQueue::Initialize(DeviceQueueOptions options,
     bool found = false;
     for (size_t n = 0; n < deviceInfo.queueFamilies.size(); ++n)
     {
-      if ((deviceInfo.queueFamilies[n].queueFlags & queueFlags) != queueFlags)
+      if ((deviceInfo.queueFamilies[n].queueFlags & queueFlags) != queueFlags) [[likely]]
       {
         continue;
       }
 
       if (options & DeviceQueueOption::PRESENTATION_SUPPORT_QUEUE_FLAG &&
-          !m_vulkanRenderSystem->GetPhysicalDevicePresentationSupport(device,
-                                                                      deviceInfo.queueFamilies, n))
+          !m_vulkanRenderSystem->GetPhysicalDevicePresentationSupport(
+              device, deviceInfo.queueFamilies, n)) [[likely]]
       {
         continue;
       }
 
-      if (kDeviceTypeScores[deviceProperties.deviceType] > deviceScore)
+      if (kDeviceTypeScores[deviceProperties.deviceType] > deviceScore) [[likely]]
       {
         deviceIndex = i;
         queueIndex = static_cast<int>(n);
@@ -128,22 +135,23 @@ bool CVulkanDeviceQueue::Initialize(DeviceQueueOptions options,
       }
     }
 
-    if (!found)
+    if (!found) [[likely]]
       continue;
 
     // Use the device, if it matches gpu info.
-    if (gpuVendorId != 0 && gpuDeviceId != 0)
+    if (gpuVendorId != 0 && gpuDeviceId != 0) [[likely]]
       break;
 
     // If the device is a discrete GPU, we will use it. Otherwise go through
     // all the devices and find the device with the highest score.
-    if (deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
+    if (deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU) [[likely]]
       break;
   }
 
-  if (deviceIndex == -1)
+  if (deviceIndex < 0) [[unlikely]]
   {
-    CLog::Log(LOGERROR, "Vulkan: Cannot find capable device");
+    CLog::Log(LOGFATAL, "Vulkan: Did not find suitable device with a queue that supports graphics "
+                        "and presentation.");
     return false;
   }
 
@@ -152,23 +160,11 @@ bool CVulkanDeviceQueue::Initialize(DeviceQueueOptions options,
   m_vkPhysicalDeviceProperties = physicalDeviceInfo.properties;
   m_vkPhysicalDeviceDriverProperties = physicalDeviceInfo.driverProperties;
   m_drmDeviceId = physicalDeviceInfo.drmDeviceId;
-  m_vkQueueIndex = static_cast<uint32_t>(queueIndex);
-
-  float queuePriority = 0.0f;
-  VkDeviceQueueCreateInfo queueCreateInfo = {
-      .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
-      .pNext = nullptr,
-      .flags = allowProtectedMemory ? VK_DEVICE_QUEUE_CREATE_PROTECTED_BIT : 0u,
-      .queueFamilyIndex = m_vkQueueIndex,
-      .queueCount = 1,
-      .pQueuePriorities = &queuePriority,
-  };
+  m_vkQueueIndex = queueIndex;
 
   for (const char* extension : requiredExtensions)
   {
-    if (std::ranges::none_of(physicalDeviceInfo.extensions,
-                             [extension](const VkExtensionProperties& p)
-                             { return std::strcmp(extension, p.extensionName) == 0; }))
+    if (!CVulkanInstance::ValidateExtensions(extension, physicalDeviceInfo.extensions)) [[unlikely]]
     {
       CLog::Log(LOGERROR, "Vulkan: Required Vulkan extension {0} is not supported", extension);
       return false;
@@ -178,11 +174,9 @@ bool CVulkanDeviceQueue::Initialize(DeviceQueueOptions options,
 
   for (const char* extension : optionalExtensions)
   {
-    if (std::ranges::none_of(physicalDeviceInfo.extensions,
-                             [extension](const VkExtensionProperties& p)
-                             { return std::strcmp(extension, p.extensionName) == 0; }))
+    if (!CVulkanInstance::ValidateExtensions(extension, physicalDeviceInfo.extensions)) [[unlikely]]
     {
-      CLog::Log(LOGERROR, "Vulkan: Optional Vulkan extension {0} is not supported", extension);
+      CLog::Log(LOGWARNING, "Vulkan: Optional Vulkan extension {0} is not supported", extension);
     }
     else
     {
@@ -194,129 +188,140 @@ bool CVulkanDeviceQueue::Initialize(DeviceQueueOptions options,
   // NOTE: By set of REQUIRED_VK_API_VERSION to support higher Vulkan API version, on ".pNext" value must be e.g.
   //       "VkPhysicalDeviceVulkan12Features" instead of "nullptr" and on next version the same on 12.
   //       Currently we supports API 1.1 only.
-  // clang-format off
-  m_enabledDeviceFeatures2 = {
+  m_vkEnabledDeviceFeatures2 = {
       .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
       .pNext = nullptr,
-      .features = {}
+      .features = {},
   };
-  // clang-format on
 
-  if (physicalDeviceInfo.featureSamplerYCBCRconversion)
+  if (physicalDeviceInfo.featureSamplerYCBCRconversion) [[likely]]
   {
-    // clang-format off
-    m_samplerYCBCRConversionFeatures = {
+    m_vkSamplerYCBCRConversionFeatures = {
         .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SAMPLER_YCBCR_CONVERSION_FEATURES,
         .pNext = nullptr,
-        .samplerYcbcrConversion = VK_TRUE
+        .samplerYcbcrConversion = VK_TRUE,
     };
-    // clang-format on
 
     // Add VkPhysicalDeviceSamplerYcbcrConversionFeatures struct to pNext chain
     // of VkPhysicalDeviceFeatures2 to enable YCbCr sampler support.
-    m_enabledDeviceFeatures2.pNext = &m_samplerYCBCRConversionFeatures;
+    m_vkEnabledDeviceFeatures2.pNext = &m_vkSamplerYCBCRConversionFeatures;
   }
 
-  if (allowProtectedMemory)
+  if (allowProtectedMemory) [[likely]]
   {
-    if (!physicalDeviceInfo.featureProtectedMemory)
+    if (!physicalDeviceInfo.featureProtectedMemory) [[unlikely]]
     {
       CLog::Log(LOGFATAL, "Vulkan: Protected memory is not supported. Vulkan is unavailable.");
       return false;
     }
 
-    // clang-format off
-    m_protectedMemoryFeatures = {
+    m_vkProtectedMemoryFeatures = {
         .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROTECTED_MEMORY_FEATURES,
         .pNext = nullptr,
-        .protectedMemory = VK_TRUE
+        .protectedMemory = VK_TRUE,
     };
-    // clang-format on
 
     // Add VkPhysicalDeviceProtectedMemoryFeatures struct to pNext chain
     // of VkPhysicalDeviceFeatures2 to enable YCbCr sampler support.
-    m_protectedMemoryFeatures.pNext = m_enabledDeviceFeatures2.pNext;
-    m_enabledDeviceFeatures2.pNext = &m_protectedMemoryFeatures;
+    m_vkProtectedMemoryFeatures.pNext = m_vkEnabledDeviceFeatures2.pNext;
+    m_vkEnabledDeviceFeatures2.pNext = &m_vkProtectedMemoryFeatures;
   }
 
   // Query the physical device features.
-  vkGetPhysicalDeviceFeatures2(m_vkPhysicalDevice, &m_enabledDeviceFeatures2);
+  vkGetPhysicalDeviceFeatures2(m_vkPhysicalDevice, &m_vkEnabledDeviceFeatures2);
 
-  // clang-format off
-  VkDeviceCreateInfo device_create_info = {
-    .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
-    .pNext = nullptr,
-    .flags = 0,
-    .queueCreateInfoCount = 1,
-    .pQueueCreateInfos = &queueCreateInfo,
-    .enabledLayerCount = 0,
-    .ppEnabledLayerNames = nullptr,
-    .enabledExtensionCount = static_cast<uint32_t>(m_enabledExtensions.size()),
-    .ppEnabledExtensionNames = m_enabledExtensions.data(),
-    .pEnabledFeatures = &m_enabledDeviceFeatures2.features
+  // The sample uses a single graphics queue
+  const float queuePriority = 0.5f;
+  VkDeviceQueueCreateInfo vkQueueCreateInfo = {
+      .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+      .pNext = nullptr,
+      .flags = 0,
+      .queueFamilyIndex = static_cast<uint32_t>(m_vkQueueIndex),
+      .queueCount = 1,
+      .pQueuePriorities = &queuePriority,
   };
-  // clang-format on
 
-  result = vkCreateDevice(m_vkPhysicalDevice, &device_create_info, nullptr, &m_ownedVkDevice);
-  if (VK_SUCCESS != result)
+  if (allowProtectedMemory) [[likely]]
   {
-    CLog::Log(LOGERROR, "Vulkan: vkCreateDevice failed. result: {0}", result);
+    vkQueueCreateInfo.flags |= VK_DEVICE_QUEUE_CREATE_PROTECTED_BIT;
+  }
+
+  VkDeviceCreateInfo vkDeviceCreateInfo = {
+      .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
+      .pNext = nullptr,
+      .flags = 0,
+      .queueCreateInfoCount = 1,
+      .pQueueCreateInfos = &vkQueueCreateInfo,
+      .enabledLayerCount = 0,
+      .ppEnabledLayerNames = nullptr,
+      .enabledExtensionCount = static_cast<uint32_t>(m_enabledExtensions.size()),
+      .ppEnabledExtensionNames = m_enabledExtensions.data(),
+      .pEnabledFeatures = &m_vkEnabledDeviceFeatures2.features,
+  };
+
+  result = vkCreateDevice(m_vkPhysicalDevice, &vkDeviceCreateInfo, nullptr, &m_vkDevice);
+  if (VK_SUCCESS != result) [[unlikely]]
+  {
+    CLog::Log(LOGERROR, "Vulkan: vkCreateDevice failed. result: {0}", ErrorString(result));
     return false;
   }
 
-  m_vkDevice = m_ownedVkDevice;
-
-  if (m_allowProtectedMemory)
+  if (m_allowProtectedMemory) [[likely]]
   {
-    VkDeviceQueueInfo2 queueInfo2 = {};
-    queueInfo2.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_INFO_2;
-    queueInfo2.flags = VK_DEVICE_QUEUE_CREATE_PROTECTED_BIT;
-    queueInfo2.queueFamilyIndex = queueIndex;
-    queueInfo2.queueIndex = 0;
-    vkGetDeviceQueue2(m_vkDevice, &queueInfo2, &m_vkQueue);
+    VkDeviceQueueInfo2 vkQueueInfo2 = {};
+    vkQueueInfo2.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_INFO_2;
+    vkQueueInfo2.flags = VK_DEVICE_QUEUE_CREATE_PROTECTED_BIT;
+    vkQueueInfo2.queueFamilyIndex = queueIndex;
+    vkQueueInfo2.queueIndex = 0;
+    vkGetDeviceQueue2(m_vkDevice, &vkQueueInfo2, &m_vkQueue);
   }
   else
   {
     vkGetDeviceQueue(m_vkDevice, queueIndex, 0, &m_vkQueue);
   }
 
-  // clang-format off
   VmaVulkanFunctions vmaVulkanFunc = {};
   vmaVulkanFunc.vkGetInstanceProcAddr = vkGetInstanceProcAddr;
   vmaVulkanFunc.vkGetDeviceProcAddr = vkGetDeviceProcAddr;
 
-  VmaAllocatorCreateInfo allocatorInfo =
-  {
-    .flags = 0,
-    .physicalDevice = m_vkPhysicalDevice,
-    .device = m_vkDevice,
-    .preferredLargeHeapBlockSize = heapMemoryLimit ? heapMemoryLimit : 0,
-    .pAllocationCallbacks = nullptr,
-    .pDeviceMemoryCallbacks = nullptr,
-    .pHeapSizeLimit = nullptr,
-    .pVulkanFunctions = &vmaVulkanFunc,
-    .instance = m_vkInstance,
-    .vulkanApiVersion = info.usedAPIVersion,
+  VmaAllocatorCreateInfo allocatorInfo = {
+      .flags = 0,
+      .physicalDevice = m_vkPhysicalDevice,
+      .device = m_vkDevice,
+      .preferredLargeHeapBlockSize = heapMemoryLimit ? heapMemoryLimit : 0,
+      .pAllocationCallbacks = nullptr,
+      .pDeviceMemoryCallbacks = nullptr,
+      .pHeapSizeLimit = nullptr,
+      .pVulkanFunctions = &vmaVulkanFunc,
+      .instance = m_vkInstance,
+      .vulkanApiVersion = info.usedAPIVersion,
 #if VMA_EXTERNAL_MEMORY
-    .pTypeExternalMemoryHandleTypes = nullptr
+      .pTypeExternalMemoryHandleTypes = nullptr,
 #endif
   };
-  // clang-format on
 
   result = vmaCreateAllocator(&allocatorInfo, &m_vmaAllocator);
-  if (result != VK_SUCCESS)
+  if (result != VK_SUCCESS) [[unlikely]]
   {
-    vkDestroyDevice(m_ownedVkDevice, nullptr);
-    m_ownedVkDevice = VK_NULL_HANDLE;
-    CLog::Log(LOGERROR, "Vulkan: Could not create allocator for VMA allocator");
+    vkDestroyDevice(m_vkDevice, nullptr);
+    m_vkDevice = VK_NULL_HANDLE;
+    CLog::Log(LOGERROR, "Vulkan: Could not create allocator for VMA allocator. result: {0}",
+              ErrorString(result));
     return false;
   }
+
+  m_cleanupHelper = std::make_unique<CVulkanFenceHelper>(this);
 
   return true;
 }
 
-void CVulkanDeviceQueue::Deinitialize()
+void CVulkanDeviceQueue::Destroy()
 {
+  if (m_cleanupHelper)
+  {
+    m_cleanupHelper->Destroy();
+    m_cleanupHelper.reset();
+  }
   if (m_vmaAllocator != VK_NULL_HANDLE)
   {
     vmaDestroyAllocator(m_vmaAllocator);
@@ -326,10 +331,9 @@ void CVulkanDeviceQueue::Deinitialize()
   {
     vkDeviceWaitIdle(m_vkDevice);
   }
-  if (m_ownedVkDevice != VK_NULL_HANDLE)
+  if (m_vkDevice != VK_NULL_HANDLE)
   {
-    vkDestroyDevice(m_ownedVkDevice, nullptr);
-    m_ownedVkDevice = VK_NULL_HANDLE;
+    vkDestroyDevice(m_vkDevice, nullptr);
     m_vkDevice = VK_NULL_HANDLE;
   }
 

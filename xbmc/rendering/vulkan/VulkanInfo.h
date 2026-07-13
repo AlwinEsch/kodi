@@ -44,7 +44,7 @@ struct CVulkanInfo
   uint32_t availableAPIVersion{VK_MAKE_VERSION(1, 0, 0)};
   uint32_t usedAPIVersion{VK_MAKE_VERSION(1, 0, 0)};
   std::vector<VkExtensionProperties> instanceExtensions;
-  std::vector<const char*> enabledInstanceExtensions;
+  std::vector<const char*> requiredInstanceExtensions;
   std::vector<VkLayerProperties> instanceLayers;
   std::vector<CVulkanPhysicalDeviceInfo> physicalDevices;
   bool debugUtilsEnabled{false};

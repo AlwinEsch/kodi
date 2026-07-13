@@ -37,9 +37,9 @@ class CVulkanSurface
 {
 public:
   CVulkanSurface(VkInstance vkInstance,
-                 VkSurfaceKHR surface,
+                 VkSurfaceKHR vkSurface,
                  uint64_t acquireNextImageTimeoutNs = UINT64_MAX);
-  ~CVulkanSurface();
+  virtual ~CVulkanSurface();
 
   bool Initialize(CVulkanDeviceQueue* device_queue, SurfaceFormat format);
   void Destroy();
@@ -51,11 +51,11 @@ public:
   bool SwapBuffers();
   bool PostSubBuffer(const VkRect2D& rect);
 
-  CVulkanSwapChain* GetSwapChain() const { return m_swapChain.get(); }
-  uint32_t GetSwapChainGeneration() const { return m_swapChainGeneration; }
-  const VkRect2D& GetImageSize() const { return m_imageSize; }
-  VkImageUsageFlags GetImageUsageFlags() const { return m_imageUsageFlags; }
-  VkSurfaceFormatKHR GetSurfaceFormat() const { return m_surfaceFormat; }
+  CVulkanSwapChain* SwapChain() const { return m_swapChain.get(); }
+  uint32_t SwapChainGeneration() const { return m_swapChainGeneration; }
+  const VkRect2D& vkImageSize() const { return m_vkImageSize; }
+  VkImageUsageFlags vkImageUsageFlags() const { return m_vkImageUsageFlags; }
+  VkSurfaceFormatKHR vkSurfaceFormat() const { return m_vkSurfaceFormat; }
 
 private:
   bool CreateSwapChain(const VkRect2D& size,
@@ -63,12 +63,12 @@ private:
 
   VkInstance m_vkInstance;
   VkSurfaceKHR m_vkSurface;
-  VkSurfaceFormatKHR m_surfaceFormat{};
-  VkCompositeAlphaFlagBitsKHR m_compositeAlpha{VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR};
+  VkSurfaceFormatKHR m_vkSurfaceFormat{};
+  VkCompositeAlphaFlagBitsKHR m_vkCompositeAlpha{VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR};
   VkSurfaceTransformFlagBitsKHR m_vkTransform{VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR};
   uint64_t m_acquireNextImageTimeoutNs{UINT64_MAX};
-  VkImageUsageFlags m_imageUsageFlags{0};
-  VkRect2D m_imageSize{{0, 0}, {0, 0}};
+  VkImageUsageFlags m_vkImageUsageFlags{0};
+  VkRect2D m_vkImageSize{{0, 0}, {0, 0}};
   uint32_t m_swapChainGeneration{0};
 
   CVulkanDeviceQueue* m_deviceQueue{nullptr};

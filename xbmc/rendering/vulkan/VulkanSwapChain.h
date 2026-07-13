@@ -49,6 +49,8 @@ public:
 
   VkResult State() const { return m_state; }
 
+  VkRect2D Size() const { return m_size; }
+
   uint32_t AmmountSwapChainImages() const
   {
     // No need to lock here, as m_images is only modified in InitializeSwapChain()
@@ -73,9 +75,9 @@ public:
                 VkSemaphore* acquireSemaphore,
                 VkSemaphore* presentSemaphore) const;
 
-  VkSwapchainKHR GetSwapchain() const { return m_swapchain; }
+  VkSwapchainKHR vkSwapchain() const { return m_swapchain; }
 
-private:
+  //private:
   CVulkanSwapChain(const CVulkanSwapChain&) = delete;
   CVulkanSwapChain& operator=(const CVulkanSwapChain&) = delete;
 
@@ -91,6 +93,14 @@ private:
 
   bool InitializeSwapImages(const VkSurfaceFormatKHR& surfaceFormat);
   void DestroySwapImages();
+
+  bool BeginWriteCurrentImage(VkImage* image,
+                              uint32_t* image_index,
+                              VkImageLayout* layout,
+                              VkImageUsageFlags* usage,
+                              VkSemaphore* begin_semaphore,
+                              VkSemaphore* end_semaphore);
+  void EndWriteCurrentImage();
 
   bool InitializeSemaphores();
   void DestroySemaphores();
@@ -124,6 +134,7 @@ private:
   std::deque<PendingSemaphores> m_pendingSemaphoresQueue;
   std::vector<ImageData> m_images;
   std::optional<uint32_t> m_acquiredImage;
+  bool m_isWriting{false};
   bool m_newAcquired{true};
   bool m_destroySwapchainWillHang{false};
   VkResult m_state{VK_SUCCESS};

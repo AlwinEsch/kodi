@@ -28,12 +28,12 @@ public:
   ~CVulkanCommandPool();
 
   bool Initialize(bool allowProtectedMemory);
-  void Deinitialize();
+  void Destroy();
 
   std::unique_ptr<CVulkanCommandBuffer> CreatePrimaryCommandBuffer();
   std::unique_ptr<CVulkanCommandBuffer> CreateSecondaryCommandBuffer();
 
-  VkCommandPool GetVkCommandPool() { return m_vkCommandPool; }
+  VkCommandPool vkCommandPool() { return m_vkCommandPool; }
 
 private:
   CVulkanCommandPool(const CVulkanCommandPool&) = delete;

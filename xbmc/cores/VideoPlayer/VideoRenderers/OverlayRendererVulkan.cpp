@@ -17,7 +17,6 @@
 #include "cores/VideoPlayer/DVDCodecs/Overlay/DVDOverlayImage.h"
 #include "cores/VideoPlayer/DVDCodecs/Overlay/DVDOverlaySSA.h"
 #include "cores/VideoPlayer/DVDCodecs/Overlay/DVDOverlaySpu.h"
-#include "rendering/vulkan/VulkanExtensions.h"
 #include "rendering/vulkan/VulkanMatrix.h"
 #include "rendering/vulkan/VulkanRenderSystem.h"
 #include "rendering/vulkan/VulkanUtils.h"

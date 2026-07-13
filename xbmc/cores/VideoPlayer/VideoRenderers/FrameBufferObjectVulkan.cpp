@@ -10,7 +10,6 @@
 
 #include "ServiceBroker.h"
 #include "rendering/RenderSystem.h"
-#include "rendering/vulkan/VulkanExtensions.h"
 #include "rendering/vulkan/VulkanUtils.h"
 #include "utils/log.h"
 

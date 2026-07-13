@@ -13,7 +13,6 @@
 #include "guilib/GUIFontManager.h"
 #include "guilib/Texture.h"
 #include "guilib/TextureManager.h"
-#include "rendering/vulkan/VulkanExtensions.h"
 #include "rendering/vulkan/VulkanMatrix.h"
 #include "rendering/vulkan/VulkanRenderSystem.h"
 #include "settings/AdvancedSettings.h"

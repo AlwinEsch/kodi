@@ -18,7 +18,6 @@
 #include "application/Application.h"
 #include "cores/IPlayer.h"
 #include "guilib/Texture.h"
-#include "rendering/vulkan/VulkanExtensions.h"
 #include "rendering/vulkan/VulkanMatrix.h"
 #include "rendering/vulkan/VulkanRenderSystem.h"
 #include "rendering/vulkan/VulkanUtils.h"

@@ -42,12 +42,12 @@ VkPipelineStageFlags GetPipelineStageFlags2(const CVulkanDeviceQueue* deviceQueu
     {
       VkPipelineStageFlags flags =
           VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT | VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT;
-      if (deviceQueue->GetEnabledDeviceFeatures().tessellationShader)
+      if (deviceQueue->EnabledDeviceFeatures().tessellationShader)
       {
         flags |= VK_PIPELINE_STAGE_2_TESSELLATION_CONTROL_SHADER_BIT |
                  VK_PIPELINE_STAGE_2_TESSELLATION_EVALUATION_SHADER_BIT;
       }
-      if (deviceQueue->GetEnabledDeviceFeatures().geometryShader)
+      if (deviceQueue->EnabledDeviceFeatures().geometryShader)
       {
         flags |= VK_PIPELINE_STAGE_2_GEOMETRY_SHADER_BIT;
       }
@@ -114,12 +114,12 @@ CVulkanCommandBuffer::~CVulkanCommandBuffer()
 bool CVulkanCommandBuffer::Initialize()
 {
   VkResult result = VK_SUCCESS;
-  VkDevice device = m_deviceQueue->GetVulkanDevice();
+  VkDevice device = m_deviceQueue->VulkanDevice();
 
   VkCommandBufferAllocateInfo info = {
       .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
       .pNext = nullptr,
-      .commandPool = m_commandPool->GetVkCommandPool(),
+      .commandPool = m_commandPool->vkCommandPool(),
       .level = m_primary ? VK_COMMAND_BUFFER_LEVEL_PRIMARY : VK_COMMAND_BUFFER_LEVEL_SECONDARY,
       .commandBufferCount = 1,
   };
@@ -137,9 +137,9 @@ bool CVulkanCommandBuffer::Initialize()
   return true;
 }
 
-void CVulkanCommandBuffer::Deinitialize()
+void CVulkanCommandBuffer::Destroy()
 {
-  VkDevice device = m_deviceQueue->GetVulkanDevice();
+  VkDevice device = m_deviceQueue->VulkanDevice();
 
   //if (submission_fence_.is_valid())
   //{
@@ -149,7 +149,7 @@ void CVulkanCommandBuffer::Deinitialize()
 
   if (m_vKCommandBuffer != VK_NULL_HANDLE)
   {
-    vkFreeCommandBuffers(device, m_commandPool->GetVkCommandPool(), 1, &m_vKCommandBuffer);
+    vkFreeCommandBuffers(device, m_commandPool->vkCommandPool(), 1, &m_vKCommandBuffer);
     m_vKCommandBuffer = VK_NULL_HANDLE;
   }
 }

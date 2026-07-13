@@ -29,7 +29,7 @@ public:
   ~CVulkanCommandBuffer();
 
   bool Initialize();
-  void Deinitialize();
+  void Destroy();
 
   VkCommandBuffer GetVulkanCommandBuffer() const { return m_vKCommandBuffer; }
 
