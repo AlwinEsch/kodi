@@ -185,12 +185,13 @@ private:
   VkPipelineLayout CreatePipelineLayout(VkDescriptorSetLayout layout = VK_NULL_HANDLE);
 
   std::unique_ptr<CVulkanShaderControl> m_shaderControl;
-  std::unique_ptr<CVulkanCommandPool> m_commandPool;
+  //std::unique_ptr<CVulkanCommandPool> m_commandPool;
   std::unique_ptr<CVulkanDeviceQueue> m_deviceQueue;
   std::unique_ptr<CVulkanSurface> m_surface;
   std::unique_ptr<CVulkanSwapChain> m_swapChain;
   std::unique_ptr<CVulkanRenderPass> m_renderPass;
   std::vector<std::unique_ptr<CVulkanFramebuffer>> m_framebuffers;
+  std::vector<std::unique_ptr<CVulkanCommandPool>> m_commandPool;
 
   /**
    * @brief Values in group of Vulkan objects that are used for rendering and are initialized in
@@ -215,61 +216,8 @@ private:
   VkFormat m_vkSwapchainFormat = VK_FORMAT_UNDEFINED;
   /**@}*/
 
-
-  /*
-
-
-  */
-
-  /*
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  */
-
-  struct PerFrame
-  {
-    VkFence queue_submit_fence = VK_NULL_HANDLE;
-    std::unique_ptr<CVulkanCommandPool> primary_command_pool;
-    CVulkanCommandBuffer* primary_command_buffer = nullptr;
-    VkSemaphore swapchain_acquire_semaphore = VK_NULL_HANDLE;
-    VkSemaphore swapchain_release_semaphore = VK_NULL_HANDLE;
-    VkImageView swapchain_image_view = VK_NULL_HANDLE;
-    VkFramebuffer swapchain_framebuffer = VK_NULL_HANDLE;
-  };
-
-  struct Vertex
-  {
-    glm::vec3 position;
-    glm::vec3 color;
-  };
-
-  void Destroy();
-  bool resize(const uint32_t width, const uint32_t height);
   void init_vertex_buffer();
-  VkResult acquire_next_image(uint32_t* image);
-  void render_triangle(uint32_t swapchain_index);
-  VkResult present_image(uint32_t index);
-
-  std::vector<VkSemaphore> m_cycled_semaphores;
-  std::vector<PerFrame> m_per_frame;
   VkBuffer m_vertex_buffer = VK_NULL_HANDLE;
-  //VkDeviceMemory m_vertex_buffer_memory = VK_NULL_HANDLE;
   VmaAllocation m_vertex_buffer_allocation = VK_NULL_HANDLE;
 };
 

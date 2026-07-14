@@ -21,6 +21,7 @@
 #include "rendering/vulkan/VulkanInstance.h"
 #include "rendering/vulkan/VulkanMatrix.h"
 #include "rendering/vulkan/VulkanRenderPass.h"
+#include "rendering/vulkan/VulkanScopedWrite.h"
 #include "rendering/vulkan/VulkanSwapChain.h"
 #include "rendering/vulkan/VulkanUtils.h"
 #include "rendering/vulkan/shaders/VulkanShaderControl.h"
@@ -42,6 +43,7 @@
 
 using namespace std::chrono_literals;
 using namespace KODI::GUILIB::GRAPHICS::VULKAN;
+using namespace KODI::RENDERING::VULKAN::UTILS;
 
 namespace KODI
 {
@@ -50,7 +52,27 @@ namespace RENDERING
 namespace VULKAN
 {
 
-using KODI::RENDERING::VULKAN::UTILS::ErrorString;
+namespace
+{
+
+const int kAnimationSteps = 240;
+static int iteration_ = 0;
+
+float CurrentFraction()
+{
+  float fraction = (sinf(iteration_ * 2 * std::numbers::pi_v<float> / kAnimationSteps) + 1) / 2;
+  return fraction;
+}
+
+float NextFraction()
+{
+  float fraction = CurrentFraction();
+  iteration_++;
+  iteration_ %= kAnimationSteps;
+  return fraction;
+}
+
+} // namespace
 
 std::unique_ptr<CVulkanDeviceQueue> CreateVulkanDeviceQueue(CVulkanRenderSystem* vulkanRenderSystem,
                                                             DeviceQueueOptions options,
@@ -85,7 +107,7 @@ CVulkanRenderSystem::CVulkanRenderSystem() : CRenderSystemBase()
 CVulkanRenderSystem::~CVulkanRenderSystem()
 {
 
-  Destroy();
+  //Destroy();
 }
 
 bool CVulkanRenderSystem::InitRenderSystem()
@@ -131,81 +153,16 @@ bool CVulkanRenderSystem::InitRenderSystem()
   m_vkRenderPass = m_renderPass->vkRenderPass();
   m_vkSwapchain = m_surface->vkSwapchain();
 
-  /*
+  CVulkanSwapChain* vulkan_swap_chain = m_surface->SwapChain();
+  const uint32_t num_images = vulkan_swap_chain->AmmountSwapChainImages();
+  m_framebuffers.resize(num_images);
+  m_commandPool.resize(num_images);
 
-
-
-
-
-
-
-
-
-
-  */
-
-  VkResult result = VK_SUCCESS;
-
-  size_t image_count = m_surface->SwapChain()->AmmountSwapChainImages();
-
-  // Initialize per-frame resources.
-  // Every swapchain image has its own command pool and fence manager.
-  // This makes it very easy to keep track of when we can reset command buffers and such.
-  m_per_frame.clear();
-  m_per_frame.resize(image_count);
-
-  for (size_t i = 0; i < image_count; i++)
+  for (uint32_t i = 0; i < num_images; ++i)
   {
-    PerFrame& per_frame = m_per_frame[i];
-
-    VkFenceCreateInfo info{
-        .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
-        .pNext = nullptr,
-        .flags = VK_FENCE_CREATE_SIGNALED_BIT,
-    };
-    result = vkCreateFence(m_vkDevice, &info, nullptr, &per_frame.queue_submit_fence);
-    if (result != VK_SUCCESS)
-    {
-      CLog::Log(LOGERROR, "Vulkan: Failed to create fence, ERROR: {0}", ErrorString(result));
-      return false;
-    }
-
-    auto pool = m_deviceQueue->CreateCommandPool();
-    if (!pool)
-    {
-      CLog::Log(LOGERROR, "Vulkan: Failed to create command pool");
-      return false;
-    }
-
-    auto framebuffer =
-        CVulkanFramebuffer::Create(m_deviceQueue.get(), pool.get(), m_vkRenderPass, m_surface.get(),
-                                   m_surface->SwapChain()->m_images[i].image);
-    if (!framebuffer)
-    {
-      CLog::Log(LOGERROR, "Vulkan: Failed to create framebuffer");
-      return false;
-    }
-
-    per_frame.primary_command_pool = std::move(pool);
-    per_frame.primary_command_buffer = framebuffer->CommandBuffer();
-    per_frame.swapchain_image_view = framebuffer->vkImageView();
-    per_frame.swapchain_framebuffer = framebuffer->vkFramebuffer();
-    m_framebuffers.push_back(std::move(framebuffer));
+    m_commandPool[i] = m_deviceQueue->CreateCommandPool();
   }
-  /*
 
-
-
-
-
-
-
-
-
-
-
-
-  */
   init_vertex_buffer();
 
   // Create the necessary objects for rendering.
@@ -226,36 +183,6 @@ bool CVulkanRenderSystem::InitRenderSystem()
   }
 
   m_vkPipeline = m_shaderControl->GetPipeline(VULKAN_TEST_SHADER);
-
-  //init_framebuffers();
-
-  ////////auto instance = m_deviceQueue->VulkanInstance();
-  ////////auto device = m_deviceQueue->VulkanDevice();
-  ////////auto physicalDevice = m_deviceQueue->VulkanPhysicalDevice();
-
-  ////////VkDeviceSize buffer_size = sizeof(TEST___vertices[0]) * TEST___vertices.size();
-  ////////UTILS::vulkanCreateBuffer(
-  ////////    instance, device, physicalDevice, buffer_size, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-  ////////    VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-  ////////    m_vertex_buffer, m_vertex_buffer_allocation);
-  ////////// Map the memory and copy the vertex data
-  ////////void* data;
-  ////////if (vkMapMemory(device, m_vertex_buffer_allocation, 0, buffer_size, 0, &data) != VK_SUCCESS)
-  ////////{
-  ////////  throw std::runtime_error("Failed to map vertex buffer memory");
-  ////////}
-  ////////memcpy(data, TEST___vertices.data(), static_cast<size_t>(buffer_size));
-  ////////vkUnmapMemory(device, m_vertex_buffer_allocation);
-  /////////*
-
-  ////////*/
-  ////////m_surface =
-  ////////    std::make_unique<CVulkanSurface>(m_deviceQueue->VulkanInstance(), GetVulkanSurface());
-  ////////if (!m_surface->Initialize(m_deviceQueue.get(), SurfaceFormat::FORMAT_RGBA_32))
-  ////////{
-  ////////  CLog::Log(LOGERROR, "Vulkan: Failed to initialize surface");
-  ////////  return false;
-  ////////}
 
   m_bRenderCreated = true;
 
@@ -344,36 +271,181 @@ void CVulkanRenderSystem::PresentRender(bool rendered, bool videoLayer)
   if (!m_bRenderCreated)
     return;
 
-  uint32_t index;
+  VkClearValue clear_value = {
+      .color =
+          {
+              .float32 = {.5f, 1.f - NextFraction(), .5f, 1.f},
+          },
+  };
 
-  VkResult result = acquire_next_image(&index);
-
-  // Handle outdated error in acquire.
-  if (result == VK_SUBOPTIMAL_KHR || result == VK_ERROR_OUT_OF_DATE_KHR)
+  CVulkanSwapChain* vulkan_swap_chain = m_surface->SwapChain();
   {
-    resize(m_width, m_height);
-    result = acquire_next_image(&index);
-  }
+    CVulkanScopedWrite scoped_write(vulkan_swap_chain);
+    const uint32_t image = scoped_write.ImageIndex();
 
-  if (result != VK_SUCCESS)
-  {
-    vkQueueWaitIdle(m_deviceQueue->VulkanQueue());
-    return;
-  }
+    auto& framebuffer = m_framebuffers[image];
+    if (!framebuffer)
+    {
+      framebuffer =
+          CVulkanFramebuffer::Create(m_deviceQueue.get(), m_commandPool[image].get(),
+                                     m_vkRenderPass, m_surface.get(), scoped_write.Image());
+      if (!framebuffer)
+      {
+        CLog::Log(LOGERROR, "Vulkan: Failed to create framebuffer");
+        return;
+      }
+    }
 
-  render_triangle(index);
-  result = present_image(index);
+    CVulkanCommandBuffer& command_buffer = *framebuffer->CommandBuffer();
+    {
+      CVulkanCommandBufferScoped recorder(command_buffer);
+      VkCommandBuffer cmd = recorder.GetVulkanCommandBuffer();
+      {
+        VkImageLayout old_layout = scoped_write.ImageLayout();
+        VkImageLayout layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        VkImageMemoryBarrier image_memory_barrier = {
+            .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+            .pNext = nullptr,
+            .srcAccessMask = GetAccessMask(old_layout),
+            .dstAccessMask = GetAccessMask(layout),
+            .oldLayout = old_layout,
+            .newLayout = layout,
+            .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+            .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+            .image = scoped_write.Image(),
+            .subresourceRange =
+                {
+                    .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+                    .baseMipLevel = 0,
+                    .levelCount = 1,
+                    .baseArrayLayer = 0,
+                    .layerCount = 1,
+                },
+        };
+        vkCmdPipelineBarrier(cmd,
+                             GetPipelineStageFlags(m_deviceQueue.get(), old_layout),
+                             GetPipelineStageFlags(m_deviceQueue.get(), layout),
+                             0 /* dependencyFlags */, 0 /* memoryBarrierCount */,
+                             nullptr /* pMemoryBarriers */, 0 /* bufferMemoryBarrierCount */,
+                             nullptr /* pBufferMemoryBarriers */, 1, &image_memory_barrier);
+      }
 
-  // Handle Outdated error in present.
-  if (result == VK_SUBOPTIMAL_KHR || result == VK_ERROR_OUT_OF_DATE_KHR)
-  {
-    resize(m_width, m_height);
+      VkRenderPassBeginInfo begin_info = {
+          .sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+          .pNext = nullptr,
+          .renderPass = m_vkRenderPass,
+          .framebuffer = framebuffer->vkFramebuffer(),
+          .renderArea = vulkan_swap_chain->Size(),
+          .clearValueCount = 1,
+          .pClearValues = &clear_value,
+      };
+
+      vkCmdBeginRenderPass(cmd, &begin_info,
+                           VK_SUBPASS_CONTENTS_INLINE);
+
+      //@{
+      {
+        // Bind the graphics pipeline.
+        vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_vkPipeline);
+
+        VkViewport vp{.x = 500.0f,
+                      .y = 500.0f,
+                      .width = static_cast<float>(m_width-500),
+                      .height = static_cast<float>(m_height-500),
+                      .minDepth = 0.0f,
+                      .maxDepth = 1.0f};
+        // Set viewport dynamically
+        vkCmdSetViewport(cmd, 0, 1, &vp);
+
+        VkRect2D scissor{
+            .offset = {.x = 0, .y = 0},
+            .extent = {.width = m_width, .height = m_height},
+        };
+        // Set scissor dynamically
+        vkCmdSetScissor(cmd, 0, 1, &scissor);
+
+        // Bind the vertex buffer to source the draw calls from.
+        VkDeviceSize offset = {0};
+        vkCmdBindVertexBuffers(cmd, 0, 1, &m_vertex_buffer, &offset);
+
+        // Draw three vertices with one instance from the currently bound vertex bound.
+        vkCmdDraw(cmd, 3, 1, 0, 0);
+      }
+      //@}
+      //@{
+      {
+        // Bind the graphics pipeline.
+        vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_vkPipeline);
+
+        VkViewport vp{.x = 0.0f,
+                      .y = 0.0f,
+                      .width = static_cast<float>(m_width),
+                      .height = static_cast<float>(m_height),
+                      .minDepth = 0.0f,
+                      .maxDepth = 1.0f};
+        // Set viewport dynamically
+        vkCmdSetViewport(cmd, 0, 1, &vp);
+
+        VkRect2D scissor{
+            .offset = {.x = 0, .y = 0},
+            .extent = {.width = m_width, .height = m_height},
+        };
+        // Set scissor dynamically
+        vkCmdSetScissor(cmd, 0, 1, &scissor);
+
+        // Bind the vertex buffer to source the draw calls from.
+        VkDeviceSize offset = {0};
+        vkCmdBindVertexBuffers(cmd, 0, 1, &m_vertex_buffer, &offset);
+
+        // Draw three vertices with one instance from the currently bound vertex bound.
+        vkCmdDraw(cmd, 3, 1, 0, 0);
+      }
+      //@}
+
+      vkCmdEndRenderPass(cmd);
+
+      // Transfer image layout back to VK_IMAGE_LAYOUT_PRESENT_SRC_KHR for
+      // presenting.
+      {
+        VkImageLayout old_layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        VkImageLayout layout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+        VkImageMemoryBarrier image_memory_barrier = {
+            .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+            .pNext = nullptr,
+            .srcAccessMask = GetAccessMask(old_layout),
+            .dstAccessMask = GetAccessMask(layout),
+            .oldLayout = old_layout,
+            .newLayout = layout,
+            .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+            .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+            .image = scoped_write.Image(),
+            .subresourceRange =
+                {
+                    .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+                    .baseMipLevel = 0,
+                    .levelCount = 1,
+                    .baseArrayLayer = 0,
+                    .layerCount = 1,
+                },
+        };
+        vkCmdPipelineBarrier(cmd,
+                             GetPipelineStageFlags(m_deviceQueue.get(), old_layout),
+                             GetPipelineStageFlags(m_deviceQueue.get(), layout),
+                             0 /* dependencyFlags */, 0 /* memoryBarrierCount */,
+                             nullptr /* pMemoryBarriers */, 0 /* bufferMemoryBarrierCount */,
+                             nullptr /* pBufferMemoryBarriers */, 1, &image_memory_barrier);
+      }
+    }
+
+    VkSemaphore begin_semaphore = scoped_write.BeginSemaphore();
+    VkSemaphore end_semaphore = scoped_write.EndSemaphore();
+    if (!command_buffer.Submit(1, &begin_semaphore, 1, &end_semaphore))
+    {
+      CLog::Log(LOGERROR, "Vulkan: Failed to swap buffer");
+      return;
+    }
   }
-  else if (result != VK_SUCCESS)
-  {
-    CLog::Log(LOGERROR, "Vulkan: Failed to present swapchain image, ERROR: {0}",
-              ErrorString(result));
-  }
+  m_surface->SwapBuffers();
 }
 
 void CVulkanRenderSystem::CaptureStateBlock()
@@ -524,7 +596,7 @@ VkPipelineLayout CVulkanRenderSystem::CreatePipelineLayout(VkDescriptorSetLayout
       .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
       .pNext = VK_NULL_HANDLE,
       .flags = 0,
-      .setLayoutCount = layout != VK_NULL_HANDLE ? 1 : 0,
+      .setLayoutCount = layout != VK_NULL_HANDLE ? 1u : 0u,
       .pSetLayouts = &layout,
       .pushConstantRangeCount = 0,
       .pPushConstantRanges = VK_NULL_HANDLE,
@@ -561,6 +633,11 @@ void CVulkanRenderSystem::DisableShader()
 void CVulkanRenderSystem::init_vertex_buffer()
 {
   // Vertex data for a single colored triangle
+  struct Vertex
+  {
+    glm::vec3 position;
+    glm::vec3 color;
+  };
   const std::vector<Vertex> vertices = {{{0.5f, -0.5f, 0.5f}, {1.0f, 0.0f, 0.0f}},
                                         {{0.5f, 0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}},
                                         {{-0.5f, 0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}}};
@@ -604,313 +681,6 @@ void CVulkanRenderSystem::init_vertex_buffer()
   {
     CLog::Log(LOGERROR, "Vulkan: Could not map vertex buffer.");
   }
-}
-
-VkResult CVulkanRenderSystem::acquire_next_image(uint32_t* image)
-{
-  VkResult result = VK_SUCCESS;
-
-  VkSemaphore acquire_semaphore;
-  if (m_cycled_semaphores.empty())
-  {
-    VkSemaphoreCreateInfo info = {
-        .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
-        .pNext = nullptr,
-        .flags = 0,
-    };
-    result = vkCreateSemaphore(m_vkDevice, &info, nullptr, &acquire_semaphore);
-    if (result != VK_SUCCESS)
-    {
-      CLog::Log(LOGERROR, "Vulkan: Failed to create semaphore, ERROR: {0}", ErrorString(result));
-      return result;
-    }
-  }
-  else
-  {
-    acquire_semaphore = m_cycled_semaphores.back();
-    m_cycled_semaphores.pop_back();
-  }
-
-  VkSwapchainKHR swapchain = m_surface->SwapChain()->vkSwapchain();
-  result = vkAcquireNextImageKHR(m_vkDevice, swapchain, UINT64_MAX, acquire_semaphore,
-                                 VK_NULL_HANDLE, image);
-
-  if (result != VK_SUCCESS)
-  {
-    m_cycled_semaphores.push_back(acquire_semaphore);
-    return result;
-  }
-
-  // If we have outstanding fences for this swapchain image, wait for them to complete first.
-  // After begin frame returns, it is safe to reuse or delete resources which
-  // were used previously.
-  //
-  // We wait for fences which completes N frames earlier, so we do not stall,
-  // waiting for all GPU work to complete before this returns.
-  // Normally, this doesn't really block at all,
-  // since we're waiting for old frames to have been completed, but just in case.
-  if (m_per_frame[*image].queue_submit_fence != VK_NULL_HANDLE)
-  {
-    vkWaitForFences(m_vkDevice, 1, &m_per_frame[*image].queue_submit_fence, true, UINT64_MAX);
-    vkResetFences(m_vkDevice, 1, &m_per_frame[*image].queue_submit_fence);
-  }
-
-  if (m_per_frame[*image].primary_command_pool != nullptr)
-  {
-    vkResetCommandPool(m_vkDevice, m_per_frame[*image].primary_command_pool->vkCommandPool(), 0);
-  }
-
-  // Recycle the old semaphore back into the semaphore manager.
-  VkSemaphore old_semaphore = m_per_frame[*image].swapchain_acquire_semaphore;
-
-  if (old_semaphore != VK_NULL_HANDLE)
-  {
-    m_cycled_semaphores.push_back(old_semaphore);
-  }
-
-  m_per_frame[*image].swapchain_acquire_semaphore = acquire_semaphore;
-
-  return VK_SUCCESS;
-}
-
-void CVulkanRenderSystem::render_triangle(uint32_t swapchain_index)
-{
-  // Render to this framebuffer.
-  VkFramebuffer framebuffer = m_per_frame[swapchain_index].swapchain_framebuffer;
-
-  // Allocate or re-use a primary command buffer.
-  VkCommandBuffer cmd = m_per_frame[swapchain_index].primary_command_buffer->GetVulkanCommandBuffer();
-
-  // We will only submit this once before it's recycled.
-  VkCommandBufferBeginInfo begin_info{
-      .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-      .pNext = nullptr,
-      .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
-      .pInheritanceInfo = nullptr,
-  };
-  // Begin command recording
-  vkBeginCommandBuffer(cmd, &begin_info);
-
-  // Set clear color values.
-  VkClearValue clear_value{.color = {{0.01f, 0.01f, 0.033f, 1.0f}}};
-
-  // Begin the render pass.
-  VkRenderPassBeginInfo rp_begin{
-      .sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
-      .pNext = nullptr,
-      .renderPass = m_vkRenderPass,
-      .framebuffer = framebuffer,
-      .renderArea = {.offset = {.x = 0, .y = 0}, .extent = {.width = m_width, .height = m_height}},
-      .clearValueCount = 1,
-      .pClearValues = &clear_value,
-  };
-
-  // We will add draw commands in the same command buffer.
-  vkCmdBeginRenderPass(cmd, &rp_begin, VK_SUBPASS_CONTENTS_INLINE);
-
-  // Bind the graphics pipeline.
-  vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_vkPipeline);
-
-  VkViewport vp{.x = 0.0f,
-                .y = 0.0f,
-                .width = static_cast<float>(m_width),
-                .height = static_cast<float>(m_height),
-                .minDepth = 0.0f,
-                .maxDepth = 1.0f};
-  // Set viewport dynamically
-  vkCmdSetViewport(cmd, 0, 1, &vp);
-
-  VkRect2D scissor{
-      .offset = {.x = 0, .y = 0},
-      .extent = {.width = m_width, .height = m_height},
-  };
-  // Set scissor dynamically
-  vkCmdSetScissor(cmd, 0, 1, &scissor);
-
-  // Bind the vertex buffer to source the draw calls from.
-  VkDeviceSize offset = {0};
-  vkCmdBindVertexBuffers(cmd, 0, 1, &m_vertex_buffer, &offset);
-
-  // Draw three vertices with one instance from the currently bound vertex bound.
-  vkCmdDraw(cmd, 3, 1, 0, 0);
-
-  // Complete render pass.
-  vkCmdEndRenderPass(cmd);
-
-  // Complete the command buffer.
-  VkResult result = vkEndCommandBuffer(cmd);
-  if (result != VK_SUCCESS)
-  {
-    CLog::Log(LOGERROR, "Vulkan: Failed to end command buffer, ERROR: {0}", ErrorString(result));
-    return;
-  }
-
-  // Submit it to the queue with a release semaphore.
-  if (m_per_frame[swapchain_index].swapchain_release_semaphore == VK_NULL_HANDLE)
-  {
-    VkSemaphoreCreateInfo semaphore_info{
-        .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
-        .pNext = nullptr,
-        .flags = 0,
-    };
-    VkResult result = vkCreateSemaphore(m_vkDevice, &semaphore_info, nullptr,
-                                        &m_per_frame[swapchain_index].swapchain_release_semaphore);
-    if (result != VK_SUCCESS)
-    {
-      CLog::Log(LOGERROR, "Vulkan: Failed to create semaphore, ERROR: {0}", ErrorString(result));
-      return;
-    }
-  }
-
-  VkPipelineStageFlags wait_stage{VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
-
-  VkSubmitInfo info{.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
-                    .pNext = nullptr,
-                    .waitSemaphoreCount = 1,
-                    .pWaitSemaphores = &m_per_frame[swapchain_index].swapchain_acquire_semaphore,
-                    .pWaitDstStageMask = &wait_stage,
-                    .commandBufferCount = 1,
-                    .pCommandBuffers = &cmd,
-                    .signalSemaphoreCount = 1,
-                    .pSignalSemaphores = &m_per_frame[swapchain_index].swapchain_release_semaphore};
-  // Submit command buffer to graphics queue
-  result = vkQueueSubmit(m_deviceQueue->VulkanQueue(), 1, &info,
-                         m_per_frame[swapchain_index].queue_submit_fence);
-  if (result != VK_SUCCESS)
-  {
-    CLog::Log(LOGERROR, "Vulkan: Failed to submit command buffer, ERROR: {0}", ErrorString(result));
-    return;
-  }
-}
-
-VkResult CVulkanRenderSystem::present_image(uint32_t index)
-{
-  VkSwapchainKHR swapchain = m_surface->SwapChain()->vkSwapchain();
-
-  VkPresentInfoKHR present{
-      .sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
-      .pNext = nullptr,
-      .waitSemaphoreCount = 1,
-      .pWaitSemaphores = &m_per_frame[index].swapchain_release_semaphore,
-      .swapchainCount = 1,
-      .pSwapchains = &swapchain,
-      .pImageIndices = &index,
-      .pResults = nullptr,
-  };
-  // Present swapchain image
-  return vkQueuePresentKHR(m_deviceQueue->VulkanQueue(), &present);
-}
-
-void CVulkanRenderSystem::Destroy()
-{
-  // When destroying the application, we need to make sure the GPU is no longer accessing any resources
-  // This is done by doing a device wait idle, which blocks until the GPU signals
-  if (m_vkDevice != VK_NULL_HANDLE)
-  {
-    vkDeviceWaitIdle(m_vkDevice);
-  }
-
-  for (auto& per_frame : m_per_frame)
-  {
-    if (per_frame.queue_submit_fence != VK_NULL_HANDLE)
-    {
-      vkDestroyFence(m_vkDevice, per_frame.queue_submit_fence, nullptr);
-
-      per_frame.queue_submit_fence = VK_NULL_HANDLE;
-    }
-
-    //if (per_frame.primary_command_buffer != VK_NULL_HANDLE)
-    //{
-    //  per_frame.primary_command_buffer->Destroy();
-    //  per_frame.primary_command_buffer.reset();
-    //}
-
-    if (per_frame.primary_command_pool != nullptr)
-    {
-      per_frame.primary_command_pool->Destroy();
-      per_frame.primary_command_pool.reset();
-    }
-
-    if (per_frame.swapchain_acquire_semaphore != VK_NULL_HANDLE)
-    {
-      vkDestroySemaphore(m_vkDevice, per_frame.swapchain_acquire_semaphore, nullptr);
-
-      per_frame.swapchain_acquire_semaphore = VK_NULL_HANDLE;
-    }
-
-    if (per_frame.swapchain_release_semaphore != VK_NULL_HANDLE)
-    {
-      vkDestroySemaphore(m_vkDevice, per_frame.swapchain_release_semaphore, nullptr);
-
-      per_frame.swapchain_release_semaphore = VK_NULL_HANDLE;
-    }
-  }
-
-  m_per_frame.clear();
-
-  for (auto semaphore : m_cycled_semaphores)
-  {
-    vkDestroySemaphore(m_vkDevice, semaphore, nullptr);
-  }
-
-  /*TEMP NOTE: DONE*/
-  if (m_vkPipelineLayout != VK_NULL_HANDLE)
-  {
-    vkDestroyPipelineLayout(m_vkDevice, m_vkPipelineLayout, nullptr);
-    m_vkPipelineLayout = VK_NULL_HANDLE;
-  }
-
-  m_renderPass.reset();
-
-  DestroyFramebuffers();
-
-  if (m_vertex_buffer_allocation != VK_NULL_HANDLE)
-  {
-    vmaDestroyBuffer(m_deviceQueue->VMAAllocator(), m_vertex_buffer, m_vertex_buffer_allocation);
-  }
-
-  m_deviceQueue->Destroy();
-}
-
-bool CVulkanRenderSystem::resize(const uint32_t width, const uint32_t height)
-{
-  //if (m_vkDevice == VK_NULL_HANDLE)
-  //{
-  //  return false;
-  //}
-
-  //VkSurfaceCapabilitiesKHR surface_properties;
-  //VkResult result = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(
-  //    m_deviceQueue->VulkanPhysicalDevice(), GetVulkanSurface(), &surface_properties);
-  //if (result != VK_SUCCESS)
-  //{
-  //  CLog::Log(LOGERROR, "Vulkan: Failed to get surface capabilities, ERROR: {0}",
-  //            ErrorString(result));
-  //  return false;
-  //}
-
-  //// Only rebuild the swapchain if the dimensions have changed
-  //if (surface_properties.currentExtent.width == m_width &&
-  //    surface_properties.currentExtent.height == m_height)
-  //{
-  //  return false;
-  //}
-
-  //vkDeviceWaitIdle(m_vkDevice);
-
-  //for (auto& framebuffer : swapchain_framebuffers)
-  //{
-  //  vkDestroyFramebuffer(m_vkDevice, framebuffer, nullptr);
-  //}
-
-  //m_height = width;
-  //m_width = height;
-
-  //m_surface->Reshape({{0, 0}, {m_width, m_height}}, VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR);
-
-  //init_swapchain();
-  //init_framebuffers();
-  return true;
 }
 
 } // namespace VULKAN

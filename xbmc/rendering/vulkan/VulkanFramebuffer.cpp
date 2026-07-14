@@ -59,7 +59,6 @@ std::unique_ptr<CVulkanFramebuffer> CVulkanFramebuffer::Create(
 {
   CVulkanSwapChain* vulkan_swap_chain = vulkanSurface->SwapChain();
   const VkDevice vk_device = vulkanDeviceQueue->VulkanDevice();
-
   VkImageViewCreateInfo vkImageViewCreateInfo = {
       .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
       .pNext = nullptr,

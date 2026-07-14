@@ -11,6 +11,7 @@
 #include "VulkanInfo.h"
 #include "filesystem/File.h"
 #include "filesystem/SpecialProtocol.h"
+#include "rendering/vulkan/VulkanDeviceQueue.h"
 #include "utils/StringUtils.h"
 #include "utils/log.h"
 
@@ -288,6 +289,151 @@ std::string ErrorString(VkResult errorCode)
       return "UNKNOWN_ERROR";
   }
 }
+
+VkPipelineStageFlags GetPipelineStageFlags(const CVulkanDeviceQueue* deviceQueue,
+                                           const VkImageLayout layout)
+{
+  switch (layout)
+  {
+    case VK_IMAGE_LAYOUT_UNDEFINED:
+      return VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+    case VK_IMAGE_LAYOUT_GENERAL:
+      return VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
+    case VK_IMAGE_LAYOUT_PREINITIALIZED:
+      return VK_PIPELINE_STAGE_HOST_BIT;
+    case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:
+    case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
+      return VK_PIPELINE_STAGE_TRANSFER_BIT;
+    case VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL:
+      return VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
+    {
+      VkPipelineStageFlags flags =
+          VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT | VK_PIPELINE_STAGE_VERTEX_SHADER_BIT;
+      if (deviceQueue->EnabledDeviceFeatures().tessellationShader)
+      {
+        flags |= VK_PIPELINE_STAGE_TESSELLATION_CONTROL_SHADER_BIT |
+                 VK_PIPELINE_STAGE_TESSELLATION_EVALUATION_SHADER_BIT;
+      }
+      if (deviceQueue->EnabledDeviceFeatures().geometryShader)
+      {
+        flags |= VK_PIPELINE_STAGE_GEOMETRY_SHADER_BIT;
+      }
+      return flags;
+    }
+    case VK_IMAGE_LAYOUT_PRESENT_SRC_KHR:
+      return VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+    default:
+      CLog::Log(LOGERROR, "Unknown layout: {}", layout);
+      return 0;
+  }
+}
+
+VkAccessFlags GetAccessMask(const VkImageLayout layout)
+{
+  switch (layout)
+  {
+    case VK_IMAGE_LAYOUT_UNDEFINED:
+      return 0;
+    case VK_IMAGE_LAYOUT_GENERAL:
+      CLog::Log(LOGWARNING, "VK_IMAGE_LAYOUT_GENERAL is used.");
+      return VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT |
+             VK_ACCESS_TRANSFER_WRITE_BIT | VK_ACCESS_TRANSFER_READ_BIT |
+             VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_HOST_WRITE_BIT | VK_ACCESS_HOST_READ_BIT |
+             VK_ACCESS_INPUT_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_READ_BIT |
+             VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_MEMORY_READ_BIT |
+             VK_ACCESS_MEMORY_WRITE_BIT;
+    case VK_IMAGE_LAYOUT_PREINITIALIZED:
+      return VK_ACCESS_HOST_WRITE_BIT;
+    case VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL:
+      return VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+    case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
+      return VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_INPUT_ATTACHMENT_READ_BIT;
+    case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:
+      return VK_ACCESS_TRANSFER_READ_BIT;
+    case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
+      return VK_ACCESS_TRANSFER_WRITE_BIT;
+    case VK_IMAGE_LAYOUT_PRESENT_SRC_KHR:
+      return 0;
+    default:
+      CLog::Log(LOGERROR, "Unknown layout: {}", layout);
+      return 0;
+  }
+}
+
+#if VK_HEADER_VERSION >= 135
+VkPipelineStageFlags2 GetPipelineStageFlags2(const CVulkanDeviceQueue* deviceQueue,
+                                             const VkImageLayout layout)
+{
+  switch (layout)
+  {
+    case VK_IMAGE_LAYOUT_UNDEFINED:
+      return VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT;
+    case VK_IMAGE_LAYOUT_GENERAL:
+      return VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
+    case VK_IMAGE_LAYOUT_PREINITIALIZED:
+      return VK_PIPELINE_STAGE_2_HOST_BIT;
+    case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:
+    case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
+      return VK_PIPELINE_STAGE_2_TRANSFER_BIT;
+    case VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL:
+      return VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
+    case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
+    {
+      VkPipelineStageFlags2 flags =
+          VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT | VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT;
+      if (deviceQueue->EnabledDeviceFeatures().tessellationShader)
+      {
+        flags |= VK_PIPELINE_STAGE_2_TESSELLATION_CONTROL_SHADER_BIT |
+                 VK_PIPELINE_STAGE_2_TESSELLATION_EVALUATION_SHADER_BIT;
+      }
+      if (deviceQueue->EnabledDeviceFeatures().geometryShader)
+      {
+        flags |= VK_PIPELINE_STAGE_2_GEOMETRY_SHADER_BIT;
+      }
+      return flags;
+    }
+    case VK_IMAGE_LAYOUT_PRESENT_SRC_KHR:
+      return VK_PIPELINE_STAGE_2_BOTTOM_OF_PIPE_BIT;
+    default:
+      CLog::Log(LOGERROR, "Unknown layout: {}", layout);
+      return 0;
+  }
+}
+
+VkAccessFlags2 GetAccessMask2(const VkImageLayout layout)
+{
+  switch (layout)
+  {
+    case VK_IMAGE_LAYOUT_UNDEFINED:
+      return 0;
+    case VK_IMAGE_LAYOUT_GENERAL:
+      CLog::Log(LOGWARNING, "VK_IMAGE_LAYOUT_GENERAL is used.");
+      return VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT |
+             VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT | VK_ACCESS_2_TRANSFER_WRITE_BIT |
+             VK_ACCESS_2_TRANSFER_READ_BIT | VK_ACCESS_2_SHADER_READ_BIT |
+             VK_ACCESS_2_HOST_WRITE_BIT | VK_ACCESS_2_HOST_READ_BIT |
+             VK_ACCESS_2_INPUT_ATTACHMENT_READ_BIT | VK_ACCESS_2_COLOR_ATTACHMENT_READ_BIT |
+             VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_2_MEMORY_READ_BIT |
+             VK_ACCESS_2_MEMORY_WRITE_BIT;
+    case VK_IMAGE_LAYOUT_PREINITIALIZED:
+      return VK_ACCESS_2_HOST_WRITE_BIT;
+    case VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL:
+      return VK_ACCESS_2_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT;
+    case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
+      return VK_ACCESS_2_SHADER_READ_BIT | VK_ACCESS_2_INPUT_ATTACHMENT_READ_BIT;
+    case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:
+      return VK_ACCESS_2_TRANSFER_READ_BIT;
+    case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
+      return VK_ACCESS_2_TRANSFER_WRITE_BIT;
+    case VK_IMAGE_LAYOUT_PRESENT_SRC_KHR:
+      return 0;
+    default:
+      CLog::Log(LOGERROR, "Unknown layout: {}", layout);
+      return 0;
+  }
+}
+#endif
 
 } // namespace UTILS
 } // namespace VULKAN

@@ -32,8 +32,8 @@ private:
   CVulkanRenderPass(const CVulkanRenderPass&) = delete;
   CVulkanRenderPass& operator=(const CVulkanRenderPass&) = delete;
 
-  const VkDevice m_logicalDevice;
   const VkRenderPass m_renderPass;
+  const VkDevice m_logicalDevice;
 };
 
 } // namespace VULKAN

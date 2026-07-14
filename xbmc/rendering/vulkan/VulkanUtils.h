@@ -30,6 +30,7 @@ namespace VULKAN
 {
 
 class CVulkanInfo;
+class CVulkanDeviceQueue;
 
 namespace UTILS
 {
@@ -102,6 +103,44 @@ void LogGraphicsInfo(const CVulkanInfo& vulkanInfo);
  * @return A string representing the Vulkan error code.
  */
 std::string ErrorString(VkResult errorCode);
+
+/**
+ * @brief Gets the pipeline stage flags for a given image layout.
+ *
+ * @param[in] deviceQueue The Vulkan device queue.
+ * @param[in] layout The image layout.
+ * @return The pipeline stage flags.
+ */
+VkPipelineStageFlags GetPipelineStageFlags(const CVulkanDeviceQueue* deviceQueue,
+                                           const VkImageLayout layout);
+
+/**
+ * @brief Gets the access mask for a given image layout.
+ *
+ * @param[in] layout The image layout.
+ * @return The access mask.
+ */
+VkAccessFlags GetAccessMask(const VkImageLayout layout);
+
+#if VK_HEADER_VERSION >= 135
+/**
+ * @brief Gets the pipeline stage flags for a given image layout (Vulkan 1.3+).
+ *
+ * @param[in] deviceQueue The Vulkan device queue.
+ * @param[in] layout The image layout.
+ * @return The pipeline stage flags.
+ */
+VkPipelineStageFlags2 GetPipelineStageFlags2(const CVulkanDeviceQueue* deviceQueue,
+                                             const VkImageLayout layout);
+
+/**
+ * @brief Gets the access mask for a given image layout (Vulkan 1.3+).
+ *
+ * @param[in] layout The image layout.
+ * @return The access mask.
+ */
+VkAccessFlags2 GetAccessMask2(const VkImageLayout layout);
+#endif
 
 } // namespace UTILS
 } // namespace VULKAN
