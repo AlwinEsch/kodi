@@ -289,6 +289,7 @@ bool CVulkanSurface::CreateSwapChain(const VkRect2D& size,
   }
 
   m_swapChain = std::move(swapChain);
+  m_vkSwapchain = m_swapChain->vkSwapchain();
   ++m_swapChainGeneration;
   return true;
 }

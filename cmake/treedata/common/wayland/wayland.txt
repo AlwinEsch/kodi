@@ -1,4 +1,4 @@
 xbmc/cores/RetroPlayer/process/wayland cores/RetroPlayer/process/wayland
 xbmc/cores/VideoPlayer/Process/wayland cores/VideoPlayer/Process/wayland
-xbmc/rendering/vulkan/wayland          rendering/vulkan/wayland
+xbmc/rendering/vulkan/display_wayland  rendering/vulkan/display/wayland
 xbmc/windowing/wayland                 windowing/wayland

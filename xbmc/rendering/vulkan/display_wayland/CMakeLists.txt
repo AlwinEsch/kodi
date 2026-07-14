@@ -3,5 +3,5 @@ if(TARGET ${APP_NAME_LC}::Vulkan AND (CORE_SYSTEM_NAME STREQUAL linux OR CORE_SY
 
   set(HEADERS VulkanRenderSystemWayland.h)
 
-  core_add_library(rendering_vulkan_wayland)
+  core_add_library(rendering_vulkan_display_wayland)
 endif()

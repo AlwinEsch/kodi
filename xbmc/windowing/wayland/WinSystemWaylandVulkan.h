@@ -9,7 +9,7 @@
 #pragma once
 
 #include "WinSystemWayland.h"
-#include "rendering/vulkan/wayland/VulkanRenderSystemWayland.h"
+#include "rendering/vulkan/display_wayland/VulkanRenderSystemWayland.h"
 
 namespace KODI
 {

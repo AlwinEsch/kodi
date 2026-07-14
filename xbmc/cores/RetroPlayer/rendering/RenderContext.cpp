@@ -83,21 +83,21 @@ bool CRenderContext::IsExtSupported(const char* extension)
 namespace
 {
 
-static VulkanShaderMethod TranslateVulkanShaderMethod(GL_SHADER_METHOD method)
+static ShaderMethodVulkan TranslateShaderMethodVulkan(RENDER_SHADER_METHOD method)
 {
-  //switch (method)
-  //{
-  //  case GL_SHADER_METHOD::DEFAULT:
-  //    return VulkanShaderMethod::SM_DEFAULT;
-  //  case GL_SHADER_METHOD::TEXTURE:
-  //    return VulkanShaderMethod::SM_TEXTURE;
-  //  case GL_SHADER_METHOD::TEXTURE_NOALPHA:
-  //    return VulkanShaderMethod::SM_TEXTURE_NOALPHA;
-  //  default:
-  //    break;
-  //}
+  switch (method)
+  {
+    case RENDER_SHADER_METHOD::DEFAULT:
+      return ShaderMethodVulkan::SM_DEFAULT;
+    case RENDER_SHADER_METHOD::TEXTURE:
+      return ShaderMethodVulkan::SM_TEXTURE;
+    case RENDER_SHADER_METHOD::TEXTURE_NOALPHA:
+      return ShaderMethodVulkan::SM_TEXTURE_NOALPHA;
+    default:
+      break;
+  }
 
-  return VulkanShaderMethod::SM_DEFAULT;
+  return ShaderMethodVulkan::SM_DEFAULT;
 }
 
 } // namespace
@@ -105,13 +105,13 @@ static VulkanShaderMethod TranslateVulkanShaderMethod(GL_SHADER_METHOD method)
 namespace
 {
 #ifdef HAS_GL
-static ShaderMethodGL TranslateShaderMethodGL(GL_SHADER_METHOD method)
+static ShaderMethodGL TranslateShaderMethodGL(RENDER_SHADER_METHOD method)
 {
   switch (method)
   {
-    case GL_SHADER_METHOD::DEFAULT:
+    case RENDER_SHADER_METHOD::DEFAULT:
       return ShaderMethodGL::SM_DEFAULT;
-    case GL_SHADER_METHOD::TEXTURE:
+    case RENDER_SHADER_METHOD::TEXTURE:
       return ShaderMethodGL::SM_TEXTURE;
     default:
       break;
@@ -121,15 +121,15 @@ static ShaderMethodGL TranslateShaderMethodGL(GL_SHADER_METHOD method)
 }
 #endif
 #ifdef HAS_GLES
-static ShaderMethodGLES TranslateShaderMethodGLES(GL_SHADER_METHOD method)
+static ShaderMethodGLES TranslateShaderMethodGLES(RENDER_SHADER_METHOD method)
 {
   switch (method)
   {
-    case GL_SHADER_METHOD::DEFAULT:
+    case RENDER_SHADER_METHOD::DEFAULT:
       return ShaderMethodGLES::SM_DEFAULT;
-    case GL_SHADER_METHOD::TEXTURE:
+    case RENDER_SHADER_METHOD::TEXTURE:
       return ShaderMethodGLES::SM_TEXTURE;
-    case GL_SHADER_METHOD::TEXTURE_NOALPHA:
+    case RENDER_SHADER_METHOD::TEXTURE_NOALPHA:
       return ShaderMethodGLES::SM_TEXTURE_NOALPHA;
     default:
       break;
@@ -142,12 +142,12 @@ static ShaderMethodGLES TranslateShaderMethodGLES(GL_SHADER_METHOD method)
 } // namespace
 #endif
 
-void CRenderContext::EnableGUIShader(GL_SHADER_METHOD method)
+void CRenderContext::EnableGUIShader(RENDER_SHADER_METHOD method)
 {
 #if defined(HAS_VULKAN)
   CVulkanRenderSystem* renderingVulkan = dynamic_cast<CVulkanRenderSystem*>(m_rendering);
-  //if (renderingVulkan != nullptr)
-  //  renderingVulkan->EnableGUIShader(TranslateVulkanShaderMethod(method));
+  if (renderingVulkan != nullptr)
+    renderingVulkan->EnableShader(TranslateShaderMethodVulkan(method));
 #elif defined(HAS_GL)
   CRenderSystemGL* rendering = dynamic_cast<CRenderSystemGL*>(m_rendering);
   if (rendering != nullptr)
@@ -163,8 +163,8 @@ void CRenderContext::DisableGUIShader()
 {
 #if defined(HAS_VULKAN)
   CVulkanRenderSystem* renderingVulkan = dynamic_cast<CVulkanRenderSystem*>(m_rendering);
-  //if (renderingVulkan != nullptr)
-  //  renderingVulkan->DisableGUIShader();
+  if (renderingVulkan != nullptr)
+    renderingVulkan->DisableShader();
 #elif defined(HAS_GL)
   CRenderSystemGL* renderingGL = dynamic_cast<CRenderSystemGL*>(m_rendering);
   if (renderingGL != nullptr)

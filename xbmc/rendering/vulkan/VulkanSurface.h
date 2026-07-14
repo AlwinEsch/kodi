@@ -55,6 +55,7 @@ public:
   uint32_t SwapChainGeneration() const { return m_swapChainGeneration; }
   const VkRect2D& vkImageSize() const { return m_vkImageSize; }
   VkImageUsageFlags vkImageUsageFlags() const { return m_vkImageUsageFlags; }
+  VkSwapchainKHR vkSwapchain() const { return m_vkSwapchain; }
   VkSurfaceFormatKHR vkSurfaceFormat() const { return m_vkSurfaceFormat; }
 
 private:
@@ -66,6 +67,7 @@ private:
   VkSurfaceFormatKHR m_vkSurfaceFormat{};
   VkCompositeAlphaFlagBitsKHR m_vkCompositeAlpha{VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR};
   VkSurfaceTransformFlagBitsKHR m_vkTransform{VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR};
+  VkSwapchainKHR m_vkSwapchain{VK_NULL_HANDLE};
   uint64_t m_acquireNextImageTimeoutNs{UINT64_MAX};
   VkImageUsageFlags m_vkImageUsageFlags{0};
   VkRect2D m_vkImageSize{{0, 0}, {0, 0}};

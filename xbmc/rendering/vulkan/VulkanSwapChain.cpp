@@ -212,7 +212,6 @@ void CVulkanSwapChain::DestroySwapImages()
 
 bool CVulkanSwapChain::InitializeSemaphores()
 {
-  return true;
   return AcquireNextSwapchainImage();
 }
 

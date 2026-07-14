@@ -24,7 +24,7 @@ class CRenderSystemBase;
 class CWinSystemBase;
 class TransformMatrix;
 
-enum class GL_SHADER_METHOD
+enum class RENDER_SHADER_METHOD
 {
   DEFAULT,
   TEXTURE,
@@ -65,7 +65,7 @@ public:
   bool IsExtSupported(const char* extension);
 
   // OpenGL(ES) rendering functions
-  void EnableGUIShader(GL_SHADER_METHOD method);
+  void EnableGUIShader(RENDER_SHADER_METHOD method);
   void DisableGUIShader();
   int GUIShaderGetPos();
   int GUIShaderGetCoord0();

@@ -10,7 +10,10 @@
 
 #include "rendering/vulkan/VulkanCommandPool.h"
 #include "rendering/vulkan/VulkanDeviceQueue.h"
+#include "rendering/vulkan/VulkanUtils.h"
 #include "utils/log.h"
+
+#include <cassert>
 
 namespace KODI
 {
@@ -18,6 +21,8 @@ namespace RENDERING
 {
 namespace VULKAN
 {
+
+using KODI::RENDERING::VULKAN::UTILS::ErrorString;
 
 namespace
 {
@@ -124,9 +129,9 @@ bool CVulkanCommandBuffer::Initialize()
       .commandBufferCount = 1,
   };
 
-  assert(m_vKCommandBuffer == static_cast<VkCommandBuffer>(VK_NULL_HANDLE));
+  assert(m_vkCommandBuffer == static_cast<VkCommandBuffer>(VK_NULL_HANDLE));
 
-  result = vkAllocateCommandBuffers(device, &info, &m_vKCommandBuffer);
+  result = vkAllocateCommandBuffers(device, &info, &m_vkCommandBuffer);
   if (VK_SUCCESS != result)
   {
     CLog::Log(LOGERROR, "Vulkan: vkAllocateCommandBuffers() failed: {}", result);
@@ -141,17 +146,72 @@ void CVulkanCommandBuffer::Destroy()
 {
   VkDevice device = m_deviceQueue->VulkanDevice();
 
-  //if (submission_fence_.is_valid())
-  //{
-  //  assert(m_deviceQueue->GetFenceHelper()->HasPassed(submission_fence_));
-  //  submission_fence_ = VulkanFenceHelper::FenceHandle();
-  //}
-
-  if (m_vKCommandBuffer != VK_NULL_HANDLE)
+  if (m_submissionFence.IsValid())
   {
-    vkFreeCommandBuffers(device, m_commandPool->vkCommandPool(), 1, &m_vKCommandBuffer);
-    m_vKCommandBuffer = VK_NULL_HANDLE;
+    assert(m_deviceQueue->FenceHelper()->HasPassed(m_submissionFence));
+    m_submissionFence = CVulkanFenceHelper::CFenceHandle();
   }
+
+  if (m_vkCommandBuffer != VK_NULL_HANDLE)
+  {
+    vkFreeCommandBuffers(device, m_commandPool->vkCommandPool(), 1, &m_vkCommandBuffer);
+    m_vkCommandBuffer = VK_NULL_HANDLE;
+  }
+}
+
+bool CVulkanCommandBuffer::Submit(uint32_t numWaitSemaphores,
+            VkSemaphore* waitSemaphores,
+            uint32_t numSignalSemaphores,
+            VkSemaphore* signalSemaphores,
+            bool allowProtectedMemory /*= false*/)
+{
+  std::vector<VkPipelineStageFlags> wait_dst_stage_mask(numWaitSemaphores,
+                                                        VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
+
+  VkProtectedSubmitInfo protected_submit_info = {};
+  protected_submit_info.sType = VK_STRUCTURE_TYPE_PROTECTED_SUBMIT_INFO;
+  protected_submit_info.protectedSubmit = allowProtectedMemory;
+
+  VkSubmitInfo submit_info = {};
+  submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+  submit_info.pNext = &protected_submit_info;
+  submit_info.waitSemaphoreCount = numWaitSemaphores;
+  submit_info.pWaitSemaphores = waitSemaphores;
+  submit_info.pWaitDstStageMask = wait_dst_stage_mask.data();
+  submit_info.commandBufferCount = 1;
+  submit_info.pCommandBuffers = &m_vkCommandBuffer;
+  submit_info.signalSemaphoreCount = numSignalSemaphores;
+  submit_info.pSignalSemaphores = signalSemaphores;
+
+  VkResult result = VK_SUCCESS;
+
+  VkFence fence;
+  result = m_deviceQueue->FenceHelper()->GetFence(&fence);
+  if (VK_SUCCESS != result)
+  {
+    CLog::Log(LOGERROR, "Vulkan: Failed to create fence, ERROR: {}", ErrorString(result));
+    return false;
+  }
+
+  result = vkQueueSubmit(m_deviceQueue->VulkanQueue(), 1, &submit_info, fence);
+  if (VK_SUCCESS != result)
+  {
+    vkDestroyFence(m_deviceQueue->VulkanDevice(), fence, nullptr);
+    m_submissionFence = CVulkanFenceHelper::CFenceHandle();
+  }
+  else
+  {
+    m_submissionFence = m_deviceQueue->FenceHelper()->EnqueueFence(fence);
+  }
+
+  PostExecution();
+  if (VK_SUCCESS != result)
+  {
+    CLog::Log(LOGERROR, "Vulkan: vkQueueSubmit() failed: {}", ErrorString(result));
+    return false;
+  }
+
+  return true;
 }
 
 void CVulkanCommandBuffer::TransitionImageLayout(VkImage image,
@@ -207,7 +267,77 @@ void CVulkanCommandBuffer::TransitionImageLayout(VkImage image,
   };
 
   // Record the pipeline barrier into the command buffer
-  vkCmdPipelineBarrier2(m_vKCommandBuffer, &dependency_info);
+  vkCmdPipelineBarrier2(m_vkCommandBuffer, &dependency_info);
+}
+
+void CVulkanCommandBuffer::PostExecution()
+{
+  if (m_recordType == RECORD_TYPE_SINGLE_USE)
+  {
+    // Clear upon next use.
+    m_recordType = RECORD_TYPE_DIRTY;
+  }
+  else if (m_recordType == RECORD_TYPE_MULTI_USE)
+  {
+    // Can no longer record new items unless marked as clear.
+    m_recordType = RECORD_TYPE_RECORDED;
+  }
+}
+
+void CVulkanCommandBuffer::ResetIfDirty()
+{
+  assert(!m_recording);
+
+  if (m_recordType == RECORD_TYPE_DIRTY)
+  {
+    // Block if command buffer is still in use. This can be externally avoided
+    // using the asynchronous SubmissionFinished() function.
+    Wait(UINT64_MAX);
+    VkResult result = vkResetCommandBuffer(m_vkCommandBuffer, 0);
+    if (VK_SUCCESS != result)
+    {
+      CLog::Log(LOGERROR, "Vulkan: vkResetCommandBuffer() failed: {}", ErrorString(result));
+    }
+    else
+    {
+      m_recordType = RECORD_TYPE_EMPTY;
+    }
+  }
+}
+
+void CVulkanCommandBuffer::Wait(uint64_t timeout)
+{
+  if (!m_submissionFence.IsValid())
+    return;
+
+  m_deviceQueue->FenceHelper()->Wait(m_submissionFence, timeout);
+}
+
+CVulkanCommandBufferScoped::CVulkanCommandBufferScoped(CVulkanCommandBuffer& commandBuffer,
+                                                       VkCommandBufferUsageFlags usageFlags)
+  : m_usageFlags(usageFlags)
+{
+  assert(&commandBuffer != nullptr);
+  m_handle = commandBuffer.GetVulkanCommandBuffer();
+  assert(m_handle != VK_NULL_HANDLE);
+
+  VkCommandBufferBeginInfo begin_info = {};
+  begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+  begin_info.flags = m_usageFlags;
+  VkResult result = vkBeginCommandBuffer(m_handle, &begin_info);
+  if (VK_SUCCESS != result)
+  {
+    CLog::Log(LOGERROR, "Vulkan: vkBeginCommandBuffer() failed: {}", ErrorString(result));
+  }
+}
+
+CVulkanCommandBufferScoped::~CVulkanCommandBufferScoped()
+{
+  VkResult result = vkEndCommandBuffer(m_handle);
+  if (VK_SUCCESS != result)
+  {
+    CLog::Log(LOGERROR, "Vulkan: vkEndCommandBuffer() failed: {}", ErrorString(result));
+  }
 }
 
 } // namespace VULKAN

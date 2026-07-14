@@ -31,6 +31,7 @@ xbmc/powermanagement                            powermanagement
 xbmc/programs                                   programs
 xbmc/rendering                                  rendering
 xbmc/rendering/vulkan                           rendering_vulkan
+xbmc/rendering/vulkan/shaders                   rendering_vulkan_shaders
 xbmc/resources                                  resources
 xbmc/speech                                     speech
 xbmc/storage                                    storage

@@ -27,7 +27,27 @@ public:
 
   void Destroy();
 
+  class CFenceHandle
+  {
+  public:
+    CFenceHandle();
+    CFenceHandle(const CFenceHandle& other);
+    CFenceHandle& operator=(const CFenceHandle& other);
+
+    bool IsValid() const { return m_fence != VK_NULL_HANDLE; }
+
+  private:
+    friend class CVulkanFenceHelper;
+    CFenceHandle(VkFence fence, uint64_t generationId);
+
+    VkFence m_fence{VK_NULL_HANDLE};
+    uint64_t m_generationId{0};
+  };
+
   VkResult GetFence(VkFence* fence);
+  CFenceHandle EnqueueFence(VkFence fence);
+  bool Wait(CFenceHandle handle, uint64_t timeoutInNanoseconds = UINT64_MAX);
+  bool HasPassed(CFenceHandle handle);
 
   void PerformImmediateCleanup();
   void EnqueueSemaphoreCleanupForSubmittedWork(VkSemaphore semaphore);

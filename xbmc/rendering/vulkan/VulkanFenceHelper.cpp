@@ -18,27 +18,92 @@ namespace RENDERING
 namespace VULKAN
 {
 
+CVulkanFenceHelper::CFenceHandle::CFenceHandle() = default;
+CVulkanFenceHelper::CFenceHandle::CFenceHandle(VkFence fence, uint64_t generationId)
+  : m_fence(fence),
+    m_generationId(generationId)
+{
+}
+CVulkanFenceHelper::CFenceHandle::CFenceHandle(const CFenceHandle& other) = default;
+CVulkanFenceHelper::CFenceHandle& CVulkanFenceHelper::CFenceHandle::operator=(
+    const CFenceHandle& other) = default;
+
 CVulkanFenceHelper::CVulkanFenceHelper(CVulkanDeviceQueue* deviceQueue) : m_deviceQueue(deviceQueue)
 {
 }
 
 CVulkanFenceHelper::~CVulkanFenceHelper()
 {
+  //assert(tasks_pending_fence_.empty());
+  //assert(cleanup_tasks_.empty());
 }
 
 void CVulkanFenceHelper::Destroy()
 {
+  // TEMP: Temporary until we implement a proper cleanup system for fences and semaphores.
+  //{
+  vkDestroyFence(
+      m_deviceQueue->VulkanDevice(), m_vkFence,
+      nullptr);
+  //}
+
   PerformImmediateCleanup();
 }
 
 VkResult CVulkanFenceHelper::GetFence(VkFence* fence)
 {
+  // TEMP: Temporary until we implement a proper cleanup system for fences and semaphores.
+  //{
+  if (m_vkFence != VK_NULL_HANDLE)
+  {
+    *fence = m_vkFence;
+    return VK_SUCCESS;
+  }
+  //}
+
   VkFenceCreateInfo createInfo{
       .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
       .pNext = nullptr,
       .flags = 0,
   };
-  return vkCreateFence(m_deviceQueue->VulkanDevice(), &createInfo, nullptr, fence);
+  VkResult ret = vkCreateFence(m_deviceQueue->VulkanDevice(), &createInfo, nullptr, fence);
+  // TEMP: Temporary until we implement a proper cleanup system for fences and semaphores.
+  //{
+  m_vkFence = *fence;
+  //}
+  return ret;
+}
+
+CVulkanFenceHelper::CFenceHandle CVulkanFenceHelper::EnqueueFence(VkFence fence)
+{
+  CFenceHandle handle(fence, 0/*next_generation_++*/);
+  //cleanup_tasks_.emplace_back(handle, std::move(tasks_pending_fence_));
+  //tasks_pending_fence_ = std::vector<CleanupTask>();
+
+  return handle;
+}
+
+bool CVulkanFenceHelper::Wait(CFenceHandle handle, uint64_t timeoutInNanoseconds)
+{
+  //if (HasPassed(handle))
+  //  return true;
+
+  VkResult result = vkWaitForFences(m_deviceQueue->VulkanDevice(), 1, &handle.m_fence, true,
+                                    timeoutInNanoseconds);
+
+  // After waiting, we can process cleanup tasks.
+  //ProcessCleanupTasks();
+
+  return result == VK_SUCCESS;
+}
+
+bool CVulkanFenceHelper::HasPassed(CFenceHandle handle)
+{
+  // Process cleanup tasks which advances our |current_generation_|.
+  //ProcessCleanupTasks();
+
+  //return current_generation_ >= handle.generation_id_;
+  return true;
 }
 
 void CVulkanFenceHelper::PerformImmediateCleanup()

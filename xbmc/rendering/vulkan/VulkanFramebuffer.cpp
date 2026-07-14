@@ -34,7 +34,21 @@ CVulkanFramebuffer::CVulkanFramebuffer(VkImageView vkImageView,
 {
 }
 
-CVulkanFramebuffer::~CVulkanFramebuffer() = default;
+CVulkanFramebuffer::~CVulkanFramebuffer()
+{
+  //const VkDevice vk_device = m_commandBuffer->VulkanDeviceQueue()->VulkanDevice();
+  //if (m_vkFramebuffer != VK_NULL_HANDLE)
+  //{
+  //  vkDestroyFramebuffer(vk_device, m_vkFramebuffer, nullptr);
+  //}
+  //if (m_vkImageView != VK_NULL_HANDLE)
+  //{
+  //  vkDestroyImageView(vk_device, m_vkImageView, nullptr);
+  //}
+  //m_commandBuffer->Destroy();
+  //m_commandBuffer.reset();
+}
+
 
 std::unique_ptr<CVulkanFramebuffer> CVulkanFramebuffer::Create(
     CVulkanDeviceQueue* vulkanDeviceQueue,

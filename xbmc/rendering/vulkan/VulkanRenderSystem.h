@@ -24,67 +24,49 @@
 
 //#include "system_vulkan.h"
 
-enum class VulkanShaderMethod
+enum class ShaderMethodVulkan
 {
-  SM_DEFAULT,
+  SM_DEFAULT = 0,
   SM_TEXTURE,
-  SM_TEXTURE_111R,
+  SM_TEXTURE_LIM,
   SM_MULTI,
-  SM_MULTI_RGBA_111R,
   SM_FONTS,
   SM_FONTS_SHADER_CLIP,
   SM_TEXTURE_NOBLEND,
-  SM_MULTI_BLENDCOLOR,
-  SM_MULTI_RGBA_111R_BLENDCOLOR,
-  SM_MULTI_111R_111R_BLENDCOLOR,
-  SM_TEXTURE_RGBA,
-  SM_TEXTURE_RGBA_OES,
-  SM_TEXTURE_RGBA_BLENDCOLOR,
-  SM_TEXTURE_RGBA_BOB,
-  SM_TEXTURE_RGBA_BOB_OES,
   SM_TEXTURE_NOALPHA,
+  SM_MULTI_BLENDCOLOR,
   SM_MAX
 };
 
 template<>
-struct fmt::formatter<VulkanShaderMethod> : fmt::formatter<std::string_view>
+struct fmt::formatter<ShaderMethodVulkan> : fmt::formatter<std::string_view>
 {
   template<typename FormatContext>
-  constexpr auto format(const VulkanShaderMethod& shaderMethod, FormatContext& ctx)
+  constexpr auto format(const ShaderMethodVulkan& shaderMethod, FormatContext& ctx)
   {
-    const auto it = VulkanShaderMethodMap.find(shaderMethod);
-    if (it == VulkanShaderMethodMap.cend())
+    const auto it = ShaderMethodVulkanMap.find(shaderMethod);
+    if (it == ShaderMethodVulkanMap.cend())
       throw std::range_error("no string mapping found for shader method");
 
     return fmt::formatter<string_view>::format(it->second, ctx);
   }
 
 private:
-  static constexpr auto VulkanShaderMethodMap = make_map<VulkanShaderMethod, std::string_view>({
-      {VulkanShaderMethod::SM_DEFAULT, "default"},
-      {VulkanShaderMethod::SM_TEXTURE, "texture"},
-      {VulkanShaderMethod::SM_TEXTURE_111R, "alpha texture with diffuse color"},
-      {VulkanShaderMethod::SM_MULTI, "multi"},
-      {VulkanShaderMethod::SM_MULTI_RGBA_111R, "multi with color/alpha texture"},
-      {VulkanShaderMethod::SM_FONTS, "fonts"},
-      {VulkanShaderMethod::SM_FONTS_SHADER_CLIP, "fonts with vertex shader based clipping"},
-      {VulkanShaderMethod::SM_TEXTURE_NOBLEND, "texture no blending"},
-      {VulkanShaderMethod::SM_MULTI_BLENDCOLOR, "multi blend colour"},
-      {VulkanShaderMethod::SM_MULTI_RGBA_111R_BLENDCOLOR,
-       "multi with color/alpha texture and blend color"},
-      {VulkanShaderMethod::SM_MULTI_111R_111R_BLENDCOLOR,
-       "multi with alpha/alpha texture and blend color"},
-      {VulkanShaderMethod::SM_TEXTURE_RGBA, "texture rgba"},
-      {VulkanShaderMethod::SM_TEXTURE_RGBA_OES, "texture rgba OES"},
-      {VulkanShaderMethod::SM_TEXTURE_RGBA_BLENDCOLOR, "texture rgba blend colour"},
-      {VulkanShaderMethod::SM_TEXTURE_RGBA_BOB, "texture rgba bob"},
-      {VulkanShaderMethod::SM_TEXTURE_RGBA_BOB_OES, "texture rgba bob OES"},
-      {VulkanShaderMethod::SM_TEXTURE_NOALPHA, "texture no alpha"},
+  static constexpr auto ShaderMethodVulkanMap = make_map<ShaderMethodVulkan, std::string_view>({
+      {ShaderMethodVulkan::SM_DEFAULT, "default"},
+      {ShaderMethodVulkan::SM_TEXTURE, "texture"},
+      {ShaderMethodVulkan::SM_TEXTURE_LIM, "texture limited"},
+      {ShaderMethodVulkan::SM_MULTI, "multi"},
+      {ShaderMethodVulkan::SM_FONTS, "fonts"},
+      {ShaderMethodVulkan::SM_FONTS_SHADER_CLIP, "fonts with vertex shader based clipping"},
+      {ShaderMethodVulkan::SM_TEXTURE_NOBLEND, "texture no blending"},
+      {ShaderMethodVulkan::SM_TEXTURE_NOALPHA, "texture no alpha"},
+      {ShaderMethodVulkan::SM_MULTI_BLENDCOLOR, "multi blend colour"},
   });
 
   static_assert(
-      static_cast<size_t>(VulkanShaderMethod::SM_MAX) == VulkanShaderMethodMap.size(),
-      "VulkanShaderMethodMap doesn't match the size of VulkanShaderMethod, did you forget to "
+      static_cast<size_t>(ShaderMethodVulkan::SM_MAX) == ShaderMethodVulkanMap.size(),
+      "ShaderMethodVulkanMap doesn't match the size of ShaderMethodVulkan, did you forget to "
       "add/remove a mapping?");
 };
 
@@ -100,6 +82,8 @@ class CVulkanDeviceQueue;
 class CVulkanSurface;
 class CVulkanInstance;
 class CVulkanRenderSystem;
+class CVulkanRenderPass;
+class CVulkanShaderControl;
 class CVulkanCommandPool;
 class CVulkanFramebuffer;
 
@@ -161,6 +145,13 @@ public:
     return false;
   }
 
+  void InitialiseShaders();
+  void ReleaseShaders();
+  void EnableShader(ShaderMethodVulkan method);
+  void DisableShader();
+
+  CVulkanShaderControl* ShaderControl() { return m_shaderControl.get(); }
+
 protected:
   /**
    * @brief Gets the width and height of the render system.
@@ -177,85 +168,79 @@ private:
   bool CreateFramebuffers();
   void DestroyFramebuffers();
 
+  /**
+   * @brief Creates a Vulkan pipeline layout.
+   *
+   * The pipeline layout is used to define the interface between shader stages and shader resources.
+   *
+   * @param[in] layout [optional] The descriptor set layout to use for the pipeline layout.
+   * @return The created pipeline layout, or VK_NULL_HANDLE on failure.
+   *
+   * @note Descruction is inside the @ref Destroy() function, which is called in the destructor of CVulkanRenderSystem.
+   *
+   * Documentation about @ref vkCreatePipelineLayout and @ref vkDestroyPipelineLayout is available at:
+   * - https://docs.vulkan.org/refpages/latest/refpages/source/vkCreatePipelineLayout.html
+   * - https://docs.vulkan.org/spec/latest/chapters/descriptorsets.html
+   */
+  VkPipelineLayout CreatePipelineLayout(VkDescriptorSetLayout layout = VK_NULL_HANDLE);
+
+  std::unique_ptr<CVulkanShaderControl> m_shaderControl;
+  std::unique_ptr<CVulkanCommandPool> m_commandPool;
   std::unique_ptr<CVulkanDeviceQueue> m_deviceQueue;
   std::unique_ptr<CVulkanSurface> m_surface;
+  std::unique_ptr<CVulkanSwapChain> m_swapChain;
+  std::unique_ptr<CVulkanRenderPass> m_renderPass;
   std::vector<std::unique_ptr<CVulkanFramebuffer>> m_framebuffers;
 
-  VkFormat m_SwapchainFormat = VK_FORMAT_UNDEFINED;
-  /*
-
-
-  */
-
-  /*
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  */
-  ////////struct Vertex
-  ////////{
-  ////////  glm::vec2 position;
-  ////////  glm::vec3 color;
-  ////////};
-
-  ////////// Define the vertex data
-  ////////const std::vector<Vertex> TEST___vertices = {
-  ////////    {{0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}}, // Vertex 1: Red
-  ////////    {{0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}}, // Vertex 2: Green
-  ////////    {{-0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}} // Vertex 3: Blue
-  ////////};
-
-  ////////struct PerFrame
-  ////////{
-  ////////  VkFence queue_submit_fence = VK_NULL_HANDLE;
-  ////////  std::unique_ptr<CVulkanCommandPool> commandPool;
-  ////////  std::unique_ptr<CVulkanCommandBuffer> primary_command_buffer;
-  ////////};
-
-  ////////void TEST___Deinit();
-  ////////void TEST___init_swapchain();
-  ////////void TEST___init_pipeline();
-  ////////void TEST___render_triangle(uint32_t swapchain_index);
-  ////////bool TEST___resize(const uint32_t, const uint32_t);
-  ////////void init_render_pass();
-
-  ////////std::vector<VkImageView> TEST___swapchain_image_views;
-  ////////std::vector<PerFrame> TEST___per_frame;
-  ////////VkBuffer TEST___vertex_buffer = VK_NULL_HANDLE;
-  ////////VkDeviceMemory TEST___vertex_buffer_memory = VK_NULL_HANDLE;
-  ////////VkPipelineLayout TEST___pipeline_layout = VK_NULL_HANDLE;
-  ////////VkPipeline TEST___pipeline = VK_NULL_HANDLE;
-  ////////VkRenderPass TEST___render_pass = VK_NULL_HANDLE;
   /**
-	 * @brief Swapchain state
-	 */
-  struct SwapchainDimensions
-  {
-    /// Width of the swapchain.
-    uint32_t width = 0;
+   * @brief Values in group of Vulkan objects that are used for rendering and are initialized in
+   * @ref InitRenderSystem() and taken from other Vulkan objects.
+   *
+   * Done to avoid having to pass them around in function calls and to have them available for the
+   * entire lifetime of the render system. They are no more changed after initialization, so they
+   * can be used as a reference to the Vulkan objects they are taken from.
+   *
+   * @warning About destruction of this values, some are not instantiated in this class, but are
+   * taken from other Vulkan objects, so they are destroyed in the destructor of the other Vulkan objects.
+   */
+  /**@{*/
+  VkSurfaceKHR m_vkSurface{VK_NULL_HANDLE}; // Created & destroyed outside
+  VkSurfaceFormatKHR m_vkSurfaceFormat{}; // Created & destroyed outside
+  VkInstance m_vkInstance{VK_NULL_HANDLE}; // Created & destroyed outside
+  VkDevice m_vkDevice{VK_NULL_HANDLE}; // Created & destroyed outside
+  VkPipeline m_vkPipeline{VK_NULL_HANDLE}; // Created & destroyed outside
+  VkPipelineLayout m_vkPipelineLayout{VK_NULL_HANDLE}; // Created & destroyed here
+  VkSwapchainKHR m_vkSwapchain{VK_NULL_HANDLE}; // Created & destroyed outside
+  VkRenderPass m_vkRenderPass{VK_NULL_HANDLE};
+  VkFormat m_vkSwapchainFormat = VK_FORMAT_UNDEFINED;
+  /**@}*/
 
-    /// Height of the swapchain.
-    uint32_t height = 0;
 
-    /// Pixel format of the swapchain.
-    VkFormat format = VK_FORMAT_UNDEFINED;
-  };
+  /*
 
+
+  */
+
+  /*
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  */
   /**
 	 * @brief Per-frame data
 	 */
@@ -263,9 +248,11 @@ private:
   {
     VkFence queue_submit_fence = VK_NULL_HANDLE;
     std::unique_ptr<CVulkanCommandPool> primary_command_pool;
-    std::unique_ptr<CVulkanCommandBuffer> primary_command_buffer;
+    CVulkanCommandBuffer* primary_command_buffer = nullptr;
     VkSemaphore swapchain_acquire_semaphore = VK_NULL_HANDLE;
     VkSemaphore swapchain_release_semaphore = VK_NULL_HANDLE;
+    VkImageView swapchain_image_view = VK_NULL_HANDLE;
+    VkFramebuffer swapchain_framebuffer = VK_NULL_HANDLE;
   };
 
   /**
@@ -295,25 +282,24 @@ private:
     //int32_t graphics_queue_index = -1;
 
     /// The image view for each swapchain image.
-    std::vector<VkImageView> swapchain_image_views;
+    //std::vector<VkImageView> swapchain_image_views;
 
     /// The framebuffer for each swapchain image view.
-    std::vector<VkFramebuffer> swapchain_framebuffers;
+    //std::vector<VkFramebuffer> swapchain_framebuffers;
 
     /// The renderpass description.
-    VkRenderPass render_pass = VK_NULL_HANDLE;
+    //VkRenderPass render_pass = VK_NULL_HANDLE;
 
     /// The graphics pipeline.
-    VkPipeline pipeline = VK_NULL_HANDLE;
+    //VkPipeline pipeline = VK_NULL_HANDLE;
 
     /**
 		 * The pipeline layout for resources.
 		 * Not used in this sample, but we still need to provide a dummy one.
 		 */
-    VkPipelineLayout pipeline_layout = VK_NULL_HANDLE;
+    //VkPipelineLayout pipeline_layout = VK_NULL_HANDLE;
 
     /// The debug utility callback.
-    VkDebugUtilsMessengerEXT debug_callback = VK_NULL_HANDLE;
 
     /// A set of semaphores that can be reused.
     std::vector<VkSemaphore> recycled_semaphores;
@@ -349,21 +335,12 @@ public:
 
   void init_vertex_buffer();
 
-  void init_per_frame(PerFrame& per_frame);
-
-  void init_swapchain();
-
-  void init_render_pass();
-
-  void init_pipeline();
 
   VkResult acquire_next_image(uint32_t* image);
 
   void render_triangle(uint32_t swapchain_index);
 
   VkResult present_image(uint32_t index);
-
-  void init_framebuffers();
 
 private:
   Context context;

@@ -8,6 +8,8 @@
 
 #pragma once
 
+#include "rendering/vulkan/VulkanFenceHelper.h"
+
 #include <vulkan/vulkan_core.h>
 
 namespace KODI
@@ -31,7 +33,15 @@ public:
   bool Initialize();
   void Destroy();
 
-  VkCommandBuffer GetVulkanCommandBuffer() const { return m_vKCommandBuffer; }
+  VkCommandBuffer GetVulkanCommandBuffer() const { return m_vkCommandBuffer; }
+
+  bool Submit(uint32_t numWaitSemaphores,
+              VkSemaphore* waitSemaphores,
+              uint32_t numSignalSemaphores,
+              VkSemaphore* signalSemaphores,
+              bool allowProtectedMemory = false);
+
+  void Wait(uint64_t timeout);
 
   void TransitionImageLayout(VkImage image,
                              VkImageLayout oldLayout,
@@ -42,6 +52,9 @@ public:
 private:
   CVulkanCommandBuffer(const CVulkanCommandBuffer&) = delete;
   CVulkanCommandBuffer& operator=(const CVulkanCommandBuffer&) = delete;
+
+  void PostExecution();
+  void ResetIfDirty();
 
   enum RecordType
   {
@@ -62,11 +75,30 @@ private:
     RECORD_TYPE_DIRTY,
   };
 
-  bool m_primary{true};
+  bool m_recording = false;
   CVulkanDeviceQueue* m_deviceQueue{nullptr};
   CVulkanCommandPool* m_commandPool{nullptr};
-  VkCommandBuffer m_vKCommandBuffer{VK_NULL_HANDLE};
+  bool m_primary{true};
+  VkCommandBuffer m_vkCommandBuffer{VK_NULL_HANDLE};
   RecordType m_recordType{RECORD_TYPE_EMPTY};
+  CVulkanFenceHelper::CFenceHandle m_submissionFence;
+};
+
+class CVulkanCommandBufferScoped
+{
+public:
+  CVulkanCommandBufferScoped(
+      CVulkanCommandBuffer& commandBuffer,
+      VkCommandBufferUsageFlags usageFlags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT);
+  ~CVulkanCommandBufferScoped();
+
+  VkCommandBuffer GetVulkanCommandBuffer() const
+  { return m_handle;
+  }
+
+private:
+  VkCommandBufferUsageFlags m_usageFlags{VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
+  VkCommandBuffer m_handle{VK_NULL_HANDLE};
 };
 
 } // namespace VULKAN

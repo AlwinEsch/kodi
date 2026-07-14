@@ -3,5 +3,5 @@ if(TARGET ${APP_NAME_LC}::Vulkan AND (CORE_SYSTEM_NAME STREQUAL windows OR CORE_
 
   set(HEADERS VulkanRenderSystemWindows.h)
 
-  core_add_library(rendering_vulkan_windows)
+  core_add_library(rendering_vulkan_display_windows)
 endif()

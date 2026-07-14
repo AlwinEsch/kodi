@@ -117,7 +117,6 @@ void CRPRendererGuiTexture::RenderInternal(bool clear, uint8_t alpha)
   const uint32_t color = (alpha << 24) | 0xFFFFFF;
 
 #if defined(HAS_VULKAN)
-
   //renderBuffer->BindToUnit(0);
 
   //glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
