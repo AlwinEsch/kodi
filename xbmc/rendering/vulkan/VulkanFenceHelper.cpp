@@ -90,6 +90,10 @@ bool CVulkanFenceHelper::Wait(CFenceHandle handle, uint64_t timeoutInNanoseconds
 
   VkResult result = vkWaitForFences(m_deviceQueue->VulkanDevice(), 1, &handle.m_fence, true,
                                     timeoutInNanoseconds);
+  // TEMP: Temporary until we implement a proper cleanup system for fences and semaphores.
+  //{
+  vkResetFences(m_deviceQueue->VulkanDevice(), 1, &handle.m_fence);
+  //}
 
   // After waiting, we can process cleanup tasks.
   //ProcessCleanupTasks();

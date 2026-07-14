@@ -151,12 +151,12 @@ bool CVulkanRenderSystem::InitRenderSystem()
   // Initialize per-frame resources.
   // Every swapchain image has its own command pool and fence manager.
   // This makes it very easy to keep track of when we can reset command buffers and such.
-  context.per_frame.clear();
-  context.per_frame.resize(image_count);
+  m_per_frame.clear();
+  m_per_frame.resize(image_count);
 
   for (size_t i = 0; i < image_count; i++)
   {
-    PerFrame& per_frame = context.per_frame[i];
+    PerFrame& per_frame = m_per_frame[i];
 
     VkFenceCreateInfo info{
         .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
@@ -237,15 +237,15 @@ bool CVulkanRenderSystem::InitRenderSystem()
   ////////UTILS::vulkanCreateBuffer(
   ////////    instance, device, physicalDevice, buffer_size, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
   ////////    VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-  ////////    TEST___vertex_buffer, TEST___vertex_buffer_memory);
+  ////////    m_vertex_buffer, m_vertex_buffer_allocation);
   ////////// Map the memory and copy the vertex data
   ////////void* data;
-  ////////if (vkMapMemory(device, TEST___vertex_buffer_memory, 0, buffer_size, 0, &data) != VK_SUCCESS)
+  ////////if (vkMapMemory(device, m_vertex_buffer_allocation, 0, buffer_size, 0, &data) != VK_SUCCESS)
   ////////{
   ////////  throw std::runtime_error("Failed to map vertex buffer memory");
   ////////}
   ////////memcpy(data, TEST___vertices.data(), static_cast<size_t>(buffer_size));
-  ////////vkUnmapMemory(device, TEST___vertex_buffer_memory);
+  ////////vkUnmapMemory(device, m_vertex_buffer_allocation);
   /////////*
 
   ////////*/
@@ -344,11 +344,36 @@ void CVulkanRenderSystem::PresentRender(bool rendered, bool videoLayer)
   if (!m_bRenderCreated)
     return;
 
-  update(0);
-  ////uint32_t index = m_surface->SwapChain()->CurrentImageIndex();
+  uint32_t index;
 
-  ////TEST___render_triangle(index);
-  ////m_surface->SwapBuffers();
+  VkResult result = acquire_next_image(&index);
+
+  // Handle outdated error in acquire.
+  if (result == VK_SUBOPTIMAL_KHR || result == VK_ERROR_OUT_OF_DATE_KHR)
+  {
+    resize(m_width, m_height);
+    result = acquire_next_image(&index);
+  }
+
+  if (result != VK_SUCCESS)
+  {
+    vkQueueWaitIdle(m_deviceQueue->VulkanQueue());
+    return;
+  }
+
+  render_triangle(index);
+  result = present_image(index);
+
+  // Handle Outdated error in present.
+  if (result == VK_SUBOPTIMAL_KHR || result == VK_ERROR_OUT_OF_DATE_KHR)
+  {
+    resize(m_width, m_height);
+  }
+  else if (result != VK_SUCCESS)
+  {
+    CLog::Log(LOGERROR, "Vulkan: Failed to present swapchain image, ERROR: {0}",
+              ErrorString(result));
+  }
 }
 
 void CVulkanRenderSystem::CaptureStateBlock()
@@ -569,8 +594,8 @@ void CVulkanRenderSystem::init_vertex_buffer()
   };
 
   VmaAllocationInfo buffer_alloc_info{};
-  vmaCreateBuffer(m_deviceQueue->VMAAllocator(), &buffer_info, &buffer_alloc_ci, &vertex_buffer,
-                  &vertex_buffer_allocation, &buffer_alloc_info);
+  vmaCreateBuffer(m_deviceQueue->VMAAllocator(), &buffer_info, &buffer_alloc_ci, &m_vertex_buffer,
+                  &m_vertex_buffer_allocation, &buffer_alloc_info);
   if (buffer_alloc_info.pMappedData)
   {
     memcpy(buffer_alloc_info.pMappedData, vertices.data(), buffer_size);
@@ -586,7 +611,7 @@ VkResult CVulkanRenderSystem::acquire_next_image(uint32_t* image)
   VkResult result = VK_SUCCESS;
 
   VkSemaphore acquire_semaphore;
-  if (context.recycled_semaphores.empty())
+  if (m_cycled_semaphores.empty())
   {
     VkSemaphoreCreateInfo info = {
         .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
@@ -602,8 +627,8 @@ VkResult CVulkanRenderSystem::acquire_next_image(uint32_t* image)
   }
   else
   {
-    acquire_semaphore = context.recycled_semaphores.back();
-    context.recycled_semaphores.pop_back();
+    acquire_semaphore = m_cycled_semaphores.back();
+    m_cycled_semaphores.pop_back();
   }
 
   VkSwapchainKHR swapchain = m_surface->SwapChain()->vkSwapchain();
@@ -612,7 +637,7 @@ VkResult CVulkanRenderSystem::acquire_next_image(uint32_t* image)
 
   if (result != VK_SUCCESS)
   {
-    context.recycled_semaphores.push_back(acquire_semaphore);
+    m_cycled_semaphores.push_back(acquire_semaphore);
     return result;
   }
 
@@ -624,27 +649,26 @@ VkResult CVulkanRenderSystem::acquire_next_image(uint32_t* image)
   // waiting for all GPU work to complete before this returns.
   // Normally, this doesn't really block at all,
   // since we're waiting for old frames to have been completed, but just in case.
-  if (context.per_frame[*image].queue_submit_fence != VK_NULL_HANDLE)
+  if (m_per_frame[*image].queue_submit_fence != VK_NULL_HANDLE)
   {
-    vkWaitForFences(m_vkDevice, 1, &context.per_frame[*image].queue_submit_fence, true, UINT64_MAX);
-    vkResetFences(m_vkDevice, 1, &context.per_frame[*image].queue_submit_fence);
+    vkWaitForFences(m_vkDevice, 1, &m_per_frame[*image].queue_submit_fence, true, UINT64_MAX);
+    vkResetFences(m_vkDevice, 1, &m_per_frame[*image].queue_submit_fence);
   }
 
-  if (context.per_frame[*image].primary_command_pool != nullptr)
+  if (m_per_frame[*image].primary_command_pool != nullptr)
   {
-    vkResetCommandPool(m_vkDevice, context.per_frame[*image].primary_command_pool->vkCommandPool(),
-                       0);
+    vkResetCommandPool(m_vkDevice, m_per_frame[*image].primary_command_pool->vkCommandPool(), 0);
   }
 
   // Recycle the old semaphore back into the semaphore manager.
-  VkSemaphore old_semaphore = context.per_frame[*image].swapchain_acquire_semaphore;
+  VkSemaphore old_semaphore = m_per_frame[*image].swapchain_acquire_semaphore;
 
   if (old_semaphore != VK_NULL_HANDLE)
   {
-    context.recycled_semaphores.push_back(old_semaphore);
+    m_cycled_semaphores.push_back(old_semaphore);
   }
 
-  context.per_frame[*image].swapchain_acquire_semaphore = acquire_semaphore;
+  m_per_frame[*image].swapchain_acquire_semaphore = acquire_semaphore;
 
   return VK_SUCCESS;
 }
@@ -652,11 +676,10 @@ VkResult CVulkanRenderSystem::acquire_next_image(uint32_t* image)
 void CVulkanRenderSystem::render_triangle(uint32_t swapchain_index)
 {
   // Render to this framebuffer.
-  VkFramebuffer framebuffer = context.per_frame[swapchain_index].swapchain_framebuffer;
+  VkFramebuffer framebuffer = m_per_frame[swapchain_index].swapchain_framebuffer;
 
   // Allocate or re-use a primary command buffer.
-  VkCommandBuffer cmd =
-      context.per_frame[swapchain_index].primary_command_buffer->GetVulkanCommandBuffer();
+  VkCommandBuffer cmd = m_per_frame[swapchain_index].primary_command_buffer->GetVulkanCommandBuffer();
 
   // We will only submit this once before it's recycled.
   VkCommandBufferBeginInfo begin_info{
@@ -706,7 +729,7 @@ void CVulkanRenderSystem::render_triangle(uint32_t swapchain_index)
 
   // Bind the vertex buffer to source the draw calls from.
   VkDeviceSize offset = {0};
-  vkCmdBindVertexBuffers(cmd, 0, 1, &vertex_buffer, &offset);
+  vkCmdBindVertexBuffers(cmd, 0, 1, &m_vertex_buffer, &offset);
 
   // Draw three vertices with one instance from the currently bound vertex bound.
   vkCmdDraw(cmd, 3, 1, 0, 0);
@@ -723,16 +746,15 @@ void CVulkanRenderSystem::render_triangle(uint32_t swapchain_index)
   }
 
   // Submit it to the queue with a release semaphore.
-  if (context.per_frame[swapchain_index].swapchain_release_semaphore == VK_NULL_HANDLE)
+  if (m_per_frame[swapchain_index].swapchain_release_semaphore == VK_NULL_HANDLE)
   {
     VkSemaphoreCreateInfo semaphore_info{
         .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
         .pNext = nullptr,
         .flags = 0,
     };
-    VkResult result =
-        vkCreateSemaphore(m_vkDevice, &semaphore_info, nullptr,
-                          &context.per_frame[swapchain_index].swapchain_release_semaphore);
+    VkResult result = vkCreateSemaphore(m_vkDevice, &semaphore_info, nullptr,
+                                        &m_per_frame[swapchain_index].swapchain_release_semaphore);
     if (result != VK_SUCCESS)
     {
       CLog::Log(LOGERROR, "Vulkan: Failed to create semaphore, ERROR: {0}", ErrorString(result));
@@ -742,19 +764,18 @@ void CVulkanRenderSystem::render_triangle(uint32_t swapchain_index)
 
   VkPipelineStageFlags wait_stage{VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
 
-  VkSubmitInfo info{
-      .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
-      .pNext = nullptr,
-      .waitSemaphoreCount = 1,
-      .pWaitSemaphores = &context.per_frame[swapchain_index].swapchain_acquire_semaphore,
-      .pWaitDstStageMask = &wait_stage,
-      .commandBufferCount = 1,
-      .pCommandBuffers = &cmd,
-      .signalSemaphoreCount = 1,
-      .pSignalSemaphores = &context.per_frame[swapchain_index].swapchain_release_semaphore};
+  VkSubmitInfo info{.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+                    .pNext = nullptr,
+                    .waitSemaphoreCount = 1,
+                    .pWaitSemaphores = &m_per_frame[swapchain_index].swapchain_acquire_semaphore,
+                    .pWaitDstStageMask = &wait_stage,
+                    .commandBufferCount = 1,
+                    .pCommandBuffers = &cmd,
+                    .signalSemaphoreCount = 1,
+                    .pSignalSemaphores = &m_per_frame[swapchain_index].swapchain_release_semaphore};
   // Submit command buffer to graphics queue
   result = vkQueueSubmit(m_deviceQueue->VulkanQueue(), 1, &info,
-                         context.per_frame[swapchain_index].queue_submit_fence);
+                         m_per_frame[swapchain_index].queue_submit_fence);
   if (result != VK_SUCCESS)
   {
     CLog::Log(LOGERROR, "Vulkan: Failed to submit command buffer, ERROR: {0}", ErrorString(result));
@@ -770,7 +791,7 @@ VkResult CVulkanRenderSystem::present_image(uint32_t index)
       .sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
       .pNext = nullptr,
       .waitSemaphoreCount = 1,
-      .pWaitSemaphores = &context.per_frame[index].swapchain_release_semaphore,
+      .pWaitSemaphores = &m_per_frame[index].swapchain_release_semaphore,
       .swapchainCount = 1,
       .pSwapchains = &swapchain,
       .pImageIndices = &index,
@@ -789,7 +810,7 @@ void CVulkanRenderSystem::Destroy()
     vkDeviceWaitIdle(m_vkDevice);
   }
 
-  for (auto& per_frame : context.per_frame)
+  for (auto& per_frame : m_per_frame)
   {
     if (per_frame.queue_submit_fence != VK_NULL_HANDLE)
     {
@@ -825,9 +846,9 @@ void CVulkanRenderSystem::Destroy()
     }
   }
 
-  context.per_frame.clear();
+  m_per_frame.clear();
 
-  for (auto semaphore : context.recycled_semaphores)
+  for (auto semaphore : m_cycled_semaphores)
   {
     vkDestroySemaphore(m_vkDevice, semaphore, nullptr);
   }
@@ -843,47 +864,12 @@ void CVulkanRenderSystem::Destroy()
 
   DestroyFramebuffers();
 
-  if (vertex_buffer_allocation != VK_NULL_HANDLE)
+  if (m_vertex_buffer_allocation != VK_NULL_HANDLE)
   {
-    vmaDestroyBuffer(m_deviceQueue->VMAAllocator(), vertex_buffer, vertex_buffer_allocation);
+    vmaDestroyBuffer(m_deviceQueue->VMAAllocator(), m_vertex_buffer, m_vertex_buffer_allocation);
   }
 
   m_deviceQueue->Destroy();
-}
-
-void CVulkanRenderSystem::update(float delta_time)
-{
-  uint32_t index;
-
-  VkResult result = acquire_next_image(&index);
-
-  // Handle outdated error in acquire.
-  if (result == VK_SUBOPTIMAL_KHR || result == VK_ERROR_OUT_OF_DATE_KHR)
-  {
-    resize(m_width, m_height);
-    result = acquire_next_image(&index);
-  }
-
-  if (result != VK_SUCCESS)
-  {
-    vkQueueWaitIdle(m_deviceQueue->VulkanQueue());
-    return;
-  }
-
-
-  render_triangle(index);
-  result = present_image(index);
-
-  // Handle Outdated error in present.
-  if (result == VK_SUBOPTIMAL_KHR || result == VK_ERROR_OUT_OF_DATE_KHR)
-  {
-    resize(m_width, m_height);
-  }
-  else if (result != VK_SUCCESS)
-  {
-    CLog::Log(LOGERROR, "Vulkan: Failed to present swapchain image, ERROR: {0}",
-              ErrorString(result));
-  }
 }
 
 bool CVulkanRenderSystem::resize(const uint32_t width, const uint32_t height)
@@ -912,7 +898,7 @@ bool CVulkanRenderSystem::resize(const uint32_t width, const uint32_t height)
 
   //vkDeviceWaitIdle(m_vkDevice);
 
-  //for (auto& framebuffer : context.swapchain_framebuffers)
+  //for (auto& framebuffer : swapchain_framebuffers)
   //{
   //  vkDestroyFramebuffer(m_vkDevice, framebuffer, nullptr);
   //}

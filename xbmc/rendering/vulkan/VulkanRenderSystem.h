@@ -241,9 +241,7 @@ private:
 
 
   */
-  /**
-	 * @brief Per-frame data
-	 */
+
   struct PerFrame
   {
     VkFence queue_submit_fence = VK_NULL_HANDLE;
@@ -255,95 +253,24 @@ private:
     VkFramebuffer swapchain_framebuffer = VK_NULL_HANDLE;
   };
 
-  /**
-	 * @brief Vulkan objects and global state
-	 */
-  struct Context
-  {
-    /// The Vulkan physical device.
-    //VkPhysicalDevice gpu = VK_NULL_HANDLE;
-
-    /// The Vulkan device.
-    //VkDevice device = VK_NULL_HANDLE;
-
-    /// The Vulkan device queue.
-    //VkQueue queue = VK_NULL_HANDLE;
-
-    /// The swapchain.
-    //VkSwapchainKHR swapchain = VK_NULL_HANDLE;
-
-    /// The swapchain dimensions.
-    //SwapchainDimensions swapchain_dimensions;
-
-    /// The surface we will render to.
-    //VkSurfaceKHR surface = VK_NULL_HANDLE;
-
-    /// The queue family index where graphics work will be submitted.
-    //int32_t graphics_queue_index = -1;
-
-    /// The image view for each swapchain image.
-    //std::vector<VkImageView> swapchain_image_views;
-
-    /// The framebuffer for each swapchain image view.
-    //std::vector<VkFramebuffer> swapchain_framebuffers;
-
-    /// The renderpass description.
-    //VkRenderPass render_pass = VK_NULL_HANDLE;
-
-    /// The graphics pipeline.
-    //VkPipeline pipeline = VK_NULL_HANDLE;
-
-    /**
-		 * The pipeline layout for resources.
-		 * Not used in this sample, but we still need to provide a dummy one.
-		 */
-    //VkPipelineLayout pipeline_layout = VK_NULL_HANDLE;
-
-    /// The debug utility callback.
-
-    /// A set of semaphores that can be reused.
-    std::vector<VkSemaphore> recycled_semaphores;
-
-    /// A set of per-frame data.
-    std::vector<PerFrame> per_frame;
-
-    VmaAllocator vma_allocator = VK_NULL_HANDLE;
-  };
-
-  /// Properties of the vertices used in this sample.
   struct Vertex
   {
     glm::vec3 position;
     glm::vec3 color;
   };
 
-  /// The Vulkan buffer object that holds the vertex data for the triangle.
-  VkBuffer vertex_buffer = VK_NULL_HANDLE;
-
-  /// The device memory allocated for the vertex buffer.
-  VkDeviceMemory vertex_buffer_memory = VK_NULL_HANDLE;
-
-  /// Vulkan Memory Allocator (VMA) allocation info for the vertex buffer.
-  VmaAllocation vertex_buffer_allocation = VK_NULL_HANDLE;
-
-public:
   void Destroy();
-
-  void update(float delta_time);
-
   bool resize(const uint32_t width, const uint32_t height);
-
   void init_vertex_buffer();
-
-
   VkResult acquire_next_image(uint32_t* image);
-
   void render_triangle(uint32_t swapchain_index);
-
   VkResult present_image(uint32_t index);
 
-private:
-  Context context;
+  std::vector<VkSemaphore> m_cycled_semaphores;
+  std::vector<PerFrame> m_per_frame;
+  VkBuffer m_vertex_buffer = VK_NULL_HANDLE;
+  //VkDeviceMemory m_vertex_buffer_memory = VK_NULL_HANDLE;
+  VmaAllocation m_vertex_buffer_allocation = VK_NULL_HANDLE;
 };
 
 } // namespace VULKAN
