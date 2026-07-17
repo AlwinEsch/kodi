@@ -9,11 +9,25 @@
 #pragma once
 
 #include "guilib/GUIFontTTF.h"
+#include "rendering/vulkan/shaders/VulkanShaderFonts.h"
 
+#include <memory>
 #include <string>
 #include <vector>
 
-#include "system_vulkan.h"
+#include <vk_mem_alloc.h>
+#include <vulkan/vulkan_core.h>
+
+namespace KODI
+{
+namespace RENDERING
+{
+namespace VULKAN
+{
+class CVulkanRenderSystem;
+} // namespace VULKAN
+} // namespace RENDERING
+} // namespace KODI
 
 namespace KODI
 {
@@ -28,15 +42,15 @@ class CVulkanGUIFontTTF : public CGUIFontTTF
 {
 public:
   explicit CVulkanGUIFontTTF(const std::string& fontIdent);
-  ~CVulkanGUIFontTTF(void) override;
+  ~CVulkanGUIFontTTF() override;
 
   bool FirstBegin() override;
   void LastEnd() override;
 
   CVertexBuffer CreateVertexBuffer(const std::vector<SVertex>& vertices) const override;
   void DestroyVertexBuffer(CVertexBuffer& bufferHandle) const override;
-  static void CreateStaticVertexBuffers(void);
-  static void DestroyStaticVertexBuffers(void);
+  static void CreateStaticIndexBuffers();
+  static void DestroyStaticIndexBuffers();
 
 protected:
   std::unique_ptr<CTexture> ReallocTexture(unsigned int& newHeight) override;
@@ -47,9 +61,48 @@ protected:
                          unsigned int y2) override;
   void DeleteHardwareTexture() override;
 
-  static unsigned int m_elementArrayHandle;
-
 private:
+  /**
+   * @brief Creates a Vulkan vertex buffer.
+   *
+   * @param ref Pointer to the CVulkanGUIFontTTF instance.
+   * @param vertices Vector of vertices to be copied to the buffer.
+   * @return A CVertexBuffer object representing the created vertex buffer.
+   *
+   * @note Needs to be static because it is called from the base class CGUIFontTTF, which defined as const.
+   * The constness of the base class method prevents it from calling non-static member functions of the derived class.
+   */
+  static CVertexBuffer VulkanCreateVertexBuffer(CVulkanGUIFontTTF* ref,
+                                                const std::vector<SVertex>& vertices);
+
+  /**
+   * @brief Destroys a Vulkan vertex buffer.
+   *
+   * @param ref Pointer to the CVulkanGUIFontTTF instance.
+   * @param bufferHandle The CVertexBuffer object representing the vertex buffer to be destroyed.
+   *
+   * @note Needs to be static because it is called from the base class CGUIFontTTF, which defined as const.
+   */
+  static void VulkanDestroyVertexBuffer(CVulkanGUIFontTTF* ref, CVertexBuffer& bufferHandle);
+
+  std::unique_ptr<KODI::RENDERING::VULKAN::CVulkanShaderFonts> m_shader;
+
+  VkSampler m_sampler{VK_NULL_HANDLE};
+  VkImage m_image{VK_NULL_HANDLE};
+  VkImageView m_view{VK_NULL_HANDLE};
+  VkDeviceMemory m_imageMemory{VK_NULL_HANDLE};
+  VkDescriptorPool m_descriptorPool{VK_NULL_HANDLE};
+  VkDescriptorSet m_descriptorSet{VK_NULL_HANDLE};
+  VkDescriptorSetLayout m_descriptorSetLayout{VK_NULL_HANDLE};
+  VkPipelineLayout m_pipelineLayout{VK_NULL_HANDLE};
+  VkPipeline m_pipeline{VK_NULL_HANDLE};
+
+	// Passed from the sample
+  VkRenderPass m_renderPass{VK_NULL_HANDLE};
+  VkQueue m_queue{VK_NULL_HANDLE};
+
+  KODI::RENDERING::VULKAN::CVulkanRenderSystem* m_renderSystem{nullptr};
+
   unsigned int m_updateY1{0};
   unsigned int m_updateY2{0};
 
@@ -63,8 +116,14 @@ private:
 
   TextureStatus m_textureStatus{TEXTURE_VOID};
 
-  static bool m_staticVertexBufferCreated;
-  bool m_scissorClip{false};
+  struct StaticIndexBuffer
+  {
+    bool created{false};
+    VkBuffer buffer{VK_NULL_HANDLE};
+    VmaAllocation allocation{VK_NULL_HANDLE};
+  };
+
+  static StaticIndexBuffer m_staticIndexBuffer;
 };
 
 } // namespace VULKAN

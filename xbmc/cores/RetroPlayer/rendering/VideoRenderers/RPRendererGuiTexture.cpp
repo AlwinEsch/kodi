@@ -21,7 +21,7 @@ using namespace DirectX;
 #endif
 
 #if defined(HAS_VULKAN)
-#include "rendering/vulkan/VulkanUtils.h"
+#include "rendering/vulkan/utils/VulkanUtils.h"
 #include "system_vulkan.h"
 #elif defined(HAS_GL) || defined(HAS_GLES)
 #include "utils/GLUtils.h"

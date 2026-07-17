@@ -8,18 +8,8 @@
 
 #pragma once
 
-// GL Error checking macro
-// this function is useful for tracking down GL errors, which otherwise
-// just result in undefined behavior and can be difficult to track down.
-//
-// Just call it 'VerifyGLState()' after a sequence of GL calls
-//
-// if GL_DEBUGGING and HAS_GL are defined, the function checks
-// for GL errors and prints the current state of the various matrices;
-// if not it's just an empty inline stub, and thus won't affect performance
-// and will be optimized out.
-
 #include <string>
+#include <vector>
 #include <vulkan/vulkan_core.h>
 
 namespace KODI
@@ -103,6 +93,50 @@ void LogGraphicsInfo(const CVulkanInfo& vulkanInfo);
  * @return A string representing the Vulkan error code.
  */
 std::string ErrorString(VkResult errorCode);
+
+/**
+ * @brief Logs a Vulkan error.
+ *
+ * @param[in] result The Vulkan result code.
+ * @param[in] functionName The name of the function where the error occurred.
+ * @param[in] fileName The name of the file where the error occurred.
+ * @param[in] lineNumber The line number where the error occurred.
+ */
+void LogVulkanError(VkResult result,
+                    const std::string& functionName,
+                    const std::string& fileName,
+                    int lineNumber);
+
+// clang-format off
+/**
+ * @brief Checks the result of a Vulkan function call and logs an error if it failed.
+ *
+ * @param[in] f The Vulkan function call to check.
+ * @param[in] ... The return value in case of failure (if required).
+ *
+ * @warning Macro must be leafed in one line, otherwise `__LINE__` will be wrong and not accurate.
+ */
+#define VK_CHECK_RESULT(f, ...) do { VkResult res = (f); if (res != VK_SUCCESS) [[unlikely]] { const std::string s = #f; KODI::RENDERING::VULKAN::UTILS::LogVulkanError(res, s.substr(0, s.find('(')), __FILENAME__, __LINE__); return __VA_ARGS__; } } while (0)
+// clang-format on
+
+/**
+ * @brief Finds a suitable memory type index for allocating memory.
+ *
+ * This function searches through the physical device's memory types to find one that matches
+ * the requirements specified by `typeFilter` and `properties`. It's typically used when allocating
+ * memory for buffers or images, ensuring that the memory type supports the desired properties.
+ *
+ * @param[in] physicalDevice The Vulkan physical device to query for memory properties.
+ * @param[in] typeFilter A bitmask specifying the acceptable memory types.
+ *                   This is usually obtained from `VkMemoryRequirements::memoryTypeBits`.
+ * @param[in] properties A bitmask specifying the desired memory properties,
+ *                   such as `VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT` or `VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT`.
+ * @return The index of a suitable memory type.
+ * @throws std::runtime_error if no suitable memory type is found.
+ */
+uint32_t FindMemoryType(VkPhysicalDevice physicalDevice,
+                        uint32_t typeFilter,
+                        VkMemoryPropertyFlags properties);
 
 /**
  * @brief Gets the pipeline stage flags for a given image layout.

@@ -32,6 +32,7 @@ xbmc/programs                                   programs
 xbmc/rendering                                  rendering
 xbmc/rendering/vulkan                           rendering_vulkan
 xbmc/rendering/vulkan/shaders                   rendering_vulkan_shaders
+xbmc/rendering/vulkan/utils                     rendering_vulkan_utils
 xbmc/resources                                  resources
 xbmc/speech                                     speech
 xbmc/storage                                    storage

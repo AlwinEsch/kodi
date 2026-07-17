@@ -30,9 +30,12 @@
 // stuff for freetype
 #include <ft2build.h>
 #include <harfbuzz/hb-ft.h>
+
 #if defined(HAS_VULKAN)
-#include "system_vulkan.h"
-#elif defined(HAS_GL) || defined(HAS_GLES)
+#include <vulkan/vulkan_core.h>
+#endif
+
+#if defined(HAS_GL) || defined(HAS_GLES)
 #include "system_gl.h"
 #endif
 
@@ -1237,7 +1240,12 @@ void CGUIFontTTF::RenderCharacter(CGraphicContext& context,
 
   for (int i = 0; i < VERTEX_PER_GLYPH; i++)
   {
-#ifdef HAS_DX
+#if defined(HAS_VULKAN)
+    v[i].col.r = r;
+    v[i].col.g = g;
+    v[i].col.b = b;
+    v[i].col.a = a;
+#elif defined(HAS_DX)
     CD3DHelper::XMStoreColor(&v[i].col, color);
 #else
     v[i].r = r;
@@ -1247,7 +1255,29 @@ void CGUIFontTTF::RenderCharacter(CGraphicContext& context,
 #endif
   }
 
-#if defined(HAS_DX)
+#if defined(HAS_VULKAN)
+  // Vulkan uses triangle strips, not quads, so have to rearrange the vertex order
+  // GL uses vertex shaders to manipulate text rotation/translation/scaling/clipping.
+
+  // nudge position to align with raster grid. messes up kerning, but also avoids
+  // linear filtering (when not scaled/rotated).
+  float xOffset = 0.0f;
+  if (roundX)
+    xOffset = (vertex.x1 - std::floor(vertex.x1));
+  float yOffset = (vertex.y1 - std::floor(vertex.y1));
+
+  v[0].cord0 = glm::vec2(tl, tt);
+  v[0].pos = glm::vec2(vertex.x1 - xOffset - 0.5f, vertex.y1 - yOffset - 0.5f);
+
+  v[1].cord0 = glm::vec2(tr, tt);
+  v[1].pos = glm::vec2(vertex.x1 - xOffset - 0.5f, vertex.y1 - yOffset + 0.5f);
+
+  v[2].cord0 = glm::vec2(tr, tb);
+  v[2].pos = glm::vec2(vertex.x1 - xOffset + 0.5f, vertex.y1 - yOffset - 0.5f);
+
+  v[3].cord0 = glm::vec2(tl, tb);
+  v[3].pos = glm::vec2(vertex.x1 - xOffset + 0.5f, vertex.y1 - yOffset + 0.5f);
+#elif defined(HAS_DX)
   for (int i = 0; i < VERTEX_PER_GLYPH; i++)
   {
     v[i].x = x[i];

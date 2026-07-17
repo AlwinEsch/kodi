@@ -408,7 +408,7 @@ void GUIFontManager::Clear()
   m_vecFontInfo.clear();
 
 #if defined(HAS_VULKAN)
-  KODI::GUILIB::GRAPHICS::VULKAN::CVulkanGUIFontTTF::DestroyStaticVertexBuffers();
+  KODI::GUILIB::GRAPHICS::VULKAN::CVulkanGUIFontTTF::DestroyStaticIndexBuffers();
 #elif defined(HAS_GL)
   CGUIFontTTFGL::DestroyStaticVertexBuffers();
 #elif defined(HAS_GLES)

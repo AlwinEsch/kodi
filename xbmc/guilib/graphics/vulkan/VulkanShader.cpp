@@ -11,7 +11,7 @@
 #include "ServiceBroker.h"
 #include "filesystem/File.h"
 #include "rendering/RenderSystem.h"
-#include "rendering/vulkan/VulkanUtils.h"
+#include "rendering/vulkan/utils/VulkanUtils.h"
 #include "utils/StringUtils.h"
 #include "utils/log.h"
 

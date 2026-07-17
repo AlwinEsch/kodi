@@ -10,16 +10,12 @@
 
 #include "CompileInfo.h"
 #include "VulkanFunctionPointers.h"
-#include "rendering/vulkan/VulkanUtils.h"
+#include "rendering/vulkan/utils/VulkanUtils.h"
 #include "utils/log.h"
 
 #include <algorithm>
 
-namespace KODI
-{
-namespace RENDERING
-{
-namespace VULKAN
+namespace KODI::RENDERING::VULKAN
 {
 
 CVulkanInstance::~CVulkanInstance()
@@ -119,12 +115,7 @@ bool CVulkanInstance::Create(const std::vector<const char*>& required_extensions
   }
 #endif
 
-  VkResult result = vkCreateInstance(&instanceCreateInfo, nullptr, &m_vkInstance);
-  if (VK_SUCCESS != result) [[unlikely]]
-  {
-    CLog::Log(LOGERROR, "vkCreateInstance() failed: {0}", ErrorString(result));
-    return false;
-  }
+  VK_CHECK_RESULT(vkCreateInstance(&instanceCreateInfo, nullptr, &m_vkInstance), false);
 
   if (!GetVulkanFunctionPointers()->BindInstanceFunctionPointers(m_vkInstance,
                                                                  m_vulkanInfo.instanceExtensions))
@@ -150,13 +141,9 @@ bool CVulkanInstance::Create(const std::vector<const char*>& required_extensions
     createInfo.pfnUserCallback = &UTILS::vulkanErrorCallback;
     createInfo.pUserData = nullptr; // Optional user data
 
-    VkResult result =
-        vkCreateDebugUtilsMessengerEXT(m_vkInstance, &createInfo, nullptr, &m_vkDebugMessenger);
-    if (result != VK_SUCCESS) [[unlikely]]
-    {
-      using KODI::RENDERING::VULKAN::UTILS::ErrorString;
-      CLog::Log(LOGERROR, "Vulkan: Failed to set up debug messenger: {}", ErrorString(result));
-    }
+    VK_CHECK_RESULT(
+        vkCreateDebugUtilsMessengerEXT(m_vkInstance, &createInfo, nullptr, &m_vkDebugMessenger),
+        false);
   }
 #endif
 
@@ -189,15 +176,8 @@ bool CVulkanInstance::GetBasicInfos(const std::vector<const char*>& requiredLaye
 {
   using KODI::RENDERING::VULKAN::UTILS::ErrorString;
 
-  VkResult result;
-
   // Get and check the Vulkan API version supported by the Vulkan loader and driver.
-  result = vkEnumerateInstanceVersion(&m_vulkanInfo.availableAPIVersion);
-  if (result != VK_SUCCESS) [[unlikely]]
-  {
-    CLog::Log(LOGERROR, "vkEnumerateInstanceVersion() failed: {0}", ErrorString(result));
-    return false;
-  }
+  VK_CHECK_RESULT(vkEnumerateInstanceVersion(&m_vulkanInfo.availableAPIVersion), false);
 
   if (m_vulkanInfo.availableAPIVersion < REQUIRED_VK_API_VERSION) [[unlikely]]
   {
@@ -221,46 +201,31 @@ bool CVulkanInstance::GetBasicInfos(const std::vector<const char*>& requiredLaye
   for (const char* layer_name : allRequiredLayers)
   {
     uint32_t num_instance_exts{0};
-    result = vkEnumerateInstanceExtensionProperties(layer_name, &num_instance_exts, nullptr);
-    if (result != VK_SUCCESS) [[unlikely]]
-    {
-      CLog::Log(LOGERROR, "vkEnumerateInstanceExtensionProperties({0}) failed to get size: {1}",
-                (layer_name ? layer_name : "nullptr"), ErrorString(result));
-      return false;
-    }
+    VK_CHECK_RESULT(vkEnumerateInstanceExtensionProperties(layer_name, &num_instance_exts, nullptr),
+                    false);
 
     const size_t previous_extension_count = m_vulkanInfo.instanceExtensions.size();
     m_vulkanInfo.instanceExtensions.resize(previous_extension_count + num_instance_exts);
 
-    result = vkEnumerateInstanceExtensionProperties(
-        layer_name, &num_instance_exts,
-        &m_vulkanInfo.instanceExtensions.data()[previous_extension_count]);
-    if (result != VK_SUCCESS) [[unlikely]]
-    {
-      CLog::Log(LOGERROR,
-                "vkEnumerateInstanceExtensionProperties({0}) failed to get properties: {1}",
-                (layer_name ? layer_name : "nullptr"), ErrorString(result));
-      return false;
-    }
+    VK_CHECK_RESULT(vkEnumerateInstanceExtensionProperties(
+                        layer_name, &num_instance_exts,
+                        &m_vulkanInfo.instanceExtensions.data()[previous_extension_count]),
+                    false);
   }
 
   uint32_t numInstanceLayers = 0;
-  result = vkEnumerateInstanceLayerProperties(&numInstanceLayers, nullptr);
-  if (result != VK_SUCCESS) [[unlikely]]
-  {
-    CLog::Log(LOGERROR, "vkEnumerateInstanceLayerProperties(NULL) failed: {0}",
-              ErrorString(result));
-    return false;
-  }
+  VK_CHECK_RESULT(vkEnumerateInstanceLayerProperties(&numInstanceLayers, nullptr), false);
 
   m_vulkanInfo.instanceLayers.resize(numInstanceLayers);
-  result =
-      vkEnumerateInstanceLayerProperties(&numInstanceLayers, m_vulkanInfo.instanceLayers.data());
-  if (result != VK_SUCCESS) [[unlikely]]
-  {
-    CLog::Log(LOGERROR, "vkEnumerateInstanceLayerProperties() failed: {0}", ErrorString(result));
-    return false;
-  }
+  VK_CHECK_RESULT(
+      vkEnumerateInstanceLayerProperties(&numInstanceLayers, m_vulkanInfo.instanceLayers.data()),
+      false);
+
+  m_vulkanInfo.instanceLayers.resize(numInstanceLayers);
+  VK_CHECK_RESULT(
+      vkEnumerateInstanceLayerProperties(&numInstanceLayers, m_vulkanInfo.instanceLayers.data()),
+      false);
+
 
   return true;
 }
@@ -273,26 +238,16 @@ bool CVulkanInstance::GetDeviceInfos(VkPhysicalDevice physicalDevice /* = VK_NUL
   if (physicalDevice == VK_NULL_HANDLE)
   {
     uint32_t count = 0;
-    VkResult result = vkEnumeratePhysicalDevices(m_vkInstance, &count, nullptr);
-    if (result != VK_SUCCESS)
-    {
-      CLog::Log(LOGERROR, "vkEnumeratePhysicalDevices failed: {0}", ErrorString(result));
-      return false;
-    }
-
-    if (!count)
+    VK_CHECK_RESULT(vkEnumeratePhysicalDevices(m_vkInstance, &count, nullptr), false);
+    if (count == 0)
     {
       CLog::Log(LOGERROR, "vkEnumeratePhysicalDevices returns zero device.");
       return false;
     }
 
     physicalDevices.resize(count);
-    result = vkEnumeratePhysicalDevices(m_vkInstance, &count, physicalDevices.data());
-    if (VK_SUCCESS != result)
-    {
-      CLog::Log(LOGERROR, "vkEnumeratePhysicalDevices() failed: {0}", ErrorString(result));
-      return false;
-    }
+    VK_CHECK_RESULT(vkEnumeratePhysicalDevices(m_vkInstance, &count, physicalDevices.data()),
+                    false);
   }
   else
   {
@@ -309,20 +264,14 @@ bool CVulkanInstance::GetDeviceInfos(VkPhysicalDevice physicalDevice /* = VK_NUL
     vkGetPhysicalDeviceProperties(device, &info.properties);
 
     uint32_t count = 0;
-    VkResult result =
-        vkEnumerateDeviceExtensionProperties(device, nullptr /* pLayerName */, &count, nullptr);
-    if (result != VK_SUCCESS)
-    {
-      CLog::Log(LOGERROR, "vkEnumerateDeviceExtensionProperties failed: {0}", ErrorString(result));
-    }
+    VK_CHECK_RESULT(
+        vkEnumerateDeviceExtensionProperties(device, nullptr /* pLayerName */, &count, nullptr),
+        false);
 
     info.extensions.resize(count);
-    result = vkEnumerateDeviceExtensionProperties(device, nullptr /* pLayerName */, &count,
-                                                  info.extensions.data());
-    if (result != VK_SUCCESS)
-    {
-      CLog::Log(LOGERROR, "vkEnumerateDeviceExtensionProperties failed: {0}", ErrorString(result));
-    }
+    VK_CHECK_RESULT(vkEnumerateDeviceExtensionProperties(device, nullptr /* pLayerName */, &count,
+                                                         info.extensions.data()),
+                    false);
 
     if (info.properties.apiVersion >= REQUIRED_VK_API_VERSION)
     {
@@ -388,8 +337,8 @@ bool CVulkanInstance::ValidateExtensions(const char* extension,
   bool found = false;
   for (auto& available_extension : available)
   {
-    fprintf(stderr, "Vulkan: Available extension: %s - Required: %s\n", available_extension.extensionName,
-            extension);
+    CLog::Log(LOGDEBUG, "Vulkan: Available extension: {} - Required: {}",
+              available_extension.extensionName, extension);
     if (strcmp(available_extension.extensionName, extension) == 0)
     {
       found = true;
@@ -405,6 +354,4 @@ bool CVulkanInstance::ValidateExtensions(const char* extension,
   return true;
 }
 
-} // namespace VULKAN
-} // namespace RENDERING
-} // namespace KODI
+} // namespace KODI::RENDERING::VULKAN

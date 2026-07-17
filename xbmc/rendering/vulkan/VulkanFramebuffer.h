@@ -27,28 +27,30 @@ class CVulkanSurface;
 class CVulkanFramebuffer
 {
 public:
-  CVulkanFramebuffer(VkImageView vkImageView,
-                     VkFramebuffer vkFramebuffer,
-                     std::unique_ptr<CVulkanCommandBuffer> commandBuffer);
+  CVulkanFramebuffer(VkDevice vkDevice);
   ~CVulkanFramebuffer();
 
-  static std::unique_ptr<CVulkanFramebuffer> Create(CVulkanDeviceQueue* vulkanDeviceQueue,
-                                                    CVulkanCommandPool* vulkanCommandPool,
-                                                    VkRenderPass vkRenderPass,
-                                                    CVulkanSurface* vulkanSurface,
-                                                    VkImage vkImage);
+  bool Create(CVulkanDeviceQueue* vulkanDeviceQueue,
+              CVulkanCommandPool* vulkanCommandPool,
+              VkRenderPass vkRenderPass,
+              CVulkanSurface* vulkanSurface,
+              VkImage vkImage);
+  void Destroy();
 
   VkImageView vkImageView() const { return m_vkImageView; }
   VkFramebuffer vkFramebuffer() const { return m_vkFramebuffer; }
+  VkDevice vkDevice() const { return m_vkDevice; }
   CVulkanCommandBuffer* CommandBuffer() const { return m_commandBuffer.get(); }
 
 private:
   CVulkanFramebuffer(const CVulkanFramebuffer&) = delete;
   CVulkanFramebuffer& operator=(const CVulkanFramebuffer&) = delete;
 
-  const VkImageView m_vkImageView;
-  const VkFramebuffer m_vkFramebuffer;
-  const std::unique_ptr<CVulkanCommandBuffer> m_commandBuffer;
+  const VkDevice m_vkDevice;
+
+  VkImageView m_vkImageView{VK_NULL_HANDLE};
+  VkFramebuffer m_vkFramebuffer{VK_NULL_HANDLE};
+  std::unique_ptr<CVulkanCommandBuffer> m_commandBuffer;
 };
 
 } // namespace VULKAN

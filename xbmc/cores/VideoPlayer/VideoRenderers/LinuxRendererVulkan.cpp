@@ -20,7 +20,7 @@
 #include "guilib/Texture.h"
 #include "rendering/vulkan/VulkanMatrix.h"
 #include "rendering/vulkan/VulkanRenderSystem.h"
-#include "rendering/vulkan/VulkanUtils.h"
+#include "rendering/vulkan/utils/VulkanUtils.h"
 #include "settings/AdvancedSettings.h"
 #include "settings/DisplaySettings.h"
 #include "settings/MediaSettings.h"

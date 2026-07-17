@@ -26,6 +26,11 @@
 #include <stdint.h>
 #include <vector>
 
+#if defined(HAS_VULKAN)
+#include <vk_mem_alloc.h>
+#include <vulkan/vulkan_core.h>
+#endif // HAS_VULKAN
+
 constexpr float FONT_CACHE_DIST_LIMIT = 0.01f;
 
 class CGraphicContext;
@@ -220,11 +225,22 @@ struct CGUIFontCacheDynamicPosition
   }
 };
 
+/**
+ * @brief Represents a vertex buffer used in the font cache.
+ *
+ * @note About Vulkan, a struct is needed and the Vulkan headers are included.
+ * For OpenGL and GLES, it is just a GLuint. For DirectX, it is a void pointer.
+ */
 struct CVertexBuffer
 {
 #if defined(HAS_VULKAN)
-  typedef unsigned int BufferHandleType;
-#define BUFFER_HANDLE_INIT 0
+  struct BufferHandleType
+  {
+    VkBuffer buffer;
+    VmaAllocation allocation;
+  };
+  typedef BufferHandleType BufferHandleType;
+#define BUFFER_HANDLE_INIT {VK_NULL_HANDLE, VK_NULL_HANDLE}
 #elif defined(HAS_GL) || defined(HAS_GLES)
   typedef unsigned int BufferHandleType;
 #define BUFFER_HANDLE_INIT 0
@@ -245,14 +261,28 @@ struct CVertexBuffer
     /* In practice, the copy constructor is only called before a vertex buffer
      * has been attached. If this should ever change, we'll need another support
      * function in GUIFontTTFGL/DX to duplicate a buffer, given its handle. */
+#if defined(HAS_VULKAN)
+    assert(other.bufferHandle.buffer == VK_NULL_HANDLE &&
+           other.bufferHandle.allocation == VK_NULL_HANDLE);
+#else
     assert(other.bufferHandle == 0);
+#endif
   }
   CVertexBuffer& operator=(CVertexBuffer& other)
   {
     /* This is used with move-assignment semantics for initialising the object in the font cache */
-    assert(bufferHandle == 0);
+#if defined(HAS_VULKAN)
+    assert(bufferHandle.buffer == VK_NULL_HANDLE ||
+           bufferHandle.allocation == VK_NULL_HANDLE);
+    bufferHandle.buffer = other.bufferHandle.buffer;
+    bufferHandle.allocation = other.bufferHandle.allocation;
+    other.bufferHandle.buffer = VK_NULL_HANDLE;
+    other.bufferHandle.allocation = VK_NULL_HANDLE;
+#else
+    assert(other.bufferHandle == 0);
     bufferHandle = other.bufferHandle;
     other.bufferHandle = 0;
+#endif
     size = other.size;
     m_font = other.m_font;
     return *this;

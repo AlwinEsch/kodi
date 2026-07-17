@@ -10,8 +10,6 @@
 
 #include "rendering/vulkan/VulkanSwapChain.h"
 
-#include <algorithm>
-
 namespace KODI
 {
 namespace RENDERING

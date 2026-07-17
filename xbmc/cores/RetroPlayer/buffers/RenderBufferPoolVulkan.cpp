@@ -12,7 +12,7 @@
 #include "cores/RetroPlayer/rendering/RenderContext.h"
 #include "cores/RetroPlayer/rendering/RenderVideoSettings.h"
 #include "cores/RetroPlayer/rendering/VideoRenderers/RPRendererVulkan.h"
-#include "rendering/vulkan/VulkanUtils.h"
+#include "rendering/vulkan/utils/VulkanUtils.h"
 
 using namespace KODI;
 using namespace RETRO;

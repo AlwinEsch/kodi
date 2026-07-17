@@ -12,11 +12,7 @@
 #include <string_view>
 #include <vulkan/vulkan_core.h>
 
-namespace KODI
-{
-namespace RENDERING
-{
-namespace VULKAN
+namespace KODI::RENDERING::VULKAN
 {
 
 using ShaderId = int;
@@ -58,6 +54,4 @@ public:
   virtual VkPipeline VulkanPipeline() const = 0;
 };
 
-} // namespace VULKAN
-} // namespace RENDERING
-} // namespace KODI
+} // namespace KODI::RENDERING::VULKAN

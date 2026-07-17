@@ -37,12 +37,16 @@ bool CVulkanCommandPool::Initialize(bool allowProtectedMemory)
       .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
       .pNext = nullptr,
       //.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT,
-      .flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT |
-               (allowProtectedMemory ? VK_COMMAND_POOL_CREATE_PROTECTED_BIT : 0),
-      .queueFamilyIndex = m_deviceQueue->VulkanQueueIndex(),
+      .flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
+      .queueFamilyIndex = static_cast<uint32_t>(m_deviceQueue->VulkanQueueIndex()),
   };
+  if (allowProtectedMemory)
+  {
+    info.flags |= VK_COMMAND_POOL_CREATE_PROTECTED_BIT;
+  }
+
   VkResult result =
-      vkCreateCommandPool(m_deviceQueue->VulkanDevice(), &info, nullptr, &m_vkCommandPool);
+      vkCreateCommandPool(m_deviceQueue->vkDevice(), &info, nullptr, &m_vkCommandPool);
   if (result != VK_SUCCESS)
   {
     CLog::Log(LOGERROR, "Vulkan: Failed to create command pool for per frame data. ERROR {0}",
@@ -58,7 +62,7 @@ void CVulkanCommandPool::Destroy()
   assert(m_commandBufferCount == 0u);
   if (m_vkCommandPool != VK_NULL_HANDLE)
   {
-    vkDestroyCommandPool(m_deviceQueue->VulkanDevice(), m_vkCommandPool, nullptr);
+    vkDestroyCommandPool(m_deviceQueue->vkDevice(), m_vkCommandPool, nullptr);
     m_vkCommandPool = VK_NULL_HANDLE;
   }
 }

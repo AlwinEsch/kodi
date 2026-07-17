@@ -26,13 +26,7 @@ class CVulkanRenderSystem;
 } // namespace RENDERING
 } // namespace KODI
 
-namespace KODI
-{
-namespace GUILIB
-{
-namespace GRAPHICS
-{
-namespace VULKAN
+namespace KODI::GUILIB::GRAPHICS::VULKAN
 {
 
 struct PackedVertex
@@ -83,7 +77,4 @@ private:
   KODI::RENDERING::VULKAN::CVulkanRenderSystem* m_renderSystem;
 };
 
-} // namespace VULKAN
-} // namespace GRAPHICS
-} // namespace GUILIB
-} // namespace KODI
+} // namespace KODI::GUILIB::GRAPHICS::VULKAN

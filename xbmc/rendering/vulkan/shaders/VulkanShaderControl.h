@@ -21,8 +21,12 @@ namespace VULKAN
 {
 
 constexpr ShaderId VULKAN_TEST_SHADER = 0;
+constexpr ShaderId VULKAN_DEFAULT_SHADER = 1;
+constexpr ShaderId VULKAN_TEXTURE_SHADER = 2;
+constexpr ShaderId VULKAN_TEXTURE_NOALPHA_SHADER = 3;
+constexpr ShaderId VULKAN_FONTS_SHADER = 4;
 
-constexpr ShaderId INVALID_SHADER_ID = -1;
+constexpr ShaderId SHADER_ID_INVALID = -1;
 constexpr ShaderId OPTIONAL_SHADER_ID_START = 100;
 
 class IVulkanShader;

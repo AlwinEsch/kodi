@@ -52,18 +52,18 @@ public:
 
   std::unique_ptr<CVulkanCommandPool> CreateCommandPool();
 
-  VkInstance VulkanInstance() const { return m_vkInstance; }
-  VkDevice VulkanDevice() const { return m_vkDevice; }
-  VkPhysicalDevice VulkanPhysicalDevice() const { return m_vkPhysicalDevice; }
-  const VkPhysicalDeviceProperties& VulkanPhysicalDeviceProperties() const
+  VkInstance vkInstance() const { return m_vkInstance; }
+  VkDevice vkDevice() const { return m_vkDevice; }
+  VkPhysicalDevice vkPhysicalDevice() const { return m_vkPhysicalDevice; }
+  const VkPhysicalDeviceProperties& vkPhysicalDeviceProperties() const
   {
     return m_vkPhysicalDeviceProperties;
   }
-  const VkPhysicalDeviceDriverProperties& VulkanPhysicalDeviceDriverProperties() const
+  const VkPhysicalDeviceDriverProperties& vkPhysicalDeviceDriverProperties() const
   {
     return m_vkPhysicalDeviceDriverProperties;
   }
-  VkQueue VulkanQueue() const { return m_vkQueue; }
+  VkQueue vkQueue() const { return m_vkQueue; }
   int32_t VulkanQueueIndex() const { return m_vkQueueIndex; }
   bool AllowProtectedMemory() const { return m_allowProtectedMemory; }
   VmaAllocator VMAAllocator() const { return m_vmaAllocator; }
@@ -74,6 +74,10 @@ public:
   const VkPhysicalDeviceFeatures& EnabledDeviceFeatures() const
   {
     return m_vkEnabledDeviceFeatures2.features;
+  }
+  const VkPhysicalDeviceLimits& DeviceLimits() const
+  {
+    return m_vkPhysicalDeviceProperties.limits;
   }
   CVulkanFenceHelper* FenceHelper() const { return m_cleanupHelper.get(); }
 

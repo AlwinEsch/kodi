@@ -10,7 +10,7 @@
 
 #include "rendering/vulkan/VulkanDeviceQueue.h"
 #include "rendering/vulkan/VulkanSwapChain.h"
-#include "rendering/vulkan/VulkanUtils.h"
+#include "rendering/vulkan/utils/VulkanUtils.h"
 #include "utils/log.h"
 
 #include <array>
@@ -65,7 +65,7 @@ bool CVulkanSurface::Initialize(CVulkanDeviceQueue* deviceQueue, SurfaceFormat f
   m_deviceQueue = deviceQueue;
 
   VkBool32 presentSupport;
-  VkResult result = vkGetPhysicalDeviceSurfaceSupportKHR(m_deviceQueue->VulkanPhysicalDevice(),
+  VkResult result = vkGetPhysicalDeviceSurfaceSupportKHR(m_deviceQueue->vkPhysicalDevice(),
                                                          m_deviceQueue->VulkanQueueIndex(),
                                                          m_vkSurface, &presentSupport);
   if (result != VK_SUCCESS)
@@ -82,7 +82,7 @@ bool CVulkanSurface::Initialize(CVulkanDeviceQueue* deviceQueue, SurfaceFormat f
 
   // Get list of supported formats.
   uint32_t formatCount = 0;
-  result = vkGetPhysicalDeviceSurfaceFormatsKHR(m_deviceQueue->VulkanPhysicalDevice(),
+  result = vkGetPhysicalDeviceSurfaceFormatsKHR(m_deviceQueue->vkPhysicalDevice(),
                                                 m_vkSurface, &formatCount, nullptr);
   if (result != VK_SUCCESS)
   {
@@ -92,7 +92,7 @@ bool CVulkanSurface::Initialize(CVulkanDeviceQueue* deviceQueue, SurfaceFormat f
   }
 
   std::vector<VkSurfaceFormatKHR> formats(formatCount);
-  result = vkGetPhysicalDeviceSurfaceFormatsKHR(m_deviceQueue->VulkanPhysicalDevice(),
+  result = vkGetPhysicalDeviceSurfaceFormatsKHR(m_deviceQueue->vkPhysicalDevice(),
                                                 m_vkSurface, &formatCount, formats.data());
   if (result != VK_SUCCESS)
   {
@@ -144,7 +144,7 @@ bool CVulkanSurface::Initialize(CVulkanDeviceQueue* deviceQueue, SurfaceFormat f
   }
 
   VkSurfaceCapabilitiesKHR surfaceCaps;
-  result = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(m_deviceQueue->VulkanPhysicalDevice(),
+  result = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(m_deviceQueue->vkPhysicalDevice(),
                                                      m_vkSurface, &surfaceCaps);
   if (result != VK_SUCCESS)
   {
@@ -202,7 +202,7 @@ bool CVulkanSurface::CreateSwapChain(const VkRect2D& size,
   // Get Surface Information.
   VkSurfaceCapabilitiesKHR surfaceCaps;
   VkResult result = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(
-      m_deviceQueue->VulkanPhysicalDevice(), m_vkSurface, &surfaceCaps);
+      m_deviceQueue->vkPhysicalDevice(), m_vkSurface, &surfaceCaps);
   if (result != VK_SUCCESS)
   {
     CLog::Log(LOGFATAL, "vkGetPhysicalDeviceSurfaceCapabilitiesKHR() failed: {}",

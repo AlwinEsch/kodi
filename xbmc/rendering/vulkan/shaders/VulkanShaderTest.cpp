@@ -8,7 +8,7 @@
 
 #include "VulkanShaderTest.h"
 
-#include "rendering/vulkan/VulkanUtils.h"
+#include "rendering/vulkan/utils/VulkanUtils.h"
 #include "utils/log.h"
 
 #include <cassert>
@@ -48,7 +48,10 @@ bool CVulkanShaderTest::Create()
 
   // Define the vertex input binding.
   VkVertexInputBindingDescription binding_description{
-      .binding = 0, .stride = sizeof(Vertex), .inputRate = VK_VERTEX_INPUT_RATE_VERTEX};
+      .binding = 0,
+      .stride = sizeof(Vertex),
+      .inputRate = VK_VERTEX_INPUT_RATE_VERTEX,
+  };
 
   // Define the vertex input attribute.
   std::array<VkVertexInputAttributeDescription, 2> attribute_descriptions{

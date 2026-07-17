@@ -15,8 +15,7 @@ if(TARGET ${APP_NAME_LC}::Vulkan)
               VulkanScreenshotSurface.cpp
               VulkanShader.cpp
               VulkanSurface.cpp
-              VulkanSwapChain.cpp
-              VulkanUtils.cpp)
+              VulkanSwapChain.cpp)
 
   set(HEADERS VulkanCommandBuffer.h
               VulkanCommandPool.h
@@ -35,8 +34,7 @@ if(TARGET ${APP_NAME_LC}::Vulkan)
               VulkanScreenshotSurface.h
               VulkanShader.h
               VulkanSurface.h
-              VulkanSwapChain.h
-              VulkanUtils.h)
+              VulkanSwapChain.h)
 
   core_add_library(rendering_vulkan)
 
@@ -84,6 +82,7 @@ if(TARGET ${APP_NAME_LC}::Vulkan)
     vulkan_shader_gr3_vert_simple.glsl
     vulkan_shader_gr4_vert_gui_composite.glsl
     vulkan_shader_gr5_vert_videofilter.glsl
+    text.vert.glsl
   )
 
   set(SHADERS_PIXEL
@@ -98,6 +97,7 @@ if(TARGET ${APP_NAME_LC}::Vulkan)
     vulkan_shader_gr4_frag_gui_composite.glsl
     vulkan_shader_gr5_frag_stretch.glsl
     vulkan_shader_gr5_frag_videofilter.glsl
+    text.frag.glsl
   )
 
   compile_shader(rendering_vulkan

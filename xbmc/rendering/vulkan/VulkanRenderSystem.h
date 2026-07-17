@@ -10,65 +10,20 @@
 
 #include "VulkanDeviceQueue.h"
 #include "rendering/RenderSystem.h"
+#include "rendering/vulkan/VulkanScopedWrite.h"
 #include "rendering/vulkan/VulkanSurface.h"
 #include "rendering/vulkan/VulkanSwapChain.h"
+#include "rendering/vulkan/shaders/VulkanShaderControl.h"
 
 #include <deque>
 #include <map>
 #include <memory>
+#include <optional>
 #include <vector>
 
 #include <fmt/format.h>
 #include <glm/glm.hpp>
 #include <vulkan/vulkan_core.h>
-
-//#include "system_vulkan.h"
-
-enum class ShaderMethodVulkan
-{
-  SM_DEFAULT = 0,
-  SM_TEXTURE,
-  SM_TEXTURE_LIM,
-  SM_MULTI,
-  SM_FONTS,
-  SM_FONTS_SHADER_CLIP,
-  SM_TEXTURE_NOBLEND,
-  SM_TEXTURE_NOALPHA,
-  SM_MULTI_BLENDCOLOR,
-  SM_MAX
-};
-
-template<>
-struct fmt::formatter<ShaderMethodVulkan> : fmt::formatter<std::string_view>
-{
-  template<typename FormatContext>
-  constexpr auto format(const ShaderMethodVulkan& shaderMethod, FormatContext& ctx)
-  {
-    const auto it = ShaderMethodVulkanMap.find(shaderMethod);
-    if (it == ShaderMethodVulkanMap.cend())
-      throw std::range_error("no string mapping found for shader method");
-
-    return fmt::formatter<string_view>::format(it->second, ctx);
-  }
-
-private:
-  static constexpr auto ShaderMethodVulkanMap = make_map<ShaderMethodVulkan, std::string_view>({
-      {ShaderMethodVulkan::SM_DEFAULT, "default"},
-      {ShaderMethodVulkan::SM_TEXTURE, "texture"},
-      {ShaderMethodVulkan::SM_TEXTURE_LIM, "texture limited"},
-      {ShaderMethodVulkan::SM_MULTI, "multi"},
-      {ShaderMethodVulkan::SM_FONTS, "fonts"},
-      {ShaderMethodVulkan::SM_FONTS_SHADER_CLIP, "fonts with vertex shader based clipping"},
-      {ShaderMethodVulkan::SM_TEXTURE_NOBLEND, "texture no blending"},
-      {ShaderMethodVulkan::SM_TEXTURE_NOALPHA, "texture no alpha"},
-      {ShaderMethodVulkan::SM_MULTI_BLENDCOLOR, "multi blend colour"},
-  });
-
-  static_assert(
-      static_cast<size_t>(ShaderMethodVulkan::SM_MAX) == ShaderMethodVulkanMap.size(),
-      "ShaderMethodVulkanMap doesn't match the size of ShaderMethodVulkan, did you forget to "
-      "add/remove a mapping?");
-};
 
 namespace KODI
 {
@@ -83,15 +38,10 @@ class CVulkanSurface;
 class CVulkanInstance;
 class CVulkanRenderSystem;
 class CVulkanRenderPass;
+class CVulkanScopedWrite;
 class CVulkanShaderControl;
 class CVulkanCommandPool;
 class CVulkanFramebuffer;
-
-std::unique_ptr<CVulkanDeviceQueue> CreateVulkanDeviceQueue(CVulkanRenderSystem* vulkanRenderSystem,
-                                                            DeviceQueueOptions options,
-                                                            uint32_t heapMemoryLimit,
-                                                            bool allowProtectedMemory = false,
-                                                            bool isThreadSafe = false);
 
 class CVulkanRenderSystem : public CRenderSystemBase
 {
@@ -147,10 +97,39 @@ public:
 
   void InitialiseShaders();
   void ReleaseShaders();
-  void EnableShader(ShaderMethodVulkan method);
+  void EnableShader(ShaderId method);
   void DisableShader();
 
   CVulkanShaderControl* ShaderControl() { return m_shaderControl.get(); }
+  CVulkanDeviceQueue* DeviceQueue() { return m_deviceQueue.get(); }
+  CVulkanSurface* Surface() { return m_surface.get(); }
+  CVulkanRenderPass* RenderPass() { return m_renderPass.get(); }
+
+  const VkPhysicalDeviceFeatures& EnabledDeviceFeatures() const
+  {
+    return m_deviceQueue->EnabledDeviceFeatures();
+  }
+
+  const VkPhysicalDeviceLimits& DeviceLimits() const { return m_deviceQueue->DeviceLimits(); }
+
+  /**
+   * @brief Gets the Vulkan objects used for rendering.
+   */
+  //@{
+  VkSurfaceKHR vkSurface() const { return m_vkSurface; }
+  VkSurfaceFormatKHR vkSurfaceFormat() const { return m_vkSurfaceFormat; }
+  VkInstance vkInstance() const { return m_vkInstance; }
+  VkDevice vkDevice() const { return m_vkDevice; }
+  VkPhysicalDevice vkPhysicalDevice() const { return m_vkPhysicalDevice; }
+  VkPipeline vkPipeline() const { return m_vkPipeline; }
+  VkPipelineLayout vkPipelineLayout() const { return m_vkPipelineLayout; }
+  VkSwapchainKHR vkSwapchain() const { return m_vkSwapchain; }
+  VkRenderPass vkRenderPass() const { return m_vkRenderPass; }
+  VkFormat vkSwapchainFormat() const { return m_vkSwapchainFormat; }
+  VkCommandBuffer vkCurrentCommandBuffer() const { return m_currentVkCommandBuffer; }
+  VkCommandPool vkCurrentCommandPool() const { return m_currentVkCommandPool; }
+  VkQueue vkQueue() const { return m_deviceQueue->vkQueue(); }
+  //@}
 
 protected:
   /**
@@ -165,9 +144,6 @@ protected:
   /**@}*/
 
 private:
-  bool CreateFramebuffers();
-  void DestroyFramebuffers();
-
   /**
    * @brief Creates a Vulkan pipeline layout.
    *
@@ -185,10 +161,8 @@ private:
   VkPipelineLayout CreatePipelineLayout(VkDescriptorSetLayout layout = VK_NULL_HANDLE);
 
   std::unique_ptr<CVulkanShaderControl> m_shaderControl;
-  //std::unique_ptr<CVulkanCommandPool> m_commandPool;
   std::unique_ptr<CVulkanDeviceQueue> m_deviceQueue;
   std::unique_ptr<CVulkanSurface> m_surface;
-  std::unique_ptr<CVulkanSwapChain> m_swapChain;
   std::unique_ptr<CVulkanRenderPass> m_renderPass;
   std::vector<std::unique_ptr<CVulkanFramebuffer>> m_framebuffers;
   std::vector<std::unique_ptr<CVulkanCommandPool>> m_commandPool;
@@ -209,16 +183,21 @@ private:
   VkSurfaceFormatKHR m_vkSurfaceFormat{}; // Created & destroyed outside
   VkInstance m_vkInstance{VK_NULL_HANDLE}; // Created & destroyed outside
   VkDevice m_vkDevice{VK_NULL_HANDLE}; // Created & destroyed outside
-  VkPipeline m_vkPipeline{VK_NULL_HANDLE}; // Created & destroyed outside
+  VkPhysicalDevice m_vkPhysicalDevice{VK_NULL_HANDLE}; // Created & destroyed outside
+  VkPipeline m_vkPipeline{VK_NULL_HANDLE}; // Created & destroyed here
   VkPipelineLayout m_vkPipelineLayout{VK_NULL_HANDLE}; // Created & destroyed here
   VkSwapchainKHR m_vkSwapchain{VK_NULL_HANDLE}; // Created & destroyed outside
-  VkRenderPass m_vkRenderPass{VK_NULL_HANDLE};
+  VkRenderPass m_vkRenderPass{VK_NULL_HANDLE}; // Created & destroyed here
   VkFormat m_vkSwapchainFormat = VK_FORMAT_UNDEFINED;
   /**@}*/
 
+  VkCommandBuffer m_currentVkCommandBuffer{VK_NULL_HANDLE};
+  VkCommandPool m_currentVkCommandPool{VK_NULL_HANDLE};
+  std::optional<CVulkanScopedWrite> m_scopedWrite;
+
   void init_vertex_buffer();
   VkBuffer m_vertex_buffer = VK_NULL_HANDLE;
-  VmaAllocation m_vertex_buffer_allocation = VK_NULL_HANDLE;
+  VkDeviceMemory m_vertex_buffer_memory = VK_NULL_HANDLE;
 };
 
 } // namespace VULKAN

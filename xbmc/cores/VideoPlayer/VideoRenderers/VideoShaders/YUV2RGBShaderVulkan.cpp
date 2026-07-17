@@ -12,7 +12,7 @@
 #include "../RenderFlags.h"
 #include "ConvolutionKernels.h"
 #include "ToneMappers.h"
-#include "rendering/vulkan/VulkanUtils.h"
+#include "rendering/vulkan/utils/VulkanUtils.h"
 #include "settings/AdvancedSettings.h"
 #include "utils/log.h"
 

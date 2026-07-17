@@ -36,6 +36,12 @@
 
 #include <spdlog/spdlog.h>
 
+// The __FILENAME__ macro is used to get the filename without the full path for logging purposes
+// SOURCE_PATH_SIZE is defined in CMakeLists.txt and is the length of the source path to be stripped from __FILE__
+#ifndef __FILENAME__
+#define __FILENAME__ ((__FILE__) + (SOURCE_PATH_SIZE))
+#endif // !__FILENAME__
+
 namespace spdlog::sinks
 {
 class sink;

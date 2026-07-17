@@ -8,7 +8,7 @@
 
 #include "VulkanUtils.h"
 
-#include "VulkanInfo.h"
+#include "rendering/vulkan/VulkanInfo.h"
 #include "filesystem/File.h"
 #include "filesystem/SpecialProtocol.h"
 #include "rendering/vulkan/VulkanDeviceQueue.h"
@@ -284,10 +284,50 @@ std::string ErrorString(VkResult errorCode)
     STR(ERROR_INCOMPATIBLE_DISPLAY_KHR);
     STR(ERROR_VALIDATION_FAILED_EXT);
     STR(ERROR_INVALID_SHADER_NV);
+    STR(ERROR_FRAGMENTATION_EXT);
 #undef STR
     default:
       return "UNKNOWN_ERROR";
   }
+}
+
+void LogVulkanError(VkResult result,
+                    const std::string& functionName,
+                    const std::string& fileName,
+                    int lineNumber)
+{
+  if (result == VK_SUCCESS)
+    return;
+  CLog::Log(LOGERROR, "Vulkan: Error in function \"{}\" at {}:{} - {}", functionName, fileName, lineNumber, ErrorString(result));
+}
+
+uint32_t FindMemoryType(VkPhysicalDevice physicalDevice,
+                        uint32_t typeFilter,
+                        VkMemoryPropertyFlags properties)
+{
+  // Structure to hold the physical device's memory properties
+  VkPhysicalDeviceMemoryProperties mem_properties;
+  vkGetPhysicalDeviceMemoryProperties(physicalDevice, &mem_properties);
+
+  // Iterate over all memory types available on the physical device
+  for (uint32_t i = 0; i < mem_properties.memoryTypeCount; i++)
+  {
+    // Check if the current memory type is acceptable based on the typeFilter
+    // The typeFilter is a bitmask where each bit represents a memory type that is suitable
+    if (typeFilter & (1 << i))
+    {
+      // Check if the memory type has all the desired property flags
+      // properties is a bitmask of the required memory properties
+      if ((mem_properties.memoryTypes[i].propertyFlags & properties) == properties)
+      {
+        // Found a suitable memory type; return its index
+        return i;
+      }
+    }
+  }
+
+  // If no suitable memory type was found, throw an exception
+  throw std::runtime_error("Failed to find suitable memory type.");
 }
 
 VkPipelineStageFlags GetPipelineStageFlags(const CVulkanDeviceQueue* deviceQueue,

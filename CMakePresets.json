@@ -1,0 +1,213 @@
+{
+  "version": 9,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 23,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "base",
+      "hidden": true,
+      "description": "Gemeinsame Einstellungen für alle Plattformen",
+      "binaryDir": "${sourceDir}/out/build/${presetName}",
+      "cacheVariables": {
+        "ENABLE_INTERNAL_FFMPEG": "ON"
+      }
+    },
+    {
+      "name": "wsl-debug",
+      "displayName": "Linux Debug - Vulkan/Wayland",
+      "description": "Konfiguration für das Bauen und IntelliSense innerhalb von WSL",
+      "inherits": "base",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build/${presetName}",
+      "installDir": "$env{HOME}/${presetName}",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_C_COMPILER": "gcc",
+        "CMAKE_CXX_COMPILER": "g++",
+        "APP_RENDER_SYSTEM": "vulkan",
+        "CORE_PLATFORM_NAME": "WAYLAND",
+        "ENABLE_GOLD": {
+          "type": "BOOL",
+          "value": "OFF"
+        },
+        "CMAKE_CXX_STANDARD_REQUIRED": "ON"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Linux"
+      },
+      "vendor": {
+        "microsoft.com/VisualStudioSettings/CMake/2.0": {
+          "intelliSenseMode": "linux-gcc-x64",
+          "hostOS": [ "Linux" ],
+          "useCompilerDefaults": true
+        },
+        "microsoft.com/VisualStudioRemoteSettings/CMake/2.0": {
+          "remoteSourceRootDir": "$env{HOME}/.vs/$ms{projectDirName}"
+        },
+        "intelliSenseOptions": {
+          "additionalCompilerArgs": [
+            "-std=c++20",
+            "-D_GNU_SOURCE",
+            "-isystem",
+            "/usr/include/x86_64-linux-gnu",
+            "-isystem",
+            "/usr/include/c++/15"
+          ]
+        }
+      }
+    },
+    {
+      "name": "linux-debug",
+      "displayName": "Linux Debug",
+      "description": "Hiermit wird das Windows-Subsystem für Linux (WSL) oder ein Remotesystem als Ziel verwendet.",
+      "inherits": "base",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/out/build/${presetName}",
+      "installDir": "${sourceDir}/out/install/${presetName}",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Linux"
+      },
+      "vendor": {
+        "microsoft.com/VisualStudioRemoteSettings/CMake/2.0": {
+          "remoteSourceRootDir": "$env{HOME}/.vs/$ms{projectDirName}"
+        }
+      }
+    },
+    {
+      "name": "macos-debug",
+      "displayName": "macOS Debug",
+      "description": "Richten Sie ein MacOS-Remotesystem als Ziel ein.",
+      "inherits": "base",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/out/build/${presetName}",
+      "installDir": "${sourceDir}/out/install/${presetName}",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Darwin"
+      },
+      "vendor": {
+        "microsoft.com/VisualStudioRemoteSettings/CMake/1.0": {
+          "sourceDir": "$env{HOME}/.vs/$ms{projectDirName}"
+        }
+      }
+    },
+    {
+      "name": "windows-base",
+      "description": "Hiermit wird Windows mit der Visual Studio-Entwicklungsumgebung als Ziel verwendet.",
+      "inherits": "base",
+      "hidden": true,
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/out/build/${presetName}",
+      "installDir": "${sourceDir}/out/install/${presetName}",
+      "cacheVariables": {
+        "CMAKE_C_COMPILER": "cl.exe",
+        "CMAKE_CXX_COMPILER": "cl.exe"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows"
+      }
+    },
+    {
+      "name": "x64-debug",
+      "displayName": "x64 Debug",
+      "description": "Hiermit wird Windows (64 Bit) mit der Visual Studio-Entwicklungsumgebung als Ziel verwendet. (Debug)",
+      "inherits": "windows-base",
+      "architecture": {
+        "value": "x64",
+        "strategy": "external"
+      },
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "x64-release",
+      "displayName": "x64 Release",
+      "description": "Hiermit wird Windows (64 Bit) mit der Visual Studio-Entwicklungsumgebung als Ziel verwendet. (RelWithDebInfo)",
+      "inherits": "x64-debug",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    },
+    {
+      "name": "x86-debug",
+      "displayName": "x86 Debug",
+      "description": "Hiermit wird Windows (32 Bit) mit der Visual Studio-Entwicklungsumgebung als Ziel verwendet. (Debug)",
+      "inherits": "windows-base",
+      "architecture": {
+        "value": "x86",
+        "strategy": "external"
+      },
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "x86-release",
+      "displayName": "x86 Release",
+      "description": "Hiermit wird Windows (32 Bit) mit der Visual Studio-Entwicklungsumgebung als Ziel verwendet. (RelWithDebInfo)",
+      "inherits": "x86-debug",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    },
+    {
+      "name": "linux-debug2",
+      "displayName": "Linux Debug",
+      "description": "Hiermit wird das Windows-Subsystem für Linux (WSL) oder ein Remotesystem als Ziel verwendet.",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/out/build/${presetName}",
+      "installDir": "${sourceDir}/out/install/${presetName}",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Linux"
+      },
+      "vendor": {
+        "microsoft.com/VisualStudioRemoteSettings/CMake/2.0": {
+          "remoteSourceRootDir": "$env{HOME}/.vs/$ms{projectDirName}"
+        }
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "buildPresets",
+      "displayName": "Benutzerdefinierte Buildvoreinstellung",
+      "description": "Beschreibung der benutzerdefinierten Build-Voreinstellung",
+      "configurePreset": "linux-debug"
+    }
+  ],
+  "workflowPresets": [
+    {
+      "name": "workflowPresets",
+      "displayName": "Benutzerdefinierte Workflowvoreinstellung",
+      "description": "Beschreibung der benutzerdefinierten Workflowvoreinstellung",
+      "steps": [
+        {
+          "type": "configure",
+          "name": "linux-debug"
+        }
+      ]
+    }
+  ]
+}

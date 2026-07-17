@@ -13,7 +13,7 @@
 #include "rendering/vulkan/VulkanDeviceQueue.h"
 #include "rendering/vulkan/VulkanSurface.h"
 #include "rendering/vulkan/VulkanSwapChain.h"
-#include "rendering/vulkan/VulkanUtils.h"
+#include "rendering/vulkan/utils/VulkanUtils.h"
 #include "utils/log.h"
 
 namespace KODI
@@ -25,32 +25,19 @@ namespace VULKAN
 
 using KODI::RENDERING::VULKAN::UTILS::ErrorString;
 
-CVulkanFramebuffer::CVulkanFramebuffer(VkImageView vkImageView,
-                                       VkFramebuffer vkFramebuffer,
-                                       std::unique_ptr<CVulkanCommandBuffer> commandBuffer)
-  : m_vkImageView(vkImageView),
-    m_vkFramebuffer(vkFramebuffer),
-    m_commandBuffer(std::move(commandBuffer))
+CVulkanFramebuffer::CVulkanFramebuffer(VkDevice vkDevice)
+  : m_vkDevice(vkDevice)
 {
 }
 
 CVulkanFramebuffer::~CVulkanFramebuffer()
 {
-  //const VkDevice vk_device = m_commandBuffer->VulkanDeviceQueue()->VulkanDevice();
-  //if (m_vkFramebuffer != VK_NULL_HANDLE)
-  //{
-  //  vkDestroyFramebuffer(vk_device, m_vkFramebuffer, nullptr);
-  //}
-  //if (m_vkImageView != VK_NULL_HANDLE)
-  //{
-  //  vkDestroyImageView(vk_device, m_vkImageView, nullptr);
-  //}
-  //m_commandBuffer->Destroy();
-  //m_commandBuffer.reset();
+  assert(m_vkFramebuffer == VK_NULL_HANDLE);
+  assert(m_vkImageView == VK_NULL_HANDLE);
+  assert(!m_commandBuffer);
 }
 
-
-std::unique_ptr<CVulkanFramebuffer> CVulkanFramebuffer::Create(
+bool CVulkanFramebuffer::Create(
     CVulkanDeviceQueue* vulkanDeviceQueue,
     CVulkanCommandPool* vulkanCommandPool,
     VkRenderPass vkRenderPass,
@@ -58,7 +45,7 @@ std::unique_ptr<CVulkanFramebuffer> CVulkanFramebuffer::Create(
     VkImage vkImage)
 {
   CVulkanSwapChain* vulkan_swap_chain = vulkanSurface->SwapChain();
-  const VkDevice vk_device = vulkanDeviceQueue->VulkanDevice();
+  const VkDevice vk_device = vulkanDeviceQueue->vkDevice();
   VkImageViewCreateInfo vkImageViewCreateInfo = {
       .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
       .pNext = nullptr,
@@ -84,13 +71,12 @@ std::unique_ptr<CVulkanFramebuffer> CVulkanFramebuffer::Create(
   };
 
   VkResult result;
-  VkImageView vk_image_view = VK_NULL_HANDLE;
-  result = vkCreateImageView(vk_device, &vkImageViewCreateInfo, nullptr, &vk_image_view);
+  result = vkCreateImageView(vk_device, &vkImageViewCreateInfo, nullptr, &m_vkImageView);
   if (result != VK_SUCCESS)
   {
-    CLog::Log(LOGFATAL, "Vulkan: Failed to create a Vulkan image view. ERROR {0}",
-              ErrorString(result));
-    return nullptr;
+    CLog::Log(LOGFATAL, "Vulkan: Failed to create a Vulkan image view. ERROR {0} (FILE {1} LINE {2})",
+              ErrorString(result), __FILE__, __LINE__);
+    return false;
   }
   VkFramebufferCreateInfo vkFramebufferCreateInfo = {
       .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
@@ -98,31 +84,52 @@ std::unique_ptr<CVulkanFramebuffer> CVulkanFramebuffer::Create(
       .flags = 0,
       .renderPass = vkRenderPass,
       .attachmentCount = 1,
-      .pAttachments = &vk_image_view,
+      .pAttachments = &m_vkImageView,
       .width = static_cast<uint32_t>(vulkan_swap_chain->Size().extent.width),
       .height = static_cast<uint32_t>(vulkan_swap_chain->Size().extent.height),
       .layers = 1,
   };
 
-  VkFramebuffer vk_framebuffer = VK_NULL_HANDLE;
-  result = vkCreateFramebuffer(vk_device, &vkFramebufferCreateInfo, nullptr, &vk_framebuffer);
+  result = vkCreateFramebuffer(vk_device, &vkFramebufferCreateInfo, nullptr, &m_vkFramebuffer);
   if (result != VK_SUCCESS)
   {
-    CLog::Log(LOGFATAL, "Vulkan: Failed to create a Vulkan framebuffer. ERROR {0}",
-              ErrorString(result));
-    return nullptr;
+    CLog::Log(LOGFATAL, "Vulkan: Failed to create a Vulkan framebuffer. ERROR {0} (FILE {1} LINE {2})",
+              ErrorString(result), __FILE__, __LINE__);
+    Destroy();
+    return false;
   }
 
   auto commandBuffer =
       std::make_unique<CVulkanCommandBuffer>(vulkanDeviceQueue, vulkanCommandPool, true);
   if (!commandBuffer->Initialize())
   {
-    CLog::Log(LOGFATAL, "Vulkan: Failed to initialize a Vulkan command buffer.");
-    return nullptr;
+    CLog::Log(LOGFATAL, "Vulkan: Failed to initialize a Vulkan command buffer. (FILE {0} LINE {1})", __FILE__, __LINE__);
+    Destroy();
+    return false;
   }
 
-  return std::make_unique<CVulkanFramebuffer>(vk_image_view, vk_framebuffer,
-                                              std::move(commandBuffer));
+  m_commandBuffer = std::move(commandBuffer);
+
+  return true;
+}
+
+void CVulkanFramebuffer::Destroy()
+{
+  if (m_commandBuffer)
+  {
+    m_commandBuffer->Destroy();
+    m_commandBuffer.reset();
+  }
+  if (m_vkFramebuffer != VK_NULL_HANDLE)
+  {
+    vkDestroyFramebuffer(m_vkDevice, m_vkFramebuffer, nullptr);
+    m_vkFramebuffer = VK_NULL_HANDLE;
+  }
+  if (m_vkImageView != VK_NULL_HANDLE)
+  {
+    vkDestroyImageView(m_vkDevice, m_vkImageView, nullptr);
+    m_vkImageView = VK_NULL_HANDLE;
+  }
 }
 
 } // namespace VULKAN

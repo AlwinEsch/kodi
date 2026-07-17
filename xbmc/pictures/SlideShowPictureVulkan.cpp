@@ -11,7 +11,7 @@
 #include "ServiceBroker.h"
 #include "guilib/Texture.h"
 #include "rendering/vulkan/VulkanRenderSystem.h"
-#include "rendering/vulkan/VulkanUtils.h"
+#include "rendering/vulkan/utils/VulkanUtils.h"
 #include "windowing/WinSystem.h"
 
 std::unique_ptr<CSlideShowPic> CSlideShowPic::CreateSlideShowPicture()

@@ -8,7 +8,7 @@
 
 #include "VulkanRenderPass.h"
 
-#include "rendering/vulkan/VulkanUtils.h"
+#include "rendering/vulkan/utils/VulkanUtils.h"
 #include "utils/log.h"
 
 namespace KODI

@@ -11,7 +11,7 @@
 #include "rendering/vulkan/VulkanDeviceQueue.h"
 #include "rendering/vulkan/VulkanFenceHelper.h"
 #include "rendering/vulkan/VulkanInfo.h"
-#include "rendering/vulkan/VulkanUtils.h"
+#include "rendering/vulkan/utils/VulkanUtils.h"
 #include "utils/log.h"
 
 #include <array>
@@ -101,7 +101,7 @@ bool CVulkanSwapChain::InitializeSwapChain(VkSurfaceKHR surface,
                                            VkCompositeAlphaFlagBitsKHR compositeAlpha,
                                            std::unique_ptr<CVulkanSwapChain> oldSwapChain)
 {
-  VkDevice device = m_deviceQueue->VulkanDevice();
+  VkDevice device = m_deviceQueue->vkDevice();
   VkResult result = VK_SUCCESS;
 
   VkSwapchainCreateInfoKHR info{
@@ -160,14 +160,14 @@ void CVulkanSwapChain::DestroySwapChain()
 {
   if (m_swapchain != VK_NULL_HANDLE)
   {
-    vkDestroySwapchainKHR(m_deviceQueue->VulkanDevice(), m_swapchain, nullptr);
+    vkDestroySwapchainKHR(m_deviceQueue->vkDevice(), m_swapchain, nullptr);
     m_swapchain = VK_NULL_HANDLE;
   }
 }
 
 bool CVulkanSwapChain::InitializeSwapImages(const VkSurfaceFormatKHR& surfaceFormat)
 {
-  VkDevice device = m_deviceQueue->VulkanDevice();
+  VkDevice device = m_deviceQueue->vkDevice();
   VkResult result = VK_SUCCESS;
 
   uint32_t imageCount;
@@ -201,7 +201,7 @@ bool CVulkanSwapChain::InitializeSwapImages(const VkSurfaceFormatKHR& surfaceFor
 
 void CVulkanSwapChain::DestroySwapImages()
 {
-  VkDevice device = m_deviceQueue->VulkanDevice();
+  VkDevice device = m_deviceQueue->vkDevice();
   for (auto& image : m_images)
   {
     vkDestroySemaphore(device, image.acquireSemaphore, nullptr);
@@ -217,7 +217,7 @@ bool CVulkanSwapChain::InitializeSemaphores()
 
 void CVulkanSwapChain::DestroySemaphores()
 {
-  VkDevice device = m_deviceQueue->VulkanDevice();
+  VkDevice device = m_deviceQueue->vkDevice();
 
   if (!m_pendingSemaphoresQueue.empty()) [[unlikely]]
   {
@@ -305,7 +305,7 @@ bool CVulkanSwapChain::BeginWriteCurrentImage(VkImage* image,
     // Use |end_semaphore| from previous write as |begin_semaphore| for the new
     // write request, and create a new semaphore for |end_semaphore|.
     currentImageData.acquireSemaphore = currentImageData.presentSemaphore;
-    currentImageData.presentSemaphore = CreateSemaphore(m_deviceQueue->VulkanDevice());
+    currentImageData.presentSemaphore = CreateSemaphore(m_deviceQueue->vkDevice());
     if (currentImageData.presentSemaphore == VK_NULL_HANDLE) [[unlikely]]
     {
       return false;
@@ -356,7 +356,7 @@ bool CVulkanSwapChain::GetOrCreateSemaphores(VkSemaphore* acquire_semaphore,
     return true;
   }
 
-  VkDevice device = m_deviceQueue->VulkanDevice();
+  VkDevice device = m_deviceQueue->vkDevice();
 
   // Generic semaphore creation structure.
   constexpr VkSemaphoreCreateInfo semaphoreCreateInfo = {
@@ -397,7 +397,7 @@ void CVulkanSwapChain::ReturnSemaphores(VkSemaphore acquireSemaphore, VkSemaphor
 
 bool CVulkanSwapChain::AcquireNextSwapchainImage()
 {
-  VkDevice device = m_deviceQueue->VulkanDevice();
+  VkDevice device = m_deviceQueue->vkDevice();
 
   VkSemaphore acquireSemaphore = VK_NULL_HANDLE;
   VkSemaphore presentSemaphore = VK_NULL_HANDLE;
@@ -480,7 +480,7 @@ bool CVulkanSwapChain::PresentBuffer(const VkRect2D& rect)
       .pResults = nullptr,
   };
 
-  VkQueue queue = m_deviceQueue->VulkanQueue();
+  VkQueue queue = m_deviceQueue->vkQueue();
   auto result = vkQueuePresentKHR(queue, &present_info);
   if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR) [[unlikely]]
   {

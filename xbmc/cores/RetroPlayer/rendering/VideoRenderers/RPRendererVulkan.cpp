@@ -14,7 +14,7 @@
 #include "cores/RetroPlayer/shaders/vulkan/ShaderPresetVulkan.h"
 #include "cores/RetroPlayer/shaders/vulkan/ShaderTextureVulkan.h"
 #include "cores/RetroPlayer/shaders/vulkan/ShaderTextureVulkanRef.h"
-#include "rendering/vulkan/VulkanUtils.h"
+#include "rendering/vulkan/utils/VulkanUtils.h"
 #include "utils/log.h"
 
 #include <cstddef>

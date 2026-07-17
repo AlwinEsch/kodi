@@ -20,6 +20,7 @@
 
 #if defined(HAS_VULKAN)
 #include "rendering/vulkan/VulkanRenderSystem.h"
+#include "rendering/vulkan/VulkanShader.h"
 #elif defined(HAS_GL)
 #include "rendering/gl/RenderSystemGL.h"
 #elif HAS_GLES >= 2
@@ -30,7 +31,7 @@
 
 using namespace KODI;
 using namespace RETRO;
-using KODI::RENDERING::VULKAN::CVulkanRenderSystem;
+using namespace KODI::RENDERING::VULKAN;
 
 CRenderContext::CRenderContext(CRenderSystemBase* rendering,
                                CWinSystemBase* windowing,
@@ -83,21 +84,21 @@ bool CRenderContext::IsExtSupported(const char* extension)
 namespace
 {
 
-static ShaderMethodVulkan TranslateShaderMethodVulkan(RENDER_SHADER_METHOD method)
+static ShaderId TranslateShaderMethodVulkan(RENDER_SHADER_METHOD method)
 {
   switch (method)
   {
     case RENDER_SHADER_METHOD::DEFAULT:
-      return ShaderMethodVulkan::SM_DEFAULT;
+      return VULKAN_DEFAULT_SHADER;
     case RENDER_SHADER_METHOD::TEXTURE:
-      return ShaderMethodVulkan::SM_TEXTURE;
+      return VULKAN_TEXTURE_SHADER;
     case RENDER_SHADER_METHOD::TEXTURE_NOALPHA:
-      return ShaderMethodVulkan::SM_TEXTURE_NOALPHA;
+      return VULKAN_TEXTURE_NOALPHA_SHADER;
     default:
       break;
   }
 
-  return ShaderMethodVulkan::SM_DEFAULT;
+  return VULKAN_DEFAULT_SHADER;
 }
 
 } // namespace

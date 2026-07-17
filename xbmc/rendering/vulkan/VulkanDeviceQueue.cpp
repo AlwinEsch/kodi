@@ -13,7 +13,7 @@
 #include "rendering/vulkan/VulkanFenceHelper.h"
 #include "rendering/vulkan/VulkanInstance.h"
 #include "rendering/vulkan/VulkanRenderSystem.h"
-#include "rendering/vulkan/VulkanUtils.h"
+#include "rendering/vulkan/utils/VulkanUtils.h"
 #include "utils/log.h"
 
 #include <cassert>
@@ -222,7 +222,7 @@ bool CVulkanDeviceQueue::Initialize(DeviceQueueOptions options,
     };
 
     // Add VkPhysicalDeviceProtectedMemoryFeatures struct to pNext chain
-    // of VkPhysicalDeviceFeatures2 to enable YCbCr sampler support.
+    // of VkPhysicalDeviceFeatures2 to enable protected memory support.
     m_vkProtectedMemoryFeatures.pNext = m_vkEnabledDeviceFeatures2.pNext;
     m_vkEnabledDeviceFeatures2.pNext = &m_vkProtectedMemoryFeatures;
   }

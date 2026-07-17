@@ -35,6 +35,7 @@ struct CVulkanPhysicalDeviceInfo
   // Extended physical device features:
   bool featureSamplerYCBCRconversion = false;
   bool featureProtectedMemory = false;
+  bool featureSamplerAnisotropy = false;
 
   std::vector<VkQueueFamilyProperties> queueFamilies;
 };

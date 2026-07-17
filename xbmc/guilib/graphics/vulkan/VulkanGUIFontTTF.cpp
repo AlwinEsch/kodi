@@ -15,9 +15,9 @@
 #include "guilib/TextureManager.h"
 #include "rendering/vulkan/VulkanMatrix.h"
 #include "rendering/vulkan/VulkanRenderSystem.h"
+#include "rendering/vulkan/shaders/VulkanShaderFonts.h"
 #include "settings/AdvancedSettings.h"
 #include "settings/SettingsComponent.h"
-//#include "utils/VulkanUtils.h"
 #include "utils/log.h"
 #include "windowing/GraphicContext.h"
 #include "windowing/WinSystem.h"
@@ -32,6 +32,7 @@
 #include FT_OUTLINE_H
 
 using namespace KODI::GUILIB::GRAPHICS::VULKAN;
+using namespace KODI::RENDERING::VULKAN;
 
 namespace
 {
@@ -40,15 +41,22 @@ constexpr size_t ELEMENT_ARRAY_MAX_CHAR_INDEX = 1000;
 
 CGUIFontTTF* CGUIFontTTF::CreateGUIFontTTF(const std::string& fontIdent)
 {
+  fprintf(stderr, "CGUIFontTTF::CreateGUIFontTTF: Creating Vulkan font for %s\n",
+          fontIdent.c_str());
   return new CVulkanGUIFontTTF(fontIdent);
 }
 
 CVulkanGUIFontTTF::CVulkanGUIFontTTF(const std::string& fontIdent) : CGUIFontTTF(fontIdent)
 {
+  m_renderSystem = dynamic_cast<CVulkanRenderSystem*>(CServiceBroker::GetRenderSystem());
+  m_shader = std::make_unique<KODI::RENDERING::VULKAN::CVulkanShaderFonts>(
+      m_renderSystem->vkDevice(), m_renderSystem->vkPipelineLayout(),
+      m_renderSystem->vkRenderPass());
 }
 
-CVulkanGUIFontTTF::~CVulkanGUIFontTTF(void)
+CVulkanGUIFontTTF::~CVulkanGUIFontTTF()
 {
+  fprintf(stderr, "--------------> %s\n", __func__);
   // It's important that all the CGUIFontCacheEntry objects are
   // destructed before the CVulkanGUIFontTTF goes out of scope, because
   // our virtual methods won't be accessible after this point
@@ -58,324 +66,98 @@ CVulkanGUIFontTTF::~CVulkanGUIFontTTF(void)
 
 bool CVulkanGUIFontTTF::FirstBegin()
 {
-//  CVulkanRenderSystem* renderSystem =
-//      dynamic_cast<CVulkanRenderSystem*>(CServiceBroker::GetRenderSystem());
-//  renderSystem->EnableGUIShader(VulkanShaderMethod::SM_FONTS);
-//  GLenum pixformat = GL_ALPHA; // deprecated
-//  GLenum internalFormat = GL_ALPHA;
-//
-//  if (renderSystem->ScissorsCanEffectClipping())
-//  {
-//    m_scissorClip = true;
-//  }
-//  else
-//  {
-//    m_scissorClip = false;
-//    renderSystem->ResetScissors();
-//    renderSystem->EnableGUIShader(VulkanShaderMethod::SM_FONTS_SHADER_CLIP);
-//  }
-//
-//  if (m_textureStatus == TEXTURE_REALLOCATED)
-//  {
-//    if (glIsTexture(m_nTexture))
-//      CServiceBroker::GetGUI()->GetTextureManager().ReleaseHwTexture(m_nTexture);
-//    m_textureStatus = TEXTURE_VOID;
-//  }
-//
-//  if (m_textureStatus == TEXTURE_VOID)
-//  {
-//    // Have OpenGL generate a texture object handle for us
-//    glGenTextures(1, static_cast<GLuint*>(&m_nTexture));
-//
-//    // Bind the texture object
-//    glBindTexture(GL_TEXTURE_2D, m_nTexture);
-//
-//    // Set the texture's stretching properties
-//    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-//    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-//
-//    // Set the texture image -- THIS WORKS, so the pixels must be wrong.
-//    glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, m_texture->GetWidth(), m_texture->GetHeight(), 0,
-//                 pixformat, GL_UNSIGNED_BYTE, 0);
-//
-//#ifdef GL_TEXTURE_MAX_ANISOTROPY_EXT
-//    if (CVulkanExtensions::IsExtensionSupported(CVulkanExtensions::EXT_texture_filter_anisotropic))
-//    {
-//      int32_t aniso =
-//          CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->m_guiAnisotropicFiltering;
-//      if (aniso > 1)
-//        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, aniso);
-//    }
-//#endif
-//
-//    VerifyVulkanState();
-//    m_textureStatus = TEXTURE_UPDATED;
-//  }
-//
-//  if (m_textureStatus == TEXTURE_UPDATED)
-//  {
-//    // Copies one more line in case we have to sample from there
-//    m_updateY2 = std::min(m_updateY2 + 1, m_texture->GetHeight());
-//
-//    glBindTexture(GL_TEXTURE_2D, m_nTexture);
-//    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, m_updateY1, m_texture->GetWidth(), m_updateY2 - m_updateY1,
-//                    pixformat, GL_UNSIGNED_BYTE,
-//                    m_texture->GetPixels() + m_updateY1 * m_texture->GetPitch());
-//
-//    m_updateY1 = m_updateY2 = 0;
-//    m_textureStatus = TEXTURE_READY;
-//  }
-//
-//  // Alpha blending assumes linear light. SDR (direct-to-backbuffer or
-//  // direct-to-plane) blends in sRGB -- "wrong but consistent", the aesthetic
-//  // skins are designed against. HDR FBO compositing draws GUI into an sRGB
-//  // FBO that is color-transformed to PQ/HLG before compositing with video
-//  // in that non-linear space -- two stages of non-linear blending. The
-//  // compensated factors below trade accumulator coverage for a squared-
-//  // alpha blend that approximately matches SDR perceived translucency. It
-//  // is a "close enough" compromise; a mathematically correct fix would
-//  // require linear-light compositing (too expensive on typical ARM GPUs).
-//  if (CServiceBroker::GetWinSystem()->IsHdrComposite())
-//    glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-//  else
-//    glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE_MINUS_DST_ALPHA, GL_ONE);
-//  glEnable(GL_BLEND);
-//  glActiveTexture(GL_TEXTURE0);
-//  glBindTexture(GL_TEXTURE_2D, m_nTexture);
+  m_renderSystem->EnableShader(VULKAN_FONTS_SHADER);
 
   return true;
 }
 
 void CVulkanGUIFontTTF::LastEnd()
 {
-  //// static vertex arrays are not supported anymore
-  //assert(m_vertex.empty());
 
-  //CWinSystemBase* const winSystem = CServiceBroker::GetWinSystem();
-  //if (!winSystem)
-  //  return;
+  CreateStaticIndexBuffers();
 
-  //CVulkanRenderSystem* renderSystem =
-  //    dynamic_cast<CVulkanRenderSystem*>(CServiceBroker::GetRenderSystem());
-
-  //GLint posLoc = renderSystem->GUIShaderGetPos();
-  //GLint colLoc = renderSystem->GUIShaderGetCol();
-  //GLint tex0Loc = renderSystem->GUIShaderGetCoord0();
-  //GLint clipUniformLoc = renderSystem->GUIShaderGetClip();
-  //GLint coordStepUniformLoc = renderSystem->GUIShaderGetCoordStep();
-  //GLint matrixUniformLoc = renderSystem->GUIShaderGetMatrix();
-  //GLint depthLoc = renderSystem->GUIShaderGetDepth();
-
-  //CreateStaticVertexBuffers();
-
-  //// Enable the attributes used by this shader
-  //glEnableVertexAttribArray(posLoc);
-  //glEnableVertexAttribArray(colLoc);
-  //glEnableVertexAttribArray(tex0Loc);
-
-  //if (!m_vertexTrans.empty())
-  //{
-  //  // Deal with the vertices that can be hardware clipped and therefore translated
-
-  //  // Bind our pre-calculated array to GL_ELEMENT_ARRAY_BUFFER
-  //  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_elementArrayHandle);
-  //  // Store current scissor
-  //  CGraphicContext& context = winSystem->GetGfxContext();
-  //  CRect scissor = context.StereoCorrection(context.GetScissors());
-
-  //  for (size_t i = 0; i < m_vertexTrans.size(); i++)
-  //  {
-  //    if (m_vertexTrans[i].m_vertexBuffer->bufferHandle == 0)
-  //    {
-  //      continue;
-  //    }
-
-  //    // Apply the clip rectangle
-  //    CRect clip = renderSystem->ClipRectToScissorRect(m_vertexTrans[i].m_clip);
-  //    if (!clip.IsEmpty())
-  //    {
-  //      // intersect with current scissor
-  //      clip.Intersect(scissor);
-  //      // skip empty clip
-  //      if (clip.IsEmpty())
-  //        continue;
-  //    }
-  //    if (m_scissorClip)
-  //    {
-  //      // clip using scissors
-  //      renderSystem->SetScissors(clip);
-  //    }
-  //    else
-  //    {
-  //      // clip using vertex shader
-  //      renderSystem->ResetScissors();
-
-  //      const float clipBoundaries[4] = {
-  //          (m_vertexTrans[i].m_clip.x1 - m_vertexTrans[i].m_translateX -
-  //           m_vertexTrans[i].m_offsetX) /
-  //              context.GetGUIScaleX(),
-  //          (m_vertexTrans[i].m_clip.y1 - m_vertexTrans[i].m_translateY -
-  //           m_vertexTrans[i].m_offsetY) /
-  //              context.GetGUIScaleY(),
-  //          (m_vertexTrans[i].m_clip.x2 - m_vertexTrans[i].m_translateX -
-  //           m_vertexTrans[i].m_offsetX) /
-  //              context.GetGUIScaleX(),
-  //          (m_vertexTrans[i].m_clip.y2 - m_vertexTrans[i].m_translateY -
-  //           m_vertexTrans[i].m_offsetY) /
-  //              context.GetGUIScaleY()};
-
-  //      glUniform4fv(clipUniformLoc, 1, clipBoundaries);
-
-  //      const float textureSteps[4] = {1.f / static_cast<float>(m_textureWidth),
-  //                                     1.f / static_cast<float>(m_textureHeight), 1.f, 1.f};
-
-  //      glUniform4fv(coordStepUniformLoc, 1, textureSteps);
-  //    }
-
-  //    // calculate the fractional offset to the ideal position
-  //    float fractX =
-  //        context.ScaleFinalXCoord(m_vertexTrans[i].m_translateX, m_vertexTrans[i].m_translateY);
-  //    float fractY =
-  //        context.ScaleFinalYCoord(m_vertexTrans[i].m_translateX, m_vertexTrans[i].m_translateY);
-  //    fractX = -fractX + std::round(fractX);
-  //    fractY = -fractY + std::round(fractY);
-
-  //    // proj * model * gui * scroll * translation * scaling * correction factor
-  //    CVulkanMatrix matrix = vulkanMatrixProject.Get();
-  //    matrix.MultMatrixf(vulkanMatrixModview.Get());
-  //    matrix.MultMatrixf(CVulkanMatrix(context.GetGUIMatrix()));
-  //    matrix.Translatef(m_vertexTrans[i].m_offsetX, m_vertexTrans[i].m_offsetY, 0.0f);
-  //    matrix.Translatef(m_vertexTrans[i].m_translateX, m_vertexTrans[i].m_translateY, 0.0f);
-  //    // the gui matrix messes with the scale. correct it here for now.
-  //    matrix.Scalef(context.GetGUIScaleX(), context.GetGUIScaleY(), 1.0f);
-  //    // the gui matrix doesn't align to exact pixel coords atm. correct it here for now.
-  //    matrix.Translatef(fractX, fractY, 0.0f);
-
-  //    // Apply the depth value of the layer
-  //    float depth = CServiceBroker::GetWinSystem()->GetGfxContext().GetTransformDepth();
-  //    glUniform1f(depthLoc, depth);
-
-  //    glUniformMatrix4fv(matrixUniformLoc, 1, GL_FALSE, matrix);
-
-  //    // Bind the buffer to the OpenGL context's GL_ARRAY_BUFFER binding point
-  //    glBindBuffer(GL_ARRAY_BUFFER, m_vertexTrans[i].m_vertexBuffer->bufferHandle);
-
-  //    // Do the actual drawing operation, split into groups of characters no
-  //    // larger than the pre-determined size of the element array
-  //    for (size_t character = 0; m_vertexTrans[i].m_vertexBuffer->size > character;
-  //         character += ELEMENT_ARRAY_MAX_CHAR_INDEX)
-  //    {
-  //      size_t count = m_vertexTrans[i].m_vertexBuffer->size - character;
-  //      count = std::min<size_t>(count, ELEMENT_ARRAY_MAX_CHAR_INDEX);
-
-  //      // Set up the offsets of the various vertex attributes within the buffer
-  //      // object bound to GL_ARRAY_BUFFER
-  //      glVertexAttribPointer(
-  //          posLoc, 3, GL_FLOAT, GL_FALSE, sizeof(SVertex),
-  //          reinterpret_cast<GLvoid*>(character * sizeof(SVertex) * 4 + offsetof(SVertex, x)));
-  //      glVertexAttribPointer(
-  //          colLoc, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(SVertex),
-  //          reinterpret_cast<GLvoid*>(character * sizeof(SVertex) * 4 + offsetof(SVertex, r)));
-  //      glVertexAttribPointer(
-  //          tex0Loc, 2, GL_FLOAT, GL_FALSE, sizeof(SVertex),
-  //          reinterpret_cast<GLvoid*>(character * sizeof(SVertex) * 4 + offsetof(SVertex, u)));
-
-  //      glDrawElements(GL_TRIANGLES, 6 * count, GL_UNSIGNED_SHORT, 0);
-  //      CRenderSystemBase::m_GUIElementCount++;
-  //    }
-
-  //    vulkanMatrixModview.Pop();
-  //  }
-  //  // Restore the original scissor rectangle
-  //  if (m_scissorClip)
-  //    renderSystem->SetScissors(scissor);
-  //  // Unbind GL_ARRAY_BUFFER and GL_ELEMENT_ARRAY_BUFFER
-  //  glBindBuffer(GL_ARRAY_BUFFER, 0);
-  //  glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-  //}
-
-  //// Disable the attributes used by this shader
-  //glDisableVertexAttribArray(posLoc);
-  //glDisableVertexAttribArray(colLoc);
-  //glDisableVertexAttribArray(tex0Loc);
-
-  //renderSystem->DisableGUIShader();
+  m_renderSystem->DisableShader();
 }
 
 CVertexBuffer CVulkanGUIFontTTF::CreateVertexBuffer(const std::vector<SVertex>& vertices) const
 {
-  assert(vertices.size() % 4 == 0);
-  unsigned int bufferHandle = 0;
-
-  //// Do not create empty buffers, leave buffer as 0, it will be ignored in drawing stage
-  //if (!vertices.empty())
-  //{
-  //  // Generate a unique buffer object name and put it in bufferHandle
-  //  glGenBuffers(1, &bufferHandle);
-  //  // Bind the buffer to the OpenGL context's GL_ARRAY_BUFFER binding point
-  //  glBindBuffer(GL_ARRAY_BUFFER, bufferHandle);
-  //  // Create a data store for the buffer object bound to the GL_ARRAY_BUFFER
-  //  // binding point (i.e. our buffer object) and initialise it from the
-  //  // specified client-side pointer
-  //  glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(SVertex), vertices.data(),
-  //               GL_STATIC_DRAW);
-  //  // Unbind GL_ARRAY_BUFFER
-  //  glBindBuffer(GL_ARRAY_BUFFER, 0);
-  //}
-
-  return CVertexBuffer(bufferHandle, vertices.size() / 4, this);
+  // We need to cast away constness here because the Vulkan vertex buffer creation modifies the
+  // internal state of the font object
+  return VulkanCreateVertexBuffer(const_cast<CVulkanGUIFontTTF*>(this), vertices);
 }
 
 void CVulkanGUIFontTTF::DestroyVertexBuffer(CVertexBuffer& buffer) const
 {
-  //if (buffer.bufferHandle != 0)
-  //{
-  //  // Release the buffer name for reuse
-  //  glDeleteBuffers(1, static_cast<GLuint*>(&buffer.bufferHandle));
-  //  buffer.bufferHandle = 0;
-  //}
+  VulkanDestroyVertexBuffer(const_cast<CVulkanGUIFontTTF*>(this), buffer);
+}
+
+CVertexBuffer CVulkanGUIFontTTF::VulkanCreateVertexBuffer(CVulkanGUIFontTTF* ref,
+                                                          const std::vector<SVertex>& vertices)
+{
+  assert(vertices.size() % 4 == 0);
+
+  const VkDeviceSize buffer_size = sizeof(vertices[0]) * vertices.size();
+
+  // Copy Vertex data to a buffer accessible by the device
+  VkBufferCreateInfo buffer_info{
+      .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+      .pNext = nullptr,
+      .flags = 0,
+      .size = buffer_size,
+      .usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+      .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
+      .queueFamilyIndexCount = 0,
+      .pQueueFamilyIndices = nullptr,
+  };
+
+  // We use the Vulkan Memory Allocator to find a memory type that can be written and mapped from the host
+  // On most setups this will return a memory type that resides in VRAM and is accessible from the host
+  VmaAllocationCreateInfo buffer_alloc_ci{
+      .flags =
+          VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT,
+      .usage = VMA_MEMORY_USAGE_AUTO,
+      .requiredFlags = VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+      .preferredFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
+      .memoryTypeBits = 0,
+      .pool = nullptr,
+      .pUserData = nullptr,
+      .priority = 0.0f,
+  };
+
+  VmaAllocationInfo buffer_alloc_info{};
+  VkBuffer vertex_buffer{VK_NULL_HANDLE};
+  VmaAllocation vertex_buffer_allocation{VK_NULL_HANDLE};
+  vmaCreateBuffer(ref->m_renderSystem->DeviceQueue()->VMAAllocator(), &buffer_info,
+                  &buffer_alloc_ci, &vertex_buffer, &vertex_buffer_allocation, &buffer_alloc_info);
+  if (buffer_alloc_info.pMappedData)
+  {
+    memcpy(buffer_alloc_info.pMappedData, vertices.data(), buffer_size);
+  }
+  else
+  {
+    CLog::Log(LOGERROR, "Vulkan: Could not map vertex buffer ({0}:{1})", __FILENAME__, __LINE__);
+  }
+
+  return CVertexBuffer(CVertexBuffer::BufferHandleType(vertex_buffer, vertex_buffer_allocation),
+                       vertices.size() / 4, ref);
+}
+
+void CVulkanGUIFontTTF::VulkanDestroyVertexBuffer(CVulkanGUIFontTTF* ref, CVertexBuffer& buffer)
+{
+  vmaDestroyBuffer(ref->m_renderSystem->DeviceQueue()->VMAAllocator(), buffer.bufferHandle.buffer,
+                   buffer.bufferHandle.allocation);
+  buffer.bufferHandle.allocation = VK_NULL_HANDLE;
+  buffer.bufferHandle.buffer = VK_NULL_HANDLE;
 }
 
 std::unique_ptr<CTexture> CVulkanGUIFontTTF::ReallocTexture(unsigned int& newHeight)
 {
+  //fprintf(stderr, "CVulkanGUIFontTTF::ReallocTexture: Reallocating texture for %s\n",
+  //        GetFontIdent().c_str());
   newHeight = CTexture::PadPow2(newHeight);
 
   std::unique_ptr<CTexture> newTexture =
       CTexture::CreateTexture(m_textureWidth, newHeight, XB_FMT_A8);
-
-  //if (!newTexture || !newTexture->GetPixels())
-  //{
-  //  CLog::LogF(LOGERROR, "Error creating new cache texture for size {:f}", m_height);
-  //  return nullptr;
-  //}
-
-  //m_textureHeight = newTexture->GetHeight();
-  //m_textureScaleY = 1.0f / m_textureHeight;
-  //m_textureWidth = newTexture->GetWidth();
-  //m_textureScaleX = 1.0f / m_textureWidth;
-  //if (m_textureHeight < newHeight)
-  //  CLog::LogF(LOGWARNING, "allocated new texture with height of {}, requested {}", m_textureHeight,
-  //             newHeight);
-  //m_staticCache.Flush();
-  //m_dynamicCache.Flush();
-
-  //memset(newTexture->GetPixels(), 0, m_textureHeight * newTexture->GetPitch());
-  //if (m_texture)
-  //{
-  //  m_updateY1 = 0;
-  //  m_updateY2 = m_texture->GetHeight();
-
-  //  unsigned char* src = m_texture->GetPixels();
-  //  unsigned char* dst = newTexture->GetPixels();
-  //  for (unsigned int y = 0; y < m_texture->GetHeight(); y++)
-  //  {
-  //    memcpy(dst, src, m_texture->GetPitch());
-  //    src += m_texture->GetPitch();
-  //    dst += newTexture->GetPitch();
-  //  }
-  //}
-
-  //m_textureStatus = TEXTURE_REALLOCATED;
 
   return newTexture;
 }
@@ -383,95 +165,94 @@ std::unique_ptr<CTexture> CVulkanGUIFontTTF::ReallocTexture(unsigned int& newHei
 bool CVulkanGUIFontTTF::CopyCharToTexture(
     FT_BitmapGlyph bitGlyph, unsigned int x1, unsigned int y1, unsigned int x2, unsigned int y2)
 {
-  //FT_Bitmap bitmap = bitGlyph->bitmap;
-
-  //unsigned char* source = bitmap.buffer;
-  //unsigned char* target = m_texture->GetPixels() + y1 * m_texture->GetPitch() + x1;
-
-  //for (unsigned int y = y1; y < y2; y++)
-  //{
-  //  memcpy(target, source, x2 - x1);
-  //  source += bitmap.width;
-  //  target += m_texture->GetPitch();
-  //}
-
-  //switch (m_textureStatus)
-  //{
-  //  case TEXTURE_UPDATED:
-  //  {
-  //    m_updateY1 = std::min(m_updateY1, y1);
-  //    m_updateY2 = std::max(m_updateY2, y2);
-  //  }
-  //  break;
-
-  //  case TEXTURE_READY:
-  //  {
-  //    m_updateY1 = y1;
-  //    m_updateY2 = y2;
-  //    m_textureStatus = TEXTURE_UPDATED;
-  //  }
-  //  break;
-
-  //  case TEXTURE_REALLOCATED:
-  //  {
-  //    m_updateY2 = std::max(m_updateY2, y2);
-  //  }
-  //  break;
-
-  //  case TEXTURE_VOID:
-  //  default:
-  //    break;
-  //}
-
+  //fprintf(stderr, "CVulkanGUIFontTTF::CopyCharToTexture: Copying char to texture for %s\n",
+  //        GetFontIdent().c_str());
   return true;
 }
 
 void CVulkanGUIFontTTF::DeleteHardwareTexture()
 {
-  //if (m_textureStatus != TEXTURE_VOID)
-  //{
-  //  if (glIsTexture(m_nTexture))
-  //    CServiceBroker::GetGUI()->GetTextureManager().ReleaseHwTexture(m_nTexture);
-
-  //  m_textureStatus = TEXTURE_VOID;
-  //  m_updateY1 = m_updateY2 = 0;
-  //}
+  //fprintf(stderr, "CVulkanGUIFontTTF::DeleteHardwareTexture: Deleting hardware texture for %s\n",
+  //        GetFontIdent().c_str());
 }
 
-void CVulkanGUIFontTTF::CreateStaticVertexBuffers(void)
+void CVulkanGUIFontTTF::CreateStaticIndexBuffers()
 {
-  //if (m_staticVertexBufferCreated)
-  //  return;
+  if (m_staticIndexBuffer.created)
+    return;
 
-  //// Bind a new buffer to the OpenGL context's GL_ELEMENT_ARRAY_BUFFER binding point
-  //glGenBuffers(1, &m_elementArrayHandle);
-  //glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_elementArrayHandle);
+  const auto renderSystem = dynamic_cast<CVulkanRenderSystem*>(CServiceBroker::GetRenderSystem());
 
-  //// Create an array holding the mesh indices to convert quads to triangles
-  //GLushort index[ELEMENT_ARRAY_MAX_CHAR_INDEX][6];
-  //for (size_t i = 0; i < ELEMENT_ARRAY_MAX_CHAR_INDEX; i++)
-  //{
-  //  index[i][0] = 4 * i;
-  //  index[i][1] = 4 * i + 1;
-  //  index[i][2] = 4 * i + 2;
-  //  index[i][3] = 4 * i + 1;
-  //  index[i][4] = 4 * i + 3;
-  //  index[i][5] = 4 * i + 2;
-  //}
+  // Create an array holding the mesh indices to convert quads to triangles
+  uint32_t index[ELEMENT_ARRAY_MAX_CHAR_INDEX][6];
+  for (size_t i = 0; i < ELEMENT_ARRAY_MAX_CHAR_INDEX; i++)
+  {
+    index[i][0] = 4 * i;
+    index[i][1] = 4 * i + 1;
+    index[i][2] = 4 * i + 2;
+    index[i][3] = 4 * i + 1;
+    index[i][4] = 4 * i + 3;
+    index[i][5] = 4 * i + 2;
+  }
 
-  //glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof index, index, GL_STATIC_DRAW);
-  //glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-  //m_staticVertexBufferCreated = true;
+  // Copy Vertex data to a buffer accessible by the device
+  VkBufferCreateInfo buffer_info{
+      .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+      .pNext = nullptr,
+      .flags = 0,
+      .size = sizeof(index),
+      .usage = VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+      .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
+      .queueFamilyIndexCount = 0,
+      .pQueueFamilyIndices = nullptr,
+  };
+
+  // We use the Vulkan Memory Allocator to find a memory type that can be written and mapped from the host
+  // On most setups this will return a memory type that resides in VRAM and is accessible from the host
+  VmaAllocationCreateInfo buffer_alloc_ci{
+      .flags =
+          VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT,
+      .usage = VMA_MEMORY_USAGE_AUTO,
+      .requiredFlags = VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+      .preferredFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
+      .memoryTypeBits = 0,
+      .pool = nullptr,
+      .pUserData = nullptr,
+      .priority = 0.0f,
+  };
+
+  VmaAllocationInfo buffer_alloc_info{};
+  VkBuffer vertex_buffer{VK_NULL_HANDLE};
+  VmaAllocation vertex_buffer_allocation{VK_NULL_HANDLE};
+  vmaCreateBuffer(renderSystem->DeviceQueue()->VMAAllocator(), &buffer_info, &buffer_alloc_ci,
+                  &vertex_buffer, &vertex_buffer_allocation, &buffer_alloc_info);
+  if (buffer_alloc_info.pMappedData)
+  {
+    memcpy(buffer_alloc_info.pMappedData, index, sizeof(index));
+  }
+  else
+  {
+    CLog::Log(LOGERROR, "Vulkan: Could not map vertex buffer ({0}:{1})", __FILENAME__, __LINE__);
+  }
+
+  m_staticIndexBuffer.buffer = vertex_buffer;
+  m_staticIndexBuffer.allocation = vertex_buffer_allocation;
+  m_staticIndexBuffer.created = true;
 }
 
-void CVulkanGUIFontTTF::DestroyStaticVertexBuffers(void)
+void CVulkanGUIFontTTF::DestroyStaticIndexBuffers()
 {
-  //if (!m_staticVertexBufferCreated)
-  //  return;
+  if (!m_staticIndexBuffer.created)
+    return;
 
-  //glDeleteBuffers(1, &m_elementArrayHandle);
-  //m_staticVertexBufferCreated = false;
+  const auto renderSystem = dynamic_cast<CVulkanRenderSystem*>(CServiceBroker::GetRenderSystem());
+
+  vmaDestroyBuffer(renderSystem->DeviceQueue()->VMAAllocator(), m_staticIndexBuffer.buffer,
+                   m_staticIndexBuffer.allocation);
+
+  m_staticIndexBuffer.allocation = VK_NULL_HANDLE;
+  m_staticIndexBuffer.buffer = VK_NULL_HANDLE;
+  m_staticIndexBuffer.created = false;
 }
 
-unsigned int CVulkanGUIFontTTF::m_elementArrayHandle{0};
-bool CVulkanGUIFontTTF::m_staticVertexBufferCreated{false};
+CVulkanGUIFontTTF::StaticIndexBuffer CVulkanGUIFontTTF::m_staticIndexBuffer;

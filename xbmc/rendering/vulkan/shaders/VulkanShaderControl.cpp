@@ -8,6 +8,7 @@
 
 #include "VulkanShaderControl.h"
 
+#include "VulkanShaderFonts.h"
 #include "VulkanShaderTest.h"
 #include "utils/log.h"
 
@@ -15,18 +16,17 @@
 #include <string>
 #include <string_view>
 
-namespace KODI
-{
-namespace RENDERING
-{
-namespace VULKAN
+namespace KODI::RENDERING::VULKAN
 {
 
-std::array<ShaderListEntry, 1> shaderList = {
+std::array<ShaderListEntry, 1> shaderList = {{
     {VULKAN_TEST_SHADER, ObjectFactory<CVulkanShaderTest>, "TestShader"},
-};
+    //{VULKAN_FONTS_SHADER, ObjectFactory<CVulkanShaderFonts>, "Fonts shader"},
+}};
 
-bool CVulkanShaderControl::CreateAllShaders(VkDevice device, VkPipelineLayout pipelineLayout, VkRenderPass renderPass)
+bool CVulkanShaderControl::CreateAllShaders(VkDevice device,
+                                            VkPipelineLayout pipelineLayout,
+                                            VkRenderPass renderPass)
 {
   // Implementation of CreateAllShaders
   for (const auto& entry : shaderList)
@@ -76,6 +76,4 @@ ShaderId CVulkanShaderControl::AddOptionalShader(const std::shared_ptr<IVulkanSh
   return shaderId;
 }
 
-} // namespace VULKAN
-} // namespace RENDERING
-} // namespace KODI
+} // namespace KODI::RENDERING::VULKAN

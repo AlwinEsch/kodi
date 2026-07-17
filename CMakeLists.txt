@@ -81,6 +81,11 @@ if(NOT VERBOSE)
   endif()
 endif()
 
+# Set help about __FILENAME__ macro to the relative path of the source file being compiled
+# Source - https://stackoverflow.com/a/40947954
+string(LENGTH "${CMAKE_SOURCE_DIR}/" SOURCE_PATH_SIZE)
+add_definitions("-DSOURCE_PATH_SIZE=${SOURCE_PATH_SIZE}")
+
 # Includes
 include(cmake/modules/extra/ECMEnableSanitizers.cmake)
 include(cmake/scripts/common/GeneratorSetup.cmake)

@@ -12,7 +12,7 @@
 #include "ConvolutionKernels.h"
 #include "ServiceBroker.h"
 #include "rendering/vulkan/VulkanRenderSystem.h"
-#include "rendering/vulkan/VulkanUtils.h"
+#include "rendering/vulkan/utils/VulkanUtils.h"
 #include "utils/log.h"
 
 #include <math.h>

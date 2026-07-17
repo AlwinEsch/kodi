@@ -52,6 +52,7 @@ public:
   bool PostSubBuffer(const VkRect2D& rect);
 
   CVulkanSwapChain* SwapChain() const { return m_swapChain.get(); }
+  CVulkanDeviceQueue* DeviceQueue() const { return m_deviceQueue; }
   uint32_t SwapChainGeneration() const { return m_swapChainGeneration; }
   const VkRect2D& vkImageSize() const { return m_vkImageSize; }
   VkImageUsageFlags vkImageUsageFlags() const { return m_vkImageUsageFlags; }

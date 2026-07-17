@@ -12,7 +12,9 @@
 #include "guilib/TextureFormats.h"
 #include "guilib/TextureManager.h"
 #include "rendering/RenderSystem.h"
-#include "rendering/vulkan/VulkanUtils.h"
+#include "rendering/vulkan/VulkanRenderSystem.h"
+#include "rendering/vulkan/utils/VulkanInitStructs.h"
+#include "rendering/vulkan/utils/VulkanUtils.h"
 #include "settings/AdvancedSettings.h"
 #include "settings/SettingsComponent.h"
 #include "utils/Map.h"
@@ -21,168 +23,121 @@
 
 #include <memory>
 
-using namespace KODI::GUILIB::GRAPHICS::VULKAN;
-
-//namespace
-//{
-//// clang-format off
-//// GLES 2.0 texture formats.
-//// Any extension used here is in the core 3.0 profile (except BGRA)
-//// format = (unsized) internalFormat (with core 2.0)
-//constexpr auto TextureMappingGLES20 = make_map<KD_TEX_FMT, TextureFormat>(
-//{
-//#if defined(GL_EXT_texture_rg)
-//  {KD_TEX_FMT_SDR_R8, {GL_RED_EXT}},
-//  {KD_TEX_FMT_SDR_RG8, {GL_RG_EXT}},
-//#endif
-//  {KD_TEX_FMT_SDR_R5G6B5, {GL_RGB, GL_FALSE, GL_FALSE, GL_UNSIGNED_SHORT_5_6_5}},
-//  {KD_TEX_FMT_SDR_RGB5_A1, {GL_RGBA, GL_FALSE, GL_FALSE, GL_UNSIGNED_SHORT_5_5_5_1}},
-//  {KD_TEX_FMT_SDR_RGBA4, {GL_RGBA, GL_FALSE, GL_FALSE, GL_UNSIGNED_SHORT_4_4_4_4}},
-//#if defined(GL_EXT_sRGB)
-//  {KD_TEX_FMT_SDR_RGB8, {GL_RGB, GL_SRGB_EXT}},
-//  {KD_TEX_FMT_SDR_RGBA8, {GL_RGBA, GL_SRGB_ALPHA_EXT}},
-//#else
-//  {KD_TEX_FMT_SDR_RGB8, {GL_RGB}},
-//  {KD_TEX_FMT_SDR_RGBA8, {GL_RGBA}},
-//#endif
-//
-//#if defined(GL_EXT_texture_format_BGRA8888) || (GL_IMG_texture_format_BGRA8888)
-//  {KD_TEX_FMT_SDR_BGRA8, {GL_BGRA_EXT}},
-//#endif
-//
-//#if defined(GL_EXT_texture_type_2_10_10_10_REV)
-//  {KD_TEX_FMT_HDR_RGB10_A2, {GL_RGBA, GL_FALSE, GL_FALSE, GL_UNSIGNED_INT_2_10_10_10_REV_EXT}},
-//#endif
-//#if defined(GL_OES_texture_half_float_linear)
-//  {KD_TEX_FMT_HDR_RGBA16f, {GL_RGBA, GL_FALSE, GL_FALSE, GL_HALF_FLOAT_OES}},
-//#endif
-//
-//#if defined(GL_OES_compressed_ETC1_RGB8_texture)
-//  {KD_TEX_FMT_ETC1_RGB8, {GL_ETC1_RGB8_OES}},
-//#endif
-//});
-//
-//// GLES 3.0 texture formats.
-//#if defined(GL_ES_VERSION_3_0)
-//constexpr auto TextureMappingGLES30 = make_map<KD_TEX_FMT, TextureFormat>(
-//{
-//#if defined(GL_EXT_texture_sRGB_R8) && (GL_EXT_texture_sRGB_RG8) // in gl2ext.h, but spec says >= 3.0
-//  {KD_TEX_FMT_SDR_R8, {GL_R8, GL_SR8_EXT, GL_RED}},
-//  {KD_TEX_FMT_SDR_RG8, {GL_RG8, GL_SRG8_EXT, GL_RG}},
-//#else
-//  {KD_TEX_FMT_SDR_R8, {GL_R8, GL_FALSE, GL_RED}},
-//  {KD_TEX_FMT_SDR_RG8, {GL_RG8, GL_FALSE, GL_RG}},
-//#endif
-//  {KD_TEX_FMT_SDR_R5G6B5, {GL_RGB565, GL_FALSE, GL_RGB, GL_UNSIGNED_SHORT_5_6_5}},
-//  {KD_TEX_FMT_SDR_RGB5_A1, {GL_RGB5_A1, GL_FALSE, GL_RGBA, GL_UNSIGNED_SHORT_5_5_5_1}},
-//  {KD_TEX_FMT_SDR_RGBA4, {GL_RGBA4, GL_FALSE, GL_RGBA, GL_UNSIGNED_SHORT_4_4_4_4}},
-//  {KD_TEX_FMT_SDR_RGB8, {GL_RGB8, GL_SRGB8, GL_RGB}},
-//  {KD_TEX_FMT_SDR_RGBA8, {GL_RGBA8, GL_SRGB8_ALPHA8, GL_RGBA}},
-//
-//  {KD_TEX_FMT_HDR_R16f, {GL_R16F, GL_FALSE, GL_RED, GL_HALF_FLOAT}},
-//  {KD_TEX_FMT_HDR_RG16f, {GL_RG16F, GL_FALSE, GL_RG, GL_HALF_FLOAT}},
-//  {KD_TEX_FMT_HDR_R11F_G11F_B10F, {GL_R11F_G11F_B10F, GL_FALSE, GL_RGB, GL_UNSIGNED_INT_10F_11F_11F_REV}},
-//  {KD_TEX_FMT_HDR_RGB9_E5, {GL_RGB9_E5, GL_FALSE, GL_RGB, GL_UNSIGNED_INT_5_9_9_9_REV}},
-//  {KD_TEX_FMT_HDR_RGB10_A2, {GL_RGB10_A2, GL_FALSE, GL_RGBA, GL_UNSIGNED_INT_2_10_10_10_REV}},
-//  {KD_TEX_FMT_HDR_RGBA16f, {GL_RGBA16F, GL_FALSE, GL_RGBA, GL_HALF_FLOAT}},
-//
-//  {KD_TEX_FMT_ETC1_RGB8, {GL_COMPRESSED_RGB8_ETC2, GL_COMPRESSED_SRGB8_ETC2}},
-//
-//  {KD_TEX_FMT_ETC2_R11, {GL_COMPRESSED_R11_EAC}},
-//  {KD_TEX_FMT_ETC2_RG11, {GL_COMPRESSED_RG11_EAC}},
-//  {KD_TEX_FMT_ETC2_RGB8, {GL_COMPRESSED_RGB8_ETC2, GL_COMPRESSED_SRGB8_ETC2}},
-//  {KD_TEX_FMT_ETC2_RGB8_A1, {GL_COMPRESSED_RGB8_PUNCHTHROUGH_ALPHA1_ETC2, GL_COMPRESSED_SRGB8_PUNCHTHROUGH_ALPHA1_ETC2}},
-//  {KD_TEX_FMT_ETC2_RGBA8, {GL_COMPRESSED_RGBA8_ETC2_EAC, GL_COMPRESSED_SRGB8_ALPHA8_ETC2_EAC}},
-//});
-//#endif // GL_ES_VERSION_3_0
-//
-//// Common GLES extensions (texture compression)
-//constexpr auto TextureMappingGLESExtensions = make_map<KD_TEX_FMT, TextureFormat>(
-//{
-//#if defined(GL_EXT_texture_compression_s3tc) && (GL_EXT_texture_compression_s3tc_srgb)
-//  {KD_TEX_FMT_S3TC_RGB8, {GL_COMPRESSED_RGB_S3TC_DXT1_EXT, GL_COMPRESSED_SRGB_S3TC_DXT1_EXT}},
-//  {KD_TEX_FMT_S3TC_RGB8_A1, {GL_COMPRESSED_RGBA_S3TC_DXT1_EXT, GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT}},
-//  {KD_TEX_FMT_S3TC_RGB8_A4, {GL_COMPRESSED_RGBA_S3TC_DXT3_EXT, GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT}},
-//  {KD_TEX_FMT_S3TC_RGBA8, {GL_COMPRESSED_RGBA_S3TC_DXT5_EXT, GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT}},
-//#elif defined(GL_EXT_texture_compression_s3tc)
-//  {KD_TEX_FMT_S3TC_RGB8, {GL_COMPRESSED_RGB_S3TC_DXT1_EXT}},
-//  {KD_TEX_FMT_S3TC_RGB8_A1, {GL_COMPRESSED_RGBA_S3TC_DXT1_EXT}},
-//  {KD_TEX_FMT_S3TC_RGB8_A4, {GL_COMPRESSED_RGBA_S3TC_DXT3_EXT}},
-//  {KD_TEX_FMT_S3TC_RGBA8, {GL_COMPRESSED_RGBA_S3TC_DXT5_EXT}},
-//#elif defined(GL_EXT_texture_compression_dxt1)
-//  {KD_TEX_FMT_S3TC_RGB8, {GL_COMPRESSED_RGB_S3TC_DXT1_EXT}},
-//  {KD_TEX_FMT_S3TC_RGB8_A1, {GL_COMPRESSED_RGBA_S3TC_DXT1_EXT}},
-//#endif
-//
-//#if defined(GL_EXT_texture_compression_rgtc)
-//  {KD_TEX_FMT_RGTC_R11, {GL_COMPRESSED_RED_RGTC1_EXT}},
-//  {KD_TEX_FMT_RGTC_RG11, {GL_COMPRESSED_RED_GREEN_RGTC2_EXT}},
-//#endif
-//
-//#if defined(GL_EXT_texture_compression_bptc)
-//  {KD_TEX_FMT_BPTC_RGB16F, {GL_COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT_EXT}},
-//  {KD_TEX_FMT_BPTC_RGBA8, {GL_COMPRESSED_RGBA_BPTC_UNORM_EXT, GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM_EXT}},
-//#endif
-//
-//#if defined(GL_KHR_texture_compression_astc_ldr) || (GL_KHR_texture_compression_astc_hdr)
-//  {KD_TEX_FMT_ASTC_LDR_4x4, {GL_COMPRESSED_RGBA_ASTC_4x4_KHR, GL_COMPRESSED_SRGB8_ALPHA8_ASTC_4x4_KHR}},
-//  {KD_TEX_FMT_ASTC_LDR_5x4, {GL_COMPRESSED_RGBA_ASTC_5x4_KHR, GL_COMPRESSED_SRGB8_ALPHA8_ASTC_5x4_KHR}},
-//  {KD_TEX_FMT_ASTC_LDR_5x5, {GL_COMPRESSED_RGBA_ASTC_5x5_KHR, GL_COMPRESSED_SRGB8_ALPHA8_ASTC_5x5_KHR}},
-//  {KD_TEX_FMT_ASTC_LDR_6x5, {GL_COMPRESSED_RGBA_ASTC_6x5_KHR, GL_COMPRESSED_SRGB8_ALPHA8_ASTC_6x5_KHR}},
-//  {KD_TEX_FMT_ASTC_LDR_6x6, {GL_COMPRESSED_RGBA_ASTC_6x6_KHR, GL_COMPRESSED_SRGB8_ALPHA8_ASTC_6x6_KHR}},
-//  {KD_TEX_FMT_ASTC_LDR_8x5, {GL_COMPRESSED_RGBA_ASTC_8x5_KHR, GL_COMPRESSED_SRGB8_ALPHA8_ASTC_8x5_KHR}},
-//  {KD_TEX_FMT_ASTC_LDR_8x6, {GL_COMPRESSED_RGBA_ASTC_8x6_KHR, GL_COMPRESSED_SRGB8_ALPHA8_ASTC_8x6_KHR}},
-//  {KD_TEX_FMT_ASTC_LDR_8x8, {GL_COMPRESSED_RGBA_ASTC_8x8_KHR, GL_COMPRESSED_SRGB8_ALPHA8_ASTC_8x8_KHR}},
-//  {KD_TEX_FMT_ASTC_LDR_10x5, {GL_COMPRESSED_RGBA_ASTC_10x5_KHR, GL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x5_KHR}},
-//  {KD_TEX_FMT_ASTC_LDR_10x6, {GL_COMPRESSED_RGBA_ASTC_10x6_KHR, GL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x6_KHR}},
-//  {KD_TEX_FMT_ASTC_LDR_10x8, {GL_COMPRESSED_RGBA_ASTC_10x8_KHR, GL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x8_KHR}},
-//  {KD_TEX_FMT_ASTC_LDR_10x10, {GL_COMPRESSED_RGBA_ASTC_10x10_KHR, GL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x10_KHR}},
-//  {KD_TEX_FMT_ASTC_LDR_12x10, {GL_COMPRESSED_RGBA_ASTC_12x10_KHR, GL_COMPRESSED_SRGB8_ALPHA8_ASTC_12x10_KHR}},
-//  {KD_TEX_FMT_ASTC_LDR_12x12, {GL_COMPRESSED_RGBA_ASTC_12x12_KHR, GL_COMPRESSED_SRGB8_ALPHA8_ASTC_12x12_KHR}},
-//
-//  {KD_TEX_FMT_ASTC_HDR_4x4, {GL_COMPRESSED_RGBA_ASTC_4x4_KHR}},
-//  {KD_TEX_FMT_ASTC_HDR_5x4, {GL_COMPRESSED_RGBA_ASTC_5x4_KHR}},
-//  {KD_TEX_FMT_ASTC_HDR_5x5, {GL_COMPRESSED_RGBA_ASTC_5x5_KHR}},
-//  {KD_TEX_FMT_ASTC_HDR_6x5, {GL_COMPRESSED_RGBA_ASTC_6x5_KHR}},
-//  {KD_TEX_FMT_ASTC_HDR_6x6, {GL_COMPRESSED_RGBA_ASTC_6x6_KHR}},
-//  {KD_TEX_FMT_ASTC_HDR_8x5, {GL_COMPRESSED_RGBA_ASTC_8x5_KHR}},
-//  {KD_TEX_FMT_ASTC_HDR_8x6, {GL_COMPRESSED_RGBA_ASTC_8x6_KHR}},
-//  {KD_TEX_FMT_ASTC_HDR_8x8, {GL_COMPRESSED_RGBA_ASTC_8x8_KHR}},
-//  {KD_TEX_FMT_ASTC_HDR_10x5, {GL_COMPRESSED_RGBA_ASTC_10x5_KHR}},
-//  {KD_TEX_FMT_ASTC_HDR_10x6, {GL_COMPRESSED_RGBA_ASTC_10x6_KHR}},
-//  {KD_TEX_FMT_ASTC_HDR_10x8, {GL_COMPRESSED_RGBA_ASTC_10x8_KHR}},
-//  {KD_TEX_FMT_ASTC_HDR_10x10, {GL_COMPRESSED_RGBA_ASTC_10x10_KHR}},
-//  {KD_TEX_FMT_ASTC_HDR_12x10, {GL_COMPRESSED_RGBA_ASTC_12x10_KHR}},
-//  {KD_TEX_FMT_ASTC_HDR_12x12, {GL_COMPRESSED_RGBA_ASTC_12x12_KHR}},
-//#endif
-//});
-//
-//constexpr auto SwizzleMapGLES = make_map<KD_TEX_SWIZ, TextureSwizzle>(
-//{
-//  {KD_TEX_SWIZ_RGBA, {GL_RED, GL_GREEN, GL_BLUE, GL_ALPHA}},
-//  {KD_TEX_SWIZ_RGB1, {GL_RED, GL_GREEN, GL_BLUE, GL_ONE}},
-//  {KD_TEX_SWIZ_RRR1, {GL_RED, GL_RED, GL_RED, GL_ONE}},
-//  {KD_TEX_SWIZ_111R, {GL_ONE, GL_ONE, GL_ONE, GL_RED}},
-//  {KD_TEX_SWIZ_RRRG, {GL_RED, GL_RED, GL_RED, GL_GREEN}},
-//  {KD_TEX_SWIZ_RRRR, {GL_RED, GL_RED, GL_RED, GL_RED}},
-//  {KD_TEX_SWIZ_GGG1, {GL_GREEN, GL_GREEN, GL_GREEN, GL_ONE}},
-//  {KD_TEX_SWIZ_111G, {GL_ONE, GL_ONE, GL_ONE, GL_GREEN}},
-//  {KD_TEX_SWIZ_GGGA, {GL_GREEN, GL_GREEN, GL_GREEN, GL_ALPHA}},
-//  {KD_TEX_SWIZ_GGGG, {GL_GREEN, GL_GREEN, GL_GREEN, GL_GREEN}},
-//});
-//// clang-format on
-//} // namespace
-
 std::unique_ptr<CTexture> CTexture::CreateTexture(unsigned int width,
                                                   unsigned int height,
                                                   XB_FMT format)
 {
+  using namespace KODI::GUILIB::GRAPHICS::VULKAN;
   return std::make_unique<CVulkanTexture>(width, height, format);
 }
+
+namespace
+{
+
+// clang-format off
+constexpr auto TextureMapping = make_map<KD_TEX_FMT, VkFormat>({
+    // SDR texture family
+    {KD_TEX_FMT_SDR_R8, VK_FORMAT_R8_UNORM},
+    {KD_TEX_FMT_SDR_RG8, VK_FORMAT_R8G8_UNORM},
+    {KD_TEX_FMT_SDR_RGB8, VK_FORMAT_R8G8B8_UNORM},
+    {KD_TEX_FMT_SDR_RGBA8, VK_FORMAT_R8G8B8A8_UNORM},
+    {KD_TEX_FMT_SDR_BGRA8, VK_FORMAT_B8G8R8A8_UNORM},
+    {KD_TEX_FMT_SDR_RGBA4, VK_FORMAT_R4G4B4A4_UNORM_PACK16},
+    {KD_TEX_FMT_SDR_RGB5_A1, VK_FORMAT_A1R5G5B5_UNORM_PACK16},
+    {KD_TEX_FMT_SDR_R5G6B5, VK_FORMAT_R5G6B5_UNORM_PACK16},
+    // HDR texture family
+    {KD_TEX_FMT_HDR_R16f, VK_FORMAT_R16_SFLOAT},
+    {KD_TEX_FMT_HDR_RG16f, VK_FORMAT_R16G16_SFLOAT},
+    {KD_TEX_FMT_HDR_R11F_G11F_B10F, VK_FORMAT_B10G11R11_UFLOAT_PACK32},
+    {KD_TEX_FMT_HDR_RGB9_E5, VK_FORMAT_E5B9G9R9_UFLOAT_PACK32},
+    {KD_TEX_FMT_HDR_RGB10_A2, VK_FORMAT_A2B10G10R10_UNORM_PACK32},
+    {KD_TEX_FMT_HDR_RGBA16f, VK_FORMAT_R16G16B16A16_SFLOAT},
+    // YUV texture family
+    {KD_TEX_FMT_YUV_YUYV8, VK_FORMAT_G8B8G8R8_422_UNORM},
+    // S3TC texture family
+    {KD_TEX_FMT_S3TC_RGB8, VK_FORMAT_BC1_RGB_UNORM_BLOCK},
+    {KD_TEX_FMT_S3TC_RGB8_A1, VK_FORMAT_BC1_RGBA_UNORM_BLOCK},
+    {KD_TEX_FMT_S3TC_RGB8_A4, VK_FORMAT_BC2_UNORM_BLOCK},
+    {KD_TEX_FMT_S3TC_RGBA8, VK_FORMAT_BC3_UNORM_BLOCK},
+    // RGTC (LATC) texture family
+    {KD_TEX_FMT_RGTC_R11, VK_FORMAT_BC4_UNORM_BLOCK},
+    {KD_TEX_FMT_RGTC_RG11, VK_FORMAT_BC5_UNORM_BLOCK},
+    // BPTC texture family
+    {KD_TEX_FMT_BPTC_RGB16F, VK_FORMAT_BC6H_UFLOAT_BLOCK},
+    {KD_TEX_FMT_BPTC_RGBA8, VK_FORMAT_BC7_UNORM_BLOCK},
+    // ETC1 texture family
+    {KD_TEX_FMT_ETC1_RGB8, VK_FORMAT_ETC2_R8G8B8_UNORM_BLOCK},
+    // ETC2 texture family
+    {KD_TEX_FMT_ETC2_R11, VK_FORMAT_EAC_R11_UNORM_BLOCK},
+    {KD_TEX_FMT_ETC2_RG11, VK_FORMAT_EAC_R11G11_UNORM_BLOCK},
+    {KD_TEX_FMT_ETC2_RGB8, VK_FORMAT_ETC2_R8G8B8_UNORM_BLOCK},
+    {KD_TEX_FMT_ETC2_RGB8_A1, VK_FORMAT_ETC2_R8G8B8A1_UNORM_BLOCK},
+    {KD_TEX_FMT_ETC2_RGBA8, VK_FORMAT_ETC2_R8G8B8A8_UNORM_BLOCK},
+    // ASTC LDR texture family
+    // Bitrate varies from 8bpp (4x4 tile) to 0.89bpp (12x12 tile).
+    {KD_TEX_FMT_ASTC_LDR_4x4, VK_FORMAT_ASTC_4x4_UNORM_BLOCK},
+    {KD_TEX_FMT_ASTC_LDR_5x4, VK_FORMAT_ASTC_5x4_UNORM_BLOCK},
+    {KD_TEX_FMT_ASTC_LDR_5x5, VK_FORMAT_ASTC_5x5_UNORM_BLOCK},
+    {KD_TEX_FMT_ASTC_LDR_6x5, VK_FORMAT_ASTC_6x5_UNORM_BLOCK},
+    {KD_TEX_FMT_ASTC_LDR_6x6, VK_FORMAT_ASTC_6x6_UNORM_BLOCK},
+    {KD_TEX_FMT_ASTC_LDR_8x5, VK_FORMAT_ASTC_8x5_UNORM_BLOCK},
+    {KD_TEX_FMT_ASTC_LDR_8x6, VK_FORMAT_ASTC_8x6_UNORM_BLOCK},
+    {KD_TEX_FMT_ASTC_LDR_8x8, VK_FORMAT_ASTC_8x8_UNORM_BLOCK},
+    {KD_TEX_FMT_ASTC_LDR_10x5, VK_FORMAT_ASTC_10x5_UNORM_BLOCK},
+    {KD_TEX_FMT_ASTC_LDR_10x6, VK_FORMAT_ASTC_10x6_UNORM_BLOCK},
+    {KD_TEX_FMT_ASTC_LDR_10x8, VK_FORMAT_ASTC_10x8_UNORM_BLOCK},
+    {KD_TEX_FMT_ASTC_LDR_10x10, VK_FORMAT_ASTC_10x10_UNORM_BLOCK},
+    {KD_TEX_FMT_ASTC_LDR_12x10, VK_FORMAT_ASTC_12x10_UNORM_BLOCK},
+    {KD_TEX_FMT_ASTC_LDR_12x12, VK_FORMAT_ASTC_12x12_UNORM_BLOCK},
+    // ASTC HDR texture family
+    // Bitrate varies from 8bpp (4x4 tile) to 0.89bpp (12x12 tile).
+    {KD_TEX_FMT_ASTC_HDR_4x4, VK_FORMAT_ASTC_4x4_SFLOAT_BLOCK},
+    {KD_TEX_FMT_ASTC_HDR_5x4, VK_FORMAT_ASTC_5x4_SFLOAT_BLOCK},
+    {KD_TEX_FMT_ASTC_HDR_5x5, VK_FORMAT_ASTC_5x5_SFLOAT_BLOCK},
+    {KD_TEX_FMT_ASTC_HDR_6x5, VK_FORMAT_ASTC_6x5_SFLOAT_BLOCK},
+    {KD_TEX_FMT_ASTC_HDR_6x6, VK_FORMAT_ASTC_6x6_SFLOAT_BLOCK},
+    {KD_TEX_FMT_ASTC_HDR_8x5, VK_FORMAT_ASTC_8x5_SFLOAT_BLOCK},
+    {KD_TEX_FMT_ASTC_HDR_8x6, VK_FORMAT_ASTC_8x6_SFLOAT_BLOCK},
+    {KD_TEX_FMT_ASTC_HDR_8x8, VK_FORMAT_ASTC_8x8_SFLOAT_BLOCK},
+    {KD_TEX_FMT_ASTC_HDR_10x5, VK_FORMAT_ASTC_10x5_SFLOAT_BLOCK},
+    {KD_TEX_FMT_ASTC_HDR_10x6, VK_FORMAT_ASTC_10x6_SFLOAT_BLOCK},
+    {KD_TEX_FMT_ASTC_HDR_10x8, VK_FORMAT_ASTC_10x8_SFLOAT_BLOCK},
+    {KD_TEX_FMT_ASTC_HDR_10x10, VK_FORMAT_ASTC_10x10_SFLOAT_BLOCK},
+    {KD_TEX_FMT_ASTC_HDR_12x10, VK_FORMAT_ASTC_12x10_SFLOAT_BLOCK},
+    {KD_TEX_FMT_ASTC_HDR_12x12, VK_FORMAT_ASTC_12x12_SFLOAT_BLOCK},
+});
+
+constexpr auto SwizzleMap = make_map<KD_TEX_SWIZ, VkComponentMapping>({
+    {KD_TEX_SWIZ_RGBA, {VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A}},
+    {KD_TEX_SWIZ_RGB1, {VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_ONE}},
+    {KD_TEX_SWIZ_RRR1, {VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_ONE}},
+    {KD_TEX_SWIZ_111R, {VK_COMPONENT_SWIZZLE_ONE, VK_COMPONENT_SWIZZLE_ONE, VK_COMPONENT_SWIZZLE_ONE, VK_COMPONENT_SWIZZLE_R}},
+    {KD_TEX_SWIZ_RRRG, {VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G}},
+    {KD_TEX_SWIZ_RRRR, {VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_R}},
+    {KD_TEX_SWIZ_GGG1, {VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_ONE}},
+    {KD_TEX_SWIZ_111G, {VK_COMPONENT_SWIZZLE_ONE, VK_COMPONENT_SWIZZLE_ONE, VK_COMPONENT_SWIZZLE_ONE, VK_COMPONENT_SWIZZLE_G}},
+    {KD_TEX_SWIZ_GGGA, {VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_A}},
+    {KD_TEX_SWIZ_GGGG, {VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_G}},
+});
+// clang-format on
+
+} // namespace
+
+using namespace KODI::RENDERING::VULKAN::UTILS;
+
+namespace KODI::GUILIB::GRAPHICS::VULKAN
+{
 
 CVulkanTexture::CVulkanTexture(unsigned int width, unsigned int height, XB_FMT format)
   : CTexture(width, height, format)
 {
+  using namespace KODI::RENDERING::VULKAN;
+  m_renderSystem = dynamic_cast<CVulkanRenderSystem*>(CServiceBroker::GetRenderSystem());
+  m_vkDevice = m_renderSystem->vkDevice();
+  m_vkPhysicalDevice = m_renderSystem->vkPhysicalDevice();
+
+  fprintf(stderr, "CTexture::CreateTexture: Creating Vulkan texture %ux%u format %d\n", width,
+          height, format);
 }
 
 CVulkanTexture::~CVulkanTexture()
@@ -192,144 +147,263 @@ CVulkanTexture::~CVulkanTexture()
 
 void CVulkanTexture::CreateTextureObject()
 {
-  //glGenTextures(1, (GLuint*)&m_texture);
+  fprintf(stderr, "----------------------------> %s\n", __func__);
 }
 
 void CVulkanTexture::DestroyTextureObject()
 {
-  //if (m_texture)
-  //  CServiceBroker::GetGUI()->GetTextureManager().ReleaseHwTexture(m_texture);
+  fprintf(stderr, "----------------------------> %s\n", __func__);
+  if (m_imageView != VK_NULL_HANDLE)
+  {
+    vkDestroyImageView(m_vkDevice, m_imageView, nullptr);
+    m_imageView = VK_NULL_HANDLE;
+  }
+  if (m_image != VK_NULL_HANDLE)
+  {
+    vkDestroyImage(m_vkDevice, m_image, nullptr);
+    m_image = VK_NULL_HANDLE;
+  }
+  if (m_sampler != VK_NULL_HANDLE)
+  {
+    vkDestroySampler(m_vkDevice, m_sampler, nullptr);
+    m_sampler = VK_NULL_HANDLE;
+  }
+  if (m_imageMemory != VK_NULL_HANDLE)
+  {
+    vkFreeMemory(m_vkDevice, m_imageMemory, nullptr);
+    m_imageMemory = VK_NULL_HANDLE;
+  }
+}
+/*
+
+
+
+
+
+*/
+VkCommandBuffer BeginSingleTimeCommands(VkDevice device, VkCommandPool command_pool)
+{
+  VkCommandBufferAllocateInfo allocInfo =
+      vkCommandBufferAllocateInfo(command_pool, VK_COMMAND_BUFFER_LEVEL_PRIMARY, 1);
+
+  VkCommandBuffer command_buffer;
+  vkAllocateCommandBuffers(device, &allocInfo, &command_buffer);
+
+  VkCommandBufferBeginInfo beginInfo{};
+  beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+  beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+
+  vkBeginCommandBuffer(command_buffer, &beginInfo);
+
+  return command_buffer;
 }
 
+void EndSingleTimeCommands(VkDevice device,
+                           VkCommandPool command_pool,
+                           VkQueue queue,
+                           VkCommandBuffer command_buffer)
+{
+  vkEndCommandBuffer(command_buffer);
+
+  VkSubmitInfo submitInfo = vkSubmitInfo();
+  submitInfo.commandBufferCount = 1;
+  submitInfo.pCommandBuffers = &command_buffer;
+
+  vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE);
+  vkQueueWaitIdle(queue);
+
+  vkFreeCommandBuffers(device, command_pool, 1, &command_buffer);
+}
+/*
+
+
+
+
+
+*/
 void CVulkanTexture::LoadToGPU()
 {
-  //  if (!m_pixels)
-  //  {
-  //    // nothing to load - probably same image (no change)
-  //    return;
-  //  }
-  //  if (m_texture == 0)
-  //  {
-  //    // Have OpenGL generate a texture object handle for us
-  //    // this happens only one time - the first time the texture is loaded
-  //    CreateTextureObject();
-  //  }
-  //
-  //  // Bind the texture object
-  //  glBindTexture(GL_TEXTURE_2D, m_texture);
-  //
-  //  GLenum filter = (m_scalingMethod == TEXTURE_SCALING::NEAREST ? GL_NEAREST : GL_LINEAR);
-  //
-  //  // Set the texture's stretching properties
-  //  if (IsMipmapped())
-  //  {
-  //    GLenum mipmapFilter = (m_scalingMethod == TEXTURE_SCALING::NEAREST ? GL_LINEAR_MIPMAP_NEAREST
-  //                                                                       : GL_LINEAR_MIPMAP_LINEAR);
-  //    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, mipmapFilter);
-  //  }
-  //  else
-  //  {
-  //    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, filter);
-  //  }
-  //
-  //  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, filter);
-  //  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-  //  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-  //
-  //#ifdef GL_TEXTURE_MAX_ANISOTROPY_EXT
-  //  if (CVulkanExtensions::IsExtensionSupported(CVulkanExtensions::EXT_texture_filter_anisotropic))
-  //  {
-  //    int32_t aniso =
-  //        CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->m_guiAnisotropicFiltering;
-  //    if (aniso > 1)
-  //      glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, aniso);
-  //  }
-  //#endif
-  //
-  //  unsigned int maxSize = CServiceBroker::GetRenderSystem()->GetMaxTextureSize();
-  //
-  //  if (m_textureHeight > maxSize)
-  //  {
-  //    CLog::LogF(LOGERROR,
-  //               "Image height {} too big to fit into single texture unit, truncating to {}",
-  //               m_textureHeight, maxSize);
-  //    m_textureHeight = maxSize;
-  //  }
-  //
-  //  if (m_textureWidth > maxSize)
-  //  {
-  //#if defined(GL_PACK_ROW_LENGTH)
-  //    CLog::LogF(LOGERROR, "Image width {} too big to fit into single texture unit, truncating to {}",
-  //               m_textureWidth, maxSize);
-  //
-  //    glPixelStorei(GL_UNPACK_ROW_LENGTH, m_textureWidth);
-  //
-  //    m_textureWidth = maxSize;
-  //#else
-  //    CLog::LogF(LOGERROR, "Image width {} too big, upload to GPU will fail", m_textureWidth);
-  //#endif
-  //  }
-  //
-  //  // there might not be any padding for the following formats, so we have to
-  //  // read one/two bytes at the time.
-  //  if (m_textureFormat == KD_TEX_FMT_SDR_R8)
-  //    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-  //  if (m_textureFormat == KD_TEX_FMT_SDR_RG8)
-  //    glPixelStorei(GL_UNPACK_ALIGNMENT, 2);
-  //
-  //  TextureFormat glesFormat;
-  //  KD_TEX_FMT textureFormat = m_textureFormat;
-  //  bool swapRB = false;
-  //  // Support for BGRA is hit and miss, swizzle instead
-  //  if (textureFormat == KD_TEX_FMT_SDR_BGRA8)
-  //  {
-  //    textureFormat = KD_TEX_FMT_SDR_RGBA8;
-  //    swapRB = true;
-  //  }
-  //  SetSwizzle(swapRB);
-  //  glesFormat = GetFormatGLES30(textureFormat);
-  //
-  //  if (glesFormat.internalFormat == GL_FALSE)
-  //  {
-  //    CLog::LogF(LOGDEBUG, "Failed to load texture. Unsupported format {}", m_textureFormat);
-  //    m_loadedToGPU = true;
-  //    return;
-  //  }
-  //
-  //  if ((m_textureFormat & KD_TEX_FMT_SDR) || (m_textureFormat & KD_TEX_FMT_HDR))
-  //  {
-  //    glTexImage2D(GL_TEXTURE_2D, 0, glesFormat.internalFormat, m_textureWidth, m_textureHeight, 0,
-  //                 glesFormat.format, glesFormat.type, m_pixels);
-  //  }
-  //  else
-  //  {
-  //    glCompressedTexImage2D(GL_TEXTURE_2D, 0, glesFormat.internalFormat, m_textureWidth,
-  //                           m_textureHeight, 0, GetPitch() * GetRows(), m_pixels);
-  //  }
-  //  if (IsMipmapped())
-  //  {
-  //    glGenerateMipmap(GL_TEXTURE_2D);
-  //  }
-  //
-  //#if defined(GL_UNPACK_ROW_LENGTH)
-  //  glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
-  //#endif
-  //
-  //  VerifyGLState();
-  //
-  //  if (!m_bCacheMemory)
-  //  {
-  //    KODI::MEMORY::AlignedFree(m_pixels);
-  //    m_pixels = NULL;
-  //  }
-  //
-  //  m_loadedToGPU = true;
+  using namespace KODI::RENDERING::VULKAN::UTILS;
+
+  const VkFormat format = VK_FORMAT_R8G8B8A8_UNORM;
+
+  if (!m_pixels)
+  {
+    // nothing to load - probably same image (no change)
+    return;
+  }
+
+  size_t size = GetPitch() * GetRows() * sizeof(float);
+  if (size == 0)
+    return;
+
+  VkBuffer buffer;
+
+  /**
+   * @brief Create a staging buffer to copy the pixel data to the GPU.
+   */
+  ///@{
+  VkBufferCreateInfo bufferInfo = vkBufferCreateInfo();
+  bufferInfo.size = static_cast<VkDeviceSize>(size);
+  bufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+  bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+  VK_CHECK_RESULT(vkCreateBuffer(m_vkDevice, &bufferInfo, nullptr, &buffer));
+
+  VkMemoryRequirements memRequirements;
+  vkGetBufferMemoryRequirements(m_vkDevice, buffer, &memRequirements);
+
+  VkMemoryAllocateInfo allocInfo = vkMemoryAllocateInfo();
+
+  allocInfo.allocationSize = memRequirements.size;
+  allocInfo.memoryTypeIndex =
+      FindMemoryType(m_vkPhysicalDevice, memRequirements.memoryTypeBits,
+                     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+
+  VkDeviceMemory stagingBufferMemory;
+  VK_CHECK_RESULT(vkAllocateMemory(m_vkDevice, &allocInfo, nullptr, &stagingBufferMemory));
+  VK_CHECK_RESULT(vkBindBufferMemory(m_vkDevice, buffer, stagingBufferMemory, 0));
+
+  void* data;
+  vkMapMemory(m_vkDevice, stagingBufferMemory, 0, static_cast<VkDeviceSize>(size), 0, &data);
+  memcpy(data, m_pixels, size);
+  vkUnmapMemory(m_vkDevice, stagingBufferMemory);
+
+  VkImageCreateInfo imageInfo = vkImageCreateInfo();
+  imageInfo.imageType = VK_IMAGE_TYPE_2D;
+  imageInfo.format = format;
+  imageInfo.extent.width = static_cast<uint32_t>(GetWidth());
+  imageInfo.extent.height = static_cast<uint32_t>(GetHeight());
+  imageInfo.extent.depth = 1;
+  imageInfo.mipLevels = 1;
+  imageInfo.arrayLayers = 1;
+  imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+  imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+  imageInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+  imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+  imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+
+  VK_CHECK_RESULT(vkCreateImage(m_vkDevice, &imageInfo, nullptr, &m_image));
+
+  vkGetImageMemoryRequirements(m_vkDevice, m_image, &memRequirements);
+
+  allocInfo.allocationSize = memRequirements.size;
+  allocInfo.memoryTypeIndex = FindMemoryType(m_vkPhysicalDevice, memRequirements.memoryTypeBits,
+                                             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+
+  VkCommandPool command_pool = m_renderSystem->vkCurrentCommandPool();
+  VkQueue queue = m_renderSystem->vkQueue();
+
+  VK_CHECK_RESULT(vkAllocateMemory(m_vkDevice, &allocInfo, nullptr, &m_imageMemory));
+  VK_CHECK_RESULT(vkBindImageMemory(m_vkDevice, m_image, m_imageMemory, 0));
+
+  VkImageSubresourceRange subresource_range{
+      .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+      .baseMipLevel = 0,
+      .levelCount = 1,
+      .baseArrayLayer = 0,
+      .layerCount = 1,
+  };
+
+  VkImageMemoryBarrier barrier = vkImageMemoryBarrier();
+  barrier.image = m_image;
+  barrier.subresourceRange = subresource_range;
+
+  //@{
+  barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+  barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+
+  VkCommandBuffer command_buffer = BeginSingleTimeCommands(m_vkDevice, command_pool);
+
+  vkCmdPipelineBarrier(command_buffer, 0 /* TODO */, 0 /* TODO */, 0, 0, nullptr, 0, nullptr, 1,
+                       &barrier);
+  //@}
+
+  //@{
+  VkBufferImageCopy region = {};
+  region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+  region.imageSubresource.layerCount = 1;
+  region.imageExtent = {GetPitch(), GetRows(), 1};
+
+  vkCmdCopyBufferToImage(command_buffer, buffer, m_image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1,
+                         &region);
+  //@}
+
+  //@{
+  barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+  barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+  command_pool = m_renderSystem->vkCurrentCommandPool();
+  vkCmdPipelineBarrier(command_buffer, 0 /* TODO */, 0 /* TODO */, 0, 0, nullptr, 0, nullptr, 1,
+                       &barrier);
+  EndSingleTimeCommands(m_vkDevice, command_pool, queue, command_buffer);
+  //@}
+
+  vkDestroyBuffer(m_vkDevice, buffer, nullptr);
+
+  vkFreeMemory(m_vkDevice, stagingBufferMemory, nullptr);
+  ///@}
+
+  /**
+   * @brief Create image view
+   *
+   * Create a sampler for the texture. The sampler defines how the texture
+   * is sampled in the shader.
+   *
+   * Textures are not directly accessed by the shaders and are abstracted by image
+   * views containing additional information and sub resource ranges
+   */
+  ///@{
+  VkImageViewCreateInfo view = vkImageViewCreateInfo();
+  view.image = m_image;
+  view.viewType = VK_IMAGE_VIEW_TYPE_2D;
+  if (TextureMapping.contains(m_textureFormat))
+    view.format = TextureMapping.at(m_textureFormat);
+  else
+    view.format = VK_FORMAT_R8G8B8A8_UNORM;
+  if (SwizzleMap.contains(m_textureSwizzle))
+    view.components = SwizzleMap.at(m_textureSwizzle);
+  // The subresource range describes the set of mip levels (and array layers) that can be accessed through this image view
+  // It's possible to create multiple image views for a single image referring to different (and/or overlapping) ranges of the image
+  view.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+  view.subresourceRange.baseMipLevel = 0;
+  view.subresourceRange.layerCount = 1;
+  view.subresourceRange.baseArrayLayer = 0;
+  view.subresourceRange.levelCount = 1;
+  VK_CHECK_RESULT(vkCreateImageView(m_vkDevice, &view, nullptr, &m_imageView));
+  ///@}
+
+  /**
+   * @brief Create sampler
+   */
+  ///@{
+  VkSamplerCreateInfo samplerInfo = vkSamplerCreateInfo();
+  samplerInfo.magFilter = VK_FILTER_LINEAR;
+  samplerInfo.minFilter = VK_FILTER_LINEAR;
+  samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+  samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+  samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+  samplerInfo.anisotropyEnable = VK_FALSE;
+  VK_CHECK_RESULT(vkCreateSampler(m_vkDevice, &samplerInfo, nullptr, &m_sampler));
+  ///@}
+
+  if (!m_bCacheMemory)
+  {
+    KODI::MEMORY::AlignedFree(m_pixels);
+    m_pixels = nullptr;
+  }
+
+  m_loadedToGPU = true;
+}
+
+void CVulkanTexture::SyncGPU()
+{
+  fprintf(stderr, "----------------------------> %s\n", __func__);
 }
 
 void CVulkanTexture::BindToUnit(unsigned int unit)
 {
-  //glActiveTexture(GL_TEXTURE0 + unit);
-  //glBindTexture(GL_TEXTURE_2D, m_texture);
+  fprintf(stderr, "----------------------------> %s\n", __func__);
 }
 
 bool CVulkanTexture::SupportsFormat(KD_TEX_FMT textureFormat, KD_TEX_SWIZ textureSwizzle)
@@ -337,111 +411,4 @@ bool CVulkanTexture::SupportsFormat(KD_TEX_FMT textureFormat, KD_TEX_SWIZ textur
   return true;
 }
 
-//void CVulkanTexture::SetSwizzle(bool swapRB)
-//{
-//TextureSwizzle swiz;
-
-//const auto it = SwizzleMapGLES.find(m_textureSwizzle);
-//if (it != SwizzleMapGLES.cend())
-//  swiz = it->second;
-
-//if (swapRB)
-//{
-//  SwapBlueRedSwizzle(swiz.r);
-//  SwapBlueRedSwizzle(swiz.g);
-//  SwapBlueRedSwizzle(swiz.b);
-//  SwapBlueRedSwizzle(swiz.a);
-//}
-
-//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_R, swiz.r);
-//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_G, swiz.g);
-//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_B, swiz.b);
-//glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_A, swiz.a);
-//}
-
-//void CVulkanTexture::SwapBlueRedSwizzle(GLint& component)
-//{
-//if (component == GL_RED)
-//  component = GL_BLUE;
-//else if (component == GL_BLUE)
-//  component = GL_RED;
-//}
-
-//TextureFormat CVulkanTexture::GetFormatGLES20(KD_TEX_FMT textureFormat)
-//{
-//  TextureFormat glFormat;
-
-//  // GLES 2.0 does not support swizzling. But for some Kodi formats+swizzles,
-//  // we can map GLES formats (Luminance, Luminance-Alpha, BGRA). The swizzle
-//  // "111R" is supported via fragment shaders. Other swizzles would need
-//  // additional specialized shaders, or format conversions.
-//
-//  if (m_textureFormat == KD_TEX_FMT_SDR_R8 &&
-//      (m_textureSwizzle == KD_TEX_SWIZ_RRR1 || m_textureSwizzle == KD_TEX_SWIZ_111R))
-//  {
-//    glFormat.format = glFormat.internalFormat = GL_LUMINANCE;
-//  }
-//  else if (m_textureFormat == KD_TEX_FMT_SDR_RG8 && m_textureSwizzle == KD_TEX_SWIZ_RRRG)
-//  {
-//    glFormat.format = glFormat.internalFormat = GL_LUMINANCE_ALPHA;
-//  }
-//  else if (m_textureFormat == KD_TEX_FMT_SDR_BGRA8 && m_textureSwizzle == KD_TEX_SWIZ_RGBA &&
-//           !CVulkanExtensions::IsExtensionSupported(
-//               CVulkanExtensions::EXT_texture_format_BGRA8888) &&
-//           !CVulkanExtensions::IsExtensionSupported(CVulkanExtensions::IMG_texture_format_BGRA8888))
-//  {
-//#if defined(GL_APPLE_texture_format_BGRA8888)
-//    if (CVulkanExtensions::IsExtensionSupported(CVulkanExtensions::APPLE_texture_format_BGRA8888))
-//    {
-//      glFormat.internalFormat = GL_RGBA;
-//      glFormat.format = GL_BGRA_EXT;
-//    }
-//    else
-//#endif
-//    {
-//      SwapBlueRed(m_pixels, m_textureHeight, GetPitch());
-//      glFormat.format = glFormat.internalFormat = GL_RGBA;
-//    }
-//  }
-//  else if (textureFormat & KD_TEX_FMT_SDR || textureFormat & KD_TEX_FMT_HDR ||
-//           textureFormat & KD_TEX_FMT_ETC1)
-//  {
-//    const auto it = TextureMappingGLES20.find(textureFormat);
-//    if (it != TextureMappingGLES20.cend())
-//      glFormat = it->second;
-//    glFormat.format = glFormat.internalFormat;
-//  }
-//  else
-//  {
-//    const auto it = TextureMappingGLESExtensions.find(textureFormat);
-//    if (it != TextureMappingGLESExtensions.cend())
-//      glFormat = it->second;
-//  }
-//
-//  return glFormat;
-//}
-//
-//TextureFormat CVulkanTexture::GetFormatGLES30(KD_TEX_FMT textureFormat)
-//{
-//  TextureFormat glFormat;
-
-//if (textureFormat & KD_TEX_FMT_SDR || textureFormat & KD_TEX_FMT_HDR)
-//{
-//  const auto it = TextureMappingGLES30.find(textureFormat);
-//  if (it != TextureMappingGLES30.cend())
-//    glFormat = it->second;
-//}
-//else
-//{
-//  const auto it = TextureMappingGLESExtensions.find(textureFormat);
-//  if (it != TextureMappingGLESExtensions.cend())
-//    glFormat = it->second;
-//}
-//
-//  return glFormat;
-//}
-
-//GLuint CVulkanTexture::GetTextureID() const
-//{
-//  return m_texture;
-//}
+} // namespace KODI::GUILIB::GRAPHICS::VULKAN

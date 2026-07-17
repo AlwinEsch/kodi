@@ -10,7 +10,7 @@
 
 #include "rendering/vulkan/VulkanCommandPool.h"
 #include "rendering/vulkan/VulkanDeviceQueue.h"
-#include "rendering/vulkan/VulkanUtils.h"
+#include "rendering/vulkan/utils/VulkanUtils.h"
 #include "utils/log.h"
 
 #include <cassert>
@@ -42,7 +42,7 @@ CVulkanCommandBuffer::~CVulkanCommandBuffer()
 bool CVulkanCommandBuffer::Initialize()
 {
   VkResult result = VK_SUCCESS;
-  VkDevice device = m_deviceQueue->VulkanDevice();
+  VkDevice device = m_deviceQueue->vkDevice();
 
   VkCommandBufferAllocateInfo info = {
       .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
@@ -67,7 +67,7 @@ bool CVulkanCommandBuffer::Initialize()
 
 void CVulkanCommandBuffer::Destroy()
 {
-  VkDevice device = m_deviceQueue->VulkanDevice();
+  VkDevice device = m_deviceQueue->vkDevice();
 
   if (m_submissionFence.IsValid())
   {
@@ -116,10 +116,10 @@ bool CVulkanCommandBuffer::Submit(uint32_t numWaitSemaphores,
     return false;
   }
 
-  result = vkQueueSubmit(m_deviceQueue->VulkanQueue(), 1, &submit_info, fence);
+  result = vkQueueSubmit(m_deviceQueue->vkQueue(), 1, &submit_info, fence);
   if (VK_SUCCESS != result)
   {
-    vkDestroyFence(m_deviceQueue->VulkanDevice(), fence, nullptr);
+    vkDestroyFence(m_deviceQueue->vkDevice(), fence, nullptr);
     m_submissionFence = CVulkanFenceHelper::CFenceHandle();
   }
   else

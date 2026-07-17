@@ -43,7 +43,7 @@ void CVulkanFenceHelper::Destroy()
   // TEMP: Temporary until we implement a proper cleanup system for fences and semaphores.
   //{
   vkDestroyFence(
-      m_deviceQueue->VulkanDevice(), m_vkFence,
+      m_deviceQueue->vkDevice(), m_vkFence,
       nullptr);
   //}
 
@@ -66,7 +66,7 @@ VkResult CVulkanFenceHelper::GetFence(VkFence* fence)
       .pNext = nullptr,
       .flags = 0,
   };
-  VkResult ret = vkCreateFence(m_deviceQueue->VulkanDevice(), &createInfo, nullptr, fence);
+  VkResult ret = vkCreateFence(m_deviceQueue->vkDevice(), &createInfo, nullptr, fence);
   // TEMP: Temporary until we implement a proper cleanup system for fences and semaphores.
   //{
   m_vkFence = *fence;
@@ -88,11 +88,11 @@ bool CVulkanFenceHelper::Wait(CFenceHandle handle, uint64_t timeoutInNanoseconds
   //if (HasPassed(handle))
   //  return true;
 
-  VkResult result = vkWaitForFences(m_deviceQueue->VulkanDevice(), 1, &handle.m_fence, true,
+  VkResult result = vkWaitForFences(m_deviceQueue->vkDevice(), 1, &handle.m_fence, true,
                                     timeoutInNanoseconds);
   // TEMP: Temporary until we implement a proper cleanup system for fences and semaphores.
   //{
-  vkResetFences(m_deviceQueue->VulkanDevice(), 1, &handle.m_fence);
+  vkResetFences(m_deviceQueue->vkDevice(), 1, &handle.m_fence);
   //}
 
   // After waiting, we can process cleanup tasks.
@@ -137,7 +137,7 @@ void CVulkanFenceHelper::PerformImmediateCleanup()
   //while (!cleanup_tasks_.empty())
   //{
   //  auto& tasks_for_fence = cleanup_tasks_.front();
-  //  vkDestroyFence(m_deviceQueue->VulkanDevice(), tasks_for_fence.fence, nullptr);
+  //  vkDestroyFence(m_deviceQueue->vkDevice(), tasks_for_fence.fence, nullptr);
   //  tasks_to_run.insert(tasks_to_run.end(), std::make_move_iterator(tasks_for_fence.tasks.begin()),
   //                      std::make_move_iterator(tasks_for_fence.tasks.end()));
   //  cleanup_tasks_.pop_front();
@@ -165,7 +165,7 @@ void CVulkanFenceHelper::EnqueueSemaphoresCleanupForSubmittedWork(
 
   for (VkSemaphore semaphore : semaphores)
   {
-    vkDestroySemaphore(m_deviceQueue->VulkanDevice(), semaphore, nullptr);
+    vkDestroySemaphore(m_deviceQueue->vkDevice(), semaphore, nullptr);
   }
 }
 
