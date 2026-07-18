@@ -13,6 +13,7 @@
 #include "rendering/vulkan/VulkanFenceHelper.h"
 #include "rendering/vulkan/VulkanInstance.h"
 #include "rendering/vulkan/VulkanRenderSystem.h"
+#include "rendering/vulkan/utils/VulkanInitStructs.h"
 #include "rendering/vulkan/utils/VulkanUtils.h"
 #include "utils/log.h"
 
@@ -20,6 +21,8 @@
 
 #define VMA_IMPLEMENTATION
 #include <vk_mem_alloc.h>
+
+using namespace KODI::RENDERING::VULKAN::UTILS;
 
 namespace KODI
 {
@@ -155,6 +158,8 @@ bool CVulkanDeviceQueue::Initialize(DeviceQueueOptions options,
     return false;
   }
 
+  m_vulkanRenderSystem->GetVulkanInstance()->SetUsedPhysicalDeviceIndex(deviceIndex);
+
   const auto& physicalDeviceInfo = info.physicalDevices[deviceIndex];
   m_vkPhysicalDevice = physicalDeviceInfo.device;
   m_vkPhysicalDeviceProperties = physicalDeviceInfo.properties;
@@ -227,8 +232,13 @@ bool CVulkanDeviceQueue::Initialize(DeviceQueueOptions options,
     m_vkEnabledDeviceFeatures2.pNext = &m_vkProtectedMemoryFeatures;
   }
 
+  // Store Properties features, limits and properties of the physical m_device for later use
+  // Device properties also contain limits and sparse properties
+  vkGetPhysicalDeviceProperties(m_vkPhysicalDevice, &m_vkPhysicalDeviceProperties);
   // Query the physical device features.
   vkGetPhysicalDeviceFeatures2(m_vkPhysicalDevice, &m_vkEnabledDeviceFeatures2);
+  // Memory properties are used regularly for creating all kinds of buffers
+  vkGetPhysicalDeviceMemoryProperties(m_vkPhysicalDevice, &m_vkPhysicalDeviceMemoryProperties);
 
   // The sample uses a single graphics queue
   const float queuePriority = 0.5f;
@@ -259,12 +269,8 @@ bool CVulkanDeviceQueue::Initialize(DeviceQueueOptions options,
       .pEnabledFeatures = &m_vkEnabledDeviceFeatures2.features,
   };
 
-  result = vkCreateDevice(m_vkPhysicalDevice, &vkDeviceCreateInfo, nullptr, &m_vkDevice);
-  if (VK_SUCCESS != result) [[unlikely]]
-  {
-    CLog::Log(LOGERROR, "Vulkan: vkCreateDevice failed. result: {0}", ErrorString(result));
-    return false;
-  }
+  VK_CHECK_RESULT(vkCreateDevice(m_vkPhysicalDevice, &vkDeviceCreateInfo, nullptr, &m_vkDevice),
+                  false);
 
   if (m_allowProtectedMemory) [[likely]]
   {
@@ -348,12 +354,94 @@ bool CVulkanDeviceQueue::SupportsExtension(const char* extension) const
                              [extension](const char* p) { return std::strcmp(extension, p) == 0; });
 }
 
+bool CVulkanDeviceQueue::SupportsFormat(VkFormat format) const
+{
+  VkFormatProperties formatProperties{};
+  vkGetPhysicalDeviceFormatProperties(m_vkPhysicalDevice, format, &formatProperties);
+  if (!(formatProperties.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT))
+  {
+    CLog::Log(LOGDEBUG, "Vulkan: Format {} is not supported by device {}", static_cast<int>(format),
+              m_vkPhysicalDeviceProperties.deviceName);
+    return false;
+  }
+  return true;
+}
+
 std::unique_ptr<CVulkanCommandPool> CVulkanDeviceQueue::CreateCommandPool()
 {
   auto commandPool = std::make_unique<CVulkanCommandPool>(this);
   if (!commandPool->Initialize(m_allowProtectedMemory))
     return nullptr;
   return commandPool;
+}
+
+uint32_t CVulkanDeviceQueue::GetMemoryType(uint32_t typeBits,
+                                           VkMemoryPropertyFlags properties,
+                                           VkBool32* memTypeFound) const
+{
+  for (uint32_t i = 0; i < m_vkPhysicalDeviceMemoryProperties.memoryTypeCount; i++)
+  {
+    if ((typeBits & 1) == 1)
+    {
+      if ((m_vkPhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & properties) ==
+          properties)
+      {
+        if (memTypeFound)
+        {
+          *memTypeFound = true;
+        }
+        return i;
+      }
+    }
+    typeBits >>= 1;
+  }
+
+  if (memTypeFound)
+  {
+    *memTypeFound = false;
+    return 0;
+  }
+  else
+  {
+    throw std::runtime_error("Could not find a matching memory type");
+  }
+}
+
+VkCommandBuffer CVulkanDeviceQueue::CreateCommandBuffer(VkCommandPool pool)
+{
+  VkCommandBufferAllocateInfo allocInfo =
+      vkCommandBufferAllocateInfo(pool, VK_COMMAND_BUFFER_LEVEL_PRIMARY, 1);
+
+  VkCommandBuffer command_buffer{};
+  VK_CHECK_RESULT(vkAllocateCommandBuffers(m_vkDevice, &allocInfo, &command_buffer),
+                  VK_NULL_HANDLE);
+
+  VkCommandBufferBeginInfo beginInfo = vkCommandBufferBeginInfo();
+  VK_CHECK_RESULT(vkBeginCommandBuffer(command_buffer, &beginInfo), VK_NULL_HANDLE);
+  return command_buffer;
+}
+
+void CVulkanDeviceQueue::FlushCommandBuffer(VkCommandBuffer commandBuffer, VkCommandPool pool)
+{
+  using KODI::RENDERING::VULKAN::UTILS::DEFAULT_FENCE_TIMEOUT;
+
+  if (commandBuffer == VK_NULL_HANDLE)
+    return;
+
+  VK_CHECK_RESULT(vkEndCommandBuffer(commandBuffer));
+
+  VkSubmitInfo submitInfo = vkSubmitInfo();
+  submitInfo.commandBufferCount = 1;
+  submitInfo.pCommandBuffers = &commandBuffer;
+
+  VkFenceCreateInfo fenceInfo = vkFenceCreateInfo();
+  VkFence fence;
+  VK_CHECK_RESULT(vkCreateFence(m_vkDevice, &fenceInfo, nullptr, &fence));
+  VK_CHECK_RESULT(vkQueueSubmit(m_vkQueue, 1, &submitInfo, fence));
+  VK_CHECK_RESULT(vkWaitForFences(m_vkDevice, 1, &fence, VK_TRUE, DEFAULT_FENCE_TIMEOUT));
+  vkDestroyFence(m_vkDevice, fence, nullptr);
+
+  vkFreeCommandBuffers(m_vkDevice, pool, 1, &commandBuffer);
 }
 
 } // namespace VULKAN

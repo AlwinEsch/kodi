@@ -25,11 +25,7 @@
 #include <glm/glm.hpp>
 #include <vulkan/vulkan_core.h>
 
-namespace KODI
-{
-namespace RENDERING
-{
-namespace VULKAN
+namespace KODI::RENDERING::VULKAN
 {
 
 class CVulkanCommandBuffer;
@@ -126,9 +122,9 @@ public:
   VkSwapchainKHR vkSwapchain() const { return m_vkSwapchain; }
   VkRenderPass vkRenderPass() const { return m_vkRenderPass; }
   VkFormat vkSwapchainFormat() const { return m_vkSwapchainFormat; }
-  VkCommandBuffer vkCurrentCommandBuffer() const { return m_currentVkCommandBuffer; }
-  VkCommandPool vkCurrentCommandPool() const { return m_currentVkCommandPool; }
+  VkCommandPool vkCommandPool() const { return m_vkCommandPool; }
   VkQueue vkQueue() const { return m_deviceQueue->vkQueue(); }
+  VkCommandBuffer vkCurrentCommandBuffer() const { return m_currentVkCommandBuffer; }
   //@}
 
 protected:
@@ -164,8 +160,8 @@ private:
   std::unique_ptr<CVulkanDeviceQueue> m_deviceQueue;
   std::unique_ptr<CVulkanSurface> m_surface;
   std::unique_ptr<CVulkanRenderPass> m_renderPass;
+  std::unique_ptr<CVulkanCommandPool> m_commandPool;
   std::vector<std::unique_ptr<CVulkanFramebuffer>> m_framebuffers;
-  std::vector<std::unique_ptr<CVulkanCommandPool>> m_commandPool;
 
   /**
    * @brief Values in group of Vulkan objects that are used for rendering and are initialized in
@@ -188,11 +184,11 @@ private:
   VkPipelineLayout m_vkPipelineLayout{VK_NULL_HANDLE}; // Created & destroyed here
   VkSwapchainKHR m_vkSwapchain{VK_NULL_HANDLE}; // Created & destroyed outside
   VkRenderPass m_vkRenderPass{VK_NULL_HANDLE}; // Created & destroyed here
+  VkCommandPool m_vkCommandPool{VK_NULL_HANDLE}; // Created & destroyed outside
   VkFormat m_vkSwapchainFormat = VK_FORMAT_UNDEFINED;
   /**@}*/
 
   VkCommandBuffer m_currentVkCommandBuffer{VK_NULL_HANDLE};
-  VkCommandPool m_currentVkCommandPool{VK_NULL_HANDLE};
   std::optional<CVulkanScopedWrite> m_scopedWrite;
 
   void init_vertex_buffer();
@@ -200,6 +196,4 @@ private:
   VkDeviceMemory m_vertex_buffer_memory = VK_NULL_HANDLE;
 };
 
-} // namespace VULKAN
-} // namespace RENDERING
-} // namespace KODI
+} // namespace KODI::RENDERING::VULKAN

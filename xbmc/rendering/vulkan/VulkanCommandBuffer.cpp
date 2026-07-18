@@ -109,12 +109,7 @@ bool CVulkanCommandBuffer::Submit(uint32_t numWaitSemaphores,
   VkResult result = VK_SUCCESS;
 
   VkFence fence;
-  result = m_deviceQueue->FenceHelper()->GetFence(&fence);
-  if (VK_SUCCESS != result)
-  {
-    CLog::Log(LOGERROR, "Vulkan: Failed to create fence, ERROR: {}", ErrorString(result));
-    return false;
-  }
+  VK_CHECK_RESULT(m_deviceQueue->FenceHelper()->GetFence(&fence), false);
 
   result = vkQueueSubmit(m_deviceQueue->vkQueue(), 1, &submit_info, fence);
   if (VK_SUCCESS != result)
@@ -252,15 +247,9 @@ void CVulkanCommandBuffer::ResetIfDirty()
     // Block if command buffer is still in use. This can be externally avoided
     // using the asynchronous SubmissionFinished() function.
     Wait(UINT64_MAX);
-    VkResult result = vkResetCommandBuffer(m_vkCommandBuffer, 0);
-    if (result != VK_SUCCESS)
-    {
-      CLog::Log(LOGERROR, "Vulkan: vkResetCommandBuffer() failed: {}", ErrorString(result));
-    }
-    else
-    {
-      m_recordType = RECORD_TYPE_EMPTY;
-    }
+    VK_CHECK_RESULT(vkResetCommandBuffer(m_vkCommandBuffer, 0));
+
+    m_recordType = RECORD_TYPE_EMPTY;
   }
 }
 
@@ -283,20 +272,13 @@ CVulkanCommandBufferScoped::CVulkanCommandBufferScoped(CVulkanCommandBuffer& com
   VkCommandBufferBeginInfo begin_info = {};
   begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
   begin_info.flags = m_usageFlags;
-  VkResult result = vkBeginCommandBuffer(m_handle, &begin_info);
-  if (result != VK_SUCCESS)
-  {
-    CLog::Log(LOGERROR, "Vulkan: vkBeginCommandBuffer() failed: {}", ErrorString(result));
-  }
+  VK_CHECK_RESULT(vkBeginCommandBuffer(m_handle, &begin_info));
 }
+
 
 CVulkanCommandBufferScoped::~CVulkanCommandBufferScoped()
 {
-  VkResult result = vkEndCommandBuffer(m_handle);
-  if (result != VK_SUCCESS)
-  {
-    CLog::Log(LOGERROR, "Vulkan: vkEndCommandBuffer() failed: {}", ErrorString(result));
-  }
+  VK_CHECK_RESULT(vkEndCommandBuffer(m_handle));
 }
 
 } // namespace VULKAN

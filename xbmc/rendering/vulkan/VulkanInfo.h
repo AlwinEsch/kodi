@@ -26,6 +26,8 @@ struct CVulkanPhysicalDeviceInfo
 
   VkPhysicalDeviceProperties properties = {};
   VkPhysicalDeviceDriverProperties driverProperties = {};
+  VkFormatProperties formatProperties = {};
+  VkImageFormatProperties imageFormatProperties = {};
   uint64_t drmDeviceId{0};
 
   std::vector<VkExtensionProperties> extensions;
@@ -47,6 +49,7 @@ struct CVulkanInfo
   std::vector<VkExtensionProperties> instanceExtensions;
   std::vector<const char*> requiredInstanceExtensions;
   std::vector<VkLayerProperties> instanceLayers;
+  uint32_t usedPhysicalDeviceIndex{0};
   std::vector<CVulkanPhysicalDeviceInfo> physicalDevices;
   bool debugUtilsEnabled{false};
 };

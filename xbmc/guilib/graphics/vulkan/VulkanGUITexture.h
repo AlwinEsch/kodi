@@ -15,6 +15,8 @@
 #include <array>
 #include <vector>
 
+#include <glm/glm.hpp>
+
 namespace KODI
 {
 namespace RENDERING
@@ -28,14 +30,6 @@ class CVulkanRenderSystem;
 
 namespace KODI::GUILIB::GRAPHICS::VULKAN
 {
-
-struct PackedVertex
-{
-  float x, y, z;
-  float u1, v1;
-  float u2, v2;
-};
-typedef std::vector<PackedVertex> PackedVertices;
 
 class CVulkanGUITexture : public CGUITexture
 {
@@ -51,8 +45,7 @@ public:
                        const float depth = 1.0,
                        const bool blending = true);
 
-  CVulkanGUITexture(
-      float posX, float posY, float width, float height, const CTextureInfo& texture);
+  CVulkanGUITexture(float posX, float posY, float width, float height, const CTextureInfo& texture);
   ~CVulkanGUITexture() override = default;
 
   CVulkanGUITexture* Clone() const override;
@@ -70,9 +63,16 @@ protected:
 private:
   CVulkanGUITexture(const CVulkanGUITexture& texture) = default;
 
-  std::array<uint8_t, 4> m_col;
+  glm::vec4 m_col;
 
-  PackedVertices m_packedVertices;
+  struct PackedVertex
+  {
+    glm::vec3 pos;
+    glm::vec2 tex1;
+    glm::vec2 tex2;
+  };
+
+  std::vector<PackedVertex> m_packedVertices;
   std::vector<uint16_t> m_idx;
   KODI::RENDERING::VULKAN::CVulkanRenderSystem* m_renderSystem;
 };

@@ -8,72 +8,15 @@
 
 #include "VulkanUtils.h"
 
-#include "rendering/vulkan/VulkanInfo.h"
 #include "filesystem/File.h"
 #include "filesystem/SpecialProtocol.h"
 #include "rendering/vulkan/VulkanDeviceQueue.h"
+#include "rendering/vulkan/VulkanInfo.h"
+#include "rendering/vulkan/utils/VulkanInitStructs.h"
 #include "utils/StringUtils.h"
 #include "utils/log.h"
 
 #include <stdexcept>
-
-namespace
-{
-
-/**
- * @brief Finds a suitable memory type based on the given filter and properties.
- *
- * @param vk_instance The Vulkan instance.
- * @param typeFilter The filter for the memory type.
- * @param properties The required memory properties.
- * @return The index of the found memory type, or 0 if not found.
- *
- * @note This function is only used internally and should not be called directly. Use FindMemoryType instead.
- */
-uint32_t internalFindMemoryType(VkInstance vk_instance,
-                                VkPhysicalDevice physicalDevice,
-                                int32_t typeFilter,
-                                VkMemoryPropertyFlags properties)
-{
-  // Fall back to first available physical device if none is provided
-  if (physicalDevice == VK_NULL_HANDLE)
-  {
-    uint32_t physical_devices_number = 1;
-    VkResult result =
-        vkEnumeratePhysicalDevices(vk_instance, &physical_devices_number, &physicalDevice);
-    if (result != VK_SUCCESS)
-    {
-
-      CLog::Log(LOGERROR, "Vulkan: Failed to enumerate physical devices (Error code: {0})", result);
-      return 0;
-    }
-  }
-
-  VkPhysicalDeviceMemoryProperties memProperties;
-  vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memProperties);
-
-  // Iterate over all memory types available on the physical device
-  for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++)
-  {
-    // Check if the current memory type is acceptable based on the type_filter
-    // The type_filter is a bitmask where each bit represents a memory type that is suitable
-    if (typeFilter & (1 << i))
-    {
-      // Check if the memory type has all the desired property flags
-      // properties is a bitmask of the required memory properties
-      if ((memProperties.memoryTypes[i].propertyFlags & properties) == properties)
-      {
-        // Found a suitable memory type; return its index
-        return i;
-      }
-    }
-  }
-
-  CLog::Log(LOGERROR, "Vulkan: Failed to find suitable memory type");
-  return 0;
-}
-
-} // namespace
 
 namespace KODI
 {
@@ -114,62 +57,6 @@ VkBool32 vulkanErrorCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSever
   return VK_FALSE;
 }
 
-bool vulkanCreateBuffer(VkInstance vkInstance,
-                        VkDevice device,
-                        VkPhysicalDevice physicalDevice,
-                        VkDeviceSize size,
-                        VkBufferUsageFlags usage,
-                        VkMemoryPropertyFlags properties,
-                        VkBuffer& buffer,
-                        VkDeviceMemory& bufferMemory)
-{
-  // Create the vertex buffer
-  VkBufferCreateInfo bufferInfo{
-      .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
-      .pNext = nullptr,
-      .flags = 0,
-      .size = size,
-      .usage = usage,
-      .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
-      .queueFamilyIndexCount = 0,
-      .pQueueFamilyIndices = nullptr,
-  };
-
-  if (vkCreateBuffer(device, &bufferInfo, nullptr, &buffer) != VK_SUCCESS)
-  {
-    CLog::Log(LOGERROR, "Vulkan: Failed to create buffer (Function: %s)", __func__);
-    return false;
-  }
-
-  // Get memory requirements
-  VkMemoryRequirements memoryRequirements{};
-  vkGetBufferMemoryRequirements(device, buffer, &memoryRequirements);
-
-  // Allocate memory for the buffer
-  VkMemoryAllocateInfo alloc_info{
-      .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
-      .pNext = nullptr,
-      .allocationSize = memoryRequirements.size,
-      .memoryTypeIndex = internalFindMemoryType(vkInstance, physicalDevice,
-                                                memoryRequirements.memoryTypeBits, properties),
-  };
-
-  if (vkAllocateMemory(device, &alloc_info, nullptr, &bufferMemory) != VK_SUCCESS)
-  {
-    CLog::Log(LOGERROR, "Vulkan: Failed to allocate buffer memory (Function: %s)", __func__);
-    return false;
-  }
-
-  // Bind the buffer with the allocated memory
-  if (vkBindBufferMemory(device, buffer, bufferMemory, 0) != VK_SUCCESS)
-  {
-    CLog::Log(LOGERROR, "Vulkan: Failed to bind buffer memory (Function: %s)", __func__);
-    return false;
-  }
-
-  return true;
-}
-
 VkShaderModule vulkanCreateShaderModule(VkDevice device, const std::string& filename)
 {
   XFILE::CFileStream file;
@@ -189,18 +76,16 @@ VkShaderModule vulkanCreateShaderModule(VkDevice device, const std::string& file
     return nullptr;
   }
 
-  VkShaderModuleCreateInfo module_info{.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
-                                       .pNext = nullptr,
-                                       .flags = 0,
-                                       .codeSize = spirv.size(),
-                                       .pCode = reinterpret_cast<uint32_t*>(spirv.data())};
+  VkShaderModuleCreateInfo module_info{
+      .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
+      .pNext = nullptr,
+      .flags = 0,
+      .codeSize = spirv.size(),
+      .pCode = reinterpret_cast<uint32_t*>(spirv.data()),
+  };
 
   VkShaderModule shader_module;
-  if (vkCreateShaderModule(device, &module_info, nullptr, &shader_module) != VK_SUCCESS)
-  {
-    CLog::Log(LOGERROR, "Vulkan: Failed to create shader module (Function: {})", __func__);
-    return nullptr;
-  }
+  VK_CHECK_RESULT(vkCreateShaderModule(device, &module_info, nullptr, &shader_module), nullptr);
 
   return shader_module;
 }
@@ -217,6 +102,15 @@ void LogGraphicsInfo(const CVulkanInfo& vulkanInfo)
             VK_VERSION_MAJOR(vulkanInfo.usedAPIVersion),
             VK_VERSION_MINOR(vulkanInfo.usedAPIVersion),
             VK_VERSION_PATCH(vulkanInfo.usedAPIVersion));
+  if (!vulkanInfo.physicalDevices.empty())
+  {
+    const auto& usedDeviceInfo = vulkanInfo.physicalDevices[vulkanInfo.usedPhysicalDeviceIndex];
+    CLog::Log(LOGINFO, "        - Used Physical Device: {0}", usedDeviceInfo.properties.deviceName);
+  }
+  else
+  {
+    CLog::Log(LOGINFO, "        - No physical devices found.");
+  }
   CLog::Log(LOGINFO, "        - Debug Utils Enabled: {0}",
             vulkanInfo.debugUtilsEnabled ? "Yes" : "No");
   for (const auto& deviceInfo : vulkanInfo.instanceExtensions)
@@ -230,26 +124,28 @@ void LogGraphicsInfo(const CVulkanInfo& vulkanInfo)
     CLog::Log(LOGINFO, "        - Instance Extension: {0} (Version {1}), Is Enabled: {2}",
               deviceInfo.extensionName, deviceInfo.specVersion, isEnabled ? "Yes" : "No");
   }
+  CLog::Log(LOGINFO,
+            "        - Available Physical Devices: {0}:", vulkanInfo.physicalDevices.size());
   for (const auto& deviceInfo : vulkanInfo.physicalDevices)
   {
-    CLog::Log(LOGINFO, "        - Physical Device: {0}", deviceInfo.properties.deviceName);
-    CLog::Log(LOGINFO, "            - Supported: {0}",
+    CLog::Log(LOGINFO, "          - Physical Device: {0}", deviceInfo.properties.deviceName);
+    CLog::Log(LOGINFO, "              - Supported: {0}",
               deviceInfo.properties.apiVersion >= REQUIRED_VK_API_VERSION ? "Yes" : "No");
-    CLog::Log(LOGINFO, "            - Vendor ID: {0:#X}", deviceInfo.properties.vendorID);
-    CLog::Log(LOGINFO, "            - Device ID: {0:#X}", deviceInfo.properties.deviceID);
-    CLog::Log(LOGINFO, "            - Driver Version: {0}.{1}.{2}",
+    CLog::Log(LOGINFO, "              - Vendor ID: {0:#X}", deviceInfo.properties.vendorID);
+    CLog::Log(LOGINFO, "              - Device ID: {0:#X}", deviceInfo.properties.deviceID);
+    CLog::Log(LOGINFO, "              - Driver Version: {0}.{1}.{2}",
               VK_VERSION_MAJOR(deviceInfo.properties.driverVersion),
               VK_VERSION_MINOR(deviceInfo.properties.driverVersion),
               VK_VERSION_PATCH(deviceInfo.properties.driverVersion));
-    CLog::Log(LOGINFO, "            - API Version: {0}.{1}.{2}",
+    CLog::Log(LOGINFO, "              - API Version: {0}.{1}.{2}",
               VK_VERSION_MAJOR(deviceInfo.properties.apiVersion),
               VK_VERSION_MINOR(deviceInfo.properties.apiVersion),
               VK_VERSION_PATCH(deviceInfo.properties.apiVersion));
-    CLog::Log(LOGINFO, "            - DRM Device ID: {0:#X}", deviceInfo.drmDeviceId);
-    CLog::Log(LOGINFO, "            - Queue Families: {0}", deviceInfo.queueFamilies.size());
-    CLog::Log(LOGINFO, "            - Sampler YCbCr Conversion: {0}",
+    CLog::Log(LOGINFO, "              - DRM Device ID: {0:#X}", deviceInfo.drmDeviceId);
+    CLog::Log(LOGINFO, "              - Queue Families: {0}", deviceInfo.queueFamilies.size());
+    CLog::Log(LOGINFO, "              - Sampler YCbCr Conversion: {0}",
               deviceInfo.featureSamplerYCBCRconversion ? "Supported" : "Not supported");
-    CLog::Log(LOGINFO, "            - Protected Memory: {0}",
+    CLog::Log(LOGINFO, "              - Protected Memory: {0}",
               deviceInfo.featureProtectedMemory ? "Supported" : "Not supported");
   }
 }
@@ -298,36 +194,8 @@ void LogVulkanError(VkResult result,
 {
   if (result == VK_SUCCESS)
     return;
-  CLog::Log(LOGERROR, "Vulkan: Error in function \"{}\" at {}:{} - {}", functionName, fileName, lineNumber, ErrorString(result));
-}
-
-uint32_t FindMemoryType(VkPhysicalDevice physicalDevice,
-                        uint32_t typeFilter,
-                        VkMemoryPropertyFlags properties)
-{
-  // Structure to hold the physical device's memory properties
-  VkPhysicalDeviceMemoryProperties mem_properties;
-  vkGetPhysicalDeviceMemoryProperties(physicalDevice, &mem_properties);
-
-  // Iterate over all memory types available on the physical device
-  for (uint32_t i = 0; i < mem_properties.memoryTypeCount; i++)
-  {
-    // Check if the current memory type is acceptable based on the typeFilter
-    // The typeFilter is a bitmask where each bit represents a memory type that is suitable
-    if (typeFilter & (1 << i))
-    {
-      // Check if the memory type has all the desired property flags
-      // properties is a bitmask of the required memory properties
-      if ((mem_properties.memoryTypes[i].propertyFlags & properties) == properties)
-      {
-        // Found a suitable memory type; return its index
-        return i;
-      }
-    }
-  }
-
-  // If no suitable memory type was found, throw an exception
-  throw std::runtime_error("Failed to find suitable memory type.");
+  CLog::Log(LOGERROR, "Vulkan: Error in function \"{}\" at {}:{} - {}", functionName, fileName,
+            lineNumber, ErrorString(result));
 }
 
 VkPipelineStageFlags GetPipelineStageFlags(const CVulkanDeviceQueue* deviceQueue,
@@ -474,6 +342,122 @@ VkAccessFlags2 GetAccessMask2(const VkImageLayout layout)
   }
 }
 #endif
+
+void SetImageLayout(VkCommandBuffer cmdbuffer,
+                    VkImage image,
+                    VkImageLayout oldImageLayout,
+                    VkImageLayout newImageLayout,
+                    VkImageSubresourceRange subresourceRange,
+                    VkPipelineStageFlags srcStageMask,
+                    VkPipelineStageFlags dstStageMask)
+{
+  // Create an image barrier object
+  VkImageMemoryBarrier imageMemoryBarrier = vkImageMemoryBarrier();
+  imageMemoryBarrier.oldLayout = oldImageLayout;
+  imageMemoryBarrier.newLayout = newImageLayout;
+  imageMemoryBarrier.image = image;
+  imageMemoryBarrier.subresourceRange = subresourceRange;
+
+  // Source layouts (old)
+  // Source access mask controls actions that have to be finished on the old layout
+  // before it will be transitioned to the new layout
+  switch (oldImageLayout)
+  {
+    case VK_IMAGE_LAYOUT_UNDEFINED:
+      // Image layout is undefined (or does not matter)
+      // Only valid as initial layout
+      // No flags required, listed only for completeness
+      imageMemoryBarrier.srcAccessMask = 0;
+      break;
+
+    case VK_IMAGE_LAYOUT_PREINITIALIZED:
+      // Image is preinitialized
+      // Only valid as initial layout for linear images, preserves memory contents
+      // Make sure host writes have been finished
+      imageMemoryBarrier.srcAccessMask = VK_ACCESS_HOST_WRITE_BIT;
+      break;
+
+    case VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL:
+      // Image is a color attachment
+      // Make sure any writes to the color buffer have been finished
+      imageMemoryBarrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+      break;
+
+    case VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL:
+      // Image is a depth/stencil attachment
+      // Make sure any writes to the depth/stencil buffer have been finished
+      imageMemoryBarrier.srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+      break;
+
+    case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:
+      // Image is a transfer source
+      // Make sure any reads from the image have been finished
+      imageMemoryBarrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+      break;
+
+    case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
+      // Image is a transfer destination
+      // Make sure any writes to the image have been finished
+      imageMemoryBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+      break;
+
+    case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
+      // Image is read by a shader
+      // Make sure any shader reads from the image have been finished
+      imageMemoryBarrier.srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
+      break;
+    default:
+      // Other source layouts aren't handled (yet)
+      break;
+  }
+
+  // Target layouts (new)
+  // Destination access mask controls the dependency for the new image layout
+  switch (newImageLayout)
+  {
+    case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
+      // Image will be used as a transfer destination
+      // Make sure any writes to the image have been finished
+      imageMemoryBarrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+      break;
+
+    case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:
+      // Image will be used as a transfer source
+      // Make sure any reads from the image have been finished
+      imageMemoryBarrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+      break;
+
+    case VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL:
+      // Image will be used as a color attachment
+      // Make sure any writes to the color buffer have been finished
+      imageMemoryBarrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+      break;
+
+    case VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL:
+      // Image layout will be used as a depth/stencil attachment
+      // Make sure any writes to depth/stencil buffer have been finished
+      imageMemoryBarrier.dstAccessMask =
+          imageMemoryBarrier.dstAccessMask | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+      break;
+
+    case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
+      // Image will be read in a shader (sampler, input attachment)
+      // Make sure any writes to the image have been finished
+      if (imageMemoryBarrier.srcAccessMask == 0)
+      {
+        imageMemoryBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+      }
+      imageMemoryBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+      break;
+    default:
+      // Other source layouts aren't handled (yet)
+      break;
+  }
+
+  // Put barrier inside setup command buffer
+  vkCmdPipelineBarrier(cmdbuffer, srcStageMask, dstStageMask, 0, 0, nullptr, 0, nullptr, 1,
+                       &imageMemoryBarrier);
+}
 
 } // namespace UTILS
 } // namespace VULKAN

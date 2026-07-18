@@ -10,9 +10,13 @@
 
 #include "rendering/vulkan/VulkanCommandBuffer.h"
 #include "rendering/vulkan/VulkanDeviceQueue.h"
+#include "rendering/vulkan/utils/VulkanInitStructs.h"
+#include "rendering/vulkan/utils/VulkanUtils.h"
 #include "utils/log.h"
 
 #include <cassert>
+
+using namespace KODI::RENDERING::VULKAN::UTILS;
 
 namespace KODI
 {
@@ -33,26 +37,16 @@ CVulkanCommandPool::~CVulkanCommandPool()
 
 bool CVulkanCommandPool::Initialize(bool allowProtectedMemory)
 {
-  VkCommandPoolCreateInfo info{
-      .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
-      .pNext = nullptr,
-      //.flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT,
-      .flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
-      .queueFamilyIndex = static_cast<uint32_t>(m_deviceQueue->VulkanQueueIndex()),
-  };
-  if (allowProtectedMemory)
+  VkCommandPoolCreateInfo info = vkCommandPoolCreateInfo();
+  info.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+  info.queueFamilyIndex = static_cast<uint32_t>(m_deviceQueue->VulkanQueueIndex());
+
+  if (allowProtectedMemory) [[likely]]
   {
     info.flags |= VK_COMMAND_POOL_CREATE_PROTECTED_BIT;
   }
 
-  VkResult result =
-      vkCreateCommandPool(m_deviceQueue->vkDevice(), &info, nullptr, &m_vkCommandPool);
-  if (result != VK_SUCCESS)
-  {
-    CLog::Log(LOGERROR, "Vulkan: Failed to create command pool for per frame data. ERROR {0}",
-              result);
-    return false;
-  }
+  VK_CHECK_RESULT(vkCreateCommandPool(m_deviceQueue->vkDevice(), &info, nullptr, &m_vkCommandPool), false);
 
   return true;
 }
@@ -60,7 +54,7 @@ bool CVulkanCommandPool::Initialize(bool allowProtectedMemory)
 void CVulkanCommandPool::Destroy()
 {
   assert(m_commandBufferCount == 0u);
-  if (m_vkCommandPool != VK_NULL_HANDLE)
+  if (m_vkCommandPool != VK_NULL_HANDLE) [[likely]]
   {
     vkDestroyCommandPool(m_deviceQueue->vkDevice(), m_vkCommandPool, nullptr);
     m_vkCommandPool = VK_NULL_HANDLE;

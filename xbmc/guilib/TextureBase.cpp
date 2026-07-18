@@ -65,6 +65,9 @@ void CTextureBase::Allocate(uint32_t width, uint32_t height, XB_FMT format)
   // filters (e.g. ffmpeg sws_scale with AVX2/SSE) can write a few bytes past the
   // end of the output buffer. Without padding this corrupts adjacent heap metadata.
   // See also CPicture::CacheTexture which adds equivalent padding for sws_scale.
+  fprintf(stderr,
+          "Allocating %zu bytes for texture data (width=%u, height=%u, pitch=%u, rows=%u)\n", size,
+          m_textureWidth, m_textureHeight, GetPitch(), GetRows());
   constexpr size_t simdPadding{32};
   m_pixels = static_cast<unsigned char*>(KODI::MEMORY::AlignedMalloc(size + simdPadding, 32));
 

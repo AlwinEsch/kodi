@@ -89,16 +89,16 @@ static ShaderId TranslateShaderMethodVulkan(RENDER_SHADER_METHOD method)
   switch (method)
   {
     case RENDER_SHADER_METHOD::DEFAULT:
-      return VULKAN_DEFAULT_SHADER;
+      return VULKAN_SM_DEFAULT;
     case RENDER_SHADER_METHOD::TEXTURE:
-      return VULKAN_TEXTURE_SHADER;
+      return VULKAN_SM_TEXTURE;
     case RENDER_SHADER_METHOD::TEXTURE_NOALPHA:
-      return VULKAN_TEXTURE_NOALPHA_SHADER;
+      return VULKAN_SM_TEXTURE_NOALPHA;
     default:
       break;
   }
 
-  return VULKAN_DEFAULT_SHADER;
+  return VULKAN_SM_DEFAULT;
 }
 
 } // namespace

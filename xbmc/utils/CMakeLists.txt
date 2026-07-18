@@ -53,7 +53,6 @@ set(SOURCES ActorProtocol.cpp
             PlayerUtils.cpp
             RecentlyAddedJob.cpp
             RegExp.cpp
-            RenderUtils.cpp
             RingBuffer.cpp
             RssManager.cpp
             RssReader.cpp
@@ -158,7 +157,6 @@ set(HEADERS ActorProtocol.h
             PlayerUtils.h
             ProgressJob.h
             RecentlyAddedJob.h
-            RenderUtils.h
             RegExp.h
             RingBuffer.h
             RssManager.h

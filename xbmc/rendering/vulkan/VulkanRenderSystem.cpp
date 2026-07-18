@@ -24,8 +24,8 @@
 #include "rendering/vulkan/VulkanScopedWrite.h"
 #include "rendering/vulkan/VulkanSwapChain.h"
 #include "rendering/vulkan/shaders/VulkanShaderControl.h"
-#include "rendering/vulkan/utils/VulkanUtils.h"
 #include "rendering/vulkan/utils/VulkanInitStructs.h"
+#include "rendering/vulkan/utils/VulkanUtils.h"
 #include "settings/AdvancedSettings.h"
 #include "settings/DisplaySettings.h"
 #include "settings/SettingsComponent.h"
@@ -46,11 +46,7 @@ using namespace std::chrono_literals;
 using namespace KODI::GUILIB::GRAPHICS::VULKAN;
 using namespace KODI::RENDERING::VULKAN::UTILS;
 
-namespace KODI
-{
-namespace RENDERING
-{
-namespace VULKAN
+namespace KODI::RENDERING::VULKAN
 {
 
 namespace
@@ -143,16 +139,13 @@ bool CVulkanRenderSystem::InitRenderSystem()
 
   m_vkRenderPass = m_renderPass->vkRenderPass();
   m_vkSwapchain = m_surface->vkSwapchain();
-
-  CVulkanSwapChain* vulkan_swap_chain = m_surface->SwapChain();
-  const uint32_t num_images = vulkan_swap_chain->AmmountSwapChainImages();
-  m_framebuffers.resize(num_images);
-  m_commandPool.resize(num_images);
-
-  for (uint32_t i = 0; i < num_images; ++i)
+  m_commandPool = m_deviceQueue->CreateCommandPool();
+  if (!m_commandPool)
   {
-    m_commandPool[i] = m_deviceQueue->CreateCommandPool();
+    CLog::Log(LOGERROR, "Vulkan: Failed to create command pool ({0}:{1})", __FILENAME__, __LINE__);
+    return false;
   }
+  m_vkCommandPool = m_commandPool->vkCommandPool();
 
   m_vkPipelineLayout = CreatePipelineLayout();
   if (m_vkPipelineLayout == VK_NULL_HANDLE)
@@ -169,11 +162,14 @@ bool CVulkanRenderSystem::InitRenderSystem()
     return false;
   }
 
+  CVulkanSwapChain* vulkan_swap_chain = m_surface->SwapChain();
+  const uint32_t num_images = vulkan_swap_chain->AmmountSwapChainImages();
+  m_framebuffers.resize(num_images);
   m_bRenderCreated = true;
 
   CVulkanGUITexture::Register();
 
-  m_vkPipeline = m_shaderControl->GetPipeline(VULKAN_TEST_SHADER);
+  m_vkPipeline = m_shaderControl->GetPipeline(VULKAN_SM_TEST);
   init_vertex_buffer();
 
   return true;
@@ -215,15 +211,11 @@ bool CVulkanRenderSystem::DestroyRenderSystem()
   }
   m_framebuffers.clear();
 
-  for (auto& command_pool : m_commandPool)
+  if (m_commandPool)
   {
-    if (!command_pool)
-      continue;
-
-    command_pool->Destroy();
-    command_pool.reset();
+    m_commandPool->Destroy();
+    m_commandPool.reset();
   }
-  m_commandPool.clear();
 
   if (m_vkPipelineLayout != VK_NULL_HANDLE)
   {
@@ -295,7 +287,7 @@ bool CVulkanRenderSystem::BeginRender()
   if (!framebuffer)
   {
     framebuffer = std::make_unique<CVulkanFramebuffer>(m_vkDevice);
-    if (!framebuffer->Create(m_deviceQueue.get(), m_commandPool[image].get(), m_vkRenderPass,
+    if (!framebuffer->Create(m_deviceQueue.get(), m_commandPool.get(), m_vkRenderPass,
                              m_surface.get(), scoped_write.Image())) [[unlikely]]
     {
       CLog::Log(LOGERROR, "Vulkan: Failed to create framebuffer ({0}:{1})", __FILENAME__, __LINE__);
@@ -304,7 +296,7 @@ bool CVulkanRenderSystem::BeginRender()
     }
   }
 
-	VkClearValue clearValues[2]{};
+  VkClearValue clearValues[2]{};
   clearValues[0].color = defaultClearColor;
   clearValues[1].depthStencil = {1.0f, 0};
 
@@ -384,7 +376,6 @@ bool CVulkanRenderSystem::BeginRender()
   //@}
 
   m_currentVkCommandBuffer = cmd;
-  m_currentVkCommandPool = m_commandPool[image]->vkCommandPool();
   m_scopedWrite = std::move(scoped_write);
 
   return true;
@@ -588,12 +579,8 @@ VkPipelineLayout CVulkanRenderSystem::CreatePipelineLayout(VkDescriptorSetLayout
   };
 
   VkPipelineLayout pipeline_layout;
-  VkResult result = vkCreatePipelineLayout(m_vkDevice, &layout_info, nullptr, &pipeline_layout);
-  if (result != VK_SUCCESS)
-  {
-    LogVulkanError(result, "vkCreatePipelineLayout", __FILENAME__, __LINE__);
-    return VK_NULL_HANDLE;
-  }
+  VK_CHECK_RESULT(vkCreatePipelineLayout(m_vkDevice, &layout_info, nullptr, &pipeline_layout),
+                  VK_NULL_HANDLE);
 
   return pipeline_layout;
 }
@@ -632,12 +619,7 @@ void CVulkanRenderSystem::init_vertex_buffer()
   VkBufferCreateInfo buffer_info =
       UTILS::vkBufferCreateInfo(buffer_size, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
 
-  VkResult result = vkCreateBuffer(m_vkDevice, &buffer_info, nullptr, &m_vertex_buffer);
-  if (result != VK_SUCCESS)
-  {
-    LogVulkanError(result, "vkCreateBuffer", __FILENAME__, __LINE__);
-    return;
-  }
+  VK_CHECK_RESULT(vkCreateBuffer(m_vkDevice, &buffer_info, nullptr, &m_vertex_buffer));
 
   // Get memory requirements
   VkMemoryRequirements memory_requirements;
@@ -648,38 +630,20 @@ void CVulkanRenderSystem::init_vertex_buffer()
       .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
       .pNext = VK_NULL_HANDLE,
       .allocationSize = memory_requirements.size,
-      .memoryTypeIndex = FindMemoryType(m_vkPhysicalDevice, memory_requirements.memoryTypeBits,
-                                        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-                                            VK_MEMORY_PROPERTY_HOST_COHERENT_BIT),
+      .memoryTypeIndex = m_deviceQueue->GetMemoryType(memory_requirements.memoryTypeBits,
+                                                      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                                                          VK_MEMORY_PROPERTY_HOST_COHERENT_BIT),
   };
-  result = vkAllocateMemory(m_vkDevice, &alloc_info, nullptr, &m_vertex_buffer_memory);
-  if (result != VK_SUCCESS)
-  {
-    LogVulkanError(result, "vkAllocateMemory", __FILENAME__, __LINE__);
-    return;
-  }
-
+  VK_CHECK_RESULT(vkAllocateMemory(m_vkDevice, &alloc_info, nullptr, &m_vertex_buffer_memory));
   // Bind the buffer with the allocated memory
-  result = vkBindBufferMemory(m_vkDevice, m_vertex_buffer, m_vertex_buffer_memory, 0);
-  if (result != VK_SUCCESS)
-  {
-    LogVulkanError(result, "vkBindBufferMemory", __FILENAME__, __LINE__);
-    return;
-  }
+  VK_CHECK_RESULT(vkBindBufferMemory(m_vkDevice, m_vertex_buffer, m_vertex_buffer_memory, 0));
 
   // Map the memory and copy the vertex data
   void* data;
-  result = vkMapMemory(m_vkDevice, m_vertex_buffer_memory, 0, buffer_size, 0, &data);
-  if (result != VK_SUCCESS)
-  {
-    LogVulkanError(result, "vkMapMemory", __FILENAME__, __LINE__);
-    return;
-  }
+  VK_CHECK_RESULT(vkMapMemory(m_vkDevice, m_vertex_buffer_memory, 0, buffer_size, 0, &data));
 
   memcpy(data, vertices.data(), static_cast<size_t>(buffer_size));
   vkUnmapMemory(m_vkDevice, m_vertex_buffer_memory);
 }
 
-} // namespace VULKAN
-} // namespace RENDERING
-} // namespace KODI
+} // namespace KODI::RENDERING::VULKAN

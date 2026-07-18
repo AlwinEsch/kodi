@@ -13,21 +13,22 @@
 #include <memory>
 #include <unordered_map>
 
-namespace KODI
-{
-namespace RENDERING
-{
-namespace VULKAN
+namespace KODI::RENDERING::VULKAN
 {
 
-constexpr ShaderId VULKAN_TEST_SHADER = 0;
-constexpr ShaderId VULKAN_DEFAULT_SHADER = 1;
-constexpr ShaderId VULKAN_TEXTURE_SHADER = 2;
-constexpr ShaderId VULKAN_TEXTURE_NOALPHA_SHADER = 3;
-constexpr ShaderId VULKAN_FONTS_SHADER = 4;
+constexpr ShaderId VULKAN_SM_TEST = 0;
+constexpr ShaderId VULKAN_SM_DEFAULT = 1;
+constexpr ShaderId VULKAN_SM_TEXTURE = 2;
+constexpr ShaderId VULKAN_SM_TEXTURE_LIM = 3;
+constexpr ShaderId VULKAN_SM_TEXTURE_NOALPHA = 4;
+constexpr ShaderId VULKAN_SM_TEXTURE_NOBLEND = 5;
+constexpr ShaderId VULKAN_SM_MULTI = 6;
+constexpr ShaderId VULKAN_SM_FONTS = 7;
+constexpr ShaderId VULKAN_SM_FONTS_SHADER_CLIP = 8;
+constexpr ShaderId VULKAN_SM_MULTI_BLENDCOLOR = 9;
 
-constexpr ShaderId SHADER_ID_INVALID = -1;
-constexpr ShaderId OPTIONAL_SHADER_ID_START = 100;
+constexpr ShaderId VULKAN_SM_ID_INVALID = -1;
+constexpr ShaderId VULKAN_SM_OPTIONAL_ID_START = 100;
 
 class IVulkanShader;
 
@@ -48,9 +49,7 @@ public:
 private:
   std::unordered_map<ShaderId, std::shared_ptr<IVulkanShader>> m_shaders;
 
-  ShaderId m_nextShaderId{OPTIONAL_SHADER_ID_START};
+  ShaderId m_nextShaderId{VULKAN_SM_OPTIONAL_ID_START};
 };
 
-} // namespace VULKAN
-} // namespace RENDERING
-} // namespace KODI
+} // namespace KODI::RENDERING::VULKAN

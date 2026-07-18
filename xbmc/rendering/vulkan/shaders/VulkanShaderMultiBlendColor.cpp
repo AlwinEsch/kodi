@@ -1,0 +1,55 @@
+/*
+ *  Copyright (C) 2005-2026 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
+ *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
+ */
+
+#include "VulkanShaderMultiBlendColor.h"
+#include "rendering/vulkan/utils/VulkanUtils.h"
+#include "utils/log.h"
+
+#include <cassert>
+
+namespace KODI
+{
+namespace RENDERING
+{
+namespace VULKAN
+{
+
+using KODI::RENDERING::VULKAN::UTILS::ErrorString;
+
+CVulkanShaderMultiBlendColor::CVulkanShaderMultiBlendColor(VkDevice device,
+                                                           VkPipelineLayout pipelineLayout,
+                                                           VkRenderPass renderPass)
+  : m_vkDevice(device),
+    m_vkPipelineLayout(pipelineLayout),
+    m_vkRenderPass(renderPass)
+{
+  assert(m_vkDevice != VK_NULL_HANDLE);
+  assert(m_vkPipelineLayout != VK_NULL_HANDLE);
+  assert(m_vkRenderPass != VK_NULL_HANDLE);
+}
+
+bool CVulkanShaderMultiBlendColor::Create()
+{
+
+
+  return true;
+}
+
+void CVulkanShaderMultiBlendColor::Destroy()
+{
+
+}
+
+VkPipeline CVulkanShaderMultiBlendColor::VulkanPipeline() const
+{
+  return m_vkPipeline;
+}
+
+} // namespace VULKAN
+} // namespace RENDERING
+} // namespace KODI

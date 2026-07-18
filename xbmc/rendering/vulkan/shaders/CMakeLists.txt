@@ -1,12 +1,28 @@
 if(TARGET ${APP_NAME_LC}::Vulkan)
   set(SOURCES VulkanShaderControl.cpp
+              VulkanShaderDefault.cpp
               VulkanShaderFonts.cpp
-              VulkanShaderTest.cpp)
+              VulkanShaderFontsShaderClip.cpp
+              VulkanShaderMulti.cpp
+              VulkanShaderMultiBlendColor.cpp
+              VulkanShaderTest.cpp
+              VulkanShaderTexture.cpp
+              VulkanShaderTextureLim.cpp
+              VulkanShaderTextureNoAlpha.cpp
+              VulkanShaderTextureNoBlend.cpp)
 
   set(HEADERS IVulkanShader.h
-              VulkanShaderFonts.h
               VulkanShaderControl.h
-              VulkanShaderTest.h)
+              VulkanShaderDefault.h
+              VulkanShaderFonts.h
+              VulkanShaderFontsShaderClip.h
+              VulkanShaderMulti.h
+              VulkanShaderMultiBlendColor.h
+              VulkanShaderTest.h
+              VulkanShaderTexture.h
+              VulkanShaderTextureLim.h
+              VulkanShaderTextureNoAlpha.h
+              VulkanShaderTextureNoBlend.h)
 
   core_add_library(rendering_vulkan_shaders)
 endif()

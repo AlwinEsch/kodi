@@ -66,7 +66,7 @@ CVulkanGUIFontTTF::~CVulkanGUIFontTTF()
 
 bool CVulkanGUIFontTTF::FirstBegin()
 {
-  m_renderSystem->EnableShader(VULKAN_FONTS_SHADER);
+  m_renderSystem->EnableShader(VULKAN_SM_FONTS);
 
   return true;
 }

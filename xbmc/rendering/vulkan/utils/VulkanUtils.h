@@ -10,6 +10,7 @@
 
 #include <string>
 #include <vector>
+
 #include <vulkan/vulkan_core.h>
 
 namespace KODI
@@ -24,6 +25,8 @@ class CVulkanDeviceQueue;
 
 namespace UTILS
 {
+
+constexpr uint64_t DEFAULT_FENCE_TIMEOUT = 100000000000;
 
 /*!
  * @brief Error callback function for Vulkan validation layers.
@@ -43,28 +46,6 @@ VkBool32 vulkanErrorCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSever
                              VkDebugUtilsMessageTypeFlagsEXT messageType,
                              const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
                              void* pUserData);
-
-/**
- * @brief Creates a Vulkan buffer.
- *
- * @param[in] vkInstance The Vulkan instance.
- * @param[in] device The Vulkan device.
- * @param[in] physicalDevice The physical Vulkan device.
- * @param[in] size The size of the buffer.
- * @param[in] usage The usage flags for the buffer.
- * @param[in] properties The memory property flags for the buffer.
- * @param[out] buffer The created Vulkan buffer.
- * @param[out] bufferMemory The allocated memory for the buffer.
- * @return True if the buffer was created successfully, false otherwise.
- */
-bool vulkanCreateBuffer(VkInstance vkInstance,
-                        VkDevice device,
-                        VkPhysicalDevice physicalDevice,
-                        VkDeviceSize size,
-                        VkBufferUsageFlags usage,
-                        VkMemoryPropertyFlags properties,
-                        VkBuffer& buffer,
-                        VkDeviceMemory& bufferMemory);
 
 /**
  * @brief Creates a Vulkan shader module from a SPIR-V file.
@@ -120,25 +101,6 @@ void LogVulkanError(VkResult result,
 // clang-format on
 
 /**
- * @brief Finds a suitable memory type index for allocating memory.
- *
- * This function searches through the physical device's memory types to find one that matches
- * the requirements specified by `typeFilter` and `properties`. It's typically used when allocating
- * memory for buffers or images, ensuring that the memory type supports the desired properties.
- *
- * @param[in] physicalDevice The Vulkan physical device to query for memory properties.
- * @param[in] typeFilter A bitmask specifying the acceptable memory types.
- *                   This is usually obtained from `VkMemoryRequirements::memoryTypeBits`.
- * @param[in] properties A bitmask specifying the desired memory properties,
- *                   such as `VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT` or `VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT`.
- * @return The index of a suitable memory type.
- * @throws std::runtime_error if no suitable memory type is found.
- */
-uint32_t FindMemoryType(VkPhysicalDevice physicalDevice,
-                        uint32_t typeFilter,
-                        VkMemoryPropertyFlags properties);
-
-/**
  * @brief Gets the pipeline stage flags for a given image layout.
  *
  * @param[in] deviceQueue The Vulkan device queue.
@@ -175,6 +137,14 @@ VkPipelineStageFlags2 GetPipelineStageFlags2(const CVulkanDeviceQueue* deviceQue
  */
 VkAccessFlags2 GetAccessMask2(const VkImageLayout layout);
 #endif
+
+void SetImageLayout(VkCommandBuffer cmdbuffer,
+                    VkImage image,
+                    VkImageLayout oldImageLayout,
+                    VkImageLayout newImageLayout,
+                    VkImageSubresourceRange subresourceRange,
+                    VkPipelineStageFlags srcStageMask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+                    VkPipelineStageFlags dstStageMask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
 
 } // namespace UTILS
 } // namespace VULKAN

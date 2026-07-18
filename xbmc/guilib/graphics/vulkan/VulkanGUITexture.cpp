@@ -12,6 +12,7 @@
 #include "guilib/Texture.h"
 #include "guilib/TextureFormats.h"
 #include "rendering/vulkan/VulkanRenderSystem.h"
+#include "rendering/vulkan/shaders/VulkanShaderControl.h"
 #include "rendering/vulkan/utils/VulkanUtils.h"
 #include "utils/MathUtils.h"
 #include "utils/log.h"
@@ -20,7 +21,10 @@
 
 #include <cstddef>
 
-using namespace KODI::GUILIB::GRAPHICS::VULKAN;
+using namespace KODI::RENDERING::VULKAN;
+
+namespace KODI::GUILIB::GRAPHICS::VULKAN
+{
 
 void CVulkanGUITexture::Register()
 {
@@ -48,64 +52,60 @@ CVulkanGUITexture* CVulkanGUITexture::Clone() const
 
 void CVulkanGUITexture::Begin(KODI::UTILS::COLOR::Color color)
 {
-  //CTexture* texture = m_texture.m_textures[m_currentFrame].get();
-  //texture->LoadToGPU();
-  //if (m_diffuse.size())
-  //  m_diffuse.m_textures[0]->LoadToGPU();
+  CTexture* texture = m_texture.m_textures[m_currentFrame].get();
+  texture->LoadToGPU();
+  if (m_diffuse.size())
+    m_diffuse.m_textures[0]->LoadToGPU();
 
-  //// Setup Colors
-  //m_col[0] = KODI::UTILS::RENDER::GetChannelFromARGB(KODI::UTILS::VULKAN::ColorChannel::R, color);
-  //m_col[1] = KODI::UTILS::RENDER::GetChannelFromARGB(KODI::UTILS::VULKAN::ColorChannel::G, color);
-  //m_col[2] = KODI::UTILS::RENDER::GetChannelFromARGB(KODI::UTILS::VULKAN::ColorChannel::B, color);
-  //m_col[3] = KODI::UTILS::RENDER::GetChannelFromARGB(KODI::UTILS::VULKAN::ColorChannel::A, color);
+  // Setup Colors
+  m_col = glm::unpackUnorm4x8(color);
 
-  //bool hasAlpha = m_texture.m_textures[m_currentFrame]->HasAlpha() || m_col[3] < 255;
-  //const bool hasBlendColor =
-  //    m_col[0] != 255 || m_col[1] != 255 || m_col[2] != 255 || m_col[3] != 255;
+  bool hasAlpha = m_texture.m_textures[m_currentFrame]->HasAlpha() || m_col.a < 1.0f;
+  const bool hasBlendColor = m_col != glm::vec4(1.0f);
 
-  //if (m_diffuse.size())
-  //{
-  //  if (hasBlendColor)
-  //  {
-  //    m_renderSystem->EnableGUIShader(VulkanShaderMethod::SM_MULTI_BLENDCOLOR);
-  //  }
-  //  else
-  //  {
-  //    m_renderSystem->EnableGUIShader(VulkanShaderMethod::SM_MULTI);
-  //  }
+  if (m_diffuse.size())
+  {
+    if (hasBlendColor)
+    {
+      m_renderSystem->EnableShader(VULKAN_SM_MULTI_BLENDCOLOR);
+    }
+    else
+    {
+      m_renderSystem->EnableShader(VULKAN_SM_MULTI);
+    }
 
-  //  hasAlpha |= m_diffuse.m_textures[0]->HasAlpha();
+    hasAlpha |= m_diffuse.m_textures[0]->HasAlpha();
 
-  //  // We don't need a 111R_RGBA version of the GLES 2.0 shaders, so in the
-  //  // unlikely event of having an alpha-only texture, switch with the
-  //  // diffuse.
-  //  if (texture->GetSwizzle() == KD_TEX_SWIZ_111R)
-  //  {
-  //    texture->BindToUnit(1);
-  //    m_diffuse.m_textures[0]->BindToUnit(0);
-  //  }
-  //  else
-  //  {
-  //    texture->BindToUnit(0);
-  //    m_diffuse.m_textures[0]->BindToUnit(1);
-  //  }
-  //}
-  //else
-  //{
-  //  if (hasBlendColor)
-  //  {
-  //    m_renderSystem->EnableGUIShader(VulkanShaderMethod::SM_TEXTURE);
-  //  }
-  //  else
-  //  {
-  //    m_renderSystem->EnableGUIShader(VulkanShaderMethod::SM_TEXTURE_NOBLEND);
-  //  }
+    // We don't need a 111R_RGBA version of the GLES 2.0 shaders, so in the
+    // unlikely event of having an alpha-only texture, switch with the
+    // diffuse.
+    if (texture->GetSwizzle() == KD_TEX_SWIZ_111R)
+    {
+      texture->BindToUnit(1);
+      m_diffuse.m_textures[0]->BindToUnit(0);
+    }
+    else
+    {
+      texture->BindToUnit(0);
+      m_diffuse.m_textures[0]->BindToUnit(1);
+    }
+  }
+  else
+  {
+    if (hasBlendColor)
+    {
+      m_renderSystem->EnableShader(VULKAN_SM_TEXTURE);
+    }
+    else
+    {
+      m_renderSystem->EnableShader(VULKAN_SM_TEXTURE_NOBLEND);
+    }
 
-  //  texture->BindToUnit(0);
-  //}
+    texture->BindToUnit(0);
+  }
 
-  //if (hasAlpha)
-  //{
+  if (hasAlpha)
+  {
   //  // See CGUIFontTTFGLES::FirstBegin for rationale. SDR uses accumulator
   //  // coverage alpha; HDR FBO composite uses a compensated squared-alpha
   //  // blend because the FBO is color-transformed to PQ/HLG before composite,
@@ -116,19 +116,19 @@ void CVulkanGUITexture::Begin(KODI::UTILS::COLOR::Color color)
   //  else
   //    glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE_MINUS_DST_ALPHA, GL_ONE);
   //  glEnable(GL_BLEND);
-  //}
-  //else
-  //{
+  }
+  else
+  {
   //  glDisable(GL_BLEND);
-  //}
+  }
 
-  //m_packedVertices.clear();
+  m_packedVertices.clear();
 }
 
 void CVulkanGUITexture::End()
 {
-  //if (!m_packedVertices.empty())
-  //{
+  if (!m_packedVertices.empty())
+  {
   //  GLint posLoc = m_renderSystem->GUIShaderGetPos();
   //  GLint tex0Loc = m_renderSystem->GUIShaderGetCoord0();
   //  GLint tex1Loc = m_renderSystem->GUIShaderGetCoord1();
@@ -166,7 +166,7 @@ void CVulkanGUITexture::End()
 
   //  glDisableVertexAttribArray(posLoc);
   //  glDisableVertexAttribArray(tex0Loc);
-  //}
+  }
 
   //if (m_diffuse.size())
   //  glActiveTexture(GL_TEXTURE0);
@@ -182,77 +182,63 @@ void CVulkanGUITexture::Draw(
 
   // Setup texture coordinates
   // TopLeft
-  vertices[0].u1 = texture.x1;
-  vertices[0].v1 = texture.y1;
+  vertices[0].tex1 = glm::vec2(texture.x1, texture.y1);
 
   // TopRight
   if (orientation & 4)
   {
-    vertices[1].u1 = texture.x1;
-    vertices[1].v1 = texture.y2;
+    vertices[1].tex1 = glm::vec2(texture.x1, texture.y2);
   }
   else
   {
-    vertices[1].u1 = texture.x2;
-    vertices[1].v1 = texture.y1;
+    vertices[1].tex1 = glm::vec2(texture.x2, texture.y1);
   }
 
   // BottomRight
-  vertices[2].u1 = texture.x2;
-  vertices[2].v1 = texture.y2;
+  vertices[2].tex1 = glm::vec2(texture.x2, texture.y2);
 
   // BottomLeft
   if (orientation & 4)
   {
-    vertices[3].u1 = texture.x2;
-    vertices[3].v1 = texture.y1;
+    vertices[3].tex1 = glm::vec2(texture.x2, texture.y1);
   }
   else
   {
-    vertices[3].u1 = texture.x1;
-    vertices[3].v1 = texture.y2;
+    vertices[3].tex1 = glm::vec2(texture.x1, texture.y2);
   }
 
   if (m_diffuse.size())
   {
     // TopLeft
-    vertices[0].u2 = diffuse.x1;
-    vertices[0].v2 = diffuse.y1;
+    vertices[0].tex2 = glm::vec2(diffuse.x1, diffuse.y1);
 
     // TopRight
     if (m_info.orientation & 4)
     {
-      vertices[1].u2 = diffuse.x1;
-      vertices[1].v2 = diffuse.y2;
+      vertices[1].tex2 = glm::vec2(diffuse.x1, diffuse.y2);
     }
     else
     {
-      vertices[1].u2 = diffuse.x2;
-      vertices[1].v2 = diffuse.y1;
+      vertices[1].tex2 = glm::vec2(diffuse.x2, diffuse.y1);
     }
 
     // BottomRight
-    vertices[2].u2 = diffuse.x2;
-    vertices[2].v2 = diffuse.y2;
+    vertices[2].tex2 = glm::vec2(diffuse.x2, diffuse.y2);
 
     // BottomLeft
     if (m_info.orientation & 4)
     {
-      vertices[3].u2 = diffuse.x2;
-      vertices[3].v2 = diffuse.y1;
+      vertices[3].tex2 = glm::vec2(diffuse.x2, diffuse.y1);
     }
     else
     {
-      vertices[3].u2 = diffuse.x1;
-      vertices[3].v2 = diffuse.y2;
+      vertices[3].tex2 = glm::vec2(diffuse.x1, diffuse.y2);
     }
   }
 
   for (int i = 0; i < 4; i++)
   {
-    vertices[i].x = x[i];
-    vertices[i].y = y[i];
-    vertices[i].z = z[i];
+    vertices[i].pos = glm::vec3(x[i], y[i], z[i]);
     m_packedVertices.push_back(vertices[i]);
   }
 
@@ -275,23 +261,23 @@ void CVulkanGUITexture::DrawQuad(const CRect& rect,
                                  const float depth,
                                  const bool blending)
 {
-  //CVulkanRenderSystem* renderSystem =
-  //    dynamic_cast<CVulkanRenderSystem*>(CServiceBroker::GetRenderSystem());
-  //if (texture)
-  //{
-  //  texture->LoadToGPU();
-  //  texture->BindToUnit(0);
-  //}
+  CVulkanRenderSystem* renderSystem =
+      dynamic_cast<CVulkanRenderSystem*>(CServiceBroker::GetRenderSystem());
+  if (texture)
+  {
+    texture->LoadToGPU();
+    texture->BindToUnit(0);
+  }
 
-  //if (blending)
-  //{
+  if (blending)
+  {
   //  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
   //  glEnable(GL_BLEND);
-  //}
-  //else
-  //{
+  }
+  else
+  {
   //  glDisable(GL_BLEND);
-  //}
+  }
 
   //VerifyVulkanState();
 
@@ -300,10 +286,10 @@ void CVulkanGUITexture::DrawQuad(const CRect& rect,
   //GLfloat tex[4][2];
   //GLubyte idx[4] = {0, 1, 3, 2}; // Determines order of triangle strip
 
-  //if (texture)
-  //  renderSystem->EnableGUIShader(VulkanShaderMethod::SM_TEXTURE);
-  //else
-  //  renderSystem->EnableGUIShader(VulkanShaderMethod::SM_DEFAULT);
+  if (texture)
+    renderSystem->EnableShader(VULKAN_SM_TEXTURE);
+  else
+    renderSystem->EnableShader(VULKAN_SM_DEFAULT);
 
   //GLint posLoc = renderSystem->GUIShaderGetPos();
   //GLint tex0Loc = renderSystem->GUIShaderGetCoord0();
@@ -350,5 +336,7 @@ void CVulkanGUITexture::DrawQuad(const CRect& rect,
   //if (texture)
   //  glDisableVertexAttribArray(tex0Loc);
 
-  //renderSystem->DisableGUIShader();
+  renderSystem->DisableShader();
 }
+
+} // namespace KODI::GUILIB::GRAPHICS::VULKAN

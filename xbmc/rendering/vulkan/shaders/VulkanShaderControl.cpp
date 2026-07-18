@@ -8,8 +8,16 @@
 
 #include "VulkanShaderControl.h"
 
+#include "VulkanShaderDefault.h"
 #include "VulkanShaderFonts.h"
+#include "VulkanShaderFontsShaderClip.h"
+#include "VulkanShaderMulti.h"
+#include "VulkanShaderMultiBlendColor.h"
 #include "VulkanShaderTest.h"
+#include "VulkanShaderTexture.h"
+#include "VulkanShaderTextureLim.h"
+#include "VulkanShaderTextureNoAlpha.h"
+#include "VulkanShaderTextureNoBlend.h"
 #include "utils/log.h"
 
 #include <array>
@@ -19,10 +27,20 @@
 namespace KODI::RENDERING::VULKAN
 {
 
-std::array<ShaderListEntry, 1> shaderList = {{
-    {VULKAN_TEST_SHADER, ObjectFactory<CVulkanShaderTest>, "TestShader"},
-    //{VULKAN_FONTS_SHADER, ObjectFactory<CVulkanShaderFonts>, "Fonts shader"},
+// clang-format off
+std::array<ShaderListEntry, 10> shaderList = {{
+    {VULKAN_SM_TEST, ObjectFactory<CVulkanShaderTest>, "TestShader"},
+    {VULKAN_SM_DEFAULT, ObjectFactory<CVulkanShaderDefault>, "Default shader"},
+    {VULKAN_SM_TEXTURE, ObjectFactory<CVulkanShaderTexture>, "Texture shader"},
+    {VULKAN_SM_TEXTURE_LIM, ObjectFactory<CVulkanShaderTextureLim>, "Texture Lim shader"},
+    {VULKAN_SM_TEXTURE_NOALPHA, ObjectFactory<CVulkanShaderTextureNoAlpha>, "Texture no alpha"},
+    {VULKAN_SM_TEXTURE_NOBLEND, ObjectFactory<CVulkanShaderTextureNoBlend>, "Texture no blending"},
+    {VULKAN_SM_MULTI, ObjectFactory<CVulkanShaderMulti>, "Multi shader"},
+    {VULKAN_SM_FONTS, ObjectFactory<CVulkanShaderFonts>, "Fonts shader"},
+    {VULKAN_SM_FONTS_SHADER_CLIP, ObjectFactory<CVulkanShaderFontsShaderClip>, "Fonts Shader Clip shader"},
+    {VULKAN_SM_MULTI_BLENDCOLOR, ObjectFactory<CVulkanShaderMultiBlendColor>, "Multi Blend Color shader"},
 }};
+// clang-format on
 
 bool CVulkanShaderControl::CreateAllShaders(VkDevice device,
                                             VkPipelineLayout pipelineLayout,

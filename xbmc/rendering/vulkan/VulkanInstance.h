@@ -33,6 +33,7 @@ public:
 
   VkInstance GetVkInstance() const { return m_vkInstance; }
   const CVulkanInfo& GetVulkanInfo() const { return m_vulkanInfo; }
+  void SetUsedPhysicalDeviceIndex(uint32_t index) { m_vulkanInfo.usedPhysicalDeviceIndex = index; }
 
   static bool ValidateExtensions(const char* extension,
                                  const std::vector<VkExtensionProperties>& available);

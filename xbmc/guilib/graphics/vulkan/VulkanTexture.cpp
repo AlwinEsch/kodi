@@ -135,9 +135,6 @@ CVulkanTexture::CVulkanTexture(unsigned int width, unsigned int height, XB_FMT f
   m_renderSystem = dynamic_cast<CVulkanRenderSystem*>(CServiceBroker::GetRenderSystem());
   m_vkDevice = m_renderSystem->vkDevice();
   m_vkPhysicalDevice = m_renderSystem->vkPhysicalDevice();
-
-  fprintf(stderr, "CTexture::CreateTexture: Creating Vulkan texture %ux%u format %d\n", width,
-          height, format);
 }
 
 CVulkanTexture::~CVulkanTexture()
@@ -147,12 +144,10 @@ CVulkanTexture::~CVulkanTexture()
 
 void CVulkanTexture::CreateTextureObject()
 {
-  fprintf(stderr, "----------------------------> %s\n", __func__);
 }
 
 void CVulkanTexture::DestroyTextureObject()
 {
-  fprintf(stderr, "----------------------------> %s\n", __func__);
   if (m_imageView != VK_NULL_HANDLE)
   {
     vkDestroyImageView(m_vkDevice, m_imageView, nullptr);
@@ -174,58 +169,10 @@ void CVulkanTexture::DestroyTextureObject()
     m_imageMemory = VK_NULL_HANDLE;
   }
 }
-/*
 
-
-
-
-
-*/
-VkCommandBuffer BeginSingleTimeCommands(VkDevice device, VkCommandPool command_pool)
-{
-  VkCommandBufferAllocateInfo allocInfo =
-      vkCommandBufferAllocateInfo(command_pool, VK_COMMAND_BUFFER_LEVEL_PRIMARY, 1);
-
-  VkCommandBuffer command_buffer;
-  vkAllocateCommandBuffers(device, &allocInfo, &command_buffer);
-
-  VkCommandBufferBeginInfo beginInfo{};
-  beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-  beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-
-  vkBeginCommandBuffer(command_buffer, &beginInfo);
-
-  return command_buffer;
-}
-
-void EndSingleTimeCommands(VkDevice device,
-                           VkCommandPool command_pool,
-                           VkQueue queue,
-                           VkCommandBuffer command_buffer)
-{
-  vkEndCommandBuffer(command_buffer);
-
-  VkSubmitInfo submitInfo = vkSubmitInfo();
-  submitInfo.commandBufferCount = 1;
-  submitInfo.pCommandBuffers = &command_buffer;
-
-  vkQueueSubmit(queue, 1, &submitInfo, VK_NULL_HANDLE);
-  vkQueueWaitIdle(queue);
-
-  vkFreeCommandBuffers(device, command_pool, 1, &command_buffer);
-}
-/*
-
-
-
-
-
-*/
 void CVulkanTexture::LoadToGPU()
 {
   using namespace KODI::RENDERING::VULKAN::UTILS;
-
-  const VkFormat format = VK_FORMAT_R8G8B8A8_UNORM;
 
   if (!m_pixels)
   {
@@ -233,45 +180,48 @@ void CVulkanTexture::LoadToGPU()
     return;
   }
 
-  size_t size = GetPitch() * GetRows() * sizeof(float);
+  VkDeviceSize size = static_cast<VkDeviceSize>(GetPitch() * GetRows());
   if (size == 0)
     return;
 
-  VkBuffer buffer;
+  VkCommandPool command_pool = m_renderSystem->vkCommandPool();
+  VkBuffer stagingBuffer{};
+  VkDeviceMemory stagingMemory{};
 
-  /**
-   * @brief Create a staging buffer to copy the pixel data to the GPU.
-   */
-  ///@{
   VkBufferCreateInfo bufferInfo = vkBufferCreateInfo();
-  bufferInfo.size = static_cast<VkDeviceSize>(size);
+  bufferInfo.size = size;
   bufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
   bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-  VK_CHECK_RESULT(vkCreateBuffer(m_vkDevice, &bufferInfo, nullptr, &buffer));
+  VK_CHECK_RESULT(vkCreateBuffer(m_vkDevice, &bufferInfo, nullptr, &stagingBuffer));
 
-  VkMemoryRequirements memRequirements;
-  vkGetBufferMemoryRequirements(m_vkDevice, buffer, &memRequirements);
+  VkMemoryRequirements memReqs;
+  vkGetBufferMemoryRequirements(m_vkDevice, stagingBuffer, &memReqs);
 
   VkMemoryAllocateInfo allocInfo = vkMemoryAllocateInfo();
+  allocInfo.allocationSize = memReqs.size;
+  allocInfo.memoryTypeIndex = m_renderSystem->DeviceQueue()->GetMemoryType(
+      memReqs.memoryTypeBits,
+      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
-  allocInfo.allocationSize = memRequirements.size;
-  allocInfo.memoryTypeIndex =
-      FindMemoryType(m_vkPhysicalDevice, memRequirements.memoryTypeBits,
-                     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-
-  VkDeviceMemory stagingBufferMemory;
-  VK_CHECK_RESULT(vkAllocateMemory(m_vkDevice, &allocInfo, nullptr, &stagingBufferMemory));
-  VK_CHECK_RESULT(vkBindBufferMemory(m_vkDevice, buffer, stagingBufferMemory, 0));
+  VK_CHECK_RESULT(vkAllocateMemory(m_vkDevice, &allocInfo, nullptr, &stagingMemory));
+  VK_CHECK_RESULT(vkBindBufferMemory(m_vkDevice, stagingBuffer, stagingMemory, 0));
 
   void* data;
-  vkMapMemory(m_vkDevice, stagingBufferMemory, 0, static_cast<VkDeviceSize>(size), 0, &data);
-  memcpy(data, m_pixels, size);
-  vkUnmapMemory(m_vkDevice, stagingBufferMemory);
+  VK_CHECK_RESULT(vkMapMemory(m_vkDevice, stagingMemory, 0, size, 0, &data));
+  memcpy(data, m_pixels, static_cast<size_t>(size));
+  vkUnmapMemory(m_vkDevice, stagingMemory);
+
+  VkBufferImageCopy region = {};
+  region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+  region.imageSubresource.layerCount = 1;
+  region.imageExtent.width = static_cast<uint32_t>(GetWidth());
+  region.imageExtent.height = static_cast<uint32_t>(GetHeight());
+  region.imageExtent.depth = 1;
 
   VkImageCreateInfo imageInfo = vkImageCreateInfo();
   imageInfo.imageType = VK_IMAGE_TYPE_2D;
-  imageInfo.format = format;
+  imageInfo.format = TextureMapping.at(m_textureFormat);
   imageInfo.extent.width = static_cast<uint32_t>(GetWidth());
   imageInfo.extent.height = static_cast<uint32_t>(GetHeight());
   imageInfo.extent.depth = 1;
@@ -282,17 +232,13 @@ void CVulkanTexture::LoadToGPU()
   imageInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
   imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
   imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-
   VK_CHECK_RESULT(vkCreateImage(m_vkDevice, &imageInfo, nullptr, &m_image));
 
-  vkGetImageMemoryRequirements(m_vkDevice, m_image, &memRequirements);
+  vkGetImageMemoryRequirements(m_vkDevice, m_image, &memReqs);
 
-  allocInfo.allocationSize = memRequirements.size;
-  allocInfo.memoryTypeIndex = FindMemoryType(m_vkPhysicalDevice, memRequirements.memoryTypeBits,
-                                             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-
-  VkCommandPool command_pool = m_renderSystem->vkCurrentCommandPool();
-  VkQueue queue = m_renderSystem->vkQueue();
+  allocInfo.allocationSize = memReqs.size;
+  allocInfo.memoryTypeIndex = m_renderSystem->DeviceQueue()->GetMemoryType(
+      memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
   VK_CHECK_RESULT(vkAllocateMemory(m_vkDevice, &allocInfo, nullptr, &m_imageMemory));
   VK_CHECK_RESULT(vkBindImageMemory(m_vkDevice, m_image, m_imageMemory, 0));
@@ -305,78 +251,22 @@ void CVulkanTexture::LoadToGPU()
       .layerCount = 1,
   };
 
-  VkImageMemoryBarrier barrier = vkImageMemoryBarrier();
-  barrier.image = m_image;
-  barrier.subresourceRange = subresource_range;
+  VkCommandBuffer copyCmd = m_renderSystem->DeviceQueue()->CreateCommandBuffer(command_pool);
 
-  //@{
-  barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-  barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-
-  VkCommandBuffer command_buffer = BeginSingleTimeCommands(m_vkDevice, command_pool);
-
-  vkCmdPipelineBarrier(command_buffer, 0 /* TODO */, 0 /* TODO */, 0, 0, nullptr, 0, nullptr, 1,
-                       &barrier);
-  //@}
-
-  //@{
-  VkBufferImageCopy region = {};
-  region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-  region.imageSubresource.layerCount = 1;
-  region.imageExtent = {GetPitch(), GetRows(), 1};
-
-  vkCmdCopyBufferToImage(command_buffer, buffer, m_image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1,
+  SetImageLayout(copyCmd, m_image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                 subresource_range);
+  vkCmdCopyBufferToImage(copyCmd, stagingBuffer, m_image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1,
                          &region);
-  //@}
+  SetImageLayout(copyCmd, m_image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                 VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, subresource_range);
 
-  //@{
-  barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-  barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+  m_renderSystem->DeviceQueue()->FlushCommandBuffer(copyCmd, command_pool);
 
-  command_pool = m_renderSystem->vkCurrentCommandPool();
-  vkCmdPipelineBarrier(command_buffer, 0 /* TODO */, 0 /* TODO */, 0, 0, nullptr, 0, nullptr, 1,
-                       &barrier);
-  EndSingleTimeCommands(m_vkDevice, command_pool, queue, command_buffer);
-  //@}
+  // Clean up staging resources
+  vkDestroyBuffer(m_vkDevice, stagingBuffer, nullptr);
+  vkFreeMemory(m_vkDevice, stagingMemory, nullptr);
 
-  vkDestroyBuffer(m_vkDevice, buffer, nullptr);
-
-  vkFreeMemory(m_vkDevice, stagingBufferMemory, nullptr);
-  ///@}
-
-  /**
-   * @brief Create image view
-   *
-   * Create a sampler for the texture. The sampler defines how the texture
-   * is sampled in the shader.
-   *
-   * Textures are not directly accessed by the shaders and are abstracted by image
-   * views containing additional information and sub resource ranges
-   */
-  ///@{
-  VkImageViewCreateInfo view = vkImageViewCreateInfo();
-  view.image = m_image;
-  view.viewType = VK_IMAGE_VIEW_TYPE_2D;
-  if (TextureMapping.contains(m_textureFormat))
-    view.format = TextureMapping.at(m_textureFormat);
-  else
-    view.format = VK_FORMAT_R8G8B8A8_UNORM;
-  if (SwizzleMap.contains(m_textureSwizzle))
-    view.components = SwizzleMap.at(m_textureSwizzle);
-  // The subresource range describes the set of mip levels (and array layers) that can be accessed through this image view
-  // It's possible to create multiple image views for a single image referring to different (and/or overlapping) ranges of the image
-  view.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-  view.subresourceRange.baseMipLevel = 0;
-  view.subresourceRange.layerCount = 1;
-  view.subresourceRange.baseArrayLayer = 0;
-  view.subresourceRange.levelCount = 1;
-  VK_CHECK_RESULT(vkCreateImageView(m_vkDevice, &view, nullptr, &m_imageView));
-  ///@}
-
-  /**
-   * @brief Create sampler
-   */
-  ///@{
+  // Create sampler
   VkSamplerCreateInfo samplerInfo = vkSamplerCreateInfo();
   samplerInfo.magFilter = VK_FILTER_LINEAR;
   samplerInfo.minFilter = VK_FILTER_LINEAR;
@@ -385,7 +275,16 @@ void CVulkanTexture::LoadToGPU()
   samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
   samplerInfo.anisotropyEnable = VK_FALSE;
   VK_CHECK_RESULT(vkCreateSampler(m_vkDevice, &samplerInfo, nullptr, &m_sampler));
-  ///@}
+
+  // Create image view
+  VkImageViewCreateInfo view = vkImageViewCreateInfo();
+  view.image = m_image;
+  view.viewType = VK_IMAGE_VIEW_TYPE_2D;
+  view.subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
+  view.format = TextureMapping.at(m_textureFormat);
+  if (SwizzleMap.contains(m_textureSwizzle))
+    view.components = SwizzleMap.at(m_textureSwizzle);
+  VK_CHECK_RESULT(vkCreateImageView(m_vkDevice, &view, nullptr, &m_imageView));
 
   if (!m_bCacheMemory)
   {
@@ -403,12 +302,15 @@ void CVulkanTexture::SyncGPU()
 
 void CVulkanTexture::BindToUnit(unsigned int unit)
 {
-  fprintf(stderr, "----------------------------> %s\n", __func__);
+  //fprintf(stderr, "----------------------------> %s\n", __func__);
 }
 
 bool CVulkanTexture::SupportsFormat(KD_TEX_FMT textureFormat, KD_TEX_SWIZ textureSwizzle)
 {
-  return true;
+  if (!TextureMapping.contains(textureFormat) || !SwizzleMap.contains(textureSwizzle))
+    return false;
+
+  return m_renderSystem->DeviceQueue()->SupportsFormat(TextureMapping.at(textureFormat));
 }
 
 } // namespace KODI::GUILIB::GRAPHICS::VULKAN
