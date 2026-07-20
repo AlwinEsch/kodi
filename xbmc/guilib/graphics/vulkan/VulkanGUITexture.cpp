@@ -13,6 +13,7 @@
 #include "guilib/TextureFormats.h"
 #include "rendering/vulkan/VulkanRenderSystem.h"
 #include "rendering/vulkan/shaders/VulkanShaderControl.h"
+#include "rendering/vulkan/shaders/VulkanShaderTexture.h"
 #include "rendering/vulkan/utils/VulkanUtils.h"
 #include "utils/MathUtils.h"
 #include "utils/log.h"
@@ -58,77 +59,77 @@ void CVulkanGUITexture::Begin(KODI::UTILS::COLOR::Color color)
     m_diffuse.m_textures[0]->LoadToGPU();
 
   // Setup Colors
-  m_col = glm::unpackUnorm4x8(color);
+  m_color = glm::unpackUnorm4x8(color);
 
-  bool hasAlpha = m_texture.m_textures[m_currentFrame]->HasAlpha() || m_col.a < 1.0f;
-  const bool hasBlendColor = m_col != glm::vec4(1.0f);
+  bool hasAlpha = m_texture.m_textures[m_currentFrame]->HasAlpha() || m_color.a < 1.0f;
+  const bool hasBlendColor = m_color != glm::vec4(1.0f);
 
-  if (m_diffuse.size())
-  {
-    if (hasBlendColor)
-    {
-      m_renderSystem->EnableShader(VULKAN_SM_MULTI_BLENDCOLOR);
-    }
-    else
-    {
-      m_renderSystem->EnableShader(VULKAN_SM_MULTI);
-    }
-
-    hasAlpha |= m_diffuse.m_textures[0]->HasAlpha();
-
-    // We don't need a 111R_RGBA version of the GLES 2.0 shaders, so in the
-    // unlikely event of having an alpha-only texture, switch with the
-    // diffuse.
-    if (texture->GetSwizzle() == KD_TEX_SWIZ_111R)
-    {
-      texture->BindToUnit(1);
-      m_diffuse.m_textures[0]->BindToUnit(0);
-    }
-    else
-    {
-      texture->BindToUnit(0);
-      m_diffuse.m_textures[0]->BindToUnit(1);
-    }
-  }
-  else
-  {
-    if (hasBlendColor)
-    {
-      m_renderSystem->EnableShader(VULKAN_SM_TEXTURE);
-    }
-    else
-    {
-      m_renderSystem->EnableShader(VULKAN_SM_TEXTURE_NOBLEND);
-    }
-
-    texture->BindToUnit(0);
-  }
-
-  if (hasAlpha)
-  {
-  //  // See CGUIFontTTFGLES::FirstBegin for rationale. SDR uses accumulator
-  //  // coverage alpha; HDR FBO composite uses a compensated squared-alpha
-  //  // blend because the FBO is color-transformed to PQ/HLG before composite,
-  //  // and alpha blending in non-linear space is mathematically wrong.
-  //  if (CServiceBroker::GetWinSystem()->IsHdrComposite())
-  //    glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_SRC_ALPHA,
-  //                        GL_ONE_MINUS_SRC_ALPHA);
+  //if (m_diffuse.size())
+  //{
+  //  if (hasBlendColor)
+  //  {
+  //    m_renderSystem->EnableShader(VULKAN_SM_MULTI_BLENDCOLOR);
+  //  }
   //  else
-  //    glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE_MINUS_DST_ALPHA, GL_ONE);
-  //  glEnable(GL_BLEND);
-  }
-  else
-  {
-  //  glDisable(GL_BLEND);
-  }
+  //  {
+  //    m_renderSystem->EnableShader(VULKAN_SM_MULTI);
+  //  }
 
-  m_packedVertices.clear();
+  //  hasAlpha |= m_diffuse.m_textures[0]->HasAlpha();
+
+  //  // We don't need a 111R_RGBA version of the GLES 2.0 shaders, so in the
+  //  // unlikely event of having an alpha-only texture, switch with the
+  //  // diffuse.
+  //  if (texture->GetSwizzle() == KD_TEX_SWIZ_111R)
+  //  {
+  //    texture->BindToUnit(1);
+  //    m_diffuse.m_textures[0]->BindToUnit(0);
+  //  }
+  //  else
+  //  {
+  //    texture->BindToUnit(0);
+  //    m_diffuse.m_textures[0]->BindToUnit(1);
+  //  }
+  //}
+  //else
+  //{
+  //  if (hasBlendColor)
+  //  {
+  //    m_renderSystem->EnableShader(VULKAN_SM_TEXTURE);
+  //  }
+  //  else
+  //  {
+  //    m_renderSystem->EnableShader(VULKAN_SM_TEXTURE_NOBLEND);
+  //  }
+
+  //  texture->BindToUnit(0);
+  //}
+
+  //if (hasAlpha)
+  //{
+  ////  // See CGUIFontTTFGLES::FirstBegin for rationale. SDR uses accumulator
+  ////  // coverage alpha; HDR FBO composite uses a compensated squared-alpha
+  ////  // blend because the FBO is color-transformed to PQ/HLG before composite,
+  ////  // and alpha blending in non-linear space is mathematically wrong.
+  ////  if (CServiceBroker::GetWinSystem()->IsHdrComposite())
+  ////    glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_SRC_ALPHA,
+  ////                        GL_ONE_MINUS_SRC_ALPHA);
+  ////  else
+  ////    glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE_MINUS_DST_ALPHA, GL_ONE);
+  ////  glEnable(GL_BLEND);
+  //}
+  //else
+  //{
+  ////  glDisable(GL_BLEND);
+  //}
+
+  //m_packedVertices.clear();
 }
 
 void CVulkanGUITexture::End()
 {
-  if (!m_packedVertices.empty())
-  {
+  //if (!m_packedVertices.empty())
+  //{
   //  GLint posLoc = m_renderSystem->GUIShaderGetPos();
   //  GLint tex0Loc = m_renderSystem->GUIShaderGetCoord0();
   //  GLint tex1Loc = m_renderSystem->GUIShaderGetCoord1();
@@ -166,7 +167,7 @@ void CVulkanGUITexture::End()
 
   //  glDisableVertexAttribArray(posLoc);
   //  glDisableVertexAttribArray(tex0Loc);
-  }
+  //}
 
   //if (m_diffuse.size())
   //  glActiveTexture(GL_TEXTURE0);
@@ -178,80 +179,56 @@ void CVulkanGUITexture::End()
 void CVulkanGUITexture::Draw(
     float* x, float* y, float* z, const CRect& texture, const CRect& diffuse, int orientation)
 {
-  PackedVertex vertices[4];
+  CVulkanShaderTexture::Vertex verts[4];
+  verts[0].in_attrpos = {x[0], y[0], z[0]};
+  verts[0].in_attrcord0 = {texture.x1, texture.y1};
+  verts[0].in_attrcord1 = {diffuse.x1, diffuse.y1};
+  verts[0].in_attrcol = m_color;
 
-  // Setup texture coordinates
-  // TopLeft
-  vertices[0].tex1 = glm::vec2(texture.x1, texture.y1);
-
-  // TopRight
+  verts[1].in_attrpos = {x[1], y[1], z[1]};
   if (orientation & 4)
   {
-    vertices[1].tex1 = glm::vec2(texture.x1, texture.y2);
+    verts[1].in_attrcord0 = {texture.x1, texture.y2};
   }
   else
   {
-    vertices[1].tex1 = glm::vec2(texture.x2, texture.y1);
+    verts[1].in_attrcord0 = {texture.x2, texture.y1};
   }
-
-  // BottomRight
-  vertices[2].tex1 = glm::vec2(texture.x2, texture.y2);
-
-  // BottomLeft
-  if (orientation & 4)
+  if (m_info.orientation & 4)
   {
-    vertices[3].tex1 = glm::vec2(texture.x2, texture.y1);
+    verts[1].in_attrcord1 = {diffuse.x1, diffuse.y2};
   }
   else
   {
-    vertices[3].tex1 = glm::vec2(texture.x1, texture.y2);
+    verts[1].in_attrcord1 = {diffuse.x2, diffuse.y1};
   }
+  verts[1].in_attrcol = m_color;
 
-  if (m_diffuse.size())
+  verts[2].in_attrpos = {x[2], y[2], z[2]};
+  verts[2].in_attrcord0 = {texture.x2, texture.y2};
+  verts[2].in_attrcord1 = {diffuse.x2, diffuse.y2};
+  verts[2].in_attrcol = m_color;
+
+  verts[3].in_attrpos = {x[3], y[3], z[3]};
+  if (orientation & 4)
   {
-    // TopLeft
-    vertices[0].tex2 = glm::vec2(diffuse.x1, diffuse.y1);
-
-    // TopRight
-    if (m_info.orientation & 4)
-    {
-      vertices[1].tex2 = glm::vec2(diffuse.x1, diffuse.y2);
-    }
-    else
-    {
-      vertices[1].tex2 = glm::vec2(diffuse.x2, diffuse.y1);
-    }
-
-    // BottomRight
-    vertices[2].tex2 = glm::vec2(diffuse.x2, diffuse.y2);
-
-    // BottomLeft
-    if (m_info.orientation & 4)
-    {
-      vertices[3].tex2 = glm::vec2(diffuse.x2, diffuse.y1);
-    }
-    else
-    {
-      vertices[3].tex2 = glm::vec2(diffuse.x1, diffuse.y2);
-    }
+    verts[3].in_attrcord0 = {texture.x2, texture.y1};
   }
-
-  for (int i = 0; i < 4; i++)
+  else
   {
-    vertices[i].pos = glm::vec3(x[i], y[i], z[i]);
-    m_packedVertices.push_back(vertices[i]);
+    verts[3].in_attrcord0 = {texture.x1, texture.y2};
   }
-
-  if ((m_packedVertices.size() / 4) > (m_idx.size() / 6))
+  if (m_info.orientation & 4)
   {
-    size_t i = m_packedVertices.size() - 4;
-    m_idx.push_back(i + 0);
-    m_idx.push_back(i + 1);
-    m_idx.push_back(i + 2);
-    m_idx.push_back(i + 2);
-    m_idx.push_back(i + 3);
-    m_idx.push_back(i + 0);
+    verts[3].in_attrcord1 = {diffuse.x2, diffuse.y1};
   }
+  else
+  {
+    verts[3].in_attrcord1 = {diffuse.x1, diffuse.y2};
+  }
+  verts[3].in_attrcol = m_color;
+
+
 }
 
 void CVulkanGUITexture::DrawQuad(const CRect& rect,

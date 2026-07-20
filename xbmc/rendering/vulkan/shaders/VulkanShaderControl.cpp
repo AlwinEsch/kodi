@@ -62,7 +62,7 @@ bool CVulkanShaderControl::CreateAllShaders(VkDevice device,
   // Implementation of CreateAllShaders
   for (const auto& entry : shaderList)
   {
-    std::shared_ptr<IVulkanShader> shader =
+    std::unique_ptr<IVulkanShader> shader =
         entry.create(m_deviceQueue, device, pipelineLayout, renderPass);
     if (shader == nullptr || !shader->Create(m_pipelineCache))
     {
@@ -70,7 +70,7 @@ bool CVulkanShaderControl::CreateAllShaders(VkDevice device,
       return false;
     }
 
-    m_shaders[entry.id] = shader;
+    m_shaders[entry.id] = std::move(shader);
   }
   return true;
 }
@@ -82,12 +82,12 @@ void CVulkanShaderControl::DestroyAllShaders()
   vkDestroyPipelineCache(m_deviceQueue->vkDevice(), m_pipelineCache, nullptr);
 }
 
-std::shared_ptr<IVulkanShader> CVulkanShaderControl::GetShader(ShaderId shaderId) const
+IVulkanShader* CVulkanShaderControl::GetShader(ShaderId shaderId) const
 {
   auto it = m_shaders.find(shaderId);
   if (it != m_shaders.end())
   {
-    return it->second;
+    return it->second.get();
   }
   return nullptr;
 }
@@ -102,10 +102,10 @@ VkPipeline CVulkanShaderControl::GetPipeline(ShaderId shaderId) const
   return VK_NULL_HANDLE;
 }
 
-ShaderId CVulkanShaderControl::AddOptionalShader(const std::shared_ptr<IVulkanShader>& shader)
+ShaderId CVulkanShaderControl::AddOptionalShader(std::unique_ptr<IVulkanShader> shader)
 {
   ShaderId shaderId = m_nextShaderId++;
-  m_shaders[shaderId] = shader;
+  m_shaders[shaderId] = std::move(shader);
   return shaderId;
 }
 

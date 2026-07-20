@@ -41,15 +41,15 @@ public:
   bool CreateAllShaders(VkDevice device, VkPipelineLayout pipelineLayout, VkRenderPass renderPass);
   void DestroyAllShaders();
 
-  std::shared_ptr<IVulkanShader> GetShader(ShaderId shaderId) const;
+  IVulkanShader* GetShader(ShaderId shaderId) const;
   VkPipeline GetPipeline(ShaderId shaderId) const;
 
-  ShaderId AddOptionalShader(const std::shared_ptr<IVulkanShader>& shader);
+  ShaderId AddOptionalShader(std::unique_ptr<IVulkanShader> shader);
 
 private:
   CVulkanDeviceQueue* const m_deviceQueue;
 
-  std::unordered_map<ShaderId, std::shared_ptr<IVulkanShader>> m_shaders;
+  std::unordered_map<ShaderId, std::unique_ptr<IVulkanShader>> m_shaders;
 
   ShaderId m_nextShaderId{VULKAN_SM_OPTIONAL_ID_START};
   VkPipelineCache m_pipelineCache{VK_NULL_HANDLE};

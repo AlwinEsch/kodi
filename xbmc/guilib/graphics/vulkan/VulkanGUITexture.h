@@ -63,7 +63,7 @@ protected:
 private:
   CVulkanGUITexture(const CVulkanGUITexture& texture) = default;
 
-  glm::vec4 m_col;
+  glm::vec4 m_color{1.0f, 1.0f, 1.0f, 1.0f};
 
   struct PackedVertex
   {

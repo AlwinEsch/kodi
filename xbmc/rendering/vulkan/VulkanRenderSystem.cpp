@@ -39,6 +39,9 @@
 #include "windowing/GraphicContext.h"
 #include "windowing/WinSystem.h"
 
+#include "rendering/vulkan/VulkanMemoryBuffer.h"
+#include "rendering/vulkan/shaders/VulkanShaderTest.h"
+
 #include <array>
 #include <cassert>
 
@@ -163,9 +166,7 @@ bool CVulkanRenderSystem::InitRenderSystem()
 
   CVulkanGUITexture::Register();
 
-  m_vkPipeline = m_shaderControl->GetPipeline(VULKAN_SM_TEST);
-  init_vertex_buffer();
-
+  m_testShader = dynamic_cast<CVulkanShaderTest*>(m_shaderControl->GetShader(VULKAN_SM_TEST));
   return true;
 }
 
@@ -182,17 +183,6 @@ bool CVulkanRenderSystem::DestroyRenderSystem()
   if (result != VK_SUCCESS)
   {
     LogVulkanError(result, "vkQueueWaitIdle", __FILENAME__, __LINE__);
-  }
-
-  if (m_vertex_buffer != VK_NULL_HANDLE)
-  {
-    vkDestroyBuffer(m_vkDevice, m_vertex_buffer, nullptr);
-    m_vertex_buffer = VK_NULL_HANDLE;
-  }
-  if (m_vertex_buffer_memory != VK_NULL_HANDLE)
-  {
-    vkFreeMemory(m_vkDevice, m_vertex_buffer_memory, nullptr);
-    m_vertex_buffer_memory = VK_NULL_HANDLE;
   }
 
   for (auto& framebuffer : m_framebuffers)
@@ -335,8 +325,9 @@ bool CVulkanRenderSystem::BeginRender()
 
   //@{
   {
+    VkBuffer vkBuffer = m_testShader->VertexBuffer()->vkBuffer();
     // Bind the graphics pipeline.
-    vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_vkPipeline);
+    vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_testShader->VulkanPipeline());
 
     VkViewport vp{.x = 0.0f,
                   .y = 0.0f,
@@ -356,7 +347,7 @@ bool CVulkanRenderSystem::BeginRender()
 
     // Bind the vertex buffer to source the draw calls from.
     VkDeviceSize offset = {0};
-    vkCmdBindVertexBuffers(cmd, 0, 1, &m_vertex_buffer, &offset);
+    vkCmdBindVertexBuffers(cmd, 0, 1, &vkBuffer, &offset);
 
     // Draw three vertices with one instance from the currently bound vertex bound.
     vkCmdDraw(cmd, 3, 1, 0, 0);
@@ -587,51 +578,6 @@ void CVulkanRenderSystem::EnableShader(ShaderId method)
 
 void CVulkanRenderSystem::DisableShader()
 {
-}
-
-void CVulkanRenderSystem::init_vertex_buffer()
-{
-  // Vertex data for a single colored triangle
-  struct Vertex
-  {
-    glm::vec3 position;
-    glm::vec3 color;
-  };
-  const std::vector<Vertex> vertices = {{{0.5f, -0.5f, 0.5f}, {1.0f, 0.0f, 0.0f}},
-                                        {{0.5f, 0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}},
-                                        {{-0.5f, 0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}}};
-
-  const VkDeviceSize buffer_size = sizeof(vertices[0]) * vertices.size();
-
-  // Copy Vertex data to a buffer accessible by the device
-  VkBufferCreateInfo buffer_info =
-      UTILS::vkBufferCreateInfo(buffer_size, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT);
-
-  VK_CHECK_RESULT(vkCreateBuffer(m_vkDevice, &buffer_info, nullptr, &m_vertex_buffer));
-
-  // Get memory requirements
-  VkMemoryRequirements memory_requirements;
-  vkGetBufferMemoryRequirements(m_vkDevice, m_vertex_buffer, &memory_requirements);
-
-  // Allocate memory for the buffer
-  VkMemoryAllocateInfo alloc_info{
-      .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
-      .pNext = VK_NULL_HANDLE,
-      .allocationSize = memory_requirements.size,
-      .memoryTypeIndex = m_deviceQueue->GetMemoryType(memory_requirements.memoryTypeBits,
-                                                      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-                                                          VK_MEMORY_PROPERTY_HOST_COHERENT_BIT),
-  };
-  VK_CHECK_RESULT(vkAllocateMemory(m_vkDevice, &alloc_info, nullptr, &m_vertex_buffer_memory));
-  // Bind the buffer with the allocated memory
-  VK_CHECK_RESULT(vkBindBufferMemory(m_vkDevice, m_vertex_buffer, m_vertex_buffer_memory, 0));
-
-  // Map the memory and copy the vertex data
-  void* data;
-  VK_CHECK_RESULT(vkMapMemory(m_vkDevice, m_vertex_buffer_memory, 0, buffer_size, 0, &data));
-
-  memcpy(data, vertices.data(), static_cast<size_t>(buffer_size));
-  vkUnmapMemory(m_vkDevice, m_vertex_buffer_memory);
 }
 
 } // namespace KODI::RENDERING::VULKAN

@@ -24,7 +24,7 @@ class CVulkanDeviceQueue;
 struct ShaderListEntry
 {
   ShaderId id;
-  std::shared_ptr<IVulkanShader> (*create)(CVulkanDeviceQueue* deviceQueue,
+  std::unique_ptr<IVulkanShader> (*create)(CVulkanDeviceQueue* deviceQueue,
                                            VkDevice device,
                                            VkPipelineLayout layout,
                                            VkRenderPass renderPass);
@@ -32,12 +32,12 @@ struct ShaderListEntry
 };
 
 template<typename Shader>
-std::shared_ptr<IVulkanShader> ObjectFactory(CVulkanDeviceQueue* deviceQueue,
+std::unique_ptr<IVulkanShader> ObjectFactory(CVulkanDeviceQueue* deviceQueue,
                                              VkDevice device,
                                              VkPipelineLayout layout,
                                              VkRenderPass renderPass)
 {
-  return std::make_shared<Shader>(deviceQueue, device, layout, renderPass);
+  return std::make_unique<Shader>(deviceQueue, device, layout, renderPass);
 }
 
 enum class VulkanShaderType

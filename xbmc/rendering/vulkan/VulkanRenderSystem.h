@@ -38,6 +38,7 @@ class CVulkanScopedWrite;
 class CVulkanShaderControl;
 class CVulkanCommandPool;
 class CVulkanFramebuffer;
+class CVulkanShaderTest;
 
 class CVulkanRenderSystem : public CRenderSystemBase
 {
@@ -190,9 +191,8 @@ private:
   VkCommandBuffer m_currentVkCommandBuffer{VK_NULL_HANDLE};
   std::optional<CVulkanScopedWrite> m_scopedWrite;
 
-  void init_vertex_buffer();
-  VkBuffer m_vertex_buffer = VK_NULL_HANDLE;
-  VkDeviceMemory m_vertex_buffer_memory = VK_NULL_HANDLE;
+  // TEST PURPOSE ONLY
+  CVulkanShaderTest* m_testShader;
 };
 
 } // namespace KODI::RENDERING::VULKAN
