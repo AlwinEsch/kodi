@@ -251,7 +251,8 @@ void CVulkanTexture::LoadToGPU()
       .layerCount = 1,
   };
 
-  VkCommandBuffer copyCmd = m_renderSystem->DeviceQueue()->CreateCommandBuffer(command_pool);
+  VkCommandBuffer copyCmd = m_renderSystem->DeviceQueue()->CreateCommandBuffer(
+      VK_COMMAND_BUFFER_LEVEL_PRIMARY, command_pool, true);
 
   SetImageLayout(copyCmd, m_image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                  subresource_range);
@@ -260,7 +261,7 @@ void CVulkanTexture::LoadToGPU()
   SetImageLayout(copyCmd, m_image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                  VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, subresource_range);
 
-  m_renderSystem->DeviceQueue()->FlushCommandBuffer(copyCmd, command_pool);
+  m_renderSystem->DeviceQueue()->FlushCommandBuffer(copyCmd);
 
   // Clean up staging resources
   vkDestroyBuffer(m_vkDevice, stagingBuffer, nullptr);

@@ -31,10 +31,12 @@ constexpr const char* kFragmentShaderFile = "text.frag.spv";
 
 using namespace KODI::RENDERING::VULKAN::UTILS;
 
-CVulkanShaderFonts::CVulkanShaderFonts(VkDevice device,
+CVulkanShaderFonts::CVulkanShaderFonts(CVulkanDeviceQueue* deviceQueue,
+                                       VkDevice device,
                                        VkPipelineLayout pipelineLayout,
                                        VkRenderPass renderPass)
-  : m_vkDevice(device),
+  : IVulkanShader(deviceQueue),
+    m_vkDevice(device),
     m_vkPipelineLayout(pipelineLayout),
     m_vkRenderPass(renderPass)
 {
@@ -49,7 +51,7 @@ bool CVulkanShaderFonts::SetupFontTexture(uint32_t width, uint32_t height, uint3
   return true;
 }
 
-bool CVulkanShaderFonts::Create()
+bool CVulkanShaderFonts::Create(const VkPipelineCache& pipelineCache)
 {
   //VkResult res = VK_SUCCESS;
 

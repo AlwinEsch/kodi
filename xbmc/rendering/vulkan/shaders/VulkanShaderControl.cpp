@@ -8,16 +8,19 @@
 
 #include "VulkanShaderControl.h"
 
-#include "VulkanShaderDefault.h"
-#include "VulkanShaderFonts.h"
-#include "VulkanShaderFontsShaderClip.h"
-#include "VulkanShaderMulti.h"
-#include "VulkanShaderMultiBlendColor.h"
-#include "VulkanShaderTest.h"
-#include "VulkanShaderTexture.h"
-#include "VulkanShaderTextureLim.h"
-#include "VulkanShaderTextureNoAlpha.h"
-#include "VulkanShaderTextureNoBlend.h"
+#include "rendering/vulkan/VulkanDeviceQueue.h"
+#include "rendering/vulkan/shaders/VulkanShaderDefault.h"
+#include "rendering/vulkan/shaders/VulkanShaderFonts.h"
+#include "rendering/vulkan/shaders/VulkanShaderFontsShaderClip.h"
+#include "rendering/vulkan/shaders/VulkanShaderMulti.h"
+#include "rendering/vulkan/shaders/VulkanShaderMultiBlendColor.h"
+#include "rendering/vulkan/shaders/VulkanShaderTest.h"
+#include "rendering/vulkan/shaders/VulkanShaderTexture.h"
+#include "rendering/vulkan/shaders/VulkanShaderTextureLim.h"
+#include "rendering/vulkan/shaders/VulkanShaderTextureNoAlpha.h"
+#include "rendering/vulkan/shaders/VulkanShaderTextureNoBlend.h"
+#include "rendering/vulkan/utils/VulkanInitStructs.h"
+#include "rendering/vulkan/utils/VulkanUtils.h"
 #include "utils/log.h"
 
 #include <array>
@@ -42,15 +45,26 @@ std::array<ShaderListEntry, 10> shaderList = {{
 }};
 // clang-format on
 
+CVulkanShaderControl::CVulkanShaderControl(CVulkanDeviceQueue* deviceQueue)
+  : m_deviceQueue(deviceQueue)
+{
+}
+
 bool CVulkanShaderControl::CreateAllShaders(VkDevice device,
                                             VkPipelineLayout pipelineLayout,
                                             VkRenderPass renderPass)
 {
+  VkPipelineCacheCreateInfo pipelineCacheCreateInfo = UTILS::vkPipelineCacheCreateInfo();
+  VK_CHECK_RESULT(vkCreatePipelineCache(m_deviceQueue->vkDevice(), &pipelineCacheCreateInfo,
+                                        nullptr, &m_pipelineCache),
+                  false);
+
   // Implementation of CreateAllShaders
   for (const auto& entry : shaderList)
   {
-    std::shared_ptr<IVulkanShader> shader = entry.create(device, pipelineLayout, renderPass);
-    if (shader == nullptr || !shader->Create())
+    std::shared_ptr<IVulkanShader> shader =
+        entry.create(m_deviceQueue, device, pipelineLayout, renderPass);
+    if (shader == nullptr || !shader->Create(m_pipelineCache))
     {
       CLog::Log(LOGERROR, "Vulkan: Failed to create shader: {}", entry.name);
       return false;
@@ -65,6 +79,7 @@ void CVulkanShaderControl::DestroyAllShaders()
 {
   // Implementation of DestroyAllShaders
   m_shaders.clear();
+  vkDestroyPipelineCache(m_deviceQueue->vkDevice(), m_pipelineCache, nullptr);
 }
 
 std::shared_ptr<IVulkanShader> CVulkanShaderControl::GetShader(ShaderId shaderId) const

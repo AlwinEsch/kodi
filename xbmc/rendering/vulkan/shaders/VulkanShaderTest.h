@@ -7,10 +7,10 @@
  */
 
 #pragma once
-
-#include "IVulkanShader.h"
+#include "rendering/vulkan/shaders/IVulkanShader.h"
 
 #include <glm/glm.hpp>
+#include <memory>
 
 namespace KODI
 {
@@ -19,16 +19,23 @@ namespace RENDERING
 namespace VULKAN
 {
 
+class CVulkanDeviceQueue;
+class CVulkanMemoryBuffer;
+
 class CVulkanShaderTest : public IVulkanShader
 {
 public:
-  CVulkanShaderTest(VkDevice device, VkPipelineLayout pipelineLayout, VkRenderPass renderPass);
+  CVulkanShaderTest(CVulkanDeviceQueue* deviceQueue,
+                    VkDevice device,
+                    VkPipelineLayout pipelineLayout,
+                    VkRenderPass renderPass);
   virtual ~CVulkanShaderTest() = default;
 
-  bool Create() override;
+  bool Create(const VkPipelineCache& pipelineCache) override;
   void Destroy() override;
 
   VkPipeline VulkanPipeline() const override;
+  CVulkanMemoryBuffer* VertexBuffer() { return m_vertexBuffer.get(); }
 
 private:
   /// Properties of the vertices used in this sample.
@@ -38,10 +45,14 @@ private:
     glm::vec3 color;
   };
 
+  std::unique_ptr<CVulkanMemoryBuffer> m_vertexBuffer;
+
   VkDevice m_vkDevice{VK_NULL_HANDLE};
   VkPipeline m_vkPipeline{VK_NULL_HANDLE};
   VkPipelineLayout m_vkPipelineLayout{VK_NULL_HANDLE};
   VkRenderPass m_vkRenderPass{VK_NULL_HANDLE};
+
+  //CVulkanMemoryBuffer m_vertexBuffer;
 };
 
 } // namespace VULKAN

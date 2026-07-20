@@ -10,6 +10,7 @@
 
 #include <memory>
 #include <string_view>
+
 #include <vulkan/vulkan_core.h>
 
 namespace KODI::RENDERING::VULKAN
@@ -18,18 +19,25 @@ namespace KODI::RENDERING::VULKAN
 using ShaderId = int;
 
 class IVulkanShader;
+class CVulkanDeviceQueue;
 
 struct ShaderListEntry
 {
   ShaderId id;
-  std::shared_ptr<IVulkanShader> (*create)(VkDevice device, VkPipelineLayout layout, VkRenderPass renderPass);
+  std::shared_ptr<IVulkanShader> (*create)(CVulkanDeviceQueue* deviceQueue,
+                                           VkDevice device,
+                                           VkPipelineLayout layout,
+                                           VkRenderPass renderPass);
   std::string_view name;
 };
 
 template<typename Shader>
-std::shared_ptr<IVulkanShader> ObjectFactory(VkDevice device, VkPipelineLayout layout, VkRenderPass renderPass)
+std::shared_ptr<IVulkanShader> ObjectFactory(CVulkanDeviceQueue* deviceQueue,
+                                             VkDevice device,
+                                             VkPipelineLayout layout,
+                                             VkRenderPass renderPass)
 {
-  return std::make_shared<Shader>(device, layout, renderPass);
+  return std::make_shared<Shader>(deviceQueue, device, layout, renderPass);
 }
 
 enum class VulkanShaderType
@@ -45,13 +53,16 @@ enum class VulkanShaderType
 class IVulkanShader
 {
 public:
-  IVulkanShader() = default;
+  IVulkanShader(CVulkanDeviceQueue* deviceQueue) : m_deviceQueue(deviceQueue) {}
   virtual ~IVulkanShader() = default;
 
-  virtual bool Create() = 0;
+  virtual bool Create(const VkPipelineCache& pipelineCache) = 0;
   virtual void Destroy() = 0;
 
   virtual VkPipeline VulkanPipeline() const = 0;
+
+protected:
+  CVulkanDeviceQueue* const m_deviceQueue;
 };
 
 } // namespace KODI::RENDERING::VULKAN

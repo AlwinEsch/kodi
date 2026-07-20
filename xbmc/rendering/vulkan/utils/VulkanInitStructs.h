@@ -9,6 +9,7 @@
 #pragma once
 
 #include <vector>
+
 #include <vulkan/vulkan_core.h>
 
 namespace KODI::RENDERING::VULKAN::UTILS
@@ -21,10 +22,14 @@ inline VkMemoryAllocateInfo vkMemoryAllocateInfo()
   return memAllocInfo;
 }
 
-inline VkMappedMemoryRange vkMappedMemoryRange()
+inline VkMappedMemoryRange vkMappedMemoryRange(VkDeviceMemory memory, VkDeviceSize offset,
+                                               VkDeviceSize size)
 {
   VkMappedMemoryRange mappedMemoryRange{};
   mappedMemoryRange.sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
+  mappedMemoryRange.memory = memory;
+  mappedMemoryRange.offset = offset;
+  mappedMemoryRange.size = size;
   return mappedMemoryRange;
 }
 
@@ -646,6 +651,41 @@ inline VkWriteDescriptorSetAccelerationStructureKHR vkWriteDescriptorSetAccelera
   writeDescriptorSetAccelerationStructureKHR.sType =
       VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR;
   return writeDescriptorSetAccelerationStructureKHR;
+}
+
+inline VkAccelerationStructureCreateInfoKHR vkAccelerationStructureCreateInfoKHR()
+{
+  VkAccelerationStructureCreateInfoKHR accelerationStructureCreateInfoKHR{};
+  accelerationStructureCreateInfoKHR.sType =
+      VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_KHR;
+  return accelerationStructureCreateInfoKHR;
+}
+
+inline VkPipelineCacheCreateInfo vkPipelineCacheCreateInfo()
+{
+  VkPipelineCacheCreateInfo pipelineCacheCreateInfo{};
+  pipelineCacheCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO;
+  return pipelineCacheCreateInfo;
+}
+
+inline VkPipelineCacheCreateInfo vkPipelineCacheCreateInfo(VkPipelineCacheCreateFlags flags,
+                                                           size_t initialDataSize = 0,
+                                                           const void* pInitialData = nullptr)
+{
+  VkPipelineCacheCreateInfo pipelineCacheCreateInfo{};
+  pipelineCacheCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO;
+  pipelineCacheCreateInfo.flags = flags;
+  pipelineCacheCreateInfo.initialDataSize = initialDataSize;
+  pipelineCacheCreateInfo.pInitialData = pInitialData;
+  return pipelineCacheCreateInfo;
+}
+
+inline VkMemoryAllocateFlagsInfo vkMemoryAllocateFlagsInfo(VkMemoryAllocateFlags flags = 0)
+{
+  VkMemoryAllocateFlagsInfo memoryAllocateFlagsInfo{};
+  memoryAllocateFlagsInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_FLAGS_INFO;
+  memoryAllocateFlagsInfo.flags = flags;
+  return memoryAllocateFlagsInfo;
 }
 
 } // namespace KODI::RENDERING::VULKAN::UTILS

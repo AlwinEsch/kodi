@@ -118,6 +118,7 @@ bool CVulkanRenderSystem::InitRenderSystem()
   m_vkInstance = m_deviceQueue->vkInstance();
   m_vkDevice = m_deviceQueue->vkDevice();
   m_vkPhysicalDevice = m_deviceQueue->vkPhysicalDevice();
+  m_vkCommandPool = m_deviceQueue->CommandPool()->vkCommandPool();
 
   m_surface = std::make_unique<CVulkanSurface>(m_vkInstance, m_vkSurface);
   if (!m_surface->Initialize(m_deviceQueue.get(), SurfaceFormat::FORMAT_RGBA_32))
@@ -126,6 +127,7 @@ bool CVulkanRenderSystem::InitRenderSystem()
     return false;
   }
 
+  m_vkSwapchain = m_surface->vkSwapchain();
   m_vkSwapchainFormat = m_surface->vkSurfaceFormat().format;
 
   m_renderPass = CVulkanRenderPass::Create(m_vkSwapchainFormat, m_vkDevice);
@@ -138,14 +140,6 @@ bool CVulkanRenderSystem::InitRenderSystem()
   m_surface->Reshape({{0, 0}, {m_width, m_height}}, VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR);
 
   m_vkRenderPass = m_renderPass->vkRenderPass();
-  m_vkSwapchain = m_surface->vkSwapchain();
-  m_commandPool = m_deviceQueue->CreateCommandPool();
-  if (!m_commandPool)
-  {
-    CLog::Log(LOGERROR, "Vulkan: Failed to create command pool ({0}:{1})", __FILENAME__, __LINE__);
-    return false;
-  }
-  m_vkCommandPool = m_commandPool->vkCommandPool();
 
   m_vkPipelineLayout = CreatePipelineLayout();
   if (m_vkPipelineLayout == VK_NULL_HANDLE)
@@ -154,7 +148,7 @@ bool CVulkanRenderSystem::InitRenderSystem()
     return false;
   }
 
-  m_shaderControl = std::make_unique<CVulkanShaderControl>();
+  m_shaderControl = std::make_unique<CVulkanShaderControl>(m_deviceQueue.get());
   if (!m_shaderControl->CreateAllShaders(m_vkDevice, m_vkPipelineLayout, m_vkRenderPass))
   {
     CLog::Log(LOGERROR, "Vulkan: Failed to initialize shader control ({0}:{1})", __FILENAME__,
@@ -210,12 +204,6 @@ bool CVulkanRenderSystem::DestroyRenderSystem()
     framebuffer.reset();
   }
   m_framebuffers.clear();
-
-  if (m_commandPool)
-  {
-    m_commandPool->Destroy();
-    m_commandPool.reset();
-  }
 
   if (m_vkPipelineLayout != VK_NULL_HANDLE)
   {
@@ -287,7 +275,7 @@ bool CVulkanRenderSystem::BeginRender()
   if (!framebuffer)
   {
     framebuffer = std::make_unique<CVulkanFramebuffer>(m_vkDevice);
-    if (!framebuffer->Create(m_deviceQueue.get(), m_commandPool.get(), m_vkRenderPass,
+    if (!framebuffer->Create(m_deviceQueue.get(), m_deviceQueue->CommandPool(), m_vkRenderPass,
                              m_surface.get(), scoped_write.Image())) [[unlikely]]
     {
       CLog::Log(LOGERROR, "Vulkan: Failed to create framebuffer ({0}:{1})", __FILENAME__, __LINE__);

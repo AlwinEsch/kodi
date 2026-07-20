@@ -35,7 +35,7 @@ class IVulkanShader;
 class CVulkanShaderControl
 {
 public:
-  CVulkanShaderControl() = default;
+  CVulkanShaderControl(CVulkanDeviceQueue* deviceQueue);
   virtual ~CVulkanShaderControl() = default;
 
   bool CreateAllShaders(VkDevice device, VkPipelineLayout pipelineLayout, VkRenderPass renderPass);
@@ -47,9 +47,12 @@ public:
   ShaderId AddOptionalShader(const std::shared_ptr<IVulkanShader>& shader);
 
 private:
+  CVulkanDeviceQueue* const m_deviceQueue;
+
   std::unordered_map<ShaderId, std::shared_ptr<IVulkanShader>> m_shaders;
 
   ShaderId m_nextShaderId{VULKAN_SM_OPTIONAL_ID_START};
+  VkPipelineCache m_pipelineCache{VK_NULL_HANDLE};
 };
 
 } // namespace KODI::RENDERING::VULKAN

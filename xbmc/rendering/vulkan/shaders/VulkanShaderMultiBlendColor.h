@@ -8,7 +8,8 @@
 
 #pragma once
 
-#include "IVulkanShader.h"
+#include "rendering/vulkan/VulkanMemoryBuffer.h"
+#include "rendering/vulkan/shaders/IVulkanShader.h"
 
 #include <glm/glm.hpp>
 
@@ -19,13 +20,18 @@ namespace RENDERING
 namespace VULKAN
 {
 
+class CVulkanDeviceQueue;
+
 class CVulkanShaderMultiBlendColor : public IVulkanShader
 {
 public:
-  CVulkanShaderMultiBlendColor(VkDevice device, VkPipelineLayout pipelineLayout, VkRenderPass renderPass);
+  CVulkanShaderMultiBlendColor(CVulkanDeviceQueue* deviceQueue,
+                               VkDevice device,
+                               VkPipelineLayout pipelineLayout,
+                               VkRenderPass renderPass);
   virtual ~CVulkanShaderMultiBlendColor() = default;
 
-  bool Create() override;
+  bool Create(const VkPipelineCache& pipelineCache) override;
   void Destroy() override;
 
   VkPipeline VulkanPipeline() const override;

@@ -22,10 +22,12 @@ namespace VULKAN
 
 using KODI::RENDERING::VULKAN::UTILS::ErrorString;
 
-CVulkanShaderDefault::CVulkanShaderDefault(VkDevice device,
+CVulkanShaderDefault::CVulkanShaderDefault(CVulkanDeviceQueue* deviceQueue,
+                                           VkDevice device,
                                      VkPipelineLayout pipelineLayout,
                                      VkRenderPass renderPass)
-  : m_vkDevice(device),
+  : IVulkanShader(deviceQueue),
+    m_vkDevice(device),
     m_vkPipelineLayout(pipelineLayout),
     m_vkRenderPass(renderPass)
 {
@@ -34,7 +36,7 @@ CVulkanShaderDefault::CVulkanShaderDefault(VkDevice device,
   assert(m_vkRenderPass != VK_NULL_HANDLE);
 }
 
-bool CVulkanShaderDefault::Create()
+bool CVulkanShaderDefault::Create(const VkPipelineCache& pipelineCache)
 {
 
   return true;

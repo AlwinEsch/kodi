@@ -8,20 +8,26 @@
 
 #pragma once
 
-#include "IVulkanShader.h"
+#include "rendering/vulkan/VulkanMemoryBuffer.h"
+#include "rendering/vulkan/shaders/IVulkanShader.h"
 
 #include <glm/glm.hpp>
 
 namespace KODI::RENDERING::VULKAN
 {
 
+class CVulkanDeviceQueue;
+
 class CVulkanShaderFonts : public IVulkanShader
 {
 public:
-  CVulkanShaderFonts(VkDevice device, VkPipelineLayout pipelineLayout, VkRenderPass renderPass);
+  CVulkanShaderFonts(CVulkanDeviceQueue* deviceQueue,
+                     VkDevice device,
+                     VkPipelineLayout pipelineLayout,
+                     VkRenderPass renderPass);
   virtual ~CVulkanShaderFonts() = default;
 
-  bool Create() override;
+  bool Create(const VkPipelineCache& pipelineCaches) override;
   void Destroy() override;
 
   VkPipeline VulkanPipeline() const override;

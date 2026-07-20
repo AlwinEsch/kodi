@@ -8,20 +8,26 @@
 
 #pragma once
 
-#include "IVulkanShader.h"
+#include "rendering/vulkan/VulkanMemoryBuffer.h"
+#include "rendering/vulkan/shaders/IVulkanShader.h"
 
 #include <glm/glm.hpp>
 
 namespace KODI::RENDERING::VULKAN
 {
 
+class CVulkanDeviceQueue;
+
 class CVulkanShaderTextureNoBlend : public IVulkanShader
 {
 public:
-  CVulkanShaderTextureNoBlend(VkDevice device, VkPipelineLayout pipelineLayout, VkRenderPass renderPass);
+  CVulkanShaderTextureNoBlend(CVulkanDeviceQueue* deviceQueue,
+                              VkDevice device,
+                              VkPipelineLayout pipelineLayout,
+                              VkRenderPass renderPass);
   virtual ~CVulkanShaderTextureNoBlend() = default;
 
-  bool Create() override;
+  bool Create(const VkPipelineCache& pipelineCache) override;
   void Destroy() override;
 
   VkPipeline VulkanPipeline() const override;
@@ -37,7 +43,7 @@ private:
     glm::vec3 color;
   };
 
-	VkSampler m_sampler{VK_NULL_HANDLE};
+  VkSampler m_sampler{VK_NULL_HANDLE};
   VkImage m_image{VK_NULL_HANDLE};
   VkImageView m_imageView{VK_NULL_HANDLE};
   VkDeviceMemory m_imageMemory{VK_NULL_HANDLE};

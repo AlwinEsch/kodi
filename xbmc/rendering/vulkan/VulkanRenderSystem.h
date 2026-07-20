@@ -160,7 +160,6 @@ private:
   std::unique_ptr<CVulkanDeviceQueue> m_deviceQueue;
   std::unique_ptr<CVulkanSurface> m_surface;
   std::unique_ptr<CVulkanRenderPass> m_renderPass;
-  std::unique_ptr<CVulkanCommandPool> m_commandPool;
   std::vector<std::unique_ptr<CVulkanFramebuffer>> m_framebuffers;
 
   /**

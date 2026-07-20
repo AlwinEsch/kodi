@@ -8,20 +8,26 @@
 
 #pragma once
 
-#include "IVulkanShader.h"
+#include "rendering/vulkan/VulkanMemoryBuffer.h"
+#include "rendering/vulkan/shaders/IVulkanShader.h"
 
 #include <glm/glm.hpp>
 
 namespace KODI::RENDERING::VULKAN
 {
 
+class CVulkanDeviceQueue;
+
 class CVulkanShaderTextureLim : public IVulkanShader
 {
 public:
-  CVulkanShaderTextureLim(VkDevice device, VkPipelineLayout pipelineLayout, VkRenderPass renderPass);
+  CVulkanShaderTextureLim(CVulkanDeviceQueue* deviceQueue,
+                          VkDevice device,
+                          VkPipelineLayout pipelineLayout,
+                          VkRenderPass renderPass);
   virtual ~CVulkanShaderTextureLim() = default;
 
-  bool Create() override;
+  bool Create(const VkPipelineCache& pipelineCache) override;
   void Destroy() override;
 
   VkPipeline VulkanPipeline() const override;

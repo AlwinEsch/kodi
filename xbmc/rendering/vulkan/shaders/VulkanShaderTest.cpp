@@ -8,9 +8,12 @@
 
 #include "VulkanShaderTest.h"
 
+#include "rendering/vulkan/VulkanDeviceQueue.h"
+#include "rendering/vulkan/VulkanMemoryBuffer.h"
 #include "rendering/vulkan/utils/VulkanUtils.h"
 #include "utils/log.h"
 
+#include <array>
 #include <cassert>
 
 namespace KODI
@@ -22,21 +25,41 @@ namespace VULKAN
 
 using KODI::RENDERING::VULKAN::UTILS::ErrorString;
 
-CVulkanShaderTest::CVulkanShaderTest(VkDevice device,
+CVulkanShaderTest::CVulkanShaderTest(CVulkanDeviceQueue* deviceQueue,
+                                     VkDevice device,
                                      VkPipelineLayout pipelineLayout,
                                      VkRenderPass renderPass)
-  : m_vkDevice(device),
+  : IVulkanShader(deviceQueue),
+    m_vkDevice(device),
     m_vkPipelineLayout(pipelineLayout),
     m_vkRenderPass(renderPass)
 {
   assert(m_vkDevice != VK_NULL_HANDLE);
   assert(m_vkPipelineLayout != VK_NULL_HANDLE);
   assert(m_vkRenderPass != VK_NULL_HANDLE);
+
+  m_vertexBuffer = std::make_unique<CVulkanMemoryBuffer>(deviceQueue);
 }
 
-bool CVulkanShaderTest::Create()
+bool CVulkanShaderTest::Create(const VkPipelineCache& pipelineCache)
 {
+  // Vertex data for a single colored triangle
+  struct Vertex
+  {
+    glm::vec3 position;
+    glm::vec3 color;
+  };
+  const std::vector<Vertex> vertices = {{{0.5f, -0.5f, 0.5f}, {1.0f, 0.0f, 0.0f}},
+                                        {{0.5f, 0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}},
+                                        {{-0.5f, 0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}}};
+
+  const VkDeviceSize buffer_size = sizeof(vertices[0]) * vertices.size();
+
   // The Vertex input properties define the interface between the vertex buffer and the vertex shader.
+  m_vertexBuffer->CreateBuffer(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+                               VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                                   VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                               sizeof(Vertex) * 3, vertices.data());
 
   // Specify we will use triangle lists to draw geometry.
   VkPipelineInputAssemblyStateCreateInfo input_assembly{
@@ -205,24 +228,20 @@ bool CVulkanShaderTest::Create()
       .pDepthStencilState = &depth_stencil,
       .pColorBlendState = &blend,
       .pDynamicState = &dynamic,
-      .layout = m_vkPipelineLayout, // We need to specify the pipeline layout up front
-      .renderPass = m_vkRenderPass, // We need to specify the render pass up front
-      .subpass = 0, // We will be rendering in the first subpass
+      .layout = m_vkPipelineLayout,
+      .renderPass = m_vkRenderPass,
+      .subpass = 0,
       .basePipelineHandle = VK_NULL_HANDLE,
-      .basePipelineIndex = -1};
+      .basePipelineIndex = -1,
+  };
 
-  VkResult result =
-      vkCreateGraphicsPipelines(m_vkDevice, VK_NULL_HANDLE, 1, &pipe, nullptr, &m_vkPipeline);
-  if (result != VK_SUCCESS)
-  {
-    CLog::Log(LOGERROR, "Vulkan: Failed to create graphics pipeline, ERROR: {0}",
-              ErrorString(result));
-    return false;
-  }
+  VK_CHECK_RESULT(
+      vkCreateGraphicsPipelines(m_vkDevice, pipelineCache, 1, &pipe, nullptr, &m_vkPipeline),
+      false);
 
-  // Pipeline is baked, we can delete the shader modules now.
-  vkDestroyShaderModule(m_vkDevice, shader_stages[0].module, nullptr);
-  vkDestroyShaderModule(m_vkDevice, shader_stages[1].module, nullptr);
+  //// Pipeline is baked, we can delete the shader modules now.
+  //vkDestroyShaderModule(m_vkDevice, shader_stages[0].module, nullptr);
+  //vkDestroyShaderModule(m_vkDevice, shader_stages[1].module, nullptr);
 
   return true;
 }

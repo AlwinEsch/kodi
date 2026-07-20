@@ -14,16 +14,13 @@
 #include <vk_mem_alloc.h>
 #include <vulkan/vulkan_core.h>
 
-namespace KODI
-{
-namespace RENDERING
-{
-namespace VULKAN
+namespace KODI::RENDERING::VULKAN
 {
 
 class CVulkanCommandPool;
 class CVulkanFenceHelper;
 class CVulkanRenderSystem;
+class CVulkanMemoryBuffer;
 
 enum DeviceQueueOption : uint32_t
 {
@@ -82,8 +79,9 @@ public:
   }
   const VkPhysicalDeviceLimits& DeviceLimits() const { return m_vkPhysicalDeviceProperties.limits; }
   CVulkanFenceHelper* FenceHelper() const { return m_cleanupHelper.get(); }
+  CVulkanCommandPool* CommandPool() const { return m_commandPool.get(); }
 
-	/**
+  /**
 	* Get the index of a memory type that has all the requested property bits set
 	*
 	* @param[in] typeBits Bit mask with bits set for each memory type supported by the resource to request for (from VkMemoryRequirements)
@@ -98,16 +96,34 @@ public:
                          VkMemoryPropertyFlags properties,
                          VkBool32* memTypeFound = nullptr) const;
 
-  VkCommandBuffer CreateCommandBuffer(VkCommandPool pool);
+  //VkCommandBuffer CreateCommandBuffer(VkCommandPool pool);
 
-  void FlushCommandBuffer(VkCommandBuffer commandBuffer, VkCommandPool pool);
+  //void FlushCommandBuffer(VkCommandBuffer commandBuffer, VkCommandPool pool);
+
+  VkCommandBuffer CreateCommandBuffer(VkCommandBufferLevel level, bool begin = false);
+  VkCommandBuffer CreateCommandBuffer(VkCommandBufferLevel level,
+                                      VkCommandPool pool,
+                                      bool begin = false);
+  void FlushCommandBuffer(VkCommandBuffer commandBuffer, bool free = true);
+  void FlushCommandBuffer(VkCommandBuffer commandBuffer,
+                          VkCommandPool pool,
+                          VkQueue queue,
+                          bool free = true);
+
+  void CopyBuffer(CVulkanMemoryBuffer* src,
+                  CVulkanMemoryBuffer* dst,
+                  VkBufferCopy* copyRegion = nullptr);
+  void CopyBuffer(CVulkanMemoryBuffer* src,
+                  CVulkanMemoryBuffer* dst,
+                  VkCommandPool commandPool,
+                  VkQueue queue,
+                  VkBufferCopy* copyRegion = nullptr);
 
 private:
   CVulkanDeviceQueue(const CVulkanDeviceQueue&) = delete;
   CVulkanDeviceQueue& operator=(const CVulkanDeviceQueue&) = delete;
 
-  std::vector<const char*> m_enabledExtensions;
-  std::unique_ptr<CVulkanFenceHelper> m_cleanupHelper;
+  CVulkanRenderSystem* m_vulkanRenderSystem{nullptr};
 
   VkInstance m_vkInstance{VK_NULL_HANDLE};
   VkDevice m_vkDevice{VK_NULL_HANDLE};
@@ -124,11 +140,12 @@ private:
 #endif // defined(TARGET_ANDROID) || defined(TARGET_LINUX)
   VmaAllocator m_vmaAllocator{VK_NULL_HANDLE};
 
-  CVulkanRenderSystem* m_vulkanRenderSystem{nullptr};
+  std::vector<const char*> m_enabledExtensions;
+  std::unique_ptr<CVulkanFenceHelper> m_cleanupHelper;
+  std::unique_ptr<CVulkanCommandPool> m_commandPool;
+
   bool m_allowProtectedMemory{false};
   uint32_t m_drmDeviceId{0};
 };
 
-} // namespace VULKAN
-} // namespace RENDERING
-} // namespace KODI
+} // namespace KODI::RENDERING::VULKAN

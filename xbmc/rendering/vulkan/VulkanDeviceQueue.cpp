@@ -12,6 +12,7 @@
 #include "rendering/vulkan/VulkanDeviceQueue.h"
 #include "rendering/vulkan/VulkanFenceHelper.h"
 #include "rendering/vulkan/VulkanInstance.h"
+#include "rendering/vulkan/VulkanMemoryBuffer.h"
 #include "rendering/vulkan/VulkanRenderSystem.h"
 #include "rendering/vulkan/utils/VulkanInitStructs.h"
 #include "rendering/vulkan/utils/VulkanUtils.h"
@@ -24,18 +25,14 @@
 
 using namespace KODI::RENDERING::VULKAN::UTILS;
 
-namespace KODI
-{
-namespace RENDERING
-{
-namespace VULKAN
+namespace KODI::RENDERING::VULKAN
 {
 
 using KODI::RENDERING::VULKAN::UTILS::ErrorString;
 
 CVulkanDeviceQueue::CVulkanDeviceQueue(CVulkanRenderSystem* vulkanRenderSystem)
-  : m_vkInstance(vulkanRenderSystem->GetVulkanInstance()->GetVkInstance()),
-    m_vulkanRenderSystem(vulkanRenderSystem)
+  : m_vulkanRenderSystem(vulkanRenderSystem),
+    m_vkInstance(vulkanRenderSystem->GetVulkanInstance()->GetVkInstance())
 
 {
   assert(m_vkInstance);
@@ -318,11 +315,26 @@ bool CVulkanDeviceQueue::Initialize(DeviceQueueOptions options,
 
   m_cleanupHelper = std::make_unique<CVulkanFenceHelper>(this);
 
+  auto commandPool = std::make_unique<CVulkanCommandPool>(this);
+  if (!commandPool->Initialize(m_allowProtectedMemory))
+  {
+    CLog::Log(LOGERROR, "Vulkan: Failed to create default command pool ({0}:{1})", __FILENAME__,
+              __LINE__);
+    commandPool->Destroy();
+    return false;
+  }
+  m_commandPool = std::move(commandPool);
+
   return true;
 }
 
 void CVulkanDeviceQueue::Destroy()
 {
+  if (m_commandPool)
+  {
+    m_commandPool->Destroy();
+    m_commandPool.reset();
+  }
   if (m_cleanupHelper)
   {
     m_cleanupHelper->Destroy();
@@ -407,21 +419,38 @@ uint32_t CVulkanDeviceQueue::GetMemoryType(uint32_t typeBits,
   }
 }
 
-VkCommandBuffer CVulkanDeviceQueue::CreateCommandBuffer(VkCommandPool pool)
+VkCommandBuffer CVulkanDeviceQueue::CreateCommandBuffer(VkCommandBufferLevel level,
+                                                        bool begin /* = false*/)
 {
-  VkCommandBufferAllocateInfo allocInfo =
-      vkCommandBufferAllocateInfo(pool, VK_COMMAND_BUFFER_LEVEL_PRIMARY, 1);
+  return CreateCommandBuffer(level, m_commandPool->vkCommandPool(), begin);
+}
 
+VkCommandBuffer CVulkanDeviceQueue::CreateCommandBuffer(VkCommandBufferLevel level,
+                                                        VkCommandPool pool,
+                                                        bool begin /* = false*/)
+{
+  VkCommandBufferAllocateInfo allocInfo = vkCommandBufferAllocateInfo(pool, level, 1);
   VkCommandBuffer command_buffer{};
   VK_CHECK_RESULT(vkAllocateCommandBuffers(m_vkDevice, &allocInfo, &command_buffer),
                   VK_NULL_HANDLE);
 
-  VkCommandBufferBeginInfo beginInfo = vkCommandBufferBeginInfo();
-  VK_CHECK_RESULT(vkBeginCommandBuffer(command_buffer, &beginInfo), VK_NULL_HANDLE);
+  if (begin)
+  {
+    VkCommandBufferBeginInfo beginInfo = vkCommandBufferBeginInfo();
+    VK_CHECK_RESULT(vkBeginCommandBuffer(command_buffer, &beginInfo), VK_NULL_HANDLE);
+  }
   return command_buffer;
 }
 
-void CVulkanDeviceQueue::FlushCommandBuffer(VkCommandBuffer commandBuffer, VkCommandPool pool)
+void CVulkanDeviceQueue::FlushCommandBuffer(VkCommandBuffer commandBuffer, bool free /* = true*/)
+{
+  FlushCommandBuffer(commandBuffer, m_commandPool->vkCommandPool(), m_vkQueue, free);
+}
+
+void CVulkanDeviceQueue::FlushCommandBuffer(VkCommandBuffer commandBuffer,
+                                            VkCommandPool pool,
+                                            VkQueue queue,
+                                            bool free /* = true*/)
 {
   using KODI::RENDERING::VULKAN::UTILS::DEFAULT_FENCE_TIMEOUT;
 
@@ -437,13 +466,44 @@ void CVulkanDeviceQueue::FlushCommandBuffer(VkCommandBuffer commandBuffer, VkCom
   VkFenceCreateInfo fenceInfo = vkFenceCreateInfo();
   VkFence fence;
   VK_CHECK_RESULT(vkCreateFence(m_vkDevice, &fenceInfo, nullptr, &fence));
-  VK_CHECK_RESULT(vkQueueSubmit(m_vkQueue, 1, &submitInfo, fence));
+  VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &submitInfo, fence));
   VK_CHECK_RESULT(vkWaitForFences(m_vkDevice, 1, &fence, VK_TRUE, DEFAULT_FENCE_TIMEOUT));
   vkDestroyFence(m_vkDevice, fence, nullptr);
-
-  vkFreeCommandBuffers(m_vkDevice, pool, 1, &commandBuffer);
+  if (free)
+  {
+    vkFreeCommandBuffers(m_vkDevice, pool, 1, &commandBuffer);
+  }
 }
 
-} // namespace VULKAN
-} // namespace RENDERING
-} // namespace KODI
+void CVulkanDeviceQueue::CopyBuffer(CVulkanMemoryBuffer* src,
+                                    CVulkanMemoryBuffer* dst,
+                                    VkBufferCopy* copyRegion)
+{
+  CopyBuffer(src, dst, m_commandPool->vkCommandPool(), m_vkQueue, copyRegion);
+}
+
+void CVulkanDeviceQueue::CopyBuffer(CVulkanMemoryBuffer* src,
+                                    CVulkanMemoryBuffer* dst,
+                                    VkCommandPool commandPool,
+                                    VkQueue queue,
+                                    VkBufferCopy* copyRegion)
+{
+  assert(dst->vkSize() >= src->vkSize());
+  assert(src->vkBuffer());
+  VkCommandBuffer copyCmd = CreateCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, commandPool, true);
+  VkBufferCopy bufferCopy{};
+  if (copyRegion == nullptr)
+  {
+    bufferCopy.size = src->vkSize();
+  }
+  else
+  {
+    bufferCopy = *copyRegion;
+  }
+
+  vkCmdCopyBuffer(copyCmd, src->vkBuffer(), dst->vkBuffer(), 1, &bufferCopy);
+
+  FlushCommandBuffer(copyCmd, m_commandPool->vkCommandPool(), m_vkQueue, true);
+}
+
+} // namespace KODI::RENDERING::VULKAN

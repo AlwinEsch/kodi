@@ -49,9 +49,9 @@ CGUIFontTTF* CGUIFontTTF::CreateGUIFontTTF(const std::string& fontIdent)
 CVulkanGUIFontTTF::CVulkanGUIFontTTF(const std::string& fontIdent) : CGUIFontTTF(fontIdent)
 {
   m_renderSystem = dynamic_cast<CVulkanRenderSystem*>(CServiceBroker::GetRenderSystem());
-  m_shader = std::make_unique<KODI::RENDERING::VULKAN::CVulkanShaderFonts>(
-      m_renderSystem->vkDevice(), m_renderSystem->vkPipelineLayout(),
-      m_renderSystem->vkRenderPass());
+  //m_shader = std::make_unique<KODI::RENDERING::VULKAN::CVulkanShaderFonts>(
+  //    m_renderSystem->vkDevice(), m_renderSystem->vkPipelineLayout(),
+  //    m_renderSystem->vkRenderPass());
 }
 
 CVulkanGUIFontTTF::~CVulkanGUIFontTTF()
