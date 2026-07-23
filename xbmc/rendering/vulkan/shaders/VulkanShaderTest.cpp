@@ -33,7 +33,7 @@ CVulkanShaderTest::CVulkanShaderTest(const VulkanData* vkData,
   m_vertexBuffer = std::make_unique<CVulkanMemoryBuffer>(deviceQueue);
 }
 
-bool CVulkanShaderTest::Create(const VkPipelineCache& pipelineCache)
+bool CVulkanShaderTest::Create()
 {
   // Vertex data for a single colored triangle
   struct Vertex
@@ -45,6 +45,7 @@ bool CVulkanShaderTest::Create(const VkPipelineCache& pipelineCache)
                                         {{0.5f, 0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}},
                                         {{-0.5f, 0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}}};
 
+  m_vkPipelineLayout = CreatePipelineLayout();
   //const VkDeviceSize buffer_size = sizeof(vertices[0]) * vertices.size();
 
   // The Vertex input properties define the interface between the vertex buffer and the vertex shader.
@@ -220,7 +221,7 @@ bool CVulkanShaderTest::Create(const VkPipelineCache& pipelineCache)
       .pDepthStencilState = &depth_stencil,
       .pColorBlendState = &blend,
       .pDynamicState = &dynamic,
-      .layout = m_vkData->vkPipelineLayout,
+      .layout = m_vkPipelineLayout,
       .renderPass = m_vkData->vkRenderPass,
       .subpass = 0,
       .basePipelineHandle = VK_NULL_HANDLE,
@@ -228,18 +229,23 @@ bool CVulkanShaderTest::Create(const VkPipelineCache& pipelineCache)
   };
 
   VK_CHECK_RESULT(
-      vkCreateGraphicsPipelines(m_vkData->vkDevice, pipelineCache, 1, &pipe, nullptr, &m_vkPipeline),
+      vkCreateGraphicsPipelines(m_vkData->vkDevice, m_vkData->vkPipelineCache, 1, &pipe, nullptr, &m_vkPipeline),
       false);
 
-  //// Pipeline is baked, we can delete the shader modules now.
-  //vkDestroyShaderModule(m_vkData->vkDevice, shader_stages[0].module, nullptr);
-  //vkDestroyShaderModule(m_vkData->vkDevice, shader_stages[1].module, nullptr);
+  // Pipeline is baked, we can delete the shader modules now.
+  vkDestroyShaderModule(m_vkData->vkDevice, shader_stages[0].module, nullptr);
+  vkDestroyShaderModule(m_vkData->vkDevice, shader_stages[1].module, nullptr);
 
   return true;
 }
 
 void CVulkanShaderTest::Destroy()
 {
+  if (m_vkPipelineLayout != VK_NULL_HANDLE)
+  {
+    vkDestroyPipelineLayout(m_vkData->vkDevice, m_vkPipelineLayout, nullptr);
+    m_vkPipelineLayout = VK_NULL_HANDLE;
+  }
   if (m_vkPipeline != VK_NULL_HANDLE)
   {
     // Destroy the Vulkan pipeline
@@ -247,6 +253,30 @@ void CVulkanShaderTest::Destroy()
     m_vkPipeline = VK_NULL_HANDLE;
   }
 }
+
+VkPipelineLayout CVulkanShaderTest::CreatePipelineLayout(VkDescriptorSetLayout layout)
+{
+  // Implementation of Create
+  // Create a blank pipeline layout.
+  // We are not binding any resources to the pipeline in this first sample.
+  VkPipelineLayoutCreateInfo layout_info{
+      .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+      .pNext = VK_NULL_HANDLE,
+      .flags = 0,
+      .setLayoutCount = layout != VK_NULL_HANDLE ? 1u : 0u,
+      .pSetLayouts = &layout,
+      .pushConstantRangeCount = 0,
+      .pPushConstantRanges = VK_NULL_HANDLE,
+  };
+
+  VkPipelineLayout pipeline_layout;
+  VK_CHECK_RESULT(
+      vkCreatePipelineLayout(m_vkData->vkDevice, &layout_info, nullptr, &pipeline_layout),
+      VK_NULL_HANDLE);
+
+  return pipeline_layout;
+}
+
 } // namespace VULKAN
 } // namespace RENDERING
 } // namespace KODI

@@ -29,13 +29,29 @@ public:
   CVulkanShaderTest(const VulkanData* vkData, CVulkanDeviceQueue* deviceQueue);
   virtual ~CVulkanShaderTest() = default;
 
-  bool Create(const VkPipelineCache& pipelineCache) override;
+  bool Create() override;
   void Destroy() override;
 
   VkPipeline VulkanPipeline() const override { return m_vkPipeline; }
   CVulkanMemoryBuffer* VertexBuffer() { return m_vertexBuffer.get(); }
 
 private:
+  /**
+   * @brief Creates a Vulkan pipeline layout.
+   *
+   * The pipeline layout is used to define the interface between shader stages and shader resources.
+   *
+   * @param[in] layout [optional] The descriptor set layout to use for the pipeline layout.
+   * @return The created pipeline layout, or VK_NULL_HANDLE on failure.
+   *
+   * @note Descruction is inside the @ref Destroy() function, which is called in the destructor of CVulkanRenderSystem.
+   *
+   * Documentation about @ref vkCreatePipelineLayout and @ref vkDestroyPipelineLayout is available at:
+   * - https://docs.vulkan.org/refpages/latest/refpages/source/vkCreatePipelineLayout.html
+   * - https://docs.vulkan.org/spec/latest/chapters/descriptorsets.html
+   */
+  VkPipelineLayout CreatePipelineLayout(VkDescriptorSetLayout layout = VK_NULL_HANDLE);
+
   /// Properties of the vertices used in this sample.
   struct Vertex
   {
@@ -46,6 +62,7 @@ private:
   std::unique_ptr<CVulkanMemoryBuffer> m_vertexBuffer;
 
   VkPipeline m_vkPipeline{VK_NULL_HANDLE};
+  VkPipelineLayout m_vkPipelineLayout{VK_NULL_HANDLE};
 };
 
 } // namespace VULKAN

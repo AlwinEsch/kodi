@@ -21,8 +21,6 @@ struct VulkanData
   VkPipelineCache vkPipelineCache{VK_NULL_HANDLE};
   VkRenderPass vkRenderPass{VK_NULL_HANDLE};
   //VkDescriptorPool vkDescriptorPool{VK_NULL_HANDLE};
-  VkPipelineLayout vkPipelineLayout{
-      VK_NULL_HANDLE}; // TODO: Remove this and use the pipeline layout from the shader instead
 };
 
 } // namespace KODI::RENDERING::VULKAN

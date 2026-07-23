@@ -28,7 +28,7 @@ CVulkanShaderFontsShaderClip::CVulkanShaderFontsShaderClip(const VulkanData* vkD
 {
 }
 
-bool CVulkanShaderFontsShaderClip::Create(const VkPipelineCache& pipelineCache)
+bool CVulkanShaderFontsShaderClip::Create()
 {
   return true;
 }

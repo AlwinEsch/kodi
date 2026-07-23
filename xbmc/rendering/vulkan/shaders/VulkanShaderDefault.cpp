@@ -28,7 +28,7 @@ CVulkanShaderDefault::CVulkanShaderDefault(const VulkanData* vkData,
 {
 }
 
-bool CVulkanShaderDefault::Create(const VkPipelineCache& pipelineCache)
+bool CVulkanShaderDefault::Create()
 {
 
   return true;

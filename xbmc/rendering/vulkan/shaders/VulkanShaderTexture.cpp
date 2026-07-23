@@ -36,7 +36,7 @@ CVulkanShaderTexture::CVulkanShaderTexture(const VulkanData* vkData,
 
 }
 
-bool CVulkanShaderTexture::Create(const VkPipelineCache& pipelineCache)
+bool CVulkanShaderTexture::Create()
 {
 
   return true;

@@ -26,7 +26,7 @@ CVulkanShaderTextureNoBlend::CVulkanShaderTextureNoBlend(const VulkanData* vkDat
 {
 }
 
-bool CVulkanShaderTextureNoBlend::Create(const VkPipelineCache& pipelineCache)
+bool CVulkanShaderTextureNoBlend::Create()
 {
   return true;
 }

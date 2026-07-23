@@ -27,7 +27,7 @@ CVulkanShaderFonts::CVulkanShaderFonts(const VulkanData* vkData,
 {
 }
 
-bool CVulkanShaderFonts::Create(const VkPipelineCache& pipelineCache)
+bool CVulkanShaderFonts::Create()
 {
   return true;
 }

@@ -33,7 +33,7 @@ public:
                        CVulkanDeviceQueue* deviceQueue);
   virtual ~CVulkanShaderTexture() = default;
 
-  bool Create(const VkPipelineCache& pipelineCache) override;
+  bool Create() override;
   void Destroy() override;
 
   VkPipeline VulkanPipeline() const override { return m_vkPipeline; }

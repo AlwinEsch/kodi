@@ -27,7 +27,7 @@ CVulkanShaderMultiBlendColor::CVulkanShaderMultiBlendColor(const VulkanData* vkD
 {
 }
 
-bool CVulkanShaderMultiBlendColor::Create(const VkPipelineCache& pipelineCache)
+bool CVulkanShaderMultiBlendColor::Create()
 {
 
 

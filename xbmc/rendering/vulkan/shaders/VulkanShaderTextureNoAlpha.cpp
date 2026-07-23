@@ -26,7 +26,7 @@ CVulkanShaderTextureNoAlpha::CVulkanShaderTextureNoAlpha(const VulkanData* vkDat
 {
 }
 
-bool CVulkanShaderTextureNoAlpha::Create(const VkPipelineCache& pipelineCache)
+bool CVulkanShaderTextureNoAlpha::Create()
 {
   return true;
 }

@@ -120,7 +120,6 @@ public:
   VkDevice vkDevice() const { return m_vkData.vkDevice; }
   VkPhysicalDevice vkPhysicalDevice() const { return m_vkPhysicalDevice; }
   VkPipeline vkPipeline() const { return m_vkPipeline; }
-  VkPipelineLayout vkPipelineLayout() const { return m_vkData.vkPipelineLayout; }
   VkSwapchainKHR vkSwapchain() const { return m_vkSwapchain; }
   VkRenderPass vkRenderPass() const { return m_vkData.vkRenderPass; }
   VkFormat vkSwapchainFormat() const { return m_vkSwapchainFormat; }
@@ -144,22 +143,6 @@ protected:
 private:
   bool CreatePipeline();
   void DestroyPipeline();
-
-  /**
-   * @brief Creates a Vulkan pipeline layout.
-   *
-   * The pipeline layout is used to define the interface between shader stages and shader resources.
-   *
-   * @param[in] layout [optional] The descriptor set layout to use for the pipeline layout.
-   * @return The created pipeline layout, or VK_NULL_HANDLE on failure.
-   *
-   * @note Descruction is inside the @ref Destroy() function, which is called in the destructor of CVulkanRenderSystem.
-   *
-   * Documentation about @ref vkCreatePipelineLayout and @ref vkDestroyPipelineLayout is available at:
-   * - https://docs.vulkan.org/refpages/latest/refpages/source/vkCreatePipelineLayout.html
-   * - https://docs.vulkan.org/spec/latest/chapters/descriptorsets.html
-   */
-  VkPipelineLayout CreatePipelineLayout(VkDescriptorSetLayout layout = VK_NULL_HANDLE);
 
   std::unique_ptr<CVulkanShaderControl> m_shaderControl;
   std::unique_ptr<CVulkanDeviceQueue> m_deviceQueue;
@@ -186,7 +169,6 @@ private:
   //VkDevice m_vkDevice{VK_NULL_HANDLE}; // Created & destroyed outside
   VkPhysicalDevice m_vkPhysicalDevice{VK_NULL_HANDLE}; // Created & destroyed outside
   VkPipeline m_vkPipeline{VK_NULL_HANDLE}; // Created & destroyed here
-  //VkPipelineLayout m_vkPipelineLayout{VK_NULL_HANDLE}; // Created & destroyed here
   VkSwapchainKHR m_vkSwapchain{VK_NULL_HANDLE}; // Created & destroyed outside
   //VkRenderPass m_vkRenderPass{VK_NULL_HANDLE}; // Created & destroyed here
   VkCommandPool m_vkCommandPool{VK_NULL_HANDLE}; // Created & destroyed outside

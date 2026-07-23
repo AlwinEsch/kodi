@@ -59,7 +59,7 @@ public:
 
   virtual ~IVulkanShader() = default;
 
-  virtual bool Create(const VkPipelineCache& pipelineCache) = 0;
+  virtual bool Create() = 0;
   virtual void Destroy() = 0;
 
   virtual VkPipeline VulkanPipeline() const = 0;

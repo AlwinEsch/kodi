@@ -38,7 +38,7 @@ public:
   CVulkanShaderControl(const VulkanData* vulkanData, CVulkanDeviceQueue* deviceQueue);
   virtual ~CVulkanShaderControl() = default;
 
-  bool CreateAllShaders(VkDevice device, VkPipelineLayout pipelineLayout, VkRenderPass renderPass);
+  bool CreateAllShaders(VkDevice device, VkRenderPass renderPass);
   void DestroyAllShaders();
 
   IVulkanShader* GetShader(ShaderId shaderId) const;
@@ -53,7 +53,6 @@ private:
   std::unordered_map<ShaderId, std::unique_ptr<IVulkanShader>> m_shaders;
 
   ShaderId m_nextShaderId{VULKAN_SM_OPTIONAL_ID_START};
-  VkPipelineCache m_pipelineCache{VK_NULL_HANDLE};
 };
 
 } // namespace KODI::RENDERING::VULKAN

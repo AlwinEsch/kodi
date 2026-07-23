@@ -143,13 +143,6 @@ bool CVulkanRenderSystem::InitRenderSystem()
 
   m_vkData.vkRenderPass = m_renderPass->vkRenderPass();
 
-  m_vkData.vkPipelineLayout = CreatePipelineLayout();
-  if (m_vkData.vkPipelineLayout == VK_NULL_HANDLE)
-  {
-    // Log error already logged in CreatePipelineLayout()
-    return false;
-  }
-
   if (!CreatePipeline())
   {
     CLog::Log(LOGERROR, "Vulkan: Failed to create pipeline ({0}:{1})", __FILENAME__, __LINE__);
@@ -157,8 +150,7 @@ bool CVulkanRenderSystem::InitRenderSystem()
   }
 
   m_shaderControl = std::make_unique<CVulkanShaderControl>(&m_vkData, m_deviceQueue.get());
-  if (!m_shaderControl->CreateAllShaders(m_vkData.vkDevice, m_vkData.vkPipelineLayout,
-                                         m_vkData.vkRenderPass))
+  if (!m_shaderControl->CreateAllShaders(m_vkData.vkDevice, m_vkData.vkRenderPass))
   {
     CLog::Log(LOGERROR, "Vulkan: Failed to initialize shader control ({0}:{1})", __FILENAME__,
               __LINE__);
@@ -201,11 +193,6 @@ bool CVulkanRenderSystem::DestroyRenderSystem()
   }
   m_framebuffers.clear();
 
-  if (m_vkData.vkPipelineLayout != VK_NULL_HANDLE)
-  {
-    vkDestroyPipelineLayout(m_vkData.vkDevice, m_vkData.vkPipelineLayout, nullptr);
-  }
-
   if (m_renderPass)
   {
     m_renderPass.reset();
@@ -228,7 +215,6 @@ bool CVulkanRenderSystem::DestroyRenderSystem()
   m_vkInstance = VK_NULL_HANDLE;
   m_vkData.vkDevice = VK_NULL_HANDLE;
   m_vkPipeline = VK_NULL_HANDLE;
-  m_vkData.vkPipelineLayout = VK_NULL_HANDLE;
   m_vkSwapchain = VK_NULL_HANDLE;
   m_vkData.vkRenderPass = VK_NULL_HANDLE;
   m_vkSwapchainFormat = VK_FORMAT_UNDEFINED;
@@ -547,29 +533,6 @@ std::string CVulkanRenderSystem::GetShaderPath(const std::string& filename)
 {
   fprintf(stderr, "---> %s", __PRETTY_FUNCTION__);
   return "Vulkan/";
-}
-
-VkPipelineLayout CVulkanRenderSystem::CreatePipelineLayout(VkDescriptorSetLayout layout)
-{
-  // Implementation of Create
-  // Create a blank pipeline layout.
-  // We are not binding any resources to the pipeline in this first sample.
-  VkPipelineLayoutCreateInfo layout_info{
-      .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-      .pNext = VK_NULL_HANDLE,
-      .flags = 0,
-      .setLayoutCount = layout != VK_NULL_HANDLE ? 1u : 0u,
-      .pSetLayouts = &layout,
-      .pushConstantRangeCount = 0,
-      .pPushConstantRanges = VK_NULL_HANDLE,
-  };
-
-  VkPipelineLayout pipeline_layout;
-  VK_CHECK_RESULT(
-      vkCreatePipelineLayout(m_vkData.vkDevice, &layout_info, nullptr, &pipeline_layout),
-      VK_NULL_HANDLE);
-
-  return pipeline_layout;
 }
 
 void CVulkanRenderSystem::InitialiseShaders()

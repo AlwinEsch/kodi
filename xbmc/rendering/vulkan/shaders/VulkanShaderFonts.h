@@ -25,7 +25,7 @@ public:
                      CVulkanDeviceQueue* deviceQueue);
   virtual ~CVulkanShaderFonts() = default;
 
-  bool Create(const VkPipelineCache& pipelineCaches) override;
+  bool Create() override;
   void Destroy() override;
 
   VkPipeline VulkanPipeline() const override { return m_vkPipeline; }

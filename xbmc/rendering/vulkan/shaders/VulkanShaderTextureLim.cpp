@@ -26,7 +26,7 @@ CVulkanShaderTextureLim::CVulkanShaderTextureLim(const VulkanData* vkData,
 {
 }
 
-bool CVulkanShaderTextureLim::Create(const VkPipelineCache& pipelineCache)
+bool CVulkanShaderTextureLim::Create()
 {
   return true;
 }

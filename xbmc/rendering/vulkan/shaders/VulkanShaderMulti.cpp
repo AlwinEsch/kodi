@@ -28,7 +28,7 @@ CVulkanShaderMulti::CVulkanShaderMulti(const VulkanData* vkData,
 {
 }
 
-bool CVulkanShaderMulti::Create(const VkPipelineCache& pipelineCache)
+bool CVulkanShaderMulti::Create()
 {
 
   return true;
