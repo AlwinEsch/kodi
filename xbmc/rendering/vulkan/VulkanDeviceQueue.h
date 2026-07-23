@@ -29,6 +29,21 @@ enum DeviceQueueOption : uint32_t
 };
 using DeviceQueueOptions = uint32_t;
 
+/**
+ * @brief Structure to hold Vulkan memory data.
+ *
+ * Becomes useful when allocating memory for Vulkan resources,
+ * as it encapsulates the memory handle, size, and offset.
+ */
+struct CVulkanMemoryData
+{
+  VkBuffer buffer{VK_NULL_HANDLE};
+  VkDeviceMemory memory{VK_NULL_HANDLE};
+  VkDeviceSize size{0};
+  VkDeviceSize offset{0};
+  void* mapped{nullptr};
+};
+
 class CVulkanDeviceQueue
 {
 public:
@@ -110,16 +125,62 @@ public:
                           VkQueue queue,
                           bool free = true);
 
-  void CopyBuffer(CVulkanMemoryBuffer* src,
-                  CVulkanMemoryBuffer* dst,
+  /**
+   * @brief Creates a Vulkan buffer and allocates memory for it.
+   *
+   * @param[in] usageFlags The usage flags for the buffer.
+   * @param[in] memoryPropertyFlags The memory property flags for the buffer.
+   * @param[out] memoryData The Vulkan memory data structure, see @ref CVulkanMemoryData.
+   * @param[in] size The size of the buffer.
+   * @param[in] data Optional pointer to the data to initialize the buffer with.
+   *                 Leaves the buffer uninitialized if nullptr.
+   * @return @ref VkResult indicating success or failure.
+   */
+  VkResult CreateBuffer(VkBufferUsageFlags usageFlags,
+                        VkMemoryPropertyFlags memoryPropertyFlags,
+                        CVulkanMemoryData* memoryData,
+                        VkDeviceSize size,
+                        const void* data = nullptr);
+
+  /**
+   * @brief Destroys a Vulkan buffer and frees its associated memory.
+   *
+   * @param[in,out] memoryData The Vulkan memory data structure, see @ref CVulkanMemoryData.
+   */
+  void DestroyBuffer(CVulkanMemoryData* memoryData);
+
+  /**
+   * @brief Copies data from one Vulkan buffer to another.
+   *
+   * @param[in] src The source Vulkan memory data structure, see @ref CVulkanMemoryData.
+   * @param[in] dst The destination Vulkan memory data structure, see @ref CVulkanMemoryData.
+   * @param[in] copyRegion Optional pointer to a VkBufferCopy structure defining the region to copy.
+   *                       If nullptr, the entire buffer will be copied.
+   */
+  void CopyBuffer(CVulkanMemoryData* src,
+                  CVulkanMemoryData* dst,
                   VkBufferCopy* copyRegion = nullptr);
-  void CopyBuffer(CVulkanMemoryBuffer* src,
-                  CVulkanMemoryBuffer* dst,
+
+  /**
+   * @brief Copies data from one Vulkan buffer to another using a specific command pool and queue.
+   *
+   * @param[in] src The source Vulkan memory data structure, see @ref CVulkanMemoryData.
+   * @param[in] dst The destination Vulkan memory data structure, see @ref CVulkanMemoryData.
+   * @param[in] commandPool The Vulkan command pool to use for the copy operation.
+   * @param[in] queue The Vulkan queue to submit the copy command buffer to.
+   * @param[in] copyRegion Optional pointer to a VkBufferCopy structure defining the region to copy.
+   *                       If nullptr, the entire buffer will be copied.
+   */
+  void CopyBuffer(CVulkanMemoryData* src,
+                  CVulkanMemoryData* dst,
                   VkCommandPool commandPool,
                   VkQueue queue,
                   VkBufferCopy* copyRegion = nullptr);
 
-private:
+  VkResult Map(CVulkanMemoryData* data, VkDeviceSize size = VK_WHOLE_SIZE, VkDeviceSize offset = 0);
+  void Unmap(CVulkanMemoryData* data);
+
+ private:
   CVulkanDeviceQueue(const CVulkanDeviceQueue&) = delete;
   CVulkanDeviceQueue& operator=(const CVulkanDeviceQueue&) = delete;
 

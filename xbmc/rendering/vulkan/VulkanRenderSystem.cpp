@@ -20,10 +20,12 @@
 #include "rendering/vulkan/VulkanFramebuffer.h"
 #include "rendering/vulkan/VulkanInstance.h"
 #include "rendering/vulkan/VulkanMatrix.h"
+#include "rendering/vulkan/VulkanMemoryBuffer.h"
 #include "rendering/vulkan/VulkanRenderPass.h"
 #include "rendering/vulkan/VulkanScopedWrite.h"
 #include "rendering/vulkan/VulkanSwapChain.h"
 #include "rendering/vulkan/shaders/VulkanShaderControl.h"
+#include "rendering/vulkan/shaders/VulkanShaderTest.h"
 #include "rendering/vulkan/utils/VulkanInitStructs.h"
 #include "rendering/vulkan/utils/VulkanUtils.h"
 #include "settings/AdvancedSettings.h"
@@ -38,9 +40,6 @@
 #include "utils/log.h"
 #include "windowing/GraphicContext.h"
 #include "windowing/WinSystem.h"
-
-#include "rendering/vulkan/VulkanMemoryBuffer.h"
-#include "rendering/vulkan/shaders/VulkanShaderTest.h"
 
 #include <array>
 #include <cassert>
@@ -101,8 +100,8 @@ bool CVulkanRenderSystem::InitRenderSystem()
   CLog::Log(LOGDEBUG, "Vulkan: Render system becoming initialized ({0}:{1})", __FILENAME__,
             __LINE__);
 
-  m_vkSurface = GetVulkanSurface();
-  if (!m_vkSurface)
+  m_vkData.vkSurface = GetVulkanSurface();
+  if (!m_vkData.vkSurface)
   {
     CLog::Log(LOGERROR, "Vulkan: Failed to create window surface. ({0}:{1})", __FILENAME__,
               __LINE__);
@@ -119,11 +118,11 @@ bool CVulkanRenderSystem::InitRenderSystem()
   }
 
   m_vkInstance = m_deviceQueue->vkInstance();
-  m_vkDevice = m_deviceQueue->vkDevice();
+  m_vkData.vkDevice = m_deviceQueue->vkDevice();
   m_vkPhysicalDevice = m_deviceQueue->vkPhysicalDevice();
   m_vkCommandPool = m_deviceQueue->CommandPool()->vkCommandPool();
 
-  m_surface = std::make_unique<CVulkanSurface>(m_vkInstance, m_vkSurface);
+  m_surface = std::make_unique<CVulkanSurface>(m_vkInstance, m_vkData.vkSurface);
   if (!m_surface->Initialize(m_deviceQueue.get(), SurfaceFormat::FORMAT_RGBA_32))
   {
     CLog::Log(LOGERROR, "Vulkan: Failed to initialize surface ({0}:{1})", __FILENAME__, __LINE__);
@@ -133,7 +132,7 @@ bool CVulkanRenderSystem::InitRenderSystem()
   m_vkSwapchain = m_surface->vkSwapchain();
   m_vkSwapchainFormat = m_surface->vkSurfaceFormat().format;
 
-  m_renderPass = CVulkanRenderPass::Create(m_vkSwapchainFormat, m_vkDevice);
+  m_renderPass = CVulkanRenderPass::Create(m_vkSwapchainFormat, m_vkData.vkDevice);
   if (!m_renderPass)
   {
     CLog::Log(LOGERROR, "Vulkan: Failed to create render pass ({0}:{1})", __FILENAME__, __LINE__);
@@ -142,17 +141,24 @@ bool CVulkanRenderSystem::InitRenderSystem()
 
   m_surface->Reshape({{0, 0}, {m_width, m_height}}, VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR);
 
-  m_vkRenderPass = m_renderPass->vkRenderPass();
+  m_vkData.vkRenderPass = m_renderPass->vkRenderPass();
 
-  m_vkPipelineLayout = CreatePipelineLayout();
-  if (m_vkPipelineLayout == VK_NULL_HANDLE)
+  m_vkData.vkPipelineLayout = CreatePipelineLayout();
+  if (m_vkData.vkPipelineLayout == VK_NULL_HANDLE)
   {
     // Log error already logged in CreatePipelineLayout()
     return false;
   }
 
-  m_shaderControl = std::make_unique<CVulkanShaderControl>(m_deviceQueue.get());
-  if (!m_shaderControl->CreateAllShaders(m_vkDevice, m_vkPipelineLayout, m_vkRenderPass))
+  if (!CreatePipeline())
+  {
+    CLog::Log(LOGERROR, "Vulkan: Failed to create pipeline ({0}:{1})", __FILENAME__, __LINE__);
+    return false;
+  }
+
+  m_shaderControl = std::make_unique<CVulkanShaderControl>(&m_vkData, m_deviceQueue.get());
+  if (!m_shaderControl->CreateAllShaders(m_vkData.vkDevice, m_vkData.vkPipelineLayout,
+                                         m_vkData.vkRenderPass))
   {
     CLog::Log(LOGERROR, "Vulkan: Failed to initialize shader control ({0}:{1})", __FILENAME__,
               __LINE__);
@@ -195,9 +201,9 @@ bool CVulkanRenderSystem::DestroyRenderSystem()
   }
   m_framebuffers.clear();
 
-  if (m_vkPipelineLayout != VK_NULL_HANDLE)
+  if (m_vkData.vkPipelineLayout != VK_NULL_HANDLE)
   {
-    vkDestroyPipelineLayout(m_vkDevice, m_vkPipelineLayout, nullptr);
+    vkDestroyPipelineLayout(m_vkData.vkDevice, m_vkData.vkPipelineLayout, nullptr);
   }
 
   if (m_renderPass)
@@ -217,14 +223,14 @@ bool CVulkanRenderSystem::DestroyRenderSystem()
     m_deviceQueue.reset();
   }
 
-  m_vkSurface = VK_NULL_HANDLE;
-  m_vkSurfaceFormat = {};
+  m_vkData.vkSurface = VK_NULL_HANDLE;
+  m_vkData.vkSurfaceFormat = {};
   m_vkInstance = VK_NULL_HANDLE;
-  m_vkDevice = VK_NULL_HANDLE;
+  m_vkData.vkDevice = VK_NULL_HANDLE;
   m_vkPipeline = VK_NULL_HANDLE;
-  m_vkPipelineLayout = VK_NULL_HANDLE;
+  m_vkData.vkPipelineLayout = VK_NULL_HANDLE;
   m_vkSwapchain = VK_NULL_HANDLE;
-  m_vkRenderPass = VK_NULL_HANDLE;
+  m_vkData.vkRenderPass = VK_NULL_HANDLE;
   m_vkSwapchainFormat = VK_FORMAT_UNDEFINED;
 
   m_bRenderCreated = false;
@@ -264,9 +270,10 @@ bool CVulkanRenderSystem::BeginRender()
   auto& framebuffer = m_framebuffers[image];
   if (!framebuffer)
   {
-    framebuffer = std::make_unique<CVulkanFramebuffer>(m_vkDevice);
-    if (!framebuffer->Create(m_deviceQueue.get(), m_deviceQueue->CommandPool(), m_vkRenderPass,
-                             m_surface.get(), scoped_write.Image())) [[unlikely]]
+    framebuffer = std::make_unique<CVulkanFramebuffer>(m_vkData.vkDevice);
+    if (!framebuffer->Create(m_deviceQueue.get(), m_deviceQueue->CommandPool(),
+                             m_vkData.vkRenderPass, m_surface.get(), scoped_write.Image()))
+        [[unlikely]]
     {
       CLog::Log(LOGERROR, "Vulkan: Failed to create framebuffer ({0}:{1})", __FILENAME__, __LINE__);
       framebuffer.reset();
@@ -314,7 +321,7 @@ bool CVulkanRenderSystem::BeginRender()
   VkRenderPassBeginInfo begin_info = {
       .sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
       .pNext = nullptr,
-      .renderPass = m_vkRenderPass,
+      .renderPass = m_vkData.vkRenderPass,
       .framebuffer = framebuffer->vkFramebuffer(),
       .renderArea = m_surface->SwapChain()->Size(),
       .clearValueCount = 2,
@@ -558,8 +565,9 @@ VkPipelineLayout CVulkanRenderSystem::CreatePipelineLayout(VkDescriptorSetLayout
   };
 
   VkPipelineLayout pipeline_layout;
-  VK_CHECK_RESULT(vkCreatePipelineLayout(m_vkDevice, &layout_info, nullptr, &pipeline_layout),
-                  VK_NULL_HANDLE);
+  VK_CHECK_RESULT(
+      vkCreatePipelineLayout(m_vkData.vkDevice, &layout_info, nullptr, &pipeline_layout),
+      VK_NULL_HANDLE);
 
   return pipeline_layout;
 }
@@ -578,6 +586,25 @@ void CVulkanRenderSystem::EnableShader(ShaderId method)
 
 void CVulkanRenderSystem::DisableShader()
 {
+}
+
+bool CVulkanRenderSystem::CreatePipeline()
+{
+  VkPipelineCacheCreateInfo pipelineCacheCreateInfo = {};
+  pipelineCacheCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO;
+  VK_CHECK_RESULT(vkCreatePipelineCache(m_vkData.vkDevice, &pipelineCacheCreateInfo, nullptr,
+                                        &m_vkData.vkPipelineCache),
+                  false);
+  return true;
+}
+
+void CVulkanRenderSystem::DestroyPipeline()
+{
+  if (m_vkData.vkPipelineCache != VK_NULL_HANDLE)
+  {
+    vkDestroyPipelineCache(m_vkData.vkDevice, m_vkData.vkPipelineCache, nullptr);
+    m_vkData.vkPipelineCache = VK_NULL_HANDLE;
+  }
 }
 
 } // namespace KODI::RENDERING::VULKAN

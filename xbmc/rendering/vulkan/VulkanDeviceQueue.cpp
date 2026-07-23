@@ -475,35 +475,117 @@ void CVulkanDeviceQueue::FlushCommandBuffer(VkCommandBuffer commandBuffer,
   }
 }
 
-void CVulkanDeviceQueue::CopyBuffer(CVulkanMemoryBuffer* src,
-                                    CVulkanMemoryBuffer* dst,
+VkResult CVulkanDeviceQueue::CreateBuffer(VkBufferUsageFlags usageFlags,
+                                          VkMemoryPropertyFlags memoryPropertyFlags,
+                                          CVulkanMemoryData* memoryData,
+                                          VkDeviceSize size,
+                                          const void* data)
+{
+  // Create the buffer handle
+  auto info = vkBufferCreateInfo(usageFlags, size, VK_SHARING_MODE_EXCLUSIVE);
+  VK_CHECK_RESULT(vkCreateBuffer(m_vkDevice, &info, nullptr, &memoryData->buffer), res);
+
+  // Create the memory backing up the buffer handle
+  VkMemoryRequirements memReqs;
+  vkGetBufferMemoryRequirements(m_vkDevice, memoryData->buffer, &memReqs);
+
+  auto memAlloc = vkMemoryAllocateInfo();
+  memAlloc.allocationSize = memReqs.size;
+  memAlloc.memoryTypeIndex = GetMemoryType(memReqs.memoryTypeBits, memoryPropertyFlags);
+
+  VkMemoryAllocateFlagsInfo allocFlagsInfo{};
+  if (usageFlags & VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT)
+  {
+    allocFlagsInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_FLAGS_INFO;
+    allocFlagsInfo.flags = VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT;
+    memAlloc.pNext = &allocFlagsInfo;
+  }
+  VK_CHECK_RESULT(vkAllocateMemory(m_vkDevice, &memAlloc, nullptr, &memoryData->memory), res);
+
+  // If a pointer to the buffer data has been passed, map the buffer and copy over the data
+  if (data != nullptr)
+  {
+    void* mapped;
+    VK_CHECK_RESULT(vkMapMemory(m_vkDevice, memoryData->memory, 0, size, 0, &mapped), res);
+    memcpy(mapped, data, size);
+    // If host coherency hasn't been requested, do a manual flush to make writes visible
+    if ((memoryPropertyFlags & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT) == 0)
+    {
+      VkMappedMemoryRange mappedRange{
+          .sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE,
+          .pNext = nullptr,
+          .memory = memoryData->memory,
+          .offset = 0,
+          .size = size,
+      };
+      vkFlushMappedMemoryRanges(m_vkDevice, 1, &mappedRange);
+    }
+    vkUnmapMemory(m_vkDevice, memoryData->memory);
+  }
+
+  // Attach the memory to the buffer object
+  VK_CHECK_RESULT(vkBindBufferMemory(m_vkDevice, memoryData->buffer, memoryData->memory, 0), res);
+
+  return VK_SUCCESS;
+}
+
+void CVulkanDeviceQueue::DestroyBuffer(CVulkanMemoryData* memoryData)
+{
+  if (memoryData->buffer)
+  {
+    vkDestroyBuffer(m_vkDevice, memoryData->buffer, nullptr);
+    memoryData->buffer = VK_NULL_HANDLE;
+  }
+  if (memoryData->memory)
+  {
+    vkFreeMemory(m_vkDevice, memoryData->memory, nullptr);
+    memoryData->memory = VK_NULL_HANDLE;
+  }
+}
+
+void CVulkanDeviceQueue::CopyBuffer(CVulkanMemoryData* src,
+                                    CVulkanMemoryData* dst,
                                     VkBufferCopy* copyRegion)
 {
   CopyBuffer(src, dst, m_commandPool->vkCommandPool(), m_vkQueue, copyRegion);
 }
 
-void CVulkanDeviceQueue::CopyBuffer(CVulkanMemoryBuffer* src,
-                                    CVulkanMemoryBuffer* dst,
+void CVulkanDeviceQueue::CopyBuffer(CVulkanMemoryData* src,
+                                    CVulkanMemoryData* dst,
                                     VkCommandPool commandPool,
                                     VkQueue queue,
                                     VkBufferCopy* copyRegion)
 {
-  assert(dst->vkSize() >= src->vkSize());
-  assert(src->vkBuffer());
+  assert(dst->size >= src->size);
+  assert(src->buffer);
   VkCommandBuffer copyCmd = CreateCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, commandPool, true);
   VkBufferCopy bufferCopy{};
   if (copyRegion == nullptr)
   {
-    bufferCopy.size = src->vkSize();
+    bufferCopy.size = src->size;
   }
   else
   {
     bufferCopy = *copyRegion;
   }
 
-  vkCmdCopyBuffer(copyCmd, src->vkBuffer(), dst->vkBuffer(), 1, &bufferCopy);
+  vkCmdCopyBuffer(copyCmd, src->buffer, dst->buffer, 1, &bufferCopy);
 
-  FlushCommandBuffer(copyCmd, m_commandPool->vkCommandPool(), m_vkQueue, true);
+  FlushCommandBuffer(copyCmd, commandPool, queue, true);
+}
+
+VkResult CVulkanDeviceQueue::Map(CVulkanMemoryData* data, VkDeviceSize size, VkDeviceSize offset)
+{
+  return vkMapMemory(m_vkDevice, data->memory, offset, size, 0, &data->mapped);
+}
+
+void CVulkanDeviceQueue::Unmap(CVulkanMemoryData* data)
+{
+  if (data->mapped)
+  {
+    vkUnmapMemory(m_vkDevice, data->memory);
+    data->mapped = nullptr;
+  }
 }
 
 } // namespace KODI::RENDERING::VULKAN

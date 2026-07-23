@@ -22,18 +22,10 @@ namespace VULKAN
 
 using KODI::RENDERING::VULKAN::UTILS::ErrorString;
 
-CVulkanShaderMulti::CVulkanShaderMulti(CVulkanDeviceQueue* deviceQueue,
-                                       VkDevice device,
-                                     VkPipelineLayout pipelineLayout,
-                                     VkRenderPass renderPass)
-  : IVulkanShader(deviceQueue),
-    m_vkDevice(device),
-    m_vkPipelineLayout(pipelineLayout),
-    m_vkRenderPass(renderPass)
+CVulkanShaderMulti::CVulkanShaderMulti(const VulkanData* vkData,
+                                       CVulkanDeviceQueue* deviceQueue)
+  : IVulkanShader(vkData, deviceQueue)
 {
-  assert(m_vkDevice != VK_NULL_HANDLE);
-  assert(m_vkPipelineLayout != VK_NULL_HANDLE);
-  assert(m_vkRenderPass != VK_NULL_HANDLE);
 }
 
 bool CVulkanShaderMulti::Create(const VkPipelineCache& pipelineCache)
@@ -44,12 +36,12 @@ bool CVulkanShaderMulti::Create(const VkPipelineCache& pipelineCache)
 
 void CVulkanShaderMulti::Destroy()
 {
-
-}
-
-VkPipeline CVulkanShaderMulti::VulkanPipeline() const
-{
-  return m_vkPipeline;
+  if (m_vkPipeline != VK_NULL_HANDLE)
+  {
+    // Destroy the Vulkan pipeline
+    vkDestroyPipeline(m_vkData->vkDevice, m_vkPipeline, nullptr);
+    m_vkPipeline = VK_NULL_HANDLE;
+  }
 }
 
 } // namespace VULKAN

@@ -61,8 +61,8 @@ void CVulkanGUITexture::Begin(KODI::UTILS::COLOR::Color color)
   // Setup Colors
   m_color = glm::unpackUnorm4x8(color);
 
-  bool hasAlpha = m_texture.m_textures[m_currentFrame]->HasAlpha() || m_color.a < 1.0f;
-  const bool hasBlendColor = m_color != glm::vec4(1.0f);
+  //bool hasAlpha = m_texture.m_textures[m_currentFrame]->HasAlpha() || m_color.a < 1.0f;
+  //const bool hasBlendColor = m_color != glm::vec4(1.0f);
 
   //if (m_diffuse.size())
   //{
@@ -179,54 +179,54 @@ void CVulkanGUITexture::End()
 void CVulkanGUITexture::Draw(
     float* x, float* y, float* z, const CRect& texture, const CRect& diffuse, int orientation)
 {
-  CVulkanShaderTexture::Vertex verts[4];
-  verts[0].in_attrpos = {x[0], y[0], z[0]};
-  verts[0].in_attrcord0 = {texture.x1, texture.y1};
-  verts[0].in_attrcord1 = {diffuse.x1, diffuse.y1};
-  verts[0].in_attrcol = m_color;
+  //CVulkanShaderTexture::Vertex verts[4];
+  //verts[0].in_attrpos = {x[0], y[0], z[0]};
+  //verts[0].in_attrcord0 = {texture.x1, texture.y1};
+  //verts[0].in_attrcord1 = {diffuse.x1, diffuse.y1};
+  //verts[0].in_attrcol = m_color;
 
-  verts[1].in_attrpos = {x[1], y[1], z[1]};
-  if (orientation & 4)
-  {
-    verts[1].in_attrcord0 = {texture.x1, texture.y2};
-  }
-  else
-  {
-    verts[1].in_attrcord0 = {texture.x2, texture.y1};
-  }
-  if (m_info.orientation & 4)
-  {
-    verts[1].in_attrcord1 = {diffuse.x1, diffuse.y2};
-  }
-  else
-  {
-    verts[1].in_attrcord1 = {diffuse.x2, diffuse.y1};
-  }
-  verts[1].in_attrcol = m_color;
+  //verts[1].in_attrpos = {x[1], y[1], z[1]};
+  //if (orientation & 4)
+  //{
+  //  verts[1].in_attrcord0 = {texture.x1, texture.y2};
+  //}
+  //else
+  //{
+  //  verts[1].in_attrcord0 = {texture.x2, texture.y1};
+  //}
+  //if (m_info.orientation & 4)
+  //{
+  //  verts[1].in_attrcord1 = {diffuse.x1, diffuse.y2};
+  //}
+  //else
+  //{
+  //  verts[1].in_attrcord1 = {diffuse.x2, diffuse.y1};
+  //}
+  //verts[1].in_attrcol = m_color;
 
-  verts[2].in_attrpos = {x[2], y[2], z[2]};
-  verts[2].in_attrcord0 = {texture.x2, texture.y2};
-  verts[2].in_attrcord1 = {diffuse.x2, diffuse.y2};
-  verts[2].in_attrcol = m_color;
+  //verts[2].in_attrpos = {x[2], y[2], z[2]};
+  //verts[2].in_attrcord0 = {texture.x2, texture.y2};
+  //verts[2].in_attrcord1 = {diffuse.x2, diffuse.y2};
+  //verts[2].in_attrcol = m_color;
 
-  verts[3].in_attrpos = {x[3], y[3], z[3]};
-  if (orientation & 4)
-  {
-    verts[3].in_attrcord0 = {texture.x2, texture.y1};
-  }
-  else
-  {
-    verts[3].in_attrcord0 = {texture.x1, texture.y2};
-  }
-  if (m_info.orientation & 4)
-  {
-    verts[3].in_attrcord1 = {diffuse.x2, diffuse.y1};
-  }
-  else
-  {
-    verts[3].in_attrcord1 = {diffuse.x1, diffuse.y2};
-  }
-  verts[3].in_attrcol = m_color;
+  //verts[3].in_attrpos = {x[3], y[3], z[3]};
+  //if (orientation & 4)
+  //{
+  //  verts[3].in_attrcord0 = {texture.x2, texture.y1};
+  //}
+  //else
+  //{
+  //  verts[3].in_attrcord0 = {texture.x1, texture.y2};
+  //}
+  //if (m_info.orientation & 4)
+  //{
+  //  verts[3].in_attrcord1 = {diffuse.x2, diffuse.y1};
+  //}
+  //else
+  //{
+  //  verts[3].in_attrcord1 = {diffuse.x1, diffuse.y2};
+  //}
+  //verts[3].in_attrcol = m_color;
 
 
 }

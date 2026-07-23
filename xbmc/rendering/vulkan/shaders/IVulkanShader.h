@@ -8,6 +8,8 @@
 
 #pragma once
 
+#include "rendering/vulkan/VulkanData.h"
+
 #include <memory>
 #include <string_view>
 
@@ -24,20 +26,16 @@ class CVulkanDeviceQueue;
 struct ShaderListEntry
 {
   ShaderId id;
-  std::unique_ptr<IVulkanShader> (*create)(CVulkanDeviceQueue* deviceQueue,
-                                           VkDevice device,
-                                           VkPipelineLayout layout,
-                                           VkRenderPass renderPass);
+  std::unique_ptr<IVulkanShader> (*create)(const VulkanData* vkData,
+                                           CVulkanDeviceQueue* deviceQueue);
   std::string_view name;
 };
 
 template<typename Shader>
-std::unique_ptr<IVulkanShader> ObjectFactory(CVulkanDeviceQueue* deviceQueue,
-                                             VkDevice device,
-                                             VkPipelineLayout layout,
-                                             VkRenderPass renderPass)
+std::unique_ptr<IVulkanShader> ObjectFactory(const VulkanData* vkData,
+                                             CVulkanDeviceQueue* deviceQueue)
 {
-  return std::make_unique<Shader>(deviceQueue, device, layout, renderPass);
+  return std::make_unique<Shader>(vkData, deviceQueue);
 }
 
 enum class VulkanShaderType
@@ -53,7 +51,12 @@ enum class VulkanShaderType
 class IVulkanShader
 {
 public:
-  IVulkanShader(CVulkanDeviceQueue* deviceQueue) : m_deviceQueue(deviceQueue) {}
+  IVulkanShader(const VulkanData* vkData, CVulkanDeviceQueue* deviceQueue)
+    : m_vkData(vkData),
+      m_deviceQueue(deviceQueue)
+  {
+  }
+
   virtual ~IVulkanShader() = default;
 
   virtual bool Create(const VkPipelineCache& pipelineCache) = 0;
@@ -62,6 +65,7 @@ public:
   virtual VkPipeline VulkanPipeline() const = 0;
 
 protected:
+  const VulkanData* m_vkData;
   CVulkanDeviceQueue* const m_deviceQueue;
 };
 

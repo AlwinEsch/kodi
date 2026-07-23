@@ -20,6 +20,7 @@ if(TARGET ${APP_NAME_LC}::Vulkan)
 
   set(HEADERS VulkanCommandBuffer.h
               VulkanCommandPool.h
+              VulkanData.h
               VulkanDeviceQueue.h
               VulkanFenceHelper.h
               VulkanFramebuffer.h

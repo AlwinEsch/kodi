@@ -25,29 +25,17 @@ class CVulkanDeviceQueue;
 class CVulkanShaderMultiBlendColor : public IVulkanShader
 {
 public:
-  CVulkanShaderMultiBlendColor(CVulkanDeviceQueue* deviceQueue,
-                               VkDevice device,
-                               VkPipelineLayout pipelineLayout,
-                               VkRenderPass renderPass);
+  CVulkanShaderMultiBlendColor(const VulkanData* vulkanData,
+                               CVulkanDeviceQueue* deviceQueue);
   virtual ~CVulkanShaderMultiBlendColor() = default;
 
   bool Create(const VkPipelineCache& pipelineCache) override;
   void Destroy() override;
 
-  VkPipeline VulkanPipeline() const override;
+  VkPipeline VulkanPipeline() const override { return m_vkPipeline; }
 
 private:
-  /// Properties of the vertices used in this sample.
-  struct Vertex
-  {
-    glm::vec3 position;
-    glm::vec3 color;
-  };
-
-  VkDevice m_vkDevice{VK_NULL_HANDLE};
   VkPipeline m_vkPipeline{VK_NULL_HANDLE};
-  VkPipelineLayout m_vkPipelineLayout{VK_NULL_HANDLE};
-  VkRenderPass m_vkRenderPass{VK_NULL_HANDLE};
 };
 
 } // namespace VULKAN

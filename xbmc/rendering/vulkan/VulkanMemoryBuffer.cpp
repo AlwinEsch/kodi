@@ -40,7 +40,7 @@ VkResult CVulkanMemoryBuffer::CreateBuffer(VkBufferUsageFlags usageFlags,
                                        const void* data /* = nullptr*/)
 {
   // Create the buffer handle
-  auto bufferCreateInfo = vkBufferCreateInfo(usageFlags, size);
+  auto bufferCreateInfo = vkBufferCreateInfo(usageFlags, size, VK_SHARING_MODE_EXCLUSIVE);
   VK_CHECK_RESULT(vkCreateBuffer(m_vkDevice, &bufferCreateInfo, nullptr, &m_vkBuffer), res);
 
   VkMemoryRequirements memReq = {};

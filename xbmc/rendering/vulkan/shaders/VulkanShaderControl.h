@@ -35,7 +35,7 @@ class IVulkanShader;
 class CVulkanShaderControl
 {
 public:
-  CVulkanShaderControl(CVulkanDeviceQueue* deviceQueue);
+  CVulkanShaderControl(const VulkanData* vulkanData, CVulkanDeviceQueue* deviceQueue);
   virtual ~CVulkanShaderControl() = default;
 
   bool CreateAllShaders(VkDevice device, VkPipelineLayout pipelineLayout, VkRenderPass renderPass);
@@ -47,6 +47,7 @@ public:
   ShaderId AddOptionalShader(std::unique_ptr<IVulkanShader> shader);
 
 private:
+  const VulkanData* m_vulkanData;
   CVulkanDeviceQueue* const m_deviceQueue;
 
   std::unordered_map<ShaderId, std::unique_ptr<IVulkanShader>> m_shaders;

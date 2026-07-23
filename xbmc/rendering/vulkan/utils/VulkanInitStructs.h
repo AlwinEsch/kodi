@@ -22,7 +22,18 @@ inline VkMemoryAllocateInfo vkMemoryAllocateInfo()
   return memAllocInfo;
 }
 
-inline VkMappedMemoryRange vkMappedMemoryRange(VkDeviceMemory memory, VkDeviceSize offset,
+inline VkMemoryAllocateInfo vkMemoryAllocateInfo(VkDeviceSize allocationSize,
+                                                 uint32_t memoryTypeIndex)
+{
+  VkMemoryAllocateInfo memAllocInfo{};
+  memAllocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+  memAllocInfo.allocationSize = allocationSize;
+  memAllocInfo.memoryTypeIndex = memoryTypeIndex;
+  return memAllocInfo;
+}
+
+inline VkMappedMemoryRange vkMappedMemoryRange(VkDeviceMemory memory,
+                                               VkDeviceSize offset,
                                                VkDeviceSize size)
 {
   VkMappedMemoryRange mappedMemoryRange{};
@@ -185,12 +196,15 @@ inline VkBufferCreateInfo vkBufferCreateInfo()
   return bufCreateInfo;
 }
 
-inline VkBufferCreateInfo vkBufferCreateInfo(VkBufferUsageFlags usage, VkDeviceSize size)
+inline VkBufferCreateInfo vkBufferCreateInfo(VkBufferUsageFlags usage,
+                                             VkDeviceSize size,
+                                             VkSharingMode sharingMode)
 {
   VkBufferCreateInfo bufCreateInfo{};
   bufCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
   bufCreateInfo.usage = usage;
   bufCreateInfo.size = size;
+  bufCreateInfo.sharingMode = sharingMode;
   return bufCreateInfo;
 }
 

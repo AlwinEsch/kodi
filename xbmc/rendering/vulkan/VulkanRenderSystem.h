@@ -10,6 +10,7 @@
 
 #include "VulkanDeviceQueue.h"
 #include "rendering/RenderSystem.h"
+#include "rendering/vulkan/VulkanData.h"
 #include "rendering/vulkan/VulkanScopedWrite.h"
 #include "rendering/vulkan/VulkanSurface.h"
 #include "rendering/vulkan/VulkanSwapChain.h"
@@ -113,15 +114,15 @@ public:
    * @brief Gets the Vulkan objects used for rendering.
    */
   //@{
-  VkSurfaceKHR vkSurface() const { return m_vkSurface; }
-  VkSurfaceFormatKHR vkSurfaceFormat() const { return m_vkSurfaceFormat; }
+  VkSurfaceKHR vkSurface() const { return m_vkData.vkSurface; }
+  VkSurfaceFormatKHR vkSurfaceFormat() const { return m_vkData.vkSurfaceFormat; }
   VkInstance vkInstance() const { return m_vkInstance; }
-  VkDevice vkDevice() const { return m_vkDevice; }
+  VkDevice vkDevice() const { return m_vkData.vkDevice; }
   VkPhysicalDevice vkPhysicalDevice() const { return m_vkPhysicalDevice; }
   VkPipeline vkPipeline() const { return m_vkPipeline; }
-  VkPipelineLayout vkPipelineLayout() const { return m_vkPipelineLayout; }
+  VkPipelineLayout vkPipelineLayout() const { return m_vkData.vkPipelineLayout; }
   VkSwapchainKHR vkSwapchain() const { return m_vkSwapchain; }
-  VkRenderPass vkRenderPass() const { return m_vkRenderPass; }
+  VkRenderPass vkRenderPass() const { return m_vkData.vkRenderPass; }
   VkFormat vkSwapchainFormat() const { return m_vkSwapchainFormat; }
   VkCommandPool vkCommandPool() const { return m_vkCommandPool; }
   VkQueue vkQueue() const { return m_deviceQueue->vkQueue(); }
@@ -141,6 +142,9 @@ protected:
   /**@}*/
 
 private:
+  bool CreatePipeline();
+  void DestroyPipeline();
+
   /**
    * @brief Creates a Vulkan pipeline layout.
    *
@@ -163,6 +167,7 @@ private:
   std::unique_ptr<CVulkanRenderPass> m_renderPass;
   std::vector<std::unique_ptr<CVulkanFramebuffer>> m_framebuffers;
 
+  VulkanData m_vkData;
   /**
    * @brief Values in group of Vulkan objects that are used for rendering and are initialized in
    * @ref InitRenderSystem() and taken from other Vulkan objects.
@@ -175,15 +180,15 @@ private:
    * taken from other Vulkan objects, so they are destroyed in the destructor of the other Vulkan objects.
    */
   /**@{*/
-  VkSurfaceKHR m_vkSurface{VK_NULL_HANDLE}; // Created & destroyed outside
-  VkSurfaceFormatKHR m_vkSurfaceFormat{}; // Created & destroyed outside
+  //VkSurfaceKHR m_vkSurface{VK_NULL_HANDLE}; // Created & destroyed outside
+  /*VkSurfaceFormatKHR m_vkSurfaceFormat{};*/ // Created & destroyed outside
   VkInstance m_vkInstance{VK_NULL_HANDLE}; // Created & destroyed outside
-  VkDevice m_vkDevice{VK_NULL_HANDLE}; // Created & destroyed outside
+  //VkDevice m_vkDevice{VK_NULL_HANDLE}; // Created & destroyed outside
   VkPhysicalDevice m_vkPhysicalDevice{VK_NULL_HANDLE}; // Created & destroyed outside
   VkPipeline m_vkPipeline{VK_NULL_HANDLE}; // Created & destroyed here
-  VkPipelineLayout m_vkPipelineLayout{VK_NULL_HANDLE}; // Created & destroyed here
+  //VkPipelineLayout m_vkPipelineLayout{VK_NULL_HANDLE}; // Created & destroyed here
   VkSwapchainKHR m_vkSwapchain{VK_NULL_HANDLE}; // Created & destroyed outside
-  VkRenderPass m_vkRenderPass{VK_NULL_HANDLE}; // Created & destroyed here
+  //VkRenderPass m_vkRenderPass{VK_NULL_HANDLE}; // Created & destroyed here
   VkCommandPool m_vkCommandPool{VK_NULL_HANDLE}; // Created & destroyed outside
   VkFormat m_vkSwapchainFormat = VK_FORMAT_UNDEFINED;
   /**@}*/

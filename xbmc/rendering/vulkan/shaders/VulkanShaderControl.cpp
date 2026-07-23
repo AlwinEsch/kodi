@@ -45,8 +45,8 @@ std::array<ShaderListEntry, 10> shaderList = {{
 }};
 // clang-format on
 
-CVulkanShaderControl::CVulkanShaderControl(CVulkanDeviceQueue* deviceQueue)
-  : m_deviceQueue(deviceQueue)
+CVulkanShaderControl::CVulkanShaderControl(const VulkanData* vulkanData, CVulkanDeviceQueue* deviceQueue)
+  : m_vulkanData(vulkanData), m_deviceQueue(deviceQueue)
 {
 }
 
@@ -63,7 +63,7 @@ bool CVulkanShaderControl::CreateAllShaders(VkDevice device,
   for (const auto& entry : shaderList)
   {
     std::unique_ptr<IVulkanShader> shader =
-        entry.create(m_deviceQueue, device, pipelineLayout, renderPass);
+        entry.create(m_vulkanData, m_deviceQueue);
     if (shader == nullptr || !shader->Create(m_pipelineCache))
     {
       CLog::Log(LOGERROR, "Vulkan: Failed to create shader: {}", entry.name);

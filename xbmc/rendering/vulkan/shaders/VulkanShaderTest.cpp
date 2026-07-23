@@ -25,18 +25,10 @@ namespace VULKAN
 
 using KODI::RENDERING::VULKAN::UTILS::ErrorString;
 
-CVulkanShaderTest::CVulkanShaderTest(CVulkanDeviceQueue* deviceQueue,
-                                     VkDevice device,
-                                     VkPipelineLayout pipelineLayout,
-                                     VkRenderPass renderPass)
-  : IVulkanShader(deviceQueue),
-    m_vkDevice(device),
-    m_vkPipelineLayout(pipelineLayout),
-    m_vkRenderPass(renderPass)
+CVulkanShaderTest::CVulkanShaderTest(const VulkanData* vkData,
+                                     CVulkanDeviceQueue* deviceQueue)
+  : IVulkanShader(vkData, deviceQueue)
 {
-  assert(m_vkDevice != VK_NULL_HANDLE);
-  assert(m_vkPipelineLayout != VK_NULL_HANDLE);
-  assert(m_vkRenderPass != VK_NULL_HANDLE);
 
   m_vertexBuffer = std::make_unique<CVulkanMemoryBuffer>(deviceQueue);
 }
@@ -53,7 +45,7 @@ bool CVulkanShaderTest::Create(const VkPipelineCache& pipelineCache)
                                         {{0.5f, 0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}},
                                         {{-0.5f, 0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}}};
 
-  const VkDeviceSize buffer_size = sizeof(vertices[0]) * vertices.size();
+  //const VkDeviceSize buffer_size = sizeof(vertices[0]) * vertices.size();
 
   // The Vertex input properties define the interface between the vertex buffer and the vertex shader.
   m_vertexBuffer->CreateBuffer(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
@@ -196,7 +188,7 @@ bool CVulkanShaderTest::Create(const VkPipelineCache& pipelineCache)
       .flags = 0,
       .stage = VK_SHADER_STAGE_VERTEX_BIT,
       .module =
-          UTILS::vulkanCreateShaderModule(m_vkDevice, "vulkan_shader_gr0_vert_test_triangle.spv"),
+          UTILS::vulkanCreateShaderModule(m_vkData->vkDevice, "vulkan_shader_gr0_vert_test_triangle.spv"),
       .pName = "main",
       .pSpecializationInfo = nullptr,
   };
@@ -208,7 +200,7 @@ bool CVulkanShaderTest::Create(const VkPipelineCache& pipelineCache)
       .flags = 0,
       .stage = VK_SHADER_STAGE_FRAGMENT_BIT,
       .module =
-          UTILS::vulkanCreateShaderModule(m_vkDevice, "vulkan_shader_gr0_frag_test_triangle.spv"),
+          UTILS::vulkanCreateShaderModule(m_vkData->vkDevice, "vulkan_shader_gr0_frag_test_triangle.spv"),
       .pName = "main",
       .pSpecializationInfo = nullptr,
   };
@@ -228,20 +220,20 @@ bool CVulkanShaderTest::Create(const VkPipelineCache& pipelineCache)
       .pDepthStencilState = &depth_stencil,
       .pColorBlendState = &blend,
       .pDynamicState = &dynamic,
-      .layout = m_vkPipelineLayout,
-      .renderPass = m_vkRenderPass,
+      .layout = m_vkData->vkPipelineLayout,
+      .renderPass = m_vkData->vkRenderPass,
       .subpass = 0,
       .basePipelineHandle = VK_NULL_HANDLE,
       .basePipelineIndex = -1,
   };
 
   VK_CHECK_RESULT(
-      vkCreateGraphicsPipelines(m_vkDevice, pipelineCache, 1, &pipe, nullptr, &m_vkPipeline),
+      vkCreateGraphicsPipelines(m_vkData->vkDevice, pipelineCache, 1, &pipe, nullptr, &m_vkPipeline),
       false);
 
   //// Pipeline is baked, we can delete the shader modules now.
-  //vkDestroyShaderModule(m_vkDevice, shader_stages[0].module, nullptr);
-  //vkDestroyShaderModule(m_vkDevice, shader_stages[1].module, nullptr);
+  //vkDestroyShaderModule(m_vkData->vkDevice, shader_stages[0].module, nullptr);
+  //vkDestroyShaderModule(m_vkData->vkDevice, shader_stages[1].module, nullptr);
 
   return true;
 }
@@ -251,16 +243,10 @@ void CVulkanShaderTest::Destroy()
   if (m_vkPipeline != VK_NULL_HANDLE)
   {
     // Destroy the Vulkan pipeline
-    vkDestroyPipeline(m_vkDevice, m_vkPipeline, nullptr);
+    vkDestroyPipeline(m_vkData->vkDevice, m_vkPipeline, nullptr);
     m_vkPipeline = VK_NULL_HANDLE;
   }
 }
-
-VkPipeline CVulkanShaderTest::VulkanPipeline() const
-{
-  return m_vkPipeline;
-}
-
 } // namespace VULKAN
 } // namespace RENDERING
 } // namespace KODI

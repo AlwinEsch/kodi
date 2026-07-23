@@ -40,7 +40,7 @@ int CShaderUtilsVulkan::TranslateWrapType(WrapType wrapType)
 
 std::string CShaderUtilsVulkan::GetGLSLVersion(std::string& source)
 {
-  unsigned int version;
+  //unsigned int version;
   std::string versionString;
 
   //const size_t sourceVersionPosition = source.find("#version ");

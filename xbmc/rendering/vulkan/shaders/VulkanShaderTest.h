@@ -9,8 +9,9 @@
 #pragma once
 #include "rendering/vulkan/shaders/IVulkanShader.h"
 
-#include <glm/glm.hpp>
 #include <memory>
+
+#include <glm/glm.hpp>
 
 namespace KODI
 {
@@ -25,16 +26,13 @@ class CVulkanMemoryBuffer;
 class CVulkanShaderTest : public IVulkanShader
 {
 public:
-  CVulkanShaderTest(CVulkanDeviceQueue* deviceQueue,
-                    VkDevice device,
-                    VkPipelineLayout pipelineLayout,
-                    VkRenderPass renderPass);
+  CVulkanShaderTest(const VulkanData* vkData, CVulkanDeviceQueue* deviceQueue);
   virtual ~CVulkanShaderTest() = default;
 
   bool Create(const VkPipelineCache& pipelineCache) override;
   void Destroy() override;
 
-  VkPipeline VulkanPipeline() const override;
+  VkPipeline VulkanPipeline() const override { return m_vkPipeline; }
   CVulkanMemoryBuffer* VertexBuffer() { return m_vertexBuffer.get(); }
 
 private:
@@ -47,12 +45,7 @@ private:
 
   std::unique_ptr<CVulkanMemoryBuffer> m_vertexBuffer;
 
-  VkDevice m_vkDevice{VK_NULL_HANDLE};
   VkPipeline m_vkPipeline{VK_NULL_HANDLE};
-  VkPipelineLayout m_vkPipelineLayout{VK_NULL_HANDLE};
-  VkRenderPass m_vkRenderPass{VK_NULL_HANDLE};
-
-  //CVulkanMemoryBuffer m_vertexBuffer;
 };
 
 } // namespace VULKAN
