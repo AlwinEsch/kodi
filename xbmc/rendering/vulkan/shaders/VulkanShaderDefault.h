@@ -12,11 +12,7 @@
 
 #include <glm/glm.hpp>
 
-namespace KODI
-{
-namespace RENDERING
-{
-namespace VULKAN
+namespace KODI::RENDERING::VULKAN
 {
 
 class CVulkanDeviceQueue;
@@ -37,6 +33,4 @@ private:
   VkPipeline m_vkPipeline{VK_NULL_HANDLE};
 };
 
-} // namespace VULKAN
-} // namespace RENDERING
-} // namespace KODI
+} // namespace KODI::RENDERING::VULKAN

@@ -13,11 +13,7 @@
 
 #include <cassert>
 
-namespace KODI
-{
-namespace RENDERING
-{
-namespace VULKAN
+namespace KODI::RENDERING::VULKAN
 {
 
 using KODI::RENDERING::VULKAN::UTILS::ErrorString;
@@ -51,6 +47,4 @@ void CVulkanShaderTexture::Destroy()
   }
 }
 
-} // namespace VULKAN
-} // namespace RENDERING
-} // namespace KODI
+} // namespace KODI::RENDERING::VULKAN

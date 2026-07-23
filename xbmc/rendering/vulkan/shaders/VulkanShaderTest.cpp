@@ -15,17 +15,12 @@
 #include <array>
 #include <cassert>
 
-namespace KODI
-{
-namespace RENDERING
-{
-namespace VULKAN
+namespace KODI::RENDERING::VULKAN
 {
 
 using KODI::RENDERING::VULKAN::UTILS::ErrorString;
 
-CVulkanShaderTest::CVulkanShaderTest(const VulkanData* vkData,
-                                     CVulkanDeviceQueue* deviceQueue)
+CVulkanShaderTest::CVulkanShaderTest(const VulkanData* vkData, CVulkanDeviceQueue* deviceQueue)
   : IVulkanShader(vkData, deviceQueue)
 {
 }
@@ -42,14 +37,28 @@ bool CVulkanShaderTest::Create()
                                         {{0.5f, 0.5f, 0.5f}, {0.0f, 1.0f, 0.0f}},
                                         {{-0.5f, 0.5f, 0.5f}, {0.0f, 0.0f, 1.0f}}};
 
-  m_vkPipelineLayout = CreatePipelineLayout();
-  //const VkDeviceSize buffer_size = sizeof(vertices[0]) * vertices.size();
+  // Implementation of Create
+  // Create a blank pipeline layout.
+  // We are not binding any resources to the pipeline in this first sample.
+  VkPipelineLayoutCreateInfo layout_info{
+      .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+      .pNext = VK_NULL_HANDLE,
+      .flags = 0,
+      .setLayoutCount = 0u,
+      .pSetLayouts = nullptr,
+      .pushConstantRangeCount = 0,
+      .pPushConstantRanges = VK_NULL_HANDLE,
+  };
+
+  VK_CHECK_RESULT(
+      vkCreatePipelineLayout(m_vkData->vkDevice, &layout_info, nullptr, &m_vkPipelineLayout),
+      false);
 
   // The Vertex input properties define the interface between the vertex buffer and the vertex shader.
   m_deviceQueue->CreateBuffer(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-                               VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-                                   VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                               &m_vertexBuffer, sizeof(Vertex) * 3, vertices.data());
+                              VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                                  VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                              &m_vertexBuffer, sizeof(Vertex) * 3, vertices.data());
 
   // Specify we will use triangle lists to draw geometry.
   VkPipelineInputAssemblyStateCreateInfo input_assembly{
@@ -185,8 +194,8 @@ bool CVulkanShaderTest::Create()
       .pNext = nullptr,
       .flags = 0,
       .stage = VK_SHADER_STAGE_VERTEX_BIT,
-      .module =
-          UTILS::vulkanCreateShaderModule(m_vkData->vkDevice, "vulkan_shader_gr0_vert_test_triangle.spv"),
+      .module = UTILS::vulkanCreateShaderModule(m_vkData->vkDevice,
+                                                "vulkan_shader_gr0_vert_test_triangle.spv"),
       .pName = "main",
       .pSpecializationInfo = nullptr,
   };
@@ -197,8 +206,8 @@ bool CVulkanShaderTest::Create()
       .pNext = nullptr,
       .flags = 0,
       .stage = VK_SHADER_STAGE_FRAGMENT_BIT,
-      .module =
-          UTILS::vulkanCreateShaderModule(m_vkData->vkDevice, "vulkan_shader_gr0_frag_test_triangle.spv"),
+      .module = UTILS::vulkanCreateShaderModule(m_vkData->vkDevice,
+                                                "vulkan_shader_gr0_frag_test_triangle.spv"),
       .pName = "main",
       .pSpecializationInfo = nullptr,
   };
@@ -225,9 +234,9 @@ bool CVulkanShaderTest::Create()
       .basePipelineIndex = -1,
   };
 
-  VK_CHECK_RESULT(
-      vkCreateGraphicsPipelines(m_vkData->vkDevice, m_vkData->vkPipelineCache, 1, &pipe, nullptr, &m_vkPipeline),
-      false);
+  VK_CHECK_RESULT(vkCreateGraphicsPipelines(m_vkData->vkDevice, m_vkData->vkPipelineCache, 1, &pipe,
+                                            nullptr, &m_vkPipeline),
+                  false);
 
   // Pipeline is baked, we can delete the shader modules now.
   vkDestroyShaderModule(m_vkData->vkDevice, shader_stages[0].module, nullptr);
@@ -251,29 +260,4 @@ void CVulkanShaderTest::Destroy()
   }
 }
 
-VkPipelineLayout CVulkanShaderTest::CreatePipelineLayout(VkDescriptorSetLayout layout)
-{
-  // Implementation of Create
-  // Create a blank pipeline layout.
-  // We are not binding any resources to the pipeline in this first sample.
-  VkPipelineLayoutCreateInfo layout_info{
-      .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-      .pNext = VK_NULL_HANDLE,
-      .flags = 0,
-      .setLayoutCount = layout != VK_NULL_HANDLE ? 1u : 0u,
-      .pSetLayouts = &layout,
-      .pushConstantRangeCount = 0,
-      .pPushConstantRanges = VK_NULL_HANDLE,
-  };
-
-  VkPipelineLayout pipeline_layout;
-  VK_CHECK_RESULT(
-      vkCreatePipelineLayout(m_vkData->vkDevice, &layout_info, nullptr, &pipeline_layout),
-      VK_NULL_HANDLE);
-
-  return pipeline_layout;
-}
-
-} // namespace VULKAN
-} // namespace RENDERING
-} // namespace KODI
+} // namespace KODI::RENDERING::VULKAN
