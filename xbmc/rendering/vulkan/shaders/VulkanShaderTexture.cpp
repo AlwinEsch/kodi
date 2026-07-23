@@ -8,7 +8,6 @@
 
 #include "VulkanShaderTexture.h"
 
-#include "rendering/vulkan/VulkanMemoryBuffer.h"
 #include "rendering/vulkan/utils/VulkanUtils.h"
 #include "utils/log.h"
 

@@ -8,7 +8,6 @@
 
 #pragma once
 
-#include "rendering/vulkan/VulkanMemoryBuffer.h"
 #include "rendering/vulkan/shaders/IVulkanShader.h"
 
 #include <memory>

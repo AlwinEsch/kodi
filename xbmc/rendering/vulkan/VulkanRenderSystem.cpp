@@ -20,7 +20,6 @@
 #include "rendering/vulkan/VulkanFramebuffer.h"
 #include "rendering/vulkan/VulkanInstance.h"
 #include "rendering/vulkan/VulkanMatrix.h"
-#include "rendering/vulkan/VulkanMemoryBuffer.h"
 #include "rendering/vulkan/VulkanRenderPass.h"
 #include "rendering/vulkan/VulkanScopedWrite.h"
 #include "rendering/vulkan/VulkanSwapChain.h"
@@ -318,7 +317,7 @@ bool CVulkanRenderSystem::BeginRender()
 
   //@{
   {
-    VkBuffer vkBuffer = m_testShader->VertexBuffer()->vkBuffer();
+    VkBuffer vkBuffer = m_testShader->VertexBuffer()->buffer;
     // Bind the graphics pipeline.
     vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_testShader->VulkanPipeline());
 

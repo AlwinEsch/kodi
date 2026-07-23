@@ -33,7 +33,7 @@ public:
   void Destroy() override;
 
   VkPipeline VulkanPipeline() const override { return m_vkPipeline; }
-  CVulkanMemoryBuffer* VertexBuffer() { return m_vertexBuffer.get(); }
+  VulkanMemoryData* VertexBuffer() { return &m_vertexBuffer; }
 
 private:
   /**
@@ -59,7 +59,7 @@ private:
     glm::vec3 color;
   };
 
-  std::unique_ptr<CVulkanMemoryBuffer> m_vertexBuffer;
+  VulkanMemoryData m_vertexBuffer{};
 
   VkPipeline m_vkPipeline{VK_NULL_HANDLE};
   VkPipelineLayout m_vkPipelineLayout{VK_NULL_HANDLE};

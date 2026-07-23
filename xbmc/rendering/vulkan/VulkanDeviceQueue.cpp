@@ -12,7 +12,6 @@
 #include "rendering/vulkan/VulkanDeviceQueue.h"
 #include "rendering/vulkan/VulkanFenceHelper.h"
 #include "rendering/vulkan/VulkanInstance.h"
-#include "rendering/vulkan/VulkanMemoryBuffer.h"
 #include "rendering/vulkan/VulkanRenderSystem.h"
 #include "rendering/vulkan/utils/VulkanInitStructs.h"
 #include "rendering/vulkan/utils/VulkanUtils.h"
@@ -477,7 +476,7 @@ void CVulkanDeviceQueue::FlushCommandBuffer(VkCommandBuffer commandBuffer,
 
 VkResult CVulkanDeviceQueue::CreateBuffer(VkBufferUsageFlags usageFlags,
                                           VkMemoryPropertyFlags memoryPropertyFlags,
-                                          CVulkanMemoryData* memoryData,
+                                          VulkanMemoryData* memoryData,
                                           VkDeviceSize size,
                                           const void* data)
 {
@@ -529,7 +528,7 @@ VkResult CVulkanDeviceQueue::CreateBuffer(VkBufferUsageFlags usageFlags,
   return VK_SUCCESS;
 }
 
-void CVulkanDeviceQueue::DestroyBuffer(CVulkanMemoryData* memoryData)
+void CVulkanDeviceQueue::DestroyBuffer(VulkanMemoryData* memoryData)
 {
   if (memoryData->buffer)
   {
@@ -543,15 +542,15 @@ void CVulkanDeviceQueue::DestroyBuffer(CVulkanMemoryData* memoryData)
   }
 }
 
-void CVulkanDeviceQueue::CopyBuffer(CVulkanMemoryData* src,
-                                    CVulkanMemoryData* dst,
+void CVulkanDeviceQueue::CopyBuffer(VulkanMemoryData* src,
+                                    VulkanMemoryData* dst,
                                     VkBufferCopy* copyRegion)
 {
   CopyBuffer(src, dst, m_commandPool->vkCommandPool(), m_vkQueue, copyRegion);
 }
 
-void CVulkanDeviceQueue::CopyBuffer(CVulkanMemoryData* src,
-                                    CVulkanMemoryData* dst,
+void CVulkanDeviceQueue::CopyBuffer(VulkanMemoryData* src,
+                                    VulkanMemoryData* dst,
                                     VkCommandPool commandPool,
                                     VkQueue queue,
                                     VkBufferCopy* copyRegion)
@@ -574,12 +573,12 @@ void CVulkanDeviceQueue::CopyBuffer(CVulkanMemoryData* src,
   FlushCommandBuffer(copyCmd, commandPool, queue, true);
 }
 
-VkResult CVulkanDeviceQueue::Map(CVulkanMemoryData* data, VkDeviceSize size, VkDeviceSize offset)
+VkResult CVulkanDeviceQueue::Map(VulkanMemoryData* data, VkDeviceSize size, VkDeviceSize offset)
 {
   return vkMapMemory(m_vkDevice, data->memory, offset, size, 0, &data->mapped);
 }
 
-void CVulkanDeviceQueue::Unmap(CVulkanMemoryData* data)
+void CVulkanDeviceQueue::Unmap(VulkanMemoryData* data)
 {
   if (data->mapped)
   {

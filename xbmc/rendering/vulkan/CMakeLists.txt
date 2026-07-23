@@ -9,7 +9,6 @@ if(TARGET ${APP_NAME_LC}::Vulkan)
               VulkanImplementation.cpp
               VulkanInstance.cpp
               VulkanMatrix.cpp
-              VulkanMemoryBuffer.cpp
               VulkanRenderPass.cpp
               VulkanRenderSystem.cpp
               VulkanScopedWrite.cpp
@@ -30,7 +29,6 @@ if(TARGET ${APP_NAME_LC}::Vulkan)
               VulkanInfo.h
               VulkanInstance.h
               VulkanMatrix.h
-              VulkanMemoryBuffer.h
               VulkanRenderPass.h
               VulkanRenderSystem.h
               VulkanScopedWrite.h

@@ -9,7 +9,6 @@
 #include "VulkanShaderTest.h"
 
 #include "rendering/vulkan/VulkanDeviceQueue.h"
-#include "rendering/vulkan/VulkanMemoryBuffer.h"
 #include "rendering/vulkan/utils/VulkanUtils.h"
 #include "utils/log.h"
 
@@ -29,8 +28,6 @@ CVulkanShaderTest::CVulkanShaderTest(const VulkanData* vkData,
                                      CVulkanDeviceQueue* deviceQueue)
   : IVulkanShader(vkData, deviceQueue)
 {
-
-  m_vertexBuffer = std::make_unique<CVulkanMemoryBuffer>(deviceQueue);
 }
 
 bool CVulkanShaderTest::Create()
@@ -49,10 +46,10 @@ bool CVulkanShaderTest::Create()
   //const VkDeviceSize buffer_size = sizeof(vertices[0]) * vertices.size();
 
   // The Vertex input properties define the interface between the vertex buffer and the vertex shader.
-  m_vertexBuffer->CreateBuffer(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+  m_deviceQueue->CreateBuffer(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
                                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
                                    VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                               sizeof(Vertex) * 3, vertices.data());
+                               &m_vertexBuffer, sizeof(Vertex) * 3, vertices.data());
 
   // Specify we will use triangle lists to draw geometry.
   VkPipelineInputAssemblyStateCreateInfo input_assembly{

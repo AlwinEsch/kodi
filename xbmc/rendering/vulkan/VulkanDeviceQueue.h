@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include "rendering/vulkan/VulkanData.h"
 #include <memory>
 #include <vector>
 
@@ -28,21 +29,6 @@ enum DeviceQueueOption : uint32_t
   PRESENTATION_SUPPORT_QUEUE_FLAG = 0x02,
 };
 using DeviceQueueOptions = uint32_t;
-
-/**
- * @brief Structure to hold Vulkan memory data.
- *
- * Becomes useful when allocating memory for Vulkan resources,
- * as it encapsulates the memory handle, size, and offset.
- */
-struct CVulkanMemoryData
-{
-  VkBuffer buffer{VK_NULL_HANDLE};
-  VkDeviceMemory memory{VK_NULL_HANDLE};
-  VkDeviceSize size{0};
-  VkDeviceSize offset{0};
-  void* mapped{nullptr};
-};
 
 class CVulkanDeviceQueue
 {
@@ -130,7 +116,7 @@ public:
    *
    * @param[in] usageFlags The usage flags for the buffer.
    * @param[in] memoryPropertyFlags The memory property flags for the buffer.
-   * @param[out] memoryData The Vulkan memory data structure, see @ref CVulkanMemoryData.
+   * @param[out] memoryData The Vulkan memory data structure, see @ref VulkanMemoryData.
    * @param[in] size The size of the buffer.
    * @param[in] data Optional pointer to the data to initialize the buffer with.
    *                 Leaves the buffer uninitialized if nullptr.
@@ -138,49 +124,49 @@ public:
    */
   VkResult CreateBuffer(VkBufferUsageFlags usageFlags,
                         VkMemoryPropertyFlags memoryPropertyFlags,
-                        CVulkanMemoryData* memoryData,
+                        VulkanMemoryData* memoryData,
                         VkDeviceSize size,
                         const void* data = nullptr);
 
   /**
    * @brief Destroys a Vulkan buffer and frees its associated memory.
    *
-   * @param[in,out] memoryData The Vulkan memory data structure, see @ref CVulkanMemoryData.
+   * @param[in,out] memoryData The Vulkan memory data structure, see @ref VulkanMemoryData.
    */
-  void DestroyBuffer(CVulkanMemoryData* memoryData);
+  void DestroyBuffer(VulkanMemoryData* memoryData);
 
   /**
    * @brief Copies data from one Vulkan buffer to another.
    *
-   * @param[in] src The source Vulkan memory data structure, see @ref CVulkanMemoryData.
-   * @param[in] dst The destination Vulkan memory data structure, see @ref CVulkanMemoryData.
+   * @param[in] src The source Vulkan memory data structure, see @ref VulkanMemoryData.
+   * @param[in] dst The destination Vulkan memory data structure, see @ref VulkanMemoryData.
    * @param[in] copyRegion Optional pointer to a VkBufferCopy structure defining the region to copy.
    *                       If nullptr, the entire buffer will be copied.
    */
-  void CopyBuffer(CVulkanMemoryData* src,
-                  CVulkanMemoryData* dst,
+  void CopyBuffer(VulkanMemoryData* src,
+                  VulkanMemoryData* dst,
                   VkBufferCopy* copyRegion = nullptr);
 
   /**
    * @brief Copies data from one Vulkan buffer to another using a specific command pool and queue.
    *
-   * @param[in] src The source Vulkan memory data structure, see @ref CVulkanMemoryData.
-   * @param[in] dst The destination Vulkan memory data structure, see @ref CVulkanMemoryData.
+   * @param[in] src The source Vulkan memory data structure, see @ref VulkanMemoryData.
+   * @param[in] dst The destination Vulkan memory data structure, see @ref VulkanMemoryData.
    * @param[in] commandPool The Vulkan command pool to use for the copy operation.
    * @param[in] queue The Vulkan queue to submit the copy command buffer to.
    * @param[in] copyRegion Optional pointer to a VkBufferCopy structure defining the region to copy.
    *                       If nullptr, the entire buffer will be copied.
    */
-  void CopyBuffer(CVulkanMemoryData* src,
-                  CVulkanMemoryData* dst,
+  void CopyBuffer(VulkanMemoryData* src,
+                  VulkanMemoryData* dst,
                   VkCommandPool commandPool,
                   VkQueue queue,
                   VkBufferCopy* copyRegion = nullptr);
 
-  VkResult Map(CVulkanMemoryData* data, VkDeviceSize size = VK_WHOLE_SIZE, VkDeviceSize offset = 0);
-  void Unmap(CVulkanMemoryData* data);
+  VkResult Map(VulkanMemoryData* data, VkDeviceSize size = VK_WHOLE_SIZE, VkDeviceSize offset = 0);
+  void Unmap(VulkanMemoryData* data);
 
- private:
+private:
   CVulkanDeviceQueue(const CVulkanDeviceQueue&) = delete;
   CVulkanDeviceQueue& operator=(const CVulkanDeviceQueue&) = delete;
 
