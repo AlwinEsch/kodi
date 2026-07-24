@@ -11,6 +11,7 @@
 #include "ServiceBroker.h"
 #include "guilib/Texture.h"
 #include "guilib/TextureFormats.h"
+#include "rendering/vulkan/VulkanMatrix.h"
 #include "rendering/vulkan/VulkanRenderSystem.h"
 #include "rendering/vulkan/shaders/VulkanShaderControl.h"
 #include "rendering/vulkan/shaders/VulkanShaderTexture.h"
@@ -44,6 +45,13 @@ CVulkanGUITexture::CVulkanGUITexture(
 {
   using KODI::RENDERING::VULKAN::CVulkanRenderSystem;
   m_renderSystem = dynamic_cast<CVulkanRenderSystem*>(CServiceBroker::GetRenderSystem());
+  m_testShaderTexture = dynamic_cast<CVulkanShaderTexture*>(
+      m_renderSystem->ShaderControl()->GetShader(VULKAN_SM_TEXTURE));
+  m_camera = new Camera;
+  m_camera->type = Camera::CameraType::lookat;
+  m_camera->setPosition(glm::vec3(0.0f, 0.0f, -2.5f));
+  m_camera->setRotation(glm::vec3(0.0f));
+  m_camera->setPerspective(60.0f, (float)1920 / (float)1080, 1.0f, 256.0f);
 }
 
 CVulkanGUITexture* CVulkanGUITexture::Clone() const
@@ -128,107 +136,70 @@ void CVulkanGUITexture::Begin(KODI::UTILS::COLOR::Color color)
 
 void CVulkanGUITexture::End()
 {
-  //if (!m_packedVertices.empty())
-  //{
-  //  GLint posLoc = m_renderSystem->GUIShaderGetPos();
-  //  GLint tex0Loc = m_renderSystem->GUIShaderGetCoord0();
-  //  GLint tex1Loc = m_renderSystem->GUIShaderGetCoord1();
-  //  GLint uniColLoc = m_renderSystem->GUIShaderGetUniCol();
-  //  GLint depthLoc = m_renderSystem->GUIShaderGetDepth();
-
-  //  if (uniColLoc >= 0)
-  //  {
-  //    glUniform4f(uniColLoc, (m_col[0] / 255.0f), (m_col[1] / 255.0f), (m_col[2] / 255.0f),
-  //                (m_col[3] / 255.0f));
-  //  }
-
-  //  glUniform1f(depthLoc, m_depth);
-
-  //  if (m_diffuse.size())
-  //  {
-  //    if (m_texture.m_textures[m_currentFrame]->GetSwizzle() == KD_TEX_SWIZ_111R)
-  //      std::swap(tex0Loc, tex1Loc);
-  //    glVertexAttribPointer(tex1Loc, 2, GL_FLOAT, 0, sizeof(PackedVertex),
-  //                          (char*)m_packedVertices.data() + offsetof(PackedVertex, u2));
-  //    glEnableVertexAttribArray(tex1Loc);
-  //  }
-  //  glVertexAttribPointer(posLoc, 3, GL_FLOAT, 0, sizeof(PackedVertex),
-  //                        (char*)m_packedVertices.data() + offsetof(PackedVertex, x));
-  //  glEnableVertexAttribArray(posLoc);
-  //  glVertexAttribPointer(tex0Loc, 2, GL_FLOAT, 0, sizeof(PackedVertex),
-  //                        (char*)m_packedVertices.data() + offsetof(PackedVertex, u1));
-  //  glEnableVertexAttribArray(tex0Loc);
-
-  //  glDrawElements(GL_TRIANGLES, m_packedVertices.size() * 6 / 4, GL_UNSIGNED_SHORT, m_idx.data());
-  //  CRenderSystemBase::m_GUIElementCount++;
-
-  //  if (m_diffuse.size())
-  //    glDisableVertexAttribArray(tex1Loc);
-
-  //  glDisableVertexAttribArray(posLoc);
-  //  glDisableVertexAttribArray(tex0Loc);
-  //}
-
-  //if (m_diffuse.size())
-  //  glActiveTexture(GL_TEXTURE0);
-  //glEnable(GL_BLEND);
-
-  //m_renderSystem->DisableGUIShader();
 }
 
 void CVulkanGUITexture::Draw(
     float* x, float* y, float* z, const CRect& texture, const CRect& diffuse, int orientation)
 {
-  //CVulkanShaderTexture::Vertex verts[4];
-  //verts[0].in_attrpos = {x[0], y[0], z[0]};
-  //verts[0].in_attrcord0 = {texture.x1, texture.y1};
-  //verts[0].in_attrcord1 = {diffuse.x1, diffuse.y1};
-  //verts[0].in_attrcol = m_color;
+  Vertex verts[4];
+  verts[0].in_attrpos = {x[0], y[0], z[0]};
+  verts[0].in_attrcord0 = {texture.x1, texture.y1};
+  verts[0].in_attrcord1 = {diffuse.x1, diffuse.y1};
+  verts[0].in_attrcol = m_color;
 
-  //verts[1].in_attrpos = {x[1], y[1], z[1]};
-  //if (orientation & 4)
-  //{
-  //  verts[1].in_attrcord0 = {texture.x1, texture.y2};
-  //}
-  //else
-  //{
-  //  verts[1].in_attrcord0 = {texture.x2, texture.y1};
-  //}
-  //if (m_info.orientation & 4)
-  //{
-  //  verts[1].in_attrcord1 = {diffuse.x1, diffuse.y2};
-  //}
-  //else
-  //{
-  //  verts[1].in_attrcord1 = {diffuse.x2, diffuse.y1};
-  //}
-  //verts[1].in_attrcol = m_color;
+  verts[1].in_attrpos = {x[1], y[1], z[1]};
+  if (orientation & 4)
+  {
+    verts[1].in_attrcord0 = {texture.x1, texture.y2};
+  }
+  else
+  {
+    verts[1].in_attrcord0 = {texture.x2, texture.y1};
+  }
+  if (m_info.orientation & 4)
+  {
+    verts[1].in_attrcord1 = {diffuse.x1, diffuse.y2};
+  }
+  else
+  {
+    verts[1].in_attrcord1 = {diffuse.x2, diffuse.y1};
+  }
+  verts[1].in_attrcol = m_color;
 
-  //verts[2].in_attrpos = {x[2], y[2], z[2]};
-  //verts[2].in_attrcord0 = {texture.x2, texture.y2};
-  //verts[2].in_attrcord1 = {diffuse.x2, diffuse.y2};
-  //verts[2].in_attrcol = m_color;
+  verts[2].in_attrpos = {x[2], y[2], z[2]};
+  verts[2].in_attrcord0 = {texture.x2, texture.y2};
+  verts[2].in_attrcord1 = {diffuse.x2, diffuse.y2};
+  verts[2].in_attrcol = m_color;
 
-  //verts[3].in_attrpos = {x[3], y[3], z[3]};
-  //if (orientation & 4)
-  //{
-  //  verts[3].in_attrcord0 = {texture.x2, texture.y1};
-  //}
-  //else
-  //{
-  //  verts[3].in_attrcord0 = {texture.x1, texture.y2};
-  //}
-  //if (m_info.orientation & 4)
-  //{
-  //  verts[3].in_attrcord1 = {diffuse.x2, diffuse.y1};
-  //}
-  //else
-  //{
-  //  verts[3].in_attrcord1 = {diffuse.x1, diffuse.y2};
-  //}
-  //verts[3].in_attrcol = m_color;
+  verts[3].in_attrpos = {x[3], y[3], z[3]};
+  if (orientation & 4)
+  {
+    verts[3].in_attrcord0 = {texture.x2, texture.y1};
+  }
+  else
+  {
+    verts[3].in_attrcord0 = {texture.x1, texture.y2};
+  }
+  if (m_info.orientation & 4)
+  {
+    verts[3].in_attrcord1 = {diffuse.x2, diffuse.y1};
+  }
+  else
+  {
+    verts[3].in_attrcord1 = {diffuse.x1, diffuse.y2};
+  }
+  verts[3].in_attrcol = m_color;
 
+  // Map and copy
 
+  //    VK_CHECK_RESULT(vkMapMemory(m_renderSystem->vkDevice(), stagingBuffers.vertices.memory, 0,
+  //                            memAlloc.allocationSize, 0, &data));
+  //memcpy(data, m_vertexBuffer.data(), vertexBufferSize);
+  //vkUnmapMemory(m_renderSystem->vkDevice(), stagingBuffers.vertices.memory);
+  //VK_CHECK_RESULT(vkBindBufferMemory(m_renderSystem->vkDevice(), stagingBuffers.vertices.buffer,
+  //                                   stagingBuffers.vertices.memory, 0));
+
+  RenderTriangle(x[0], y[0], x[2] - x[0], y[2] - y[0]);
 }
 
 void CVulkanGUITexture::DrawQuad(const CRect& rect,
@@ -248,12 +219,12 @@ void CVulkanGUITexture::DrawQuad(const CRect& rect,
 
   if (blending)
   {
-  //  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-  //  glEnable(GL_BLEND);
+    //  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    //  glEnable(GL_BLEND);
   }
   else
   {
-  //  glDisable(GL_BLEND);
+    //  glDisable(GL_BLEND);
   }
 
   //VerifyVulkanState();
@@ -314,6 +285,66 @@ void CVulkanGUITexture::DrawQuad(const CRect& rect,
   //  glDisableVertexAttribArray(tex0Loc);
 
   renderSystem->DisableShader();
+}
+
+void CVulkanGUITexture::RenderTriangle(float x, float y, float width, float height)
+{
+  VkCommandBuffer commandBuffer = m_renderSystem->vkCurrentCommandBuffer();
+  VkPipeline pipeline = m_testShaderTexture->VulkanPipeline();
+  VkPipelineLayout pipelineLayout = m_testShaderTexture->VulkanPipelineLayout();
+
+  // Update the uniform m_buffer for the next frame
+  ShaderData shaderData{};
+  const float* projMatrix = vulkanMatrixProject.Get();
+  const float* modelMatrix = vulkanMatrixModview.Get();
+
+  shaderData.projectionMatrix =
+      glm::mat4(glm::vec4(projMatrix[0], projMatrix[1], projMatrix[2], projMatrix[3]),
+                glm::vec4(projMatrix[4], projMatrix[5], projMatrix[6], projMatrix[7]),
+                glm::vec4(projMatrix[8], projMatrix[9], projMatrix[10], projMatrix[11]),
+                glm::vec4(projMatrix[12], projMatrix[13], projMatrix[14], projMatrix[15]));
+  shaderData.modelMatrix =
+      glm::mat4(glm::vec4(modelMatrix[0], modelMatrix[1], modelMatrix[2], modelMatrix[3]),
+                glm::vec4(modelMatrix[4], modelMatrix[5], modelMatrix[6], modelMatrix[7]),
+                glm::vec4(modelMatrix[8], modelMatrix[9], modelMatrix[10], modelMatrix[11]),
+                glm::vec4(modelMatrix[12], modelMatrix[13], modelMatrix[14], modelMatrix[15]));
+  shaderData.projectionMatrix = m_camera->matrices.perspective;
+  shaderData.viewMatrix = m_camera->matrices.view;
+  shaderData.modelMatrix = glm::mat4(1.0f);
+
+  //shaderData.projectionMatrix = m_renderSystem->m_camera.matrices.perspective;
+  //shaderData.viewMatrix = m_renderSystem->m_camera.matrices.view;
+  //shaderData.modelMatrix = glm::mat4(1.0f);
+
+  uint32_t indexBuffer = m_renderSystem->vkIndexBuffer();
+
+  m_testShaderTexture->UpdateUniformBuffer(indexBuffer, shaderData);
+
+  VkViewport viewport{
+      .x = x, .y = y, .width = width, .height = height, .minDepth = 0.0f, .maxDepth = 1.0f};
+  vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
+  // Update dynamic scissor state
+  VkRect2D scissor{
+      .offset = {.x = static_cast<int32_t>(x), .y = static_cast<int32_t>(y)},
+      .extent = {.width = static_cast<uint32_t>(width), .height = static_cast<uint32_t>(height)},
+  };
+  vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
+  // Bind m_descriptor set for the current frame's uniform m_buffer, so the shader uses the data from that m_buffer for this draw
+  vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1,
+                          &m_testShaderTexture->GetUniformBuffer(indexBuffer)->descriptorSet, 0,
+                          nullptr);
+  // Bind the rendering m_pipeline
+  // The m_pipeline (state object) contains all states of the rendering m_pipeline, binding it will set all the states specified at m_pipeline creation time
+  vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+  // Bind triangle vertex m_buffer (contains position and colors)
+  VkDeviceSize offsets[1]{0};
+  vkCmdBindVertexBuffers(commandBuffer, 0, 1, &m_testShaderTexture->GetVertexBuffer()->buffer,
+                         offsets);
+  // Bind triangle index m_buffer
+  vkCmdBindIndexBuffer(commandBuffer, m_testShaderTexture->GetIndexBuffer()->buffer, 0,
+                       VK_INDEX_TYPE_UINT32);
+  // Draw indexed triangle
+  vkCmdDrawIndexed(commandBuffer, m_testShaderTexture->GetIndexBuffer()->count, 1, 0, 0, 0);
 }
 
 } // namespace KODI::GUILIB::GRAPHICS::VULKAN

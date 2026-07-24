@@ -229,7 +229,7 @@ bool CVulkanMatrix::Project(float objx,
                             float objz,
                             const float modelMatrix[16],
                             const float projMatrix[16],
-                            const int viewport[4],
+                            const glm::ivec4 viewport,
                             float* winx,
                             float* winy,
                             float* winz)
@@ -254,8 +254,8 @@ bool CVulkanMatrix::Project(float objx,
   in[2] = in[2] * 0.5f + 0.5f;
 
   /* Map x,y to viewport */
-  in[0] = in[0] * viewport[2] + viewport[0];
-  in[1] = in[1] * viewport[3] + viewport[1];
+  in[0] = in[0] * viewport.z + viewport.x;
+  in[1] = in[1] * viewport.w + viewport.y;
 
   *winx=in[0];
   *winy=in[1];

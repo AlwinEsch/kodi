@@ -17,16 +17,13 @@
 
 #include <glm/glm.hpp>
 
-namespace KODI
-{
-namespace RENDERING
-{
-namespace VULKAN
+namespace KODI::RENDERING::VULKAN
 {
 class CVulkanRenderSystem;
-} // namespace VULKAN
-} // namespace RENDERING
-} // namespace KODI
+class CVulkanShaderTexture;
+class Camera;
+} // KODI::RENDERING::VULKAN
+
 
 namespace KODI::GUILIB::GRAPHICS::VULKAN
 {
@@ -63,6 +60,8 @@ protected:
 private:
   CVulkanGUITexture(const CVulkanGUITexture& texture) = default;
 
+  void RenderTriangle(float x, float y, float width, float height);
+
   glm::vec4 m_color{1.0f, 1.0f, 1.0f, 1.0f};
 
   struct PackedVertex
@@ -75,6 +74,9 @@ private:
   std::vector<PackedVertex> m_packedVertices;
   std::vector<uint16_t> m_idx;
   KODI::RENDERING::VULKAN::CVulkanRenderSystem* m_renderSystem;
+
+  KODI::RENDERING::VULKAN::Camera* m_camera;
+  KODI::RENDERING::VULKAN::CVulkanShaderTexture* m_testShaderTexture;
 };
 
 } // namespace KODI::GUILIB::GRAPHICS::VULKAN

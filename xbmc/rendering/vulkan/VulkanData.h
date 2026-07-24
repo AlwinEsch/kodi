@@ -33,8 +33,10 @@ struct VulkanData
   VkSurfaceKHR vkSurface{VK_NULL_HANDLE};
   VkSurfaceFormatKHR vkSurfaceFormat{};
   VkDevice vkDevice{VK_NULL_HANDLE};
+  VkCommandPool vkCommandPool{VK_NULL_HANDLE};
   VkPipelineCache vkPipelineCache{VK_NULL_HANDLE};
   VkRenderPass vkRenderPass{VK_NULL_HANDLE};
+  VkQueue vkQueue{VK_NULL_HANDLE};
   //VkDescriptorPool vkDescriptorPool{VK_NULL_HANDLE};
 };
 

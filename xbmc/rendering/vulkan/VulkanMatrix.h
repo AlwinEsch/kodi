@@ -9,8 +9,26 @@
 #pragma once
 
 #include <stack>
+#include <glm/glm.hpp>
 
 #include "system_vulkan.h"
+
+//union
+//{
+//  T x, r, s;
+//};
+//union
+//{
+//  T y, g, t;
+//};
+//union
+//{
+//  T z, b, p;
+//};
+//union
+//{
+//  T w, a, q;
+//};
 
 class TransformMatrix;
 
@@ -39,7 +57,15 @@ public:
   void MultMatrixf(const CVulkanMatrix &matrix) noexcept;
   void LookAt(float eyex, float eyey, float eyez, float centerx, float centery, float centerz, float upx, float upy, float upz);
 
-  static bool Project(float objx, float objy, float objz, const float modelMatrix[16], const float projMatrix[16], const int viewport[4], float* winx, float* winy, float* winz);
+  static bool Project(float objx,
+                      float objy,
+                      float objz,
+                      const float modelMatrix[16],
+                      const float projMatrix[16],
+                      const glm::ivec4,
+                      float* winx,
+                      float* winy,
+                      float* winz);
 
 private:
   /* alignas(16) allows better SIMD optimizations (e.g. SSE2 benefits
