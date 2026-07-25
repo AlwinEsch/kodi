@@ -22,6 +22,7 @@
 #include "windowing/WinSystem.h"
 
 #include <cstddef>
+
 #include <glm/gtc/type_ptr.hpp>
 
 using namespace KODI::RENDERING::VULKAN;
@@ -201,16 +202,83 @@ void CVulkanGUITexture::Draw(
   VkPipelineLayout pipelineLayout = m_testShaderTexture->VulkanPipelineLayout();
 
   // Update the uniform m_buffer for the next frame
+  const float* projMatrix = vulkanMatrixProject.Get();
+  const float* modelMatrix = vulkanMatrixModview.Get();
+
+  //fprintf(stderr,
+  //        "_matrix_kodi_____________________________________________________________________________\n");
+  //glm::vec4 test = glm::make_mat4(modelMatrix) * glm::make_mat4(projMatrix) *
+  //                 glm::vec4(verts[0].in_attrpos.x, verts[0].in_attrpos.y, verts[0].in_attrpos.z, 1.0f);
+  //fprintf(stderr, "test: %f %f %f %f\n", double(test.x), double(test.y), double(test.z),
+  //        double(test.w));
+  //test = glm::make_mat4(modelMatrix) * glm::make_mat4(projMatrix) *
+  //       glm::vec4(verts[1].in_attrpos.x, verts[1].in_attrpos.y, verts[1].in_attrpos.z, 1.0f);
+  //fprintf(stderr, "test: %f %f %f %f\n", double(test.x), double(test.y), double(test.z),
+  //        double(test.w));
+  //test = glm::make_mat4(modelMatrix) * glm::make_mat4(projMatrix) *
+  //       glm::vec4(verts[2].in_attrpos.x, verts[2].in_attrpos.y, verts[2].in_attrpos.z, 1.0f);
+  //fprintf(stderr, "test: %f %f %f %f\n", double(test.x), double(test.y), double(test.z),
+  //        double(test.w));
+  //test = glm::make_mat4(modelMatrix) * glm::make_mat4(projMatrix) *
+  //       glm::vec4(verts[3].in_attrpos.x, verts[3].in_attrpos.y, verts[3].in_attrpos.z, 1.0f);
+  //fprintf(stderr, "test: %f %f %f %f\n", double(test.x), double(test.y), double(test.z),
+  //        double(test.w));
+
+  //ShaderData shaderData{};
+  //shaderData.projectionMatrix = m_camera->matrices.perspective;
+  //shaderData.modelMatrix = m_camera->matrices.view;
+
+  //fprintf(
+  //    stderr, "_matrix_example____________________________________________________________________"
+  //                "_________\n");
+  //test =
+  //    shaderData.modelMatrix * shaderData.projectionMatrix * glm::vec4(verts[0].in_attrpos, 1.0f);
+  //fprintf(stderr, "test: %f %f %f %f\n", double(test.x), double(test.y), double(test.z),
+  //        double(test.w));
+  //test = shaderData.modelMatrix * shaderData.projectionMatrix *
+  //       glm::vec4(verts[1].in_attrpos, 1.0f);
+  //fprintf(stderr, "test: %f %f %f %f\n", double(test.x), double(test.y), double(test.z),
+  //        double(test.w));
+  //test = shaderData.modelMatrix * shaderData.projectionMatrix *
+  //       glm::vec4(verts[2].in_attrpos, 1.0f);
+  //fprintf(stderr, "test: %f %f %f %f\n", double(test.x), double(test.y), double(test.z),
+  //        double(test.w));
+  //test = shaderData.modelMatrix * shaderData.projectionMatrix *
+  //       glm::vec4(verts[3].in_attrpos, 1.0f);
+  //fprintf(stderr, "test: %f %f %f %f\n", double(test.x), double(test.y), double(test.z),
+  //        double(test.w));
+
+  //fprintf(stderr,
+  //        "_matrix_new____________________________________________________________________"
+  //        "_________\n");
+  //test =
+  //    shaderData.modelMatrix * shaderData.projectionMatrix * glm::vec4(verts[0].in_attrpos, 1.0f);
+  //fprintf(stderr, "test: %f %f %f %f\n", double(test.x), double(test.y), double(test.z),
+  //        double(test.w));
+  //test =
+  //    shaderData.modelMatrix * shaderData.projectionMatrix * glm::vec4(verts[1].in_attrpos, 1.0f);
+  //fprintf(stderr, "test: %f %f %f %f\n", double(test.x), double(test.y), double(test.z),
+  //        double(test.w));
+  //test =
+  //    shaderData.modelMatrix * shaderData.projectionMatrix * glm::vec4(verts[2].in_attrpos, 1.0f);
+  //fprintf(stderr, "test: %f %f %f %f\n", double(test.x), double(test.y), double(test.z),
+  //        double(test.w));
+  //test =
+  //    shaderData.modelMatrix * shaderData.projectionMatrix * glm::vec4(verts[3].in_attrpos, 1.0f);
+  //fprintf(stderr, "test: %f %f %f %f\n", double(test.x), double(test.y), double(test.z),
+  //        double(test.w));
+
+
+  //ShaderData shaderData{};
+  //shaderData.projectionMatrix = m_camera->matrices.perspective;
+  //shaderData.modelMatrix = m_camera->matrices.view;
+  //shaderData.projectionMatrix = glm::make_mat4(projMatrix);
+  //shaderData.modelMatrix = glm::make_mat4(modelMatrix);
+
   ShaderData shaderData{};
-  //const float* projMatrix = vulkanMatrixProject.Get();
-  //const float* modelMatrix = vulkanMatrixModview.Get();
-
-  //memcpy(glm::value_ptr(shaderData.projectionMatrix), projMatrix, 16 * sizeof(float));
-  //memcpy(glm::value_ptr(shaderData.modelMatrix), modelMatrix, 16 * sizeof(float));
-
-  shaderData.projectionMatrix = m_camera->matrices.perspective;
-  shaderData.viewMatrix = m_camera->matrices.view;
-  shaderData.modelMatrix = glm::mat4(1.0f);
+  shaderData.projectionMatrix = m_renderSystem->m_projectionMatrix;
+  shaderData.modelMatrix = m_renderSystem->m_modelMatrix;
+  shaderData.viewMatrix = m_renderSystem->m_viewMatrix;
 
   m_testShaderTexture->UpdateUniformBuffer(indexBuffer, shaderData);
 
@@ -220,13 +288,14 @@ void CVulkanGUITexture::Draw(
                       .height = y[2] - y[0],
                       .minDepth = 0.0f,
                       .maxDepth = 1.0f};
-    vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
-    // Update dynamic scissor state
-    VkRect2D scissor{
-        .offset = {.x = static_cast<int32_t>(x[0]), .y = static_cast<int32_t>(y[0])},
-        .extent = {.width = static_cast<uint32_t>(x[2] - x[0]), .height = static_cast<uint32_t>(y[2] - y[0])},
-    };
-    vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
+  vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
+  // Update dynamic scissor state
+  VkRect2D scissor{
+      .offset = {.x = static_cast<int32_t>(x[0]), .y = static_cast<int32_t>(y[0])},
+      .extent = {.width = static_cast<uint32_t>(x[2] - x[0]),
+                 .height = static_cast<uint32_t>(y[2] - y[0])},
+  };
+  vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
   // Bind m_descriptor set for the current frame's uniform m_buffer, so the shader uses the data from that m_buffer for this draw
   vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1,
@@ -243,7 +312,7 @@ void CVulkanGUITexture::Draw(
   vkCmdBindIndexBuffer(commandBuffer, m_testShaderTexture->GetIndexBuffer()->buffer, 0,
                        VK_INDEX_TYPE_UINT32);
   // Draw indexed triangle
-  vkCmdDrawIndexed(commandBuffer, m_testShaderTexture->GetIndexBuffer()->count, 1, 0, 0, 0);
+  vkCmdDrawIndexed(commandBuffer, m_testShaderTexture->GetIndexBuffer()->size, 1, 0, 0, 0);
 }
 
 void CVulkanGUITexture::DrawQuad(const CRect& rect,

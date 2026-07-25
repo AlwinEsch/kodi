@@ -1,5 +1,6 @@
 if(TARGET ${APP_NAME_LC}::Vulkan)
-  set(SOURCES VulkanShaderControl.cpp
+  set(SOURCES IVulkanShader.cpp
+              VulkanShaderControl.cpp
               VulkanShaderDefault.cpp
               VulkanShaderFonts.cpp
               VulkanShaderFontsShaderClip.cpp

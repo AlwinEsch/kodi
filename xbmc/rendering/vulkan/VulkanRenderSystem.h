@@ -380,6 +380,10 @@ public:
 
   //void RenderTriangle(float x, float y);
 
+  glm::mat4 m_modelMatrix = glm::mat4(1.0f);
+  glm::mat4 m_viewMatrix = glm::mat4(1.0f);
+  glm::mat4 m_projectionMatrix = glm::mat4(1.0f);
+
 protected:
   /**
    * @brief Gets the width and height of the render system.
@@ -402,7 +406,7 @@ private:
   std::unique_ptr<CVulkanRenderPass> m_renderPass;
   std::vector<std::unique_ptr<CVulkanFramebuffer>> m_framebuffers;
 
-  glm::ivec4 m_viewPort{0, 0, 0, 0};
+  //glm::ivec4 m_viewPort{0, 0, 0, 0};
   VkViewport m_vkViewport{};
   VkRect2D m_vkScissor{};
 

@@ -21,10 +21,45 @@ namespace KODI::RENDERING::VULKAN
  */
 struct VulkanMemoryData
 {
+  /**
+   * @brief The Vulkan buffer handle.
+   *
+   * This is the actual buffer object that can be used for rendering or compute operations.
+   */
   VkBuffer buffer{VK_NULL_HANDLE};
+
+  /**
+   * @brief The Vulkan device memory handle.
+   */
   VkDeviceMemory memory{VK_NULL_HANDLE};
+
+  /**
+   * @brief The descriptor set stores the resources bound to the binding points in a shader.
+   *
+   * It connects the binding points of the different shaders with the buffers and images
+   * used for those bindings.
+   */
+  VkDescriptorSet descriptorSet{VK_NULL_HANDLE};
+
+  /**
+   * @brief The size of the allocated memory.
+   *
+   * This is useful for knowing how much memory is available for the resource.
+   */
   VkDeviceSize size{0};
+
+  /**
+   * @brief The offset within the buffer where the memory starts.
+   *
+   * This is useful when a single buffer is used for multiple resources,
+   * allowing each resource to have its own offset within the buffer.
+   */
   VkDeviceSize offset{0};
+
+  /**
+   * @brief We keep a pointer to the mapped buffer,
+   * so we can easily update its contents via a memcpy.
+   */
   void* mapped{nullptr};
 };
 

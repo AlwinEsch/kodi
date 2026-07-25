@@ -40,11 +40,9 @@ CVulkanShaderTexture::CVulkanShaderTexture(const VulkanData* vkData,
 
 bool CVulkanShaderTexture::Create()
 {
-  prepareParticles();
   createVertexBuffer();
-  createUniformBuffers();
-  createDescriptorPool();
-  createDescriptorSets();
+  CreateUniformBuffers();
+  CreateDescriptorSets();
   CreatePipelines();
   return true;
 }
@@ -61,28 +59,26 @@ void CVulkanShaderTexture::Destroy()
 
 void CVulkanShaderTexture::prepareParticles()
 {
-  // One m_buffer per concurrent frame, so we can update one frame while the other is still rendering
-  m_particles.resize(PARTICLE_COUNT);
-  for (auto& buffer : m_particleBuffers)
-  {
-    buffer.size = m_particles.size() * sizeof(VulkanMemoryData);
+  //// One m_buffer per concurrent frame, so we can update one frame while the other is still rendering
+  //m_particles.resize(PARTICLE_COUNT);
+  //for (auto& buffer : m_particleBuffers)
+  //{
+  //  buffer.size = m_particles.size() * sizeof(Vertex);
 
-    VulkanMemoryData memoryData;
-    memoryData.size = buffer.size;
-    memoryData.memory = buffer.memory;
-    memoryData.mapped = buffer.mapped;
-    memoryData.offset = 0;
+  //  VK_CHECK_RESULT(m_vulkanDevice->createBuffer(
+  //      VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+  //      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &m_vertexBuffer, vertices.m_size() * sizeof(Vertex)));
 
-    VK_CHECK_RESULT(m_deviceQueue->CreateBuffer(
-        VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &memoryData,
-        m_particles.size(), m_particles.data()));
 
-    // Map the m_memory and store the pointer for reuse
-    VK_CHECK_RESULT(vkMapMemory(m_vkData->vkDevice, memoryData.memory, 0, memoryData.size, 0,
-                                &memoryData.mapped));
-    buffer.mapped = memoryData.mapped;
-  }
+  //  VK_CHECK_RESULT(m_deviceQueue->CreateBuffer(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+  //                                              VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+  //                                                  VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+  //                                              &buffer, m_particles.size(), m_particles.data());
+
+  //  // Map the memory and store the pointer for reuse
+  //  VK_CHECK_RESULT(
+  //      vkMapMemory(m_vkData->vkDevice, buffer.memory, 0, buffer.size, 0, &buffer.mapped));
+  //}
 }
 
 void CVulkanShaderTexture::createVertexBuffer()
@@ -256,84 +252,29 @@ void CVulkanShaderTexture::createVertexBuffer()
   vkFreeMemory(m_vkData->vkDevice, stagingBuffers.indices.memory, nullptr);
 }
 
-void CVulkanShaderTexture::createUniformBuffers()
+void CVulkanShaderTexture::CreateUniformBuffers()
 {
-  // Prepare and initialize the per-frame uniform m_buffer blocks containing shader uniforms
-  // Single uniforms like in OpenGL are no longer present in Vulkan. All hader uniforms are passed via uniform m_buffer blocks
-  VkMemoryRequirements memReqs;
-
-  // Vertex shader uniform m_buffer block
-  VkBufferCreateInfo bufferInfo{};
-  VkMemoryAllocateInfo allocInfo{};
-  allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-  allocInfo.pNext = nullptr;
-  allocInfo.allocationSize = 0;
-  allocInfo.memoryTypeIndex = 0;
-
-  bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-  bufferInfo.size = sizeof(ShaderData);
-  // This m_buffer will be used as a uniform m_buffer
-  bufferInfo.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
-
-  // Create the buffers
   m_uniformBuffers.resize(MAX_CONCURRENT_FRAMES);
-  for (uint32_t i = 0; i < MAX_CONCURRENT_FRAMES; i++)
+  for (auto& buffer : m_uniformBuffers)
   {
-    VK_CHECK_RESULT(
-        vkCreateBuffer(m_vkData->vkDevice, &bufferInfo, nullptr, &m_uniformBuffers[i].buffer));
-    // Get m_memory requirements including size, alignment and m_memory type
-    vkGetBufferMemoryRequirements(m_vkData->vkDevice, m_uniformBuffers[i].buffer, &memReqs);
-    allocInfo.allocationSize = memReqs.size;
-    // Get the m_memory type index that supports host visible m_memory access
-    // Most implementations offer multiple m_memory types and selecting the correct one to allocate m_memory from is crucial
-    // We also want the m_buffer to be host coherent so we don't have to flush (or sync after every update.
-    // Note: This may affect performance so you might not want to do this in a real world application that updates buffers on a regular base
-    allocInfo.memoryTypeIndex = m_deviceQueue->GetMemoryType(
-        memReqs.memoryTypeBits,
-        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-
-    // Allocate m_memory for the uniform m_buffer
-    VK_CHECK_RESULT(
-        vkAllocateMemory(m_vkData->vkDevice, &allocInfo, nullptr, &(m_uniformBuffers[i].memory)));
-    // Bind m_memory to m_buffer
-    VK_CHECK_RESULT(vkBindBufferMemory(m_vkData->vkDevice, m_uniformBuffers[i].buffer,
-                                       m_uniformBuffers[i].memory, 0));
-    // We map the m_buffer once, so we can update it without having to map it again
-    VK_CHECK_RESULT(vkMapMemory(m_vkData->vkDevice, m_uniformBuffers[i].memory, 0,
-                                sizeof(ShaderData), 0, (void**)&m_uniformBuffers[i].mapped));
+    VK_CHECK_RESULT(m_deviceQueue->CreateBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                                                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                                                    VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                                                &buffer, sizeof(Uniform), &m_uniformData));
   }
 }
 
-void CVulkanShaderTexture::createDescriptorPool()
-{
-  std::vector<VkDescriptorPoolSize> descriptorTypeCounts{
-      {
-          .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-          .descriptorCount = MAX_CONCURRENT_FRAMES,
-      },
-      {
-          .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-          .descriptorCount = MAX_CONCURRENT_FRAMES,
-      },
-  };
-
-  // Create the global m_descriptor pool
-  // All descriptors used in this example are allocated from this pool
-  VkDescriptorPoolCreateInfo descriptorPoolCI{};
-  descriptorPoolCI.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-  descriptorPoolCI.pNext = nullptr;
-  descriptorPoolCI.poolSizeCount = static_cast<uint32_t>(descriptorTypeCounts.size());
-  descriptorPoolCI.pPoolSizes = descriptorTypeCounts.data();
-  // Set the max. number of descriptor sets that can be requested from this pool (requesting beyond this limit will result in an error)
-  // Our sample will create one set per uniform buffer per frame
-  descriptorPoolCI.maxSets = MAX_CONCURRENT_FRAMES;
-  VK_CHECK_RESULT(
-      vkCreateDescriptorPool(m_vkData->vkDevice, &descriptorPoolCI, nullptr, &m_descriptorPool));
-}
-
-void CVulkanShaderTexture::createDescriptorSets()
+void CVulkanShaderTexture::CreateDescriptorSets()
 {
   auto dev = m_vkData->vkDevice;
+
+  // Pool
+  std::vector<VkDescriptorPoolSize> poolSizes = {
+      vkDescriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, MAX_CONCURRENT_FRAMES),
+      vkDescriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, MAX_CONCURRENT_FRAMES),
+  };
+  auto descriptorPoolInfo = vkDescriptorPoolCreateInfo(poolSizes, MAX_CONCURRENT_FRAMES);
+  VK_CHECK_RESULT(vkCreateDescriptorPool(dev, &descriptorPoolInfo, nullptr, &m_descriptorPool));
 
   // Layout
   std::vector<VkDescriptorSetLayoutBinding> bindings{
@@ -354,29 +295,28 @@ void CVulkanShaderTexture::createDescriptorSets()
           .pImmutableSamplers = nullptr,
       },
   };
-
   auto descrLayout = vkDescriptorSetLayoutCreateInfo(bindings.data(), bindings.size());
   VK_CHECK_RESULT(vkCreateDescriptorSetLayout(dev, &descrLayout, nullptr, &m_descrSetLayout));
 
-  // Allocate one descriptor set per frame from the global m_descriptor pool
+  // Allocate one descriptor set per frame from the global descriptor pool
   auto allocInfo = vkDescriptorSetAllocateInfo(m_descriptorPool, &m_descrSetLayout, 1);
   for (uint32_t i = 0; i < MAX_CONCURRENT_FRAMES; i++)
   {
     VK_CHECK_RESULT(vkAllocateDescriptorSets(dev, &allocInfo, &m_uniformBuffers[i].descriptorSet));
 
-    // The m_buffer's information is passed using a m_descriptor info structure
+    // The m_buffer's information is passed using a descriptor info structure
     VkDescriptorBufferInfo bufferInfo{
         .buffer = m_uniformBuffers[i].buffer,
         .offset = 0,
-        .range = sizeof(ShaderData),
+        .range = VK_WHOLE_SIZE,
     };
 
-    // Update the m_descriptor set determining the shader binding points
+    // Update the descriptor set determining the shader binding points
     // For every binding point used in a shader there needs to be one
-    // m_descriptor set matching that binding point
+    // descriptor set matching that binding point
     std::vector<VkWriteDescriptorSet> descSets = {
         {
-            // Binding 0 : Uniform m_buffer
+            // Binding 0 : Uniform buffer
             .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
             .pNext = nullptr,
             .dstSet = m_uniformBuffers[i].descriptorSet,
@@ -475,14 +415,14 @@ void CVulkanShaderTexture::CreatePipelines()
   UnloadShader(shaderStages[1]);
 }
 
-void CVulkanShaderTexture::UpdateUniformBuffer(uint32_t index, const ShaderData& shaderData)
+void CVulkanShaderTexture::UpdateUniformBuffer(uint32_t index, const Uniform& uniformData)
 {
-  memcpy(m_uniformBuffers[index].mapped, &shaderData, sizeof(ShaderData));
+  memcpy(m_uniformBuffers[index].mapped, &uniformData, sizeof(Uniform));
 }
 
-void CVulkanShaderTexture::UpdateVerticesBuffer(uint32_t index, const Vertex& vertices)
+void CVulkanShaderTexture::UpdateVerticesBuffer(uint32_t index, const Vertex& verticesData)
 {
-  memcpy(m_particleBuffers[index].mapped, &vertices, sizeof(Vertex));
+  memcpy(m_particleBuffers[index].mapped, &verticesData, sizeof(Vertex));
 }
 
 } // namespace KODI::RENDERING::VULKAN

@@ -11,7 +11,7 @@
 #include "rendering/vulkan/VulkanData.h"
 
 #include <memory>
-#include <string_view>
+#include <string>
 
 #include <vulkan/vulkan_core.h>
 
@@ -51,18 +51,17 @@ enum class VulkanShaderType
 class IVulkanShader
 {
 public:
-  IVulkanShader(const VulkanData* vkData, CVulkanDeviceQueue* deviceQueue)
-    : m_vkData(vkData),
-      m_deviceQueue(deviceQueue)
-  {
-  }
-
+  IVulkanShader(const VulkanData* vkData, CVulkanDeviceQueue* deviceQueue);
   virtual ~IVulkanShader() = default;
 
   virtual bool Create() = 0;
   virtual void Destroy() = 0;
 
   virtual VkPipeline VulkanPipeline() const = 0;
+
+  VkPipelineShaderStageCreateInfo LoadShader(std::string fileName,
+                                             VkShaderStageFlagBits stage);
+  void UnloadShader(VkPipelineShaderStageCreateInfo shaderStage);
 
 protected:
   const VulkanData* m_vkData;

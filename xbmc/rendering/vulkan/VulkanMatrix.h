@@ -11,7 +11,7 @@
 #include <stack>
 #include <glm/glm.hpp>
 
-#include "system_vulkan.h"
+#include <vulkan/vulkan_core.h>
 
 //union
 //{
@@ -62,7 +62,7 @@ public:
                       float objz,
                       const float modelMatrix[16],
                       const float projMatrix[16],
-                      const int viewport[4],
+                      const VkViewport* viewport,
                       float* winx,
                       float* winy,
                       float* winz);

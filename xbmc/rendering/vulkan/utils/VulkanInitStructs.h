@@ -208,13 +208,13 @@ inline VkBufferCreateInfo vkBufferCreateInfo(VkBufferUsageFlags usage,
   return bufCreateInfo;
 }
 
-inline VkDescriptorPoolCreateInfo vkDescriptorPoolCreateInfo(uint32_t poolSizeCount,
+inline VkDescriptorPoolCreateInfo vkDescriptorPoolCreateInfo(size_t poolSizeCount,
                                                              VkDescriptorPoolSize* pPoolSizes,
                                                              uint32_t maxSets)
 {
   VkDescriptorPoolCreateInfo descriptorPoolInfo{};
   descriptorPoolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-  descriptorPoolInfo.poolSizeCount = poolSizeCount;
+  descriptorPoolInfo.poolSizeCount = static_cast<uint32_t>(poolSizeCount);
   descriptorPoolInfo.pPoolSizes = pPoolSizes;
   descriptorPoolInfo.maxSets = maxSets;
   return descriptorPoolInfo;
@@ -253,12 +253,12 @@ inline VkDescriptorSetLayoutBinding vkDescriptorSetLayoutBinding(VkDescriptorTyp
 }
 
 inline VkDescriptorSetLayoutCreateInfo vkDescriptorSetLayoutCreateInfo(
-    const VkDescriptorSetLayoutBinding* pBindings, uint32_t bindingCount)
+    const VkDescriptorSetLayoutBinding* pBindings, size_t bindingCount)
 {
   VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo{};
   descriptorSetLayoutCreateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
   descriptorSetLayoutCreateInfo.pBindings = pBindings;
-  descriptorSetLayoutCreateInfo.bindingCount = bindingCount;
+  descriptorSetLayoutCreateInfo.bindingCount = static_cast<uint32_t>(bindingCount);
   return descriptorSetLayoutCreateInfo;
 }
 
@@ -346,9 +346,9 @@ inline VkWriteDescriptorSet vkWriteDescriptorSet(VkDescriptorSet dstSet,
   return writeDescriptorSet;
 }
 
-inline VkVertexInputBindingDescription vkVertexInputBindingDescription(uint32_t binding,
-                                                                       uint32_t stride,
-                                                                       VkVertexInputRate inputRate)
+inline VkVertexInputBindingDescription vkVertexInputBindingDescr(uint32_t binding,
+                                                                 uint32_t stride,
+                                                                 VkVertexInputRate inputRate)
 {
   VkVertexInputBindingDescription vInputBindDescription{};
   vInputBindDescription.binding = binding;
@@ -357,10 +357,10 @@ inline VkVertexInputBindingDescription vkVertexInputBindingDescription(uint32_t 
   return vInputBindDescription;
 }
 
-inline VkVertexInputAttributeDescription vkVertexInputAttributeDescription(uint32_t binding,
-                                                                           uint32_t location,
-                                                                           VkFormat format,
-                                                                           uint32_t offset)
+inline VkVertexInputAttributeDescription vkVertexInputAttrDescr(uint32_t binding,
+                                                                uint32_t location,
+                                                                VkFormat format,
+                                                                uint32_t offset)
 {
   VkVertexInputAttributeDescription vInputAttribDescription{};
   vInputAttribDescription.location = location;
@@ -397,8 +397,8 @@ inline VkPipelineVertexInputStateCreateInfo vkPipelineVertexInputStateCreateInfo
 
 inline VkPipelineInputAssemblyStateCreateInfo vkPipelineInputAssemblyStateCreateInfo(
     VkPrimitiveTopology topology,
-    VkPipelineInputAssemblyStateCreateFlags flags,
-    VkBool32 primitiveRestartEnable)
+    VkPipelineInputAssemblyStateCreateFlags flags = 0,
+    VkBool32 primitiveRestartEnable = VK_FALSE)
 {
   VkPipelineInputAssemblyStateCreateInfo pipelineInputAssemblyStateCreateInfo{};
   pipelineInputAssemblyStateCreateInfo.sType =
@@ -409,7 +409,7 @@ inline VkPipelineInputAssemblyStateCreateInfo vkPipelineInputAssemblyStateCreate
   return pipelineInputAssemblyStateCreateInfo;
 }
 
-inline VkPipelineRasterizationStateCreateInfo vkPipelineRasterizationStateCreateInfo(
+inline VkPipelineRasterizationStateCreateInfo vkPipelineRasterStateCreateInfo(
     VkPolygonMode polygonMode,
     VkCullModeFlags cullMode,
     VkFrontFace frontFace,

@@ -19,6 +19,7 @@ namespace KODI::RENDERING::VULKAN
 {
 
 class CVulkanRenderSystem;
+class CVulkanShaderTexture;
 
 } // namespace KODI::RENDERING::VULKAN
 
@@ -45,7 +46,15 @@ public:
   VkSampler vkSampler() const { return m_sampler; }
 
 private:
+  void createDescriptorSetLayout();
+  void createDescriptorPool();
+  void createDescriptorSets();
+
+  VkDescriptorSetLayout m_descriptorSetLayout{VK_NULL_HANDLE};
+  VkDescriptorPool m_descriptorPool{VK_NULL_HANDLE};
+
   KODI::RENDERING::VULKAN::CVulkanRenderSystem* m_renderSystem;
+  KODI::RENDERING::VULKAN::CVulkanShaderTexture* m_shaderTexture;
   VkDevice m_vkDevice{VK_NULL_HANDLE};
   VkPhysicalDevice m_vkPhysicalDevice{VK_NULL_HANDLE};
 
