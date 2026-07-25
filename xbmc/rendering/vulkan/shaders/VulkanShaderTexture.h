@@ -115,7 +115,7 @@ public:
   VkPipelineLayout VulkanPipelineLayout() const { return m_pipelineLayout; }
   UniformBuffer* GetUniformBuffer(uint32_t index) { return &m_uniformBuffers[index]; }
   void UpdateUniformBuffer(uint32_t index, const ShaderData& shaderData);
-  void UpdateVerticesBuffer(uint32_t index, const Vertices& vertices);
+  void UpdateVerticesBuffer(uint32_t index, const Vertex& vertices);
 
   Vertices* GetVertexBuffer() { return &vertices; }
   Indices* GetIndexBuffer() { return &indices; }

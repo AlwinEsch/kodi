@@ -60,7 +60,7 @@ protected:
 private:
   CVulkanGUITexture(const CVulkanGUITexture& texture) = default;
 
-  void RenderTriangle(float x, float y, float width, float height);
+  //void RenderTriangle(float x, float y, float width, float height);
 
   glm::vec4 m_color{1.0f, 1.0f, 1.0f, 1.0f};
 

@@ -37,6 +37,7 @@ CVulkanShaderTexture::CVulkanShaderTexture(const VulkanData* vkData,
 
 bool CVulkanShaderTexture::Create()
 {
+  prepareParticles();
   createVertexBuffer();
   createUniformBuffers();
   createDescriptorSetLayout();
@@ -58,30 +59,28 @@ void CVulkanShaderTexture::Destroy()
 
 void CVulkanShaderTexture::prepareParticles()
 {
-  //struct VulkanMemoryData
-  //{
-  //  VkBuffer buffer{VK_NULL_HANDLE};
-  //  VkDeviceMemory memory{VK_NULL_HANDLE};
-  //  VkDeviceSize size{0};
-  //  VkDeviceSize offset{0};
-  //  void* mapped{nullptr};
-  //};
-
   // One m_buffer per concurrent frame, so we can update one frame while the other is still rendering
   m_particles.resize(PARTICLE_COUNT);
-  //for (auto& buffer : m_particleBuffers)
-  //{
-  //  buffer.size = m_particles.size() * sizeof(Vertices);
+  for (auto& buffer : m_particleBuffers)
+  {
+    buffer.size = m_particles.size() * sizeof(Vertices);
 
-  //  VK_CHECK_RESULT(m_deviceQueue->CreateBuffer(
-  //      VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-  //      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, buffer.size,
-  //      &buffer.buffer, &buffer.memory, m_particles.data()));
+    VulkanMemoryData memoryData;
+    memoryData.size = buffer.size;
+    memoryData.memory = buffer.memory;
+    memoryData.mapped = buffer.mappedMemory;
+    memoryData.offset = 0;
 
-  //  // Map the m_memory and store the pointer for reuse
-  //  VK_CHECK_RESULT(
-  //      vkMapMemory(m_device, buffer.memory, 0, buffer.size, 0, &buffer.mappedMemory));
-  //}
+    VK_CHECK_RESULT(m_deviceQueue->CreateBuffer(
+        VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+        &memoryData, m_particles.size(), m_particles.data()));
+
+    // Map the m_memory and store the pointer for reuse
+    VK_CHECK_RESULT(vkMapMemory(m_vkData->vkDevice, memoryData.memory, 0, memoryData.size, 0,
+                                &memoryData.mapped));
+    buffer.mappedMemory = memoryData.mapped;
+  }
 }
 
 void CVulkanShaderTexture::createVertexBuffer()
@@ -574,9 +573,9 @@ void CVulkanShaderTexture::UpdateUniformBuffer(uint32_t index, const ShaderData&
   memcpy(m_uniformBuffers[index].mapped, &shaderData, sizeof(ShaderData));
 }
 
-void CVulkanShaderTexture::UpdateVerticesBuffer(uint32_t index, const Vertices& vertices)
+void CVulkanShaderTexture::UpdateVerticesBuffer(uint32_t index, const Vertex& vertices)
 {
-  memcpy(&this->vertices, &vertices, sizeof(Vertices));
+  memcpy(m_particleBuffers[index].mappedMemory, &vertices, sizeof(Vertex));
 }
 
 } // namespace KODI::RENDERING::VULKAN

@@ -133,21 +133,22 @@ bool CWinSystemWaylandVulkan::HasContext()
 
 //bool CWinSystemWaylandVulkan::CreateContext()
 //{
-//  fprintf(stderr, "---> %s\n", __PRETTY_FUNCTION__);
-//  //CEGLAttributesVec contextAttribs;
-//  //contextAttribs.Add({{EGL_CONTEXT_CLIENT_VERSION, 2}});
-//
-//  //if (!m_eglContext.CreateContext(contextAttribs))
-//  //{
-//  //  CLog::Log(LOGERROR, "EGL context creation failed");
-//  //  return false;
-//  //}
+////  fprintf(stderr, "---> %s\n", __PRETTY_FUNCTION__);
+////  //CEGLAttributesVec contextAttribs;
+////  //contextAttribs.Add({{EGL_CONTEXT_CLIENT_VERSION, 2}});
+////
+////  //if (!m_eglContext.CreateContext(contextAttribs))
+////  //{
+////  //  CLog::Log(LOGERROR, "EGL context creation failed");
+////  //  return false;
+////  //}
 //  return true;
 //}
 
 void CWinSystemWaylandVulkan::SetContextSize(CSizeInt size)
 {
-  fprintf(stderr, "---> %s (%d x %d)\n", __PRETTY_FUNCTION__, size.Width(), size.Height());
+  fprintf(stderr, "---> %s (%d x %d) -> (%d x %d)\n", __PRETTY_FUNCTION__,
+          CVulkanRenderSystem::m_width, CVulkanRenderSystem::m_height, size.Width(), size.Height());
 
   //CWinSystemWaylandEGLContext::SetContextSize(size);
   ////// Change EGL surface size if necessary
@@ -158,11 +159,11 @@ void CWinSystemWaylandVulkan::SetContextSize(CSizeInt size)
   ////}
 
   // Propagate changed dimensions to render system if necessary
-  //if (CVulkanRenderSystem::m_size.width != static_cast<uint32_t>(size.Width()) ||
-  //    CVulkanRenderSystem::m_size.height != static_cast<uint32_t>(size.Height()))
-  //{
-  //  CLog::LogF(LOGDEBUG, "Resetting render system to {}x{}", size.Width(), size.Height());
-  //  CVulkanRenderSystem::ResetRenderSystem(size.Width(), size.Height());
-  //}
+  if (CVulkanRenderSystem::m_width != static_cast<uint32_t>(size.Width()) ||
+      CVulkanRenderSystem::m_height != static_cast<uint32_t>(size.Height()))
+  {
+    CLog::LogF(LOGDEBUG, "Resetting render system to {}x{}", size.Width(), size.Height());
+    CVulkanRenderSystem::ResetRenderSystem(size.Width(), size.Height());
+  }
 }
 

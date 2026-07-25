@@ -10,9 +10,9 @@
 
 #include "VulkanDeviceQueue.h"
 #include "rendering/RenderSystem.h"
+#include "rendering/vulkan/VulkanCommandBuffer.h"
 #include "rendering/vulkan/VulkanData.h"
 #include "rendering/vulkan/VulkanScopedWrite.h"
-#include "rendering/vulkan/VulkanCommandBuffer.h"
 #include "rendering/vulkan/VulkanSurface.h"
 #include "rendering/vulkan/VulkanSwapChain.h"
 #include "rendering/vulkan/shaders/VulkanShaderControl.h"
@@ -376,10 +376,9 @@ public:
   uint32_t vkIndexBuffer() const { return m_indexBuffer; }
   //@}
 
-Camera m_camera;
+  //Camera m_camera;
 
-  void RenderTriangle(float x, float y);
-
+  //void RenderTriangle(float x, float y);
 
 protected:
   /**
@@ -393,7 +392,6 @@ protected:
   uint32_t m_height{0};
   /**@}*/
 
-
 private:
   bool CreatePipeline();
   void DestroyPipeline();
@@ -404,7 +402,9 @@ private:
   std::unique_ptr<CVulkanRenderPass> m_renderPass;
   std::vector<std::unique_ptr<CVulkanFramebuffer>> m_framebuffers;
 
-  glm::ivec4 m_viewPort;
+  glm::ivec4 m_viewPort{0, 0, 0, 0};
+  VkViewport m_vkViewport{};
+  VkRect2D m_vkScissor{};
 
   VulkanData m_vkData;
   /**
@@ -439,7 +439,6 @@ private:
   CVulkanShaderTest* m_testShader;
   CVulkanShaderTexture* m_testShaderTexture;
   uint32_t m_indexBuffer{0};
-
 
   VkPipeline m_pipeline{VK_NULL_HANDLE};
   VkPipelineLayout m_pipelineLayout{VK_NULL_HANDLE};

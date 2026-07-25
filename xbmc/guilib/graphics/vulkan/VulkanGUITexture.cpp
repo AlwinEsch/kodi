@@ -22,6 +22,7 @@
 #include "windowing/WinSystem.h"
 
 #include <cstddef>
+#include <glm/gtc/type_ptr.hpp>
 
 using namespace KODI::RENDERING::VULKAN;
 
@@ -190,16 +191,59 @@ void CVulkanGUITexture::Draw(
   }
   verts[3].in_attrcol = m_color;
 
-  // Map and copy
+  uint32_t indexBuffer = m_renderSystem->vkIndexBuffer();
+  m_testShaderTexture->UpdateVerticesBuffer(indexBuffer, verts[0]);
 
-  //    VK_CHECK_RESULT(vkMapMemory(m_renderSystem->vkDevice(), stagingBuffers.vertices.memory, 0,
-  //                            memAlloc.allocationSize, 0, &data));
-  //memcpy(data, m_vertexBuffer.data(), vertexBufferSize);
-  //vkUnmapMemory(m_renderSystem->vkDevice(), stagingBuffers.vertices.memory);
-  //VK_CHECK_RESULT(vkBindBufferMemory(m_renderSystem->vkDevice(), stagingBuffers.vertices.buffer,
-  //                                   stagingBuffers.vertices.memory, 0));
+  //--------------------------------------------------------------
 
-  RenderTriangle(x[0], y[0], x[2] - x[0], y[2] - y[0]);
+  VkCommandBuffer commandBuffer = m_renderSystem->vkCurrentCommandBuffer();
+  VkPipeline pipeline = m_testShaderTexture->VulkanPipeline();
+  VkPipelineLayout pipelineLayout = m_testShaderTexture->VulkanPipelineLayout();
+
+  // Update the uniform m_buffer for the next frame
+  ShaderData shaderData{};
+  //const float* projMatrix = vulkanMatrixProject.Get();
+  //const float* modelMatrix = vulkanMatrixModview.Get();
+
+  //memcpy(glm::value_ptr(shaderData.projectionMatrix), projMatrix, 16 * sizeof(float));
+  //memcpy(glm::value_ptr(shaderData.modelMatrix), modelMatrix, 16 * sizeof(float));
+
+  shaderData.projectionMatrix = m_camera->matrices.perspective;
+  shaderData.viewMatrix = m_camera->matrices.view;
+  shaderData.modelMatrix = glm::mat4(1.0f);
+
+  m_testShaderTexture->UpdateUniformBuffer(indexBuffer, shaderData);
+
+  VkViewport viewport{.x = x[0],
+                      .y = y[0],
+                      .width = x[2] - x[0],
+                      .height = y[2] - y[0],
+                      .minDepth = 0.0f,
+                      .maxDepth = 1.0f};
+    vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
+    // Update dynamic scissor state
+    VkRect2D scissor{
+        .offset = {.x = static_cast<int32_t>(x[0]), .y = static_cast<int32_t>(y[0])},
+        .extent = {.width = static_cast<uint32_t>(x[2] - x[0]), .height = static_cast<uint32_t>(y[2] - y[0])},
+    };
+    vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
+
+  // Bind m_descriptor set for the current frame's uniform m_buffer, so the shader uses the data from that m_buffer for this draw
+  vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1,
+                          &m_testShaderTexture->GetUniformBuffer(indexBuffer)->descriptorSet, 0,
+                          nullptr);
+  // Bind the rendering m_pipeline
+  // The m_pipeline (state object) contains all states of the rendering m_pipeline, binding it will set all the states specified at m_pipeline creation time
+  vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+  // Bind triangle vertex m_buffer (contains position and colors)
+  VkDeviceSize offsets[1]{0};
+  vkCmdBindVertexBuffers(commandBuffer, 0, 1, &m_testShaderTexture->GetVertexBuffer()->buffer,
+                         offsets);
+  // Bind triangle index m_buffer
+  vkCmdBindIndexBuffer(commandBuffer, m_testShaderTexture->GetIndexBuffer()->buffer, 0,
+                       VK_INDEX_TYPE_UINT32);
+  // Draw indexed triangle
+  vkCmdDrawIndexed(commandBuffer, m_testShaderTexture->GetIndexBuffer()->count, 1, 0, 0, 0);
 }
 
 void CVulkanGUITexture::DrawQuad(const CRect& rect,
@@ -286,65 +330,55 @@ void CVulkanGUITexture::DrawQuad(const CRect& rect,
 
   renderSystem->DisableShader();
 }
-
-void CVulkanGUITexture::RenderTriangle(float x, float y, float width, float height)
-{
-  VkCommandBuffer commandBuffer = m_renderSystem->vkCurrentCommandBuffer();
-  VkPipeline pipeline = m_testShaderTexture->VulkanPipeline();
-  VkPipelineLayout pipelineLayout = m_testShaderTexture->VulkanPipelineLayout();
-
-  // Update the uniform m_buffer for the next frame
-  ShaderData shaderData{};
-  const float* projMatrix = vulkanMatrixProject.Get();
-  const float* modelMatrix = vulkanMatrixModview.Get();
-
-  shaderData.projectionMatrix =
-      glm::mat4(glm::vec4(projMatrix[0], projMatrix[1], projMatrix[2], projMatrix[3]),
-                glm::vec4(projMatrix[4], projMatrix[5], projMatrix[6], projMatrix[7]),
-                glm::vec4(projMatrix[8], projMatrix[9], projMatrix[10], projMatrix[11]),
-                glm::vec4(projMatrix[12], projMatrix[13], projMatrix[14], projMatrix[15]));
-  shaderData.modelMatrix =
-      glm::mat4(glm::vec4(modelMatrix[0], modelMatrix[1], modelMatrix[2], modelMatrix[3]),
-                glm::vec4(modelMatrix[4], modelMatrix[5], modelMatrix[6], modelMatrix[7]),
-                glm::vec4(modelMatrix[8], modelMatrix[9], modelMatrix[10], modelMatrix[11]),
-                glm::vec4(modelMatrix[12], modelMatrix[13], modelMatrix[14], modelMatrix[15]));
-  shaderData.projectionMatrix = m_camera->matrices.perspective;
-  shaderData.viewMatrix = m_camera->matrices.view;
-  shaderData.modelMatrix = glm::mat4(1.0f);
-
-  //shaderData.projectionMatrix = m_renderSystem->m_camera.matrices.perspective;
-  //shaderData.viewMatrix = m_renderSystem->m_camera.matrices.view;
-  //shaderData.modelMatrix = glm::mat4(1.0f);
-
-  uint32_t indexBuffer = m_renderSystem->vkIndexBuffer();
-
-  m_testShaderTexture->UpdateUniformBuffer(indexBuffer, shaderData);
-
-  VkViewport viewport{
-      .x = x, .y = y, .width = width, .height = height, .minDepth = 0.0f, .maxDepth = 1.0f};
-  vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
-  // Update dynamic scissor state
-  VkRect2D scissor{
-      .offset = {.x = static_cast<int32_t>(x), .y = static_cast<int32_t>(y)},
-      .extent = {.width = static_cast<uint32_t>(width), .height = static_cast<uint32_t>(height)},
-  };
-  vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
-  // Bind m_descriptor set for the current frame's uniform m_buffer, so the shader uses the data from that m_buffer for this draw
-  vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1,
-                          &m_testShaderTexture->GetUniformBuffer(indexBuffer)->descriptorSet, 0,
-                          nullptr);
-  // Bind the rendering m_pipeline
-  // The m_pipeline (state object) contains all states of the rendering m_pipeline, binding it will set all the states specified at m_pipeline creation time
-  vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
-  // Bind triangle vertex m_buffer (contains position and colors)
-  VkDeviceSize offsets[1]{0};
-  vkCmdBindVertexBuffers(commandBuffer, 0, 1, &m_testShaderTexture->GetVertexBuffer()->buffer,
-                         offsets);
-  // Bind triangle index m_buffer
-  vkCmdBindIndexBuffer(commandBuffer, m_testShaderTexture->GetIndexBuffer()->buffer, 0,
-                       VK_INDEX_TYPE_UINT32);
-  // Draw indexed triangle
-  vkCmdDrawIndexed(commandBuffer, m_testShaderTexture->GetIndexBuffer()->count, 1, 0, 0, 0);
-}
+//
+//void CVulkanGUITexture::RenderTriangle(float x, float y, float width, float height)
+//{
+//  VkCommandBuffer commandBuffer = m_renderSystem->vkCurrentCommandBuffer();
+//  VkPipeline pipeline = m_testShaderTexture->VulkanPipeline();
+//  VkPipelineLayout pipelineLayout = m_testShaderTexture->VulkanPipelineLayout();
+//
+//  // Update the uniform m_buffer for the next frame
+//  ShaderData shaderData{};
+//  const float* projMatrix = vulkanMatrixProject.Get();
+//  const float* modelMatrix = vulkanMatrixModview.Get();
+//
+//  memcpy(glm::value_ptr(shaderData.projectionMatrix), projMatrix, 16 * sizeof(float));
+//  memcpy(glm::value_ptr(shaderData.modelMatrix), modelMatrix, 16 * sizeof(float));
+//
+//  //shaderData.projectionMatrix = m_camera->matrices.perspective;
+//  //shaderData.viewMatrix = m_camera->matrices.view;
+//  //shaderData.modelMatrix = glm::mat4(1.0f);
+//
+//
+//  uint32_t indexBuffer = m_renderSystem->vkIndexBuffer();
+//
+//  m_testShaderTexture->UpdateUniformBuffer(indexBuffer, shaderData);
+//
+//  //VkViewport viewport{
+//  //    .x = x, .y = y, .width = width, .height = height, .minDepth = 0.0f, .maxDepth = 1.0f};
+//  //vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
+//  //// Update dynamic scissor state
+//  //VkRect2D scissor{
+//  //    .offset = {.x = static_cast<int32_t>(x), .y = static_cast<int32_t>(y)},
+//  //    .extent = {.width = static_cast<uint32_t>(width), .height = static_cast<uint32_t>(height)},
+//  //};
+//  //vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
+//  // Bind m_descriptor set for the current frame's uniform m_buffer, so the shader uses the data from that m_buffer for this draw
+//  vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1,
+//                          &m_testShaderTexture->GetUniformBuffer(indexBuffer)->descriptorSet, 0,
+//                          nullptr);
+//  // Bind the rendering m_pipeline
+//  // The m_pipeline (state object) contains all states of the rendering m_pipeline, binding it will set all the states specified at m_pipeline creation time
+//  vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+//  // Bind triangle vertex m_buffer (contains position and colors)
+//  VkDeviceSize offsets[1]{0};
+//  vkCmdBindVertexBuffers(commandBuffer, 0, 1, &m_testShaderTexture->GetVertexBuffer()->buffer,
+//                         offsets);
+//  // Bind triangle index m_buffer
+//  vkCmdBindIndexBuffer(commandBuffer, m_testShaderTexture->GetIndexBuffer()->buffer, 0,
+//                       VK_INDEX_TYPE_UINT32);
+//  // Draw indexed triangle
+//  vkCmdDrawIndexed(commandBuffer, m_testShaderTexture->GetIndexBuffer()->count, 1, 0, 0, 0);
+//}
 
 } // namespace KODI::GUILIB::GRAPHICS::VULKAN

@@ -62,7 +62,7 @@ public:
                       float objz,
                       const float modelMatrix[16],
                       const float projMatrix[16],
-                      const glm::ivec4,
+                      const int viewport[4],
                       float* winx,
                       float* winy,
                       float* winz);
