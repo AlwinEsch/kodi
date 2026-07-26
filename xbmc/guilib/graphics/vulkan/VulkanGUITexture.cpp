@@ -47,7 +47,7 @@ CVulkanGUITexture::CVulkanGUITexture(
 {
   using KODI::RENDERING::VULKAN::CVulkanRenderSystem;
   m_renderSystem = dynamic_cast<CVulkanRenderSystem*>(CServiceBroker::GetRenderSystem());
-  m_testShaderTexture = dynamic_cast<CVulkanShaderTexture*>(
+  m_shaderTexture = dynamic_cast<CVulkanShaderTexture*>(
       m_renderSystem->ShaderControl()->GetShader(VULKAN_SM_TEXTURE));
   m_camera = new Camera;
   m_camera->type = Camera::CameraType::lookat;
@@ -133,7 +133,8 @@ void CVulkanGUITexture::Begin(KODI::UTILS::COLOR::Color color)
   ////  glDisable(GL_BLEND);
   //}
 
-  //m_packedVertices.clear();
+  m_packedVertices.clear();
+  m_idx.clear();
 }
 
 void CVulkanGUITexture::End()
@@ -143,144 +144,124 @@ void CVulkanGUITexture::End()
 void CVulkanGUITexture::Draw(
     float* x, float* y, float* z, const CRect& texture, const CRect& diffuse, int orientation)
 {
-  Vertex verts[4];
-  verts[0].in_attrpos = {x[0], y[0], z[0]};
-  verts[0].in_attrcord0 = {texture.x1, texture.y1};
-  verts[0].in_attrcord1 = {diffuse.x1, diffuse.y1};
-  verts[0].in_attrcol = m_color;
+#define USE_BATCHING // Temporary define for test code to draw a single quad
 
-  verts[1].in_attrpos = {x[1], y[1], z[1]};
+#if USE_PARTICLES == 1 && defined(USE_BATCHING)
+#if 0
+  // TODO: Currently not used as we are using currently a single quad for all GUI textures.
+  // This will be used when we implement batching of GUI textures.
+
+  Vertex vertices[4];
+
+  // Setup texture coordinates
+  // TopLeft
+  vertices[0].in_attrcord0 = {texture.x1, texture.y1};
+
+  // TopRight
   if (orientation & 4)
   {
-    verts[1].in_attrcord0 = {texture.x1, texture.y2};
+    vertices[1].in_attrcord0 = {texture.x1, texture.y2};
   }
   else
   {
-    verts[1].in_attrcord0 = {texture.x2, texture.y1};
+    vertices[1].in_attrcord0 = {texture.x2, texture.y1};
   }
-  if (m_info.orientation & 4)
-  {
-    verts[1].in_attrcord1 = {diffuse.x1, diffuse.y2};
-  }
-  else
-  {
-    verts[1].in_attrcord1 = {diffuse.x2, diffuse.y1};
-  }
-  verts[1].in_attrcol = m_color;
 
-  verts[2].in_attrpos = {x[2], y[2], z[2]};
-  verts[2].in_attrcord0 = {texture.x2, texture.y2};
-  verts[2].in_attrcord1 = {diffuse.x2, diffuse.y2};
-  verts[2].in_attrcol = m_color;
+  // BottomRight
+  vertices[2].in_attrcord0 = {texture.x2, texture.y2};
 
-  verts[3].in_attrpos = {x[3], y[3], z[3]};
+  // BottomLeft
   if (orientation & 4)
   {
-    verts[3].in_attrcord0 = {texture.x2, texture.y1};
+    vertices[3].in_attrcord0 = {texture.x2, texture.y1};
   }
   else
   {
-    verts[3].in_attrcord0 = {texture.x1, texture.y2};
+    vertices[3].in_attrcord0 = {texture.x1, texture.y2};
   }
-  if (m_info.orientation & 4)
-  {
-    verts[3].in_attrcord1 = {diffuse.x2, diffuse.y1};
-  }
-  else
-  {
-    verts[3].in_attrcord1 = {diffuse.x1, diffuse.y2};
-  }
-  verts[3].in_attrcol = m_color;
 
-  uint32_t indexBuffer = m_renderSystem->vkIndexBuffer();
-  m_testShaderTexture->UpdateVerticesBuffer(indexBuffer, verts[0]);
+  if (m_diffuse.size())
+  {
+    // TopLeft
+    vertices[0].in_attrcord1 = {diffuse.x1, diffuse.y1};
+
+    // TopRight
+    if (m_info.orientation & 4)
+    {
+      vertices[1].in_attrcord1 = {diffuse.x1, diffuse.y2};
+    }
+    else
+    {
+      vertices[1].in_attrcord1 = {diffuse.x2, diffuse.y1};
+    }
+
+    // BottomRight
+    vertices[2].in_attrcord1 = {diffuse.x2, diffuse.y2};
+
+    // BottomLeft
+    if (m_info.orientation & 4)
+    {
+      vertices[3].in_attrcord1 = {diffuse.x2, diffuse.y1};
+    }
+    else
+    {
+      vertices[3].in_attrcord1 = {diffuse.x1, diffuse.y2};
+    }
+  }
+
+  vertices[0].in_attrcol = {1.0f, 1.0f, 1.0f, 1.0f};
+  vertices[1].in_attrcol = {0.0f, 1.0f, 0.0f, 1.0f};
+  vertices[2].in_attrcol = {0.0f, 0.0f, 1.0f, 1.0f};
+  vertices[3].in_attrcol = {1.0f, 0.0f, 1.0f, 1.0f};
+
+  for (int i = 0; i < 4; i++)
+  {
+    vertices[i].in_attrpos = {x[i], y[i], z[i]};
+    m_packedVertices.push_back(vertices[i]);
+  }
+
+  if ((m_packedVertices.size() / 4) > (m_idx.size() / 6))
+  {
+    size_t i = m_packedVertices.size() - 4;
+    m_idx.push_back(i + 0);
+    m_idx.push_back(i + 1);
+    m_idx.push_back(i + 2);
+    m_idx.push_back(i + 2);
+    m_idx.push_back(i + 3);
+    m_idx.push_back(i + 0);
+  }
+#else
+  // TODO: Temporary test code to draw a single quad. This will be replaced with the above code when we implement batching of GUI textures.
+  const std::vector<KODI::RENDERING::VULKAN::Vertex> testVertexBuffer{
+      {{1.0f, 1.0f, 0.0f}, {1.0f, 1.0f, 1.0f, 1.0f}, {0.0f, 0.0f}, {0.0f, 0.0f}},
+      {{-1.0f, 1.0f, 0.0f}, {0.0f, 1.0f, 0.0f, 1.0f}, {0.0f, 0.0f}, {0.0f, 0.0f}},
+      {{-1.0f, -1.0f, 0.0f}, {0.0f, 0.0f, 1.0f, 1.0f}, {0.0f, 0.0f}, {0.0f, 0.0f}},
+      {{1.0f, -1.0f, 0.0f}, {1.0f, 0.0f, 1.0f, 1.0f}, {0.0f, 0.0f}, {0.0f, 0.0f}}};
+  m_packedVertices = testVertexBuffer;
+
+  const std::vector<uint32_t> testIndexBuffer{0, 1, 2, 2, 3, 0};
+  m_idx = testIndexBuffer;
+#endif
+#endif
 
   //--------------------------------------------------------------
 
   VkCommandBuffer commandBuffer = m_renderSystem->vkCurrentCommandBuffer();
-  VkPipeline pipeline = m_testShaderTexture->VulkanPipeline();
-  VkPipelineLayout pipelineLayout = m_testShaderTexture->VulkanPipelineLayout();
+  VkPipeline pipeline = m_shaderTexture->VulkanPipeline();
+  VkPipelineLayout pipelineLayout = m_shaderTexture->VulkanPipelineLayout();
 
-  // Update the uniform m_buffer for the next frame
-  const float* projMatrix = vulkanMatrixProject.Get();
-  const float* modelMatrix = vulkanMatrixModview.Get();
+  const uint32_t renderImageIndex = m_renderSystem->vkCurrentRenderImageIndex();
 
-  //fprintf(stderr,
-  //        "_matrix_kodi_____________________________________________________________________________\n");
-  //glm::vec4 test = glm::make_mat4(modelMatrix) * glm::make_mat4(projMatrix) *
-  //                 glm::vec4(verts[0].in_attrpos.x, verts[0].in_attrpos.y, verts[0].in_attrpos.z, 1.0f);
-  //fprintf(stderr, "test: %f %f %f %f\n", double(test.x), double(test.y), double(test.z),
-  //        double(test.w));
-  //test = glm::make_mat4(modelMatrix) * glm::make_mat4(projMatrix) *
-  //       glm::vec4(verts[1].in_attrpos.x, verts[1].in_attrpos.y, verts[1].in_attrpos.z, 1.0f);
-  //fprintf(stderr, "test: %f %f %f %f\n", double(test.x), double(test.y), double(test.z),
-  //        double(test.w));
-  //test = glm::make_mat4(modelMatrix) * glm::make_mat4(projMatrix) *
-  //       glm::vec4(verts[2].in_attrpos.x, verts[2].in_attrpos.y, verts[2].in_attrpos.z, 1.0f);
-  //fprintf(stderr, "test: %f %f %f %f\n", double(test.x), double(test.y), double(test.z),
-  //        double(test.w));
-  //test = glm::make_mat4(modelMatrix) * glm::make_mat4(projMatrix) *
-  //       glm::vec4(verts[3].in_attrpos.x, verts[3].in_attrpos.y, verts[3].in_attrpos.z, 1.0f);
-  //fprintf(stderr, "test: %f %f %f %f\n", double(test.x), double(test.y), double(test.z),
-  //        double(test.w));
+  Uniform uniform{};
+  uniform.projectionMatrix = m_renderSystem->m_projectionMatrix;
+  uniform.modelMatrix = m_renderSystem->m_modelMatrix;
+  uniform.viewMatrix = m_renderSystem->m_viewMatrix;
 
-  //ShaderData shaderData{};
-  //shaderData.projectionMatrix = m_camera->matrices.perspective;
-  //shaderData.modelMatrix = m_camera->matrices.view;
-
-  //fprintf(
-  //    stderr, "_matrix_example____________________________________________________________________"
-  //                "_________\n");
-  //test =
-  //    shaderData.modelMatrix * shaderData.projectionMatrix * glm::vec4(verts[0].in_attrpos, 1.0f);
-  //fprintf(stderr, "test: %f %f %f %f\n", double(test.x), double(test.y), double(test.z),
-  //        double(test.w));
-  //test = shaderData.modelMatrix * shaderData.projectionMatrix *
-  //       glm::vec4(verts[1].in_attrpos, 1.0f);
-  //fprintf(stderr, "test: %f %f %f %f\n", double(test.x), double(test.y), double(test.z),
-  //        double(test.w));
-  //test = shaderData.modelMatrix * shaderData.projectionMatrix *
-  //       glm::vec4(verts[2].in_attrpos, 1.0f);
-  //fprintf(stderr, "test: %f %f %f %f\n", double(test.x), double(test.y), double(test.z),
-  //        double(test.w));
-  //test = shaderData.modelMatrix * shaderData.projectionMatrix *
-  //       glm::vec4(verts[3].in_attrpos, 1.0f);
-  //fprintf(stderr, "test: %f %f %f %f\n", double(test.x), double(test.y), double(test.z),
-  //        double(test.w));
-
-  //fprintf(stderr,
-  //        "_matrix_new____________________________________________________________________"
-  //        "_________\n");
-  //test =
-  //    shaderData.modelMatrix * shaderData.projectionMatrix * glm::vec4(verts[0].in_attrpos, 1.0f);
-  //fprintf(stderr, "test: %f %f %f %f\n", double(test.x), double(test.y), double(test.z),
-  //        double(test.w));
-  //test =
-  //    shaderData.modelMatrix * shaderData.projectionMatrix * glm::vec4(verts[1].in_attrpos, 1.0f);
-  //fprintf(stderr, "test: %f %f %f %f\n", double(test.x), double(test.y), double(test.z),
-  //        double(test.w));
-  //test =
-  //    shaderData.modelMatrix * shaderData.projectionMatrix * glm::vec4(verts[2].in_attrpos, 1.0f);
-  //fprintf(stderr, "test: %f %f %f %f\n", double(test.x), double(test.y), double(test.z),
-  //        double(test.w));
-  //test =
-  //    shaderData.modelMatrix * shaderData.projectionMatrix * glm::vec4(verts[3].in_attrpos, 1.0f);
-  //fprintf(stderr, "test: %f %f %f %f\n", double(test.x), double(test.y), double(test.z),
-  //        double(test.w));
-
-
-  //ShaderData shaderData{};
-  //shaderData.projectionMatrix = m_camera->matrices.perspective;
-  //shaderData.modelMatrix = m_camera->matrices.view;
-  //shaderData.projectionMatrix = glm::make_mat4(projMatrix);
-  //shaderData.modelMatrix = glm::make_mat4(modelMatrix);
-
-  ShaderData shaderData{};
-  shaderData.projectionMatrix = m_renderSystem->m_projectionMatrix;
-  shaderData.modelMatrix = m_renderSystem->m_modelMatrix;
-  shaderData.viewMatrix = m_renderSystem->m_viewMatrix;
-
-  m_testShaderTexture->UpdateUniformBuffer(indexBuffer, shaderData);
+  m_shaderTexture->UpdateUniformBuffer(renderImageIndex, uniform);
+#if USE_PARTICLES == 1 && defined(USE_BATCHING)
+  m_shaderTexture->UpdateVerticesBuffer(renderImageIndex, m_packedVertices.data());
+  m_shaderTexture->UpdateIndeciesBuffer(renderImageIndex, m_idx.data(), m_idx.size());
+#endif
 
   VkViewport viewport{.x = x[0],
                       .y = y[0],
@@ -297,22 +278,20 @@ void CVulkanGUITexture::Draw(
   };
   vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
-  // Bind m_descriptor set for the current frame's uniform m_buffer, so the shader uses the data from that m_buffer for this draw
+  // Environment
   vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1,
-                          &m_testShaderTexture->GetUniformBuffer(indexBuffer)->descriptorSet, 0,
+                          &m_shaderTexture->GetUniformBuffer(renderImageIndex)->descriptorSet, 0,
                           nullptr);
-  // Bind the rendering m_pipeline
-  // The m_pipeline (state object) contains all states of the rendering m_pipeline, binding it will set all the states specified at m_pipeline creation time
   vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+
   // Bind triangle vertex m_buffer (contains position and colors)
   VkDeviceSize offsets[1]{0};
-  vkCmdBindVertexBuffers(commandBuffer, 0, 1, &m_testShaderTexture->GetVertexBuffer()->buffer,
-                         offsets);
-  // Bind triangle index m_buffer
-  vkCmdBindIndexBuffer(commandBuffer, m_testShaderTexture->GetIndexBuffer()->buffer, 0,
+  vkCmdBindVertexBuffers(commandBuffer, 0, 1,
+                         &m_shaderTexture->GetVertexBuffer(renderImageIndex)->buffer, offsets);
+  vkCmdBindIndexBuffer(commandBuffer, m_shaderTexture->GetIndexBuffer(renderImageIndex)->buffer, 0,
                        VK_INDEX_TYPE_UINT32);
   // Draw indexed triangle
-  vkCmdDrawIndexed(commandBuffer, m_testShaderTexture->GetIndexBuffer()->size, 1, 0, 0, 0);
+  vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(m_idx.size()), 1, 0, 0, 0);
 }
 
 void CVulkanGUITexture::DrawQuad(const CRect& rect,
@@ -399,55 +378,5 @@ void CVulkanGUITexture::DrawQuad(const CRect& rect,
 
   renderSystem->DisableShader();
 }
-//
-//void CVulkanGUITexture::RenderTriangle(float x, float y, float width, float height)
-//{
-//  VkCommandBuffer commandBuffer = m_renderSystem->vkCurrentCommandBuffer();
-//  VkPipeline pipeline = m_testShaderTexture->VulkanPipeline();
-//  VkPipelineLayout pipelineLayout = m_testShaderTexture->VulkanPipelineLayout();
-//
-//  // Update the uniform m_buffer for the next frame
-//  ShaderData shaderData{};
-//  const float* projMatrix = vulkanMatrixProject.Get();
-//  const float* modelMatrix = vulkanMatrixModview.Get();
-//
-//  memcpy(glm::value_ptr(shaderData.projectionMatrix), projMatrix, 16 * sizeof(float));
-//  memcpy(glm::value_ptr(shaderData.modelMatrix), modelMatrix, 16 * sizeof(float));
-//
-//  //shaderData.projectionMatrix = m_camera->matrices.perspective;
-//  //shaderData.viewMatrix = m_camera->matrices.view;
-//  //shaderData.modelMatrix = glm::mat4(1.0f);
-//
-//
-//  uint32_t indexBuffer = m_renderSystem->vkIndexBuffer();
-//
-//  m_testShaderTexture->UpdateUniformBuffer(indexBuffer, shaderData);
-//
-//  //VkViewport viewport{
-//  //    .x = x, .y = y, .width = width, .height = height, .minDepth = 0.0f, .maxDepth = 1.0f};
-//  //vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
-//  //// Update dynamic scissor state
-//  //VkRect2D scissor{
-//  //    .offset = {.x = static_cast<int32_t>(x), .y = static_cast<int32_t>(y)},
-//  //    .extent = {.width = static_cast<uint32_t>(width), .height = static_cast<uint32_t>(height)},
-//  //};
-//  //vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
-//  // Bind m_descriptor set for the current frame's uniform m_buffer, so the shader uses the data from that m_buffer for this draw
-//  vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1,
-//                          &m_testShaderTexture->GetUniformBuffer(indexBuffer)->descriptorSet, 0,
-//                          nullptr);
-//  // Bind the rendering m_pipeline
-//  // The m_pipeline (state object) contains all states of the rendering m_pipeline, binding it will set all the states specified at m_pipeline creation time
-//  vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
-//  // Bind triangle vertex m_buffer (contains position and colors)
-//  VkDeviceSize offsets[1]{0};
-//  vkCmdBindVertexBuffers(commandBuffer, 0, 1, &m_testShaderTexture->GetVertexBuffer()->buffer,
-//                         offsets);
-//  // Bind triangle index m_buffer
-//  vkCmdBindIndexBuffer(commandBuffer, m_testShaderTexture->GetIndexBuffer()->buffer, 0,
-//                       VK_INDEX_TYPE_UINT32);
-//  // Draw indexed triangle
-//  vkCmdDrawIndexed(commandBuffer, m_testShaderTexture->GetIndexBuffer()->count, 1, 0, 0, 0);
-//}
 
 } // namespace KODI::GUILIB::GRAPHICS::VULKAN

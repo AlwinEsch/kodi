@@ -9,6 +9,7 @@
 #pragma once
 
 #include "rendering/vulkan/VulkanData.h"
+
 #include <memory>
 #include <vector>
 
@@ -97,9 +98,6 @@ public:
                          VkMemoryPropertyFlags properties,
                          VkBool32* memTypeFound = nullptr) const;
 
-  //VkCommandBuffer CreateCommandBuffer(VkCommandPool pool);
-
-  //void FlushCommandBuffer(VkCommandBuffer commandBuffer, VkCommandPool pool);
 
   VkCommandBuffer CreateCommandBuffer(VkCommandBufferLevel level, bool begin = false);
   VkCommandBuffer CreateCommandBuffer(VkCommandBufferLevel level,
@@ -143,9 +141,7 @@ public:
    * @param[in] copyRegion Optional pointer to a VkBufferCopy structure defining the region to copy.
    *                       If nullptr, the entire buffer will be copied.
    */
-  void CopyBuffer(VulkanMemoryData* src,
-                  VulkanMemoryData* dst,
-                  VkBufferCopy* copyRegion = nullptr);
+  void CopyBuffer(VulkanMemoryData* src, VulkanMemoryData* dst, VkBufferCopy* copyRegion = nullptr);
 
   /**
    * @brief Copies data from one Vulkan buffer to another using a specific command pool and queue.
@@ -162,6 +158,31 @@ public:
                   VkCommandPool commandPool,
                   VkQueue queue,
                   VkBufferCopy* copyRegion = nullptr);
+
+  /**
+   * @brief Copies data from multiple Vulkan buffers to their corresponding destination buffers.
+   *
+   * This function available to copy multiple buffers in a single command buffer submission, which can
+   * improve performance by reducing the number of command buffer submissions.
+   *
+   * @param[in] srcDstPairs A vector of pairs of source and destination Vulkan memory data structures.
+   */
+  void CopyBuffers(const std::vector<std::pair<VulkanMemoryData*, VulkanMemoryData*>>& srcDstPairs);
+
+  /**
+   * @brief Copies data from multiple Vulkan buffers to their corresponding destination buffers using
+   * a specific command pool and queue.
+   *
+   * This function available to copy multiple buffers in a single command buffer submission, which can
+   * improve performance by reducing the number of command buffer submissions.
+   *
+   * @param[in] srcDstPairs A vector of pairs of source and destination Vulkan memory data structures.
+   * @param[in] commandPool The Vulkan command pool to use for the copy operation.
+   * @param[in] queue The Vulkan queue to submit the copy command buffer to.
+   */
+  void CopyBuffers(const std::vector<std::pair<VulkanMemoryData*, VulkanMemoryData*>>& srcDstPairs,
+                   VkCommandPool commandPool,
+                   VkQueue queue);
 
   VkResult Map(VulkanMemoryData* data, VkDeviceSize size = VK_WHOLE_SIZE, VkDeviceSize offset = 0);
   void Unmap(VulkanMemoryData* data);

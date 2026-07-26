@@ -373,7 +373,7 @@ public:
   VkCommandPool vkCommandPool() const { return m_vkData.vkCommandPool; }
   VkQueue vkQueue() const { return m_deviceQueue->vkQueue(); }
   VkCommandBuffer vkCurrentCommandBuffer() const { return m_currentVkCommandBuffer; }
-  uint32_t vkIndexBuffer() const { return m_indexBuffer; }
+  uint32_t vkCurrentRenderImageIndex() const { return m_indexBuffer; }
   //@}
 
   //Camera m_camera;

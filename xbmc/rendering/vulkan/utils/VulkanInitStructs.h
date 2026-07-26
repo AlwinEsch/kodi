@@ -169,6 +169,15 @@ inline VkSubmitInfo vkSubmitInfo()
   return submitInfo;
 }
 
+inline VkSubmitInfo vkSubmitInfo(VkCommandBuffer commandBuffer, uint32_t commandBufferCount = 1)
+{
+  VkSubmitInfo submitInfo{};
+  submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+  submitInfo.commandBufferCount = commandBufferCount;
+  submitInfo.pCommandBuffers = &commandBuffer;
+  return submitInfo;
+}
+
 inline VkViewport vkViewport(float width, float height, float minDepth, float maxDepth)
 {
   VkViewport viewport{};

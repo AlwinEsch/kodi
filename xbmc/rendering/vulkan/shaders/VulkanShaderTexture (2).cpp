@@ -264,6 +264,55 @@ void CVulkanShaderTexture::CreateUniformBuffers()
   }
 }
 
+
+
+  // Prepare and initialize the per-frame uniform m_buffer blocks containing shader uniforms
+// Single uniforms like in OpenGL are no longer present in Vulkan. All hader uniforms are passed via uniform m_buffer blocks
+VkMemoryRequirements memReqs;
+
+// Vertex shader uniform m_buffer block
+VkBufferCreateInfo bufferInfo{};
+VkMemoryAllocateInfo allocInfo{};
+allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+allocInfo.pNext = nullptr;
+allocInfo.allocationSize = 0;
+allocInfo.memoryTypeIndex = 0;
+
+bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+bufferInfo.size = sizeof(ShaderData);
+// This m_buffer will be used as a uniform m_buffer
+bufferInfo.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+
+// Create the buffers
+m_uniformBuffers.resize(MAX_CONCURRENT_FRAMES);
+for (uint32_t i = 0; i < MAX_CONCURRENT_FRAMES; i++)
+{
+  VK_CHECK_RESULT(
+      vkCreateBuffer(m_vkData->vkDevice, &bufferInfo, nullptr, &m_uniformBuffers[i].buffer));
+  // Get m_memory requirements including size, alignment and m_memory type
+  vkGetBufferMemoryRequirements(m_vkData->vkDevice, m_uniformBuffers[i].buffer, &memReqs);
+  allocInfo.allocationSize = memReqs.size;
+  // Get the m_memory type index that supports host visible m_memory access
+  // Most implementations offer multiple m_memory types and selecting the correct one to allocate m_memory from is crucial
+  // We also want the m_buffer to be host coherent so we don't have to flush (or sync after every update.
+  // Note: This may affect performance so you might not want to do this in a real world application that updates buffers on a regular base
+  allocInfo.memoryTypeIndex = m_deviceQueue->GetMemoryType(
+      memReqs.memoryTypeBits,
+      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+
+  // Allocate m_memory for the uniform m_buffer
+  VK_CHECK_RESULT(
+      vkAllocateMemory(m_vkData->vkDevice, &allocInfo, nullptr, &(m_uniformBuffers[i].memory)));
+  // Bind m_memory to m_buffer
+  VK_CHECK_RESULT(vkBindBufferMemory(m_vkData->vkDevice, m_uniformBuffers[i].buffer,
+                                     m_uniformBuffers[i].memory, 0));
+  // We map the m_buffer once, so we can update it without having to map it again
+  VK_CHECK_RESULT(vkMapMemory(m_vkData->vkDevice, m_uniformBuffers[i].memory, 0, sizeof(ShaderData),
+                              0, (void**)&m_uniformBuffers[i].mapped));
+}
+
+
+
 void CVulkanShaderTexture::CreateDescriptorSets()
 {
   auto dev = m_vkData->vkDevice;

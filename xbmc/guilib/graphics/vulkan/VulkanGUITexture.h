@@ -22,6 +22,7 @@ namespace KODI::RENDERING::VULKAN
 class CVulkanRenderSystem;
 class CVulkanShaderTexture;
 class Camera;
+struct Vertex;
 } // KODI::RENDERING::VULKAN
 
 
@@ -60,23 +61,14 @@ protected:
 private:
   CVulkanGUITexture(const CVulkanGUITexture& texture) = default;
 
-  //void RenderTriangle(float x, float y, float width, float height);
-
   glm::vec4 m_color{1.0f, 1.0f, 1.0f, 1.0f};
 
-  struct PackedVertex
-  {
-    glm::vec3 pos;
-    glm::vec2 tex1;
-    glm::vec2 tex2;
-  };
-
-  std::vector<PackedVertex> m_packedVertices;
-  std::vector<uint16_t> m_idx;
+  std::vector<KODI::RENDERING::VULKAN::Vertex> m_packedVertices;
+  std::vector<uint32_t> m_idx;
   KODI::RENDERING::VULKAN::CVulkanRenderSystem* m_renderSystem;
+  KODI::RENDERING::VULKAN::CVulkanShaderTexture* m_shaderTexture;
 
-  KODI::RENDERING::VULKAN::Camera* m_camera;
-  KODI::RENDERING::VULKAN::CVulkanShaderTexture* m_testShaderTexture;
+  KODI::RENDERING::VULKAN::Camera* m_camera; // Temporary until we have a proper GUI camera
 };
 
 } // namespace KODI::GUILIB::GRAPHICS::VULKAN

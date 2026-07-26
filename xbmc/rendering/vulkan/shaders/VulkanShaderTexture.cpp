@@ -30,6 +30,14 @@ namespace
 constexpr const char* kVertexShaderFile = "triangle.vert.spv";
 constexpr const char* kFragmentShaderFile = "triangle.frag.spv";
 
+const std::vector<Vertex> defaultVertexBuffer{
+    {{1.0f, 1.0f, 0.0f}, {1.0f, 0.0f, 0.0f, 1.0f}, {0.0f, 0.0f}, {0.0f, 0.0f}},
+    {{-1.0f, 1.0f, 0.0f}, {0.0f, 1.0f, 0.0f, 1.0f}, {0.0f, 0.0f}, {0.0f, 0.0f}},
+    {{-1.0f, -1.0f, 0.0f}, {0.0f, 0.0f, 1.0f, 1.0f}, {0.0f, 0.0f}, {0.0f, 0.0f}},
+    {{1.0f, -1.0f, 0.0f}, {1.0f, 0.0f, 1.0f, 1.0f}, {0.0f, 0.0f}, {0.0f, 0.0f}}};
+
+const std::vector<uint32_t> defaultIndexBuffer{0, 1, 2, 2, 3, 0};
+
 } // namespace
 
 CVulkanShaderTexture::CVulkanShaderTexture(const VulkanData* vkData,
@@ -40,272 +48,153 @@ CVulkanShaderTexture::CVulkanShaderTexture(const VulkanData* vkData,
 
 bool CVulkanShaderTexture::Create()
 {
-  prepareParticles();
-  createVertexBuffer();
-  createUniformBuffers();
-  createDescriptorPool();
-  createDescriptorSets();
+  CreateVertexBuffer();
+  CreateUniformBuffers();
+  SetupDescriptors();
   CreatePipelines();
   return true;
 }
 
 void CVulkanShaderTexture::Destroy()
 {
+  auto dev = m_vkData->vkDevice;
+
   if (m_vkPipeline != VK_NULL_HANDLE)
   {
-    // Destroy the Vulkan pipeline
-    vkDestroyPipeline(m_vkData->vkDevice, m_vkPipeline, nullptr);
+    vkDestroyPipeline(dev, m_vkPipeline, nullptr);
     m_vkPipeline = VK_NULL_HANDLE;
   }
+  if (m_vkPipelineLayout != VK_NULL_HANDLE)
+  {
+    vkDestroyPipelineLayout(dev, m_vkPipelineLayout, nullptr);
+    m_vkPipelineLayout = VK_NULL_HANDLE;
+  }
+  if (m_descrSetLayout != VK_NULL_HANDLE)
+  {
+    vkDestroyDescriptorSetLayout(dev, m_descrSetLayout, nullptr);
+    m_descrSetLayout = VK_NULL_HANDLE;
+  }
+  if (m_descriptorPool != VK_NULL_HANDLE)
+  {
+    vkDestroyDescriptorPool(dev, m_descriptorPool, nullptr);
+    m_descriptorPool = VK_NULL_HANDLE;
+  }
+  for (auto& buffer : m_uniformBuffers)
+  {
+    m_deviceQueue->DestroyBuffer(&buffer);
+    buffer = {};
+  }
+
+#if USE_PARTICLES == 1
+  for (auto& buffer : m_vertexBuffers)
+  {
+    m_deviceQueue->DestroyBuffer(&buffer);
+    buffer = {};
+  }
+  for (auto& buffer : m_indexBuffers)
+  {
+    m_deviceQueue->DestroyBuffer(&buffer);
+    buffer = {};
+  }
+#else
+  m_deviceQueue->DestroyBuffer(&m_vertices);
+  m_deviceQueue->DestroyBuffer(&m_indices);
+#endif
 }
 
-void CVulkanShaderTexture::prepareParticles()
+void CVulkanShaderTexture::CreateVertexBuffer()
 {
-  // One m_buffer per concurrent frame, so we can update one frame while the other is still rendering
-  m_particles.resize(PARTICLE_COUNT);
-  for (auto& buffer : m_particleBuffers)
+#if USE_PARTICLES == 1
+  for (auto& buffer : m_vertexBuffers)
   {
-    buffer.size = m_particles.size() * sizeof(VulkanMemoryData);
-
-    VulkanMemoryData memoryData;
-    memoryData.size = buffer.size;
-    memoryData.memory = buffer.memory;
-    memoryData.mapped = buffer.mapped;
-    memoryData.offset = 0;
-
     VK_CHECK_RESULT(m_deviceQueue->CreateBuffer(
         VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &memoryData,
-        m_particles.size(), m_particles.data()));
-
-    // Map the m_memory and store the pointer for reuse
-    VK_CHECK_RESULT(vkMapMemory(m_vkData->vkDevice, memoryData.memory, 0, memoryData.size, 0,
-                                &memoryData.mapped));
-    buffer.mapped = memoryData.mapped;
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &buffer,
+        sizeof(Vertex) * defaultVertexBuffer.size(), defaultVertexBuffer.data()));
+    // We map the m_buffer once, so we can update it without having to map it again
+    VK_CHECK_RESULT(vkMapMemory(m_vkData->vkDevice, buffer.memory, 0,
+                                sizeof(Vertex) * defaultVertexBuffer.size(), 0,
+                                (void**)&buffer.mapped));
   }
-}
 
-void CVulkanShaderTexture::createVertexBuffer()
-{
-  // A note on m_memory management in Vulkan in general:
-  //	This is a very complex topic and while it's fine for an example application to small individual m_memory allocations that is not
-  //	what should be done a real-world application, where you should allocate large chunks of m_memory at once instead.
-
-  // Setup vertices
-  std::vector<Vertex> m_vertexBuffer{
-      {{1.0f, 1.0f, 0.0f}, {1.0f, 0.0f, 0.0f, 1.0f}, {0.0f, 0.0f}, {0.0f, 0.0f}},
-      {{-1.0f, 1.0f, 0.0f}, {0.0f, 1.0f, 0.0f, 1.0f}, {0.0f, 0.0f}, {0.0f, 0.0f}},
-      {{-1.0f, -1.0f, 0.0f}, {0.0f, 0.0f, 1.0f, 1.0f}, {0.0f, 0.0f}, {0.0f, 0.0f}},
-      {{1.0f, -1.0f, 0.0f}, {1.0f, 0.0f, 1.0f, 1.0f}, {0.0f, 0.0f}, {0.0f, 0.0f}}};
-  uint32_t vertexBufferSize = static_cast<uint32_t>(m_vertexBuffer.size()) * sizeof(Vertex);
-
-  // Setup indices
-  std::vector<uint32_t> m_indexBuffer{0, 1, 2, 2, 3, 0};
-  indices.size = static_cast<uint32_t>(m_indexBuffer.size());
-  uint32_t indexBufferSize = indices.size * sizeof(uint32_t);
-
-  VkMemoryAllocateInfo memAlloc{};
-  memAlloc.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-  VkMemoryRequirements memReqs;
-
-  // Static data like vertex and index m_buffer should be stored on the m_vkData->vkDevice m_memory for optimal (and fastest) access by the GPU
-  //
-  // To achieve this we use so-called "staging buffers" :
-  // - Create a m_buffer that's visible to the host (and can be mapped)
-  // - Copy the data to this m_buffer
-  // - Create another m_buffer that's local on the m_vkData->vkDevice (VRAM) with the same size
-  // - Copy the data from the host to the m_vkData->vkDevice using a command m_buffer
-  // - Delete the host visible (staging) m_buffer
-  // - Use the m_vkData->vkDevice local buffers for rendering
-  //
-  // Note: On unified m_memory architectures where host (CPU) and GPU share the same m_memory, staging is not necessary
-  // To keep this sample easy to follow, there is no check for that in place
-
-  struct StagingBuffer
+  for (auto& buffer : m_indexBuffers)
   {
-    VkDeviceMemory memory;
-    VkBuffer buffer;
-  };
+    VK_CHECK_RESULT(m_deviceQueue->CreateBuffer(
+        VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, &buffer,
+        64 * sizeof(uint32_t) * defaultIndexBuffer.size()));
+    // We map the m_buffer once, so we can update it without having to map it again
+    VK_CHECK_RESULT(vkMapMemory(m_vkData->vkDevice, buffer.memory, 0,
+                                sizeof(uint32_t) * defaultIndexBuffer.size(), 0,
+                                (void**)&buffer.mapped));
+
+    memcpy(buffer.mapped, defaultIndexBuffer.data(), sizeof(uint32_t) * defaultIndexBuffer.size());
+  }
+#else
+  const uint32_t vertexBufferSize =
+      static_cast<uint32_t>(defaultVertexBuffer.size()) * sizeof(Vertex);
+  const uint32_t indexBufferSize =
+      static_cast<uint32_t>(defaultIndexBuffer.size()) * sizeof(uint32_t);
 
   struct
   {
-    StagingBuffer vertices;
-    StagingBuffer indices;
+    VulkanMemoryData vertices;
+    VulkanMemoryData indices;
   } stagingBuffers{};
 
-  void* data;
+  // Host visible source buffers (staging)
+  VK_CHECK_RESULT(m_deviceQueue->CreateBuffer(
+      VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+      &stagingBuffers.vertices, vertexBufferSize, defaultVertexBuffer.data()));
+  VK_CHECK_RESULT(m_deviceQueue->CreateBuffer(
+      VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+      &stagingBuffers.indices, indexBufferSize, defaultIndexBuffer.data()));
 
-  // Vertex m_buffer
-  VkBufferCreateInfo vertexBufferInfoCI{};
-  vertexBufferInfoCI.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-  vertexBufferInfoCI.size = vertexBufferSize;
-  // Buffer is used as the copy source
-  vertexBufferInfoCI.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-  // Create a host-visible m_buffer to copy the vertex data to (staging m_buffer)
-  VK_CHECK_RESULT(vkCreateBuffer(m_vkData->vkDevice, &vertexBufferInfoCI, nullptr,
-                                 &stagingBuffers.vertices.buffer));
-  vkGetBufferMemoryRequirements(m_vkData->vkDevice, stagingBuffers.vertices.buffer, &memReqs);
-  memAlloc.allocationSize = memReqs.size;
-  // Request a host visible m_memory type that can be used to copy our data to
-  // Also request it to be coherent, so that writes are visible to the GPU right after unmapping the m_buffer
-  memAlloc.memoryTypeIndex = m_deviceQueue->GetMemoryType(memReqs.memoryTypeBits,
-                                                          VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-                                                              VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-  VK_CHECK_RESULT(
-      vkAllocateMemory(m_vkData->vkDevice, &memAlloc, nullptr, &stagingBuffers.vertices.memory));
-  // Map and copy
-  VK_CHECK_RESULT(vkMapMemory(m_vkData->vkDevice, stagingBuffers.vertices.memory, 0,
-                              memAlloc.allocationSize, 0, &data));
-  memcpy(data, m_vertexBuffer.data(), vertexBufferSize);
-  vkUnmapMemory(m_vkData->vkDevice, stagingBuffers.vertices.memory);
-  VK_CHECK_RESULT(vkBindBufferMemory(m_vkData->vkDevice, stagingBuffers.vertices.buffer,
-                                     stagingBuffers.vertices.memory, 0));
+  // Device local destination buffers
+  VK_CHECK_RESULT(m_deviceQueue->CreateBuffer(
+      VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &m_vertices, vertexBufferSize, nullptr));
+  VK_CHECK_RESULT(m_deviceQueue->CreateBuffer(
+      VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &m_indices, indexBufferSize, nullptr));
 
-  // Create a m_vkData->vkDevice local m_buffer to which the (host local) vertex data will be copied and which will be used for rendering
-  vertexBufferInfoCI.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
-  VK_CHECK_RESULT(
-      vkCreateBuffer(m_vkData->vkDevice, &vertexBufferInfoCI, nullptr, &vertices.buffer));
-  vkGetBufferMemoryRequirements(m_vkData->vkDevice, vertices.buffer, &memReqs);
-  memAlloc.allocationSize = memReqs.size;
-  memAlloc.memoryTypeIndex =
-      m_deviceQueue->GetMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-  VK_CHECK_RESULT(vkAllocateMemory(m_vkData->vkDevice, &memAlloc, nullptr, &vertices.memory));
-  VK_CHECK_RESULT(vkBindBufferMemory(m_vkData->vkDevice, vertices.buffer, vertices.memory, 0));
+  // Copy from host do device
+  std::vector<std::pair<VulkanMemoryData*, VulkanMemoryData*>> srcDstPairs = {
+      //{&stagingBuffers.vertices, &m_vertices},
+      {&stagingBuffers.indices, &m_indices},
+  };
+  m_deviceQueue->CopyBuffers(srcDstPairs);
 
-  // Index m_buffer
-  VkBufferCreateInfo indexbufferCI{};
-  indexbufferCI.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-  indexbufferCI.size = indexBufferSize;
-  indexbufferCI.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
-  // Copy index data to a m_buffer visible to the host (staging m_buffer)
-  VK_CHECK_RESULT(
-      vkCreateBuffer(m_vkData->vkDevice, &indexbufferCI, nullptr, &stagingBuffers.indices.buffer));
-  vkGetBufferMemoryRequirements(m_vkData->vkDevice, stagingBuffers.indices.buffer, &memReqs);
-  memAlloc.allocationSize = memReqs.size;
-  memAlloc.memoryTypeIndex = m_deviceQueue->GetMemoryType(memReqs.memoryTypeBits,
-                                                          VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-                                                              VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-  VK_CHECK_RESULT(
-      vkAllocateMemory(m_vkData->vkDevice, &memAlloc, nullptr, &stagingBuffers.indices.memory));
-  VK_CHECK_RESULT(
-      vkMapMemory(m_vkData->vkDevice, stagingBuffers.indices.memory, 0, indexBufferSize, 0, &data));
-  memcpy(data, m_indexBuffer.data(), indexBufferSize);
-  vkUnmapMemory(m_vkData->vkDevice, stagingBuffers.indices.memory);
-  VK_CHECK_RESULT(vkBindBufferMemory(m_vkData->vkDevice, stagingBuffers.indices.buffer,
-                                     stagingBuffers.indices.memory, 0));
-
-  // Create destination m_buffer with m_vkData->vkDevice only visibility
-  indexbufferCI.usage = VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
-  VK_CHECK_RESULT(vkCreateBuffer(m_vkData->vkDevice, &indexbufferCI, nullptr, &indices.buffer));
-  vkGetBufferMemoryRequirements(m_vkData->vkDevice, indices.buffer, &memReqs);
-  memAlloc.allocationSize = memReqs.size;
-  memAlloc.memoryTypeIndex =
-      m_deviceQueue->GetMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
-  VK_CHECK_RESULT(vkAllocateMemory(m_vkData->vkDevice, &memAlloc, nullptr, &indices.memory));
-  VK_CHECK_RESULT(vkBindBufferMemory(m_vkData->vkDevice, indices.buffer, indices.memory, 0));
-
-  // Buffer copies have to be submitted to a m_queue, so we need a command m_buffer for them
-  // Note: Some devices offer a dedicated transfer m_queue (with only the transfer bit set) that may be faster when doing lots of copies
-  VkCommandBuffer copyCmd;
-
-  VkCommandBufferAllocateInfo cmdBufAllocateInfo{};
-  cmdBufAllocateInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-  cmdBufAllocateInfo.commandPool = m_vkData->vkCommandPool;
-  cmdBufAllocateInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-  cmdBufAllocateInfo.commandBufferCount = 1;
-  VK_CHECK_RESULT(vkAllocateCommandBuffers(m_vkData->vkDevice, &cmdBufAllocateInfo, &copyCmd));
-
-  VkCommandBufferBeginInfo cmdBufInfo = vkCommandBufferBeginInfo();
-  VK_CHECK_RESULT(vkBeginCommandBuffer(copyCmd, &cmdBufInfo));
-  // Put m_buffer region copies into command m_buffer
-  VkBufferCopy copyRegion{};
-  // Vertex m_buffer
-  copyRegion.size = vertexBufferSize;
-  vkCmdCopyBuffer(copyCmd, stagingBuffers.vertices.buffer, vertices.buffer, 1, &copyRegion);
-  // Index m_buffer
-  copyRegion.size = indexBufferSize;
-  vkCmdCopyBuffer(copyCmd, stagingBuffers.indices.buffer, indices.buffer, 1, &copyRegion);
-  VK_CHECK_RESULT(vkEndCommandBuffer(copyCmd));
-
-  // Submit the command m_buffer to the m_queue to finish the copy
-  VkSubmitInfo submitInfo{};
-  submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-  submitInfo.commandBufferCount = 1;
-  submitInfo.pCommandBuffers = &copyCmd;
-
-  // Create fence to ensure that the command m_buffer has finished executing
-  VkFenceCreateInfo fenceCI{};
-  fenceCI.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-  fenceCI.flags = 0;
-  VkFence fence;
-  VK_CHECK_RESULT(vkCreateFence(m_vkData->vkDevice, &fenceCI, nullptr, &fence));
-
-  // Submit to the m_queue
-  VK_CHECK_RESULT(vkQueueSubmit(m_vkData->vkQueue, 1, &submitInfo, fence));
-  // Wait for the fence to signal that command m_buffer has finished executing
-  VK_CHECK_RESULT(vkWaitForFences(m_vkData->vkDevice, 1, &fence, VK_TRUE, DEFAULT_FENCE_TIMEOUT));
-
-  vkDestroyFence(m_vkData->vkDevice, fence, nullptr);
-  vkFreeCommandBuffers(m_vkData->vkDevice, m_vkData->vkCommandPool, 1, &copyCmd);
-
-  // Destroy staging buffers
-  // Note: Staging m_buffer must not be deleted before the copies have been submitted and executed
-  vkDestroyBuffer(m_vkData->vkDevice, stagingBuffers.vertices.buffer, nullptr);
-  vkFreeMemory(m_vkData->vkDevice, stagingBuffers.vertices.memory, nullptr);
-  vkDestroyBuffer(m_vkData->vkDevice, stagingBuffers.indices.buffer, nullptr);
-  vkFreeMemory(m_vkData->vkDevice, stagingBuffers.indices.memory, nullptr);
+  // Clean up
+  m_deviceQueue->DestroyBuffer(&stagingBuffers.vertices);
+  m_deviceQueue->DestroyBuffer(&stagingBuffers.indices);
+#endif
 }
 
-void CVulkanShaderTexture::createUniformBuffers()
+void CVulkanShaderTexture::CreateUniformBuffers()
 {
-  // Prepare and initialize the per-frame uniform m_buffer blocks containing shader uniforms
-  // Single uniforms like in OpenGL are no longer present in Vulkan. All hader uniforms are passed via uniform m_buffer blocks
-  VkMemoryRequirements memReqs;
-
-  // Vertex shader uniform m_buffer block
-  VkBufferCreateInfo bufferInfo{};
-  VkMemoryAllocateInfo allocInfo{};
-  allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-  allocInfo.pNext = nullptr;
-  allocInfo.allocationSize = 0;
-  allocInfo.memoryTypeIndex = 0;
-
-  bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-  bufferInfo.size = sizeof(ShaderData);
-  // This m_buffer will be used as a uniform m_buffer
-  bufferInfo.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
-
   // Create the buffers
-  m_uniformBuffers.resize(MAX_CONCURRENT_FRAMES);
-  for (uint32_t i = 0; i < MAX_CONCURRENT_FRAMES; i++)
+  for (auto& buffer : m_uniformBuffers)
   {
-    VK_CHECK_RESULT(
-        vkCreateBuffer(m_vkData->vkDevice, &bufferInfo, nullptr, &m_uniformBuffers[i].buffer));
-    // Get m_memory requirements including size, alignment and m_memory type
-    vkGetBufferMemoryRequirements(m_vkData->vkDevice, m_uniformBuffers[i].buffer, &memReqs);
-    allocInfo.allocationSize = memReqs.size;
-    // Get the m_memory type index that supports host visible m_memory access
-    // Most implementations offer multiple m_memory types and selecting the correct one to allocate m_memory from is crucial
-    // We also want the m_buffer to be host coherent so we don't have to flush (or sync after every update.
-    // Note: This may affect performance so you might not want to do this in a real world application that updates buffers on a regular base
-    allocInfo.memoryTypeIndex = m_deviceQueue->GetMemoryType(
-        memReqs.memoryTypeBits,
-        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    VK_CHECK_RESULT(m_deviceQueue->CreateBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                                                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                                                    VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                                                &buffer, sizeof(Uniform), nullptr));
 
-    // Allocate m_memory for the uniform m_buffer
-    VK_CHECK_RESULT(
-        vkAllocateMemory(m_vkData->vkDevice, &allocInfo, nullptr, &(m_uniformBuffers[i].memory)));
     // Bind m_memory to m_buffer
-    VK_CHECK_RESULT(vkBindBufferMemory(m_vkData->vkDevice, m_uniformBuffers[i].buffer,
-                                       m_uniformBuffers[i].memory, 0));
+    VK_CHECK_RESULT(vkBindBufferMemory(m_vkData->vkDevice, buffer.buffer, buffer.memory, 0));
     // We map the m_buffer once, so we can update it without having to map it again
-    VK_CHECK_RESULT(vkMapMemory(m_vkData->vkDevice, m_uniformBuffers[i].memory, 0,
-                                sizeof(ShaderData), 0, (void**)&m_uniformBuffers[i].mapped));
+    VK_CHECK_RESULT(vkMapMemory(m_vkData->vkDevice, buffer.memory, 0, sizeof(Uniform), 0,
+                                (void**)&buffer.mapped));
   }
 }
 
-void CVulkanShaderTexture::createDescriptorPool()
+void CVulkanShaderTexture::SetupDescriptors()
 {
+  auto dev = m_vkData->vkDevice;
+
   std::vector<VkDescriptorPoolSize> descriptorTypeCounts{
       {
           .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
@@ -327,13 +216,7 @@ void CVulkanShaderTexture::createDescriptorPool()
   // Set the max. number of descriptor sets that can be requested from this pool (requesting beyond this limit will result in an error)
   // Our sample will create one set per uniform buffer per frame
   descriptorPoolCI.maxSets = MAX_CONCURRENT_FRAMES;
-  VK_CHECK_RESULT(
-      vkCreateDescriptorPool(m_vkData->vkDevice, &descriptorPoolCI, nullptr, &m_descriptorPool));
-}
-
-void CVulkanShaderTexture::createDescriptorSets()
-{
-  auto dev = m_vkData->vkDevice;
+  VK_CHECK_RESULT(vkCreateDescriptorPool(dev, &descriptorPoolCI, nullptr, &m_descriptorPool));
 
   // Layout
   std::vector<VkDescriptorSetLayoutBinding> bindings{
@@ -368,7 +251,7 @@ void CVulkanShaderTexture::createDescriptorSets()
     VkDescriptorBufferInfo bufferInfo{
         .buffer = m_uniformBuffers[i].buffer,
         .offset = 0,
-        .range = sizeof(ShaderData),
+        .range = sizeof(Uniform),
     };
 
     // Update the m_descriptor set determining the shader binding points
@@ -388,19 +271,22 @@ void CVulkanShaderTexture::createDescriptorSets()
             .pBufferInfo = &bufferInfo,
             .pTexelBufferView = nullptr,
         },
-        //{
-        //    // Binding 1 : Fragment shader texture sampler
-        //    .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-        //    .pNext = nullptr,
-        //    .dstSet = m_uniformBuffers[i].descriptorSet,
-        //    .dstBinding = 1,
-        //    .dstArrayElement = 0,
-        //    .descriptorCount = 1,
-        //    .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-        //    .pImageInfo = &m_textureDescriptor,
-        //    .pBufferInfo = nullptr,
-        //    .pTexelBufferView = nullptr,
-        //},
+#if 0
+        // Done within the texture class, so we don't need to do it here
+        {
+            // Binding 1 : Fragment shader texture sampler
+            .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+            .pNext = nullptr,
+            .dstSet = m_uniformBuffers[i].descriptorSet,
+            .dstBinding = 1,
+            .dstArrayElement = 0,
+            .descriptorCount = 1,
+            .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+            .pImageInfo = &m_textureDescriptor,
+            .pBufferInfo = nullptr,
+            .pTexelBufferView = nullptr,
+        },
+#endif
     };
     vkUpdateDescriptorSets(dev, static_cast<uint32_t>(descSets.size()), descSets.data(), 0,
                            nullptr);
@@ -456,33 +342,40 @@ void CVulkanShaderTexture::CreatePipelines()
     return;
   }
 
-  auto pipelineCI = vkPipelineCreateInfo(m_vkPipelineLayout, m_renderPass);
-  pipelineCI.stageCount = static_cast<uint32_t>(shaderStages.size());
-  pipelineCI.pStages = shaderStages.data();
-  pipelineCI.pVertexInputState = &inputState;
-  pipelineCI.pInputAssemblyState = &inputAssembly;
-  pipelineCI.pRasterizationState = &raster;
-  pipelineCI.pColorBlendState = &colorBlendState;
-  pipelineCI.pMultisampleState = &multisampleState;
-  pipelineCI.pViewportState = &viewportState;
-  pipelineCI.pDepthStencilState = &depthStencilState;
-  pipelineCI.pDynamicState = &dynState;
+  auto pipeline = vkPipelineCreateInfo(m_vkPipelineLayout, m_renderPass);
+  pipeline.stageCount = static_cast<uint32_t>(shaderStages.size());
+  pipeline.pStages = shaderStages.data();
+  pipeline.pVertexInputState = &inputState;
+  pipeline.pInputAssemblyState = &inputAssembly;
+  pipeline.pRasterizationState = &raster;
+  pipeline.pColorBlendState = &colorBlendState;
+  pipeline.pMultisampleState = &multisampleState;
+  pipeline.pViewportState = &viewportState;
+  pipeline.pDepthStencilState = &depthStencilState;
+  pipeline.pDynamicState = &dynState;
   VK_CHECK_RESULT(vkCreateGraphicsPipelines(m_vkData->vkDevice, m_vkData->vkPipelineCache, 1,
-                                            &pipelineCI, nullptr, &m_vkPipeline));
+                                            &pipeline, nullptr, &m_vkPipeline));
 
   // Shader modules are no longer needed once the graphics m_pipeline has been created
   UnloadShader(shaderStages[0]);
   UnloadShader(shaderStages[1]);
 }
 
-void CVulkanShaderTexture::UpdateUniformBuffer(uint32_t index, const ShaderData& shaderData)
+void CVulkanShaderTexture::UpdateUniformBuffer(uint32_t index, const Uniform& uniformData)
 {
-  memcpy(m_uniformBuffers[index].mapped, &shaderData, sizeof(ShaderData));
+  memcpy(m_uniformBuffers[index].mapped, &uniformData, sizeof(Uniform));
 }
 
-void CVulkanShaderTexture::UpdateVerticesBuffer(uint32_t index, const Vertex& vertices)
+#if USE_PARTICLES == 1
+void CVulkanShaderTexture::UpdateVerticesBuffer(uint32_t index, const Vertex* vertices)
 {
-  memcpy(m_particleBuffers[index].mapped, &vertices, sizeof(Vertex));
+  memcpy(m_vertexBuffers[index].mapped, vertices, sizeof(Vertex) * defaultVertexBuffer.size());
 }
+
+void CVulkanShaderTexture::UpdateIndeciesBuffer(uint32_t index, const uint32_t* indices, size_t count)
+{
+  memcpy(m_indexBuffers[index].mapped, indices, sizeof(uint32_t) * count);
+}
+#endif
 
 } // namespace KODI::RENDERING::VULKAN

@@ -488,18 +488,18 @@ VkResult CVulkanDeviceQueue::CreateBuffer(VkBufferUsageFlags usageFlags,
   VkMemoryRequirements memReqs;
   vkGetBufferMemoryRequirements(m_vkDevice, memoryData->buffer, &memReqs);
 
-  auto memAlloc = vkMemoryAllocateInfo();
-  memAlloc.allocationSize = memReqs.size;
-  memAlloc.memoryTypeIndex = GetMemoryType(memReqs.memoryTypeBits, memoryPropertyFlags);
+  auto allocInfo = vkMemoryAllocateInfo();
+  allocInfo.allocationSize = memReqs.size;
+  allocInfo.memoryTypeIndex = GetMemoryType(memReqs.memoryTypeBits, memoryPropertyFlags);
 
   VkMemoryAllocateFlagsInfo allocFlagsInfo{};
   if (usageFlags & VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT)
   {
     allocFlagsInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_FLAGS_INFO;
     allocFlagsInfo.flags = VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT;
-    memAlloc.pNext = &allocFlagsInfo;
+    allocInfo.pNext = &allocFlagsInfo;
   }
-  VK_CHECK_RESULT(vkAllocateMemory(m_vkDevice, &memAlloc, nullptr, &memoryData->memory), res);
+  VK_CHECK_RESULT(vkAllocateMemory(m_vkDevice, &allocInfo, nullptr, &memoryData->memory), res);
 
   // If a pointer to the buffer data has been passed, map the buffer and copy over the data
   if (data != nullptr)
@@ -524,6 +524,9 @@ VkResult CVulkanDeviceQueue::CreateBuffer(VkBufferUsageFlags usageFlags,
 
   // Attach the memory to the buffer object
   VK_CHECK_RESULT(vkBindBufferMemory(m_vkDevice, memoryData->buffer, memoryData->memory, 0), res);
+
+  memoryData->size = size;
+  memoryData->offset = 0;
 
   return VK_SUCCESS;
 }
@@ -569,6 +572,34 @@ void CVulkanDeviceQueue::CopyBuffer(VulkanMemoryData* src,
   }
 
   vkCmdCopyBuffer(copyCmd, src->buffer, dst->buffer, 1, &bufferCopy);
+
+  FlushCommandBuffer(copyCmd, commandPool, queue, true);
+}
+
+void CVulkanDeviceQueue::CopyBuffers(
+    const std::vector<std::pair<VulkanMemoryData*, VulkanMemoryData*>>& srcDstPairs)
+{
+  CopyBuffers(srcDstPairs, m_commandPool->vkCommandPool(), m_vkQueue);
+}
+
+void CVulkanDeviceQueue::CopyBuffers(
+    const std::vector<std::pair<VulkanMemoryData*, VulkanMemoryData*>>& srcDstPairs,
+    VkCommandPool commandPool,
+    VkQueue queue)
+{
+  VkCommandBuffer copyCmd = CreateCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY, commandPool, true);
+
+  for (const auto& pair : srcDstPairs)
+  {
+    VulkanMemoryData* src = pair.first;
+    VulkanMemoryData* dst = pair.second;
+    assert(dst->size >= src->size);
+    assert(src->buffer);
+
+    VkBufferCopy bufferCopy{};
+    bufferCopy.size = src->size;
+    vkCmdCopyBuffer(copyCmd, src->buffer, dst->buffer, 1, &bufferCopy);
+  }
 
   FlushCommandBuffer(copyCmd, commandPool, queue, true);
 }

@@ -17,6 +17,8 @@
 
 #include <glm/glm.hpp>
 
+#define USE_PARTICLES 1
+
 namespace KODI::RENDERING::VULKAN
 {
 
@@ -28,20 +30,19 @@ constexpr auto MAX_CONCURRENT_FRAMES = 3;
 constexpr auto PARTICLE_COUNT = 512;
 
 // Vertex layout used in this example
-//struct Vertex
-//{
-//  float position[3];
-//  float color[3];
-//  float in_attrcord0[2];
-//  float in_attrcord1[2];
-//};
-
 struct Vertex
 {
   glm::vec3 in_attrpos;
   glm::vec4 in_attrcol;
   glm::vec2 in_attrcord0;
   glm::vec2 in_attrcord1;
+};
+
+struct Uniform
+{
+  glm::mat4 projectionMatrix;
+  glm::mat4 modelMatrix;
+  glm::mat4 viewMatrix;
 };
 
 struct Texture
@@ -54,26 +55,6 @@ struct Texture
   uint32_t width{0};
   uint32_t height{0};
   uint32_t mipLevels{0};
-};
-
-
-
-// For simplicity we use the same uniform block layout as in the shader:
-//
-//	layout(set = 0, binding = 0) uniform UBO
-//	{
-//		mat4 projectionMatrix;
-//		mat4 modelMatrix;
-//		mat4 viewMatrix;
-//	} ubo;
-//
-// This way we can just memcopy the ubo data to the ubo
-// Note: You should use data types that align with the GPU in order to avoid manual padding (vec4, mat4)
-struct ShaderData
-{
-  glm::mat4 projectionMatrix;
-  glm::mat4 modelMatrix;
-  glm::mat4 viewMatrix;
 };
 
 class CVulkanDeviceQueue;
@@ -91,19 +72,22 @@ public:
   VkPipeline VulkanPipeline() const override { return m_vkPipeline; }
   VkPipelineLayout VulkanPipelineLayout() const { return m_vkPipelineLayout; }
   VulkanMemoryData* GetUniformBuffer(uint32_t index) { return &m_uniformBuffers[index]; }
-  void UpdateUniformBuffer(uint32_t index, const ShaderData& shaderData);
-  void UpdateVerticesBuffer(uint32_t index, const Vertex& vertices);
+#if USE_PARTICLES == 1
+  VulkanMemoryData* GetVertexBuffer(uint32_t index) { return &m_vertexBuffers[index]; }
+  VulkanMemoryData* GetIndexBuffer(uint32_t index) { return &m_indexBuffers[index]; }
+  void UpdateVerticesBuffer(uint32_t index, const Vertex* vertices);
+  void UpdateIndeciesBuffer(uint32_t index, const uint32_t* indices, size_t count);
+#else
+  VulkanMemoryData* GetVertexBuffer() { return &m_vertices; }
+  VulkanMemoryData* GetIndexBuffer() { return &m_indices; }
+#endif
 
-  VulkanMemoryData* GetVertexBuffer() { return &vertices; }
-  VulkanMemoryData* GetIndexBuffer() { return &indices; }
+  void UpdateUniformBuffer(uint32_t index, const Uniform& uniform);
 
 private:
-  void prepareParticles();
-  void createVertexBuffer();
-  void createUniformBuffers();
-  void createDescriptorSetLayout();
-  void createDescriptorPool();
-  void createDescriptorSets();
+  void CreateVertexBuffer();
+  void CreateUniformBuffers();
+  void SetupDescriptors();
   void CreatePipelines();
 
   VkPipeline m_vkPipeline{VK_NULL_HANDLE};
@@ -112,18 +96,14 @@ private:
   VkRenderPass m_renderPass{VK_NULL_HANDLE};
   VkDescriptorPool m_descriptorPool{VK_NULL_HANDLE};
 
-
-  VulkanMemoryData vertices;
-  VulkanMemoryData indices;
-
-  // We use one UBO per frame, so we can have a frame overlap and make sure that uniforms aren't updated while still in use
-  std::vector<VulkanMemoryData> m_uniformBuffers;
-  std::vector<VulkanMemoryData> m_particles{};
-
-  Texture m_texture{};
-
-
-  std::array<VulkanMemoryData, MAX_CONCURRENT_FRAMES> m_particleBuffers;
+  std::array<VulkanMemoryData, MAX_CONCURRENT_FRAMES> m_uniformBuffers;
+#if USE_PARTICLES == 1
+  std::array<VulkanMemoryData, MAX_CONCURRENT_FRAMES> m_vertexBuffers;
+  std::array<VulkanMemoryData, MAX_CONCURRENT_FRAMES> m_indexBuffers;
+#else
+  VulkanMemoryData m_vertices;
+  VulkanMemoryData m_indices;
+#endif
 };
 
 } // namespace KODI::RENDERING::VULKAN
