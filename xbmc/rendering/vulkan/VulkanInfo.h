@@ -18,10 +18,6 @@ namespace RENDERING
 namespace VULKAN
 {
 
-constexpr const uint32_t REQUIRED_VK_API_VERSION{VK_API_VERSION_1_2};
-constexpr const uint32_t MIN_DESCRIPTORS_PER_TYPE = 8u; // Allow up to 8 buffers by default.
-constexpr const uint32_t MAX_TEXTURES = (16u * 4096u);
-
 struct CVulkanPhysicalDeviceInfo
 {
   VkPhysicalDevice device{VK_NULL_HANDLE};

@@ -292,69 +292,29 @@ void CVulkanTexture::LoadToGPU()
 
   //--------------------------------------------------------------------------------
 
-  CVulkanShaderTexture* shader = dynamic_cast<CVulkanShaderTexture*>(
-      m_renderSystem->ShaderControl()->GetShader(VULKAN_SM_TEXTURE));
-
-  // Setup a m_descriptor image info for the current m_texture to be used as a m_descriptor for a combined image sampler
   VkDescriptorImageInfo textureDescriptor{};
-  // The image's view (images are never directly accessed by the shader, but rather through views defining subresources)
   textureDescriptor.imageView = m_imageView;
-  // The sampler (Telling the m_pipeline how to sample the m_texture, including repeat, border, etc.)
-  textureDescriptor.sampler = m_sampler;
-  // The current layout of the image(Note: Should always fit the actual use, e.g.shader read)
+  textureDescriptor.sampler = m_vkData->vkLinearSampler;
   textureDescriptor.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
-  // Allocate one m_descriptor set per frame from the global m_descriptor pool
-  for (uint32_t i = 0; i < MAX_CONCURRENT_FRAMES; i++)
-  {
-    //VkDescriptorSetAllocateInfo allocInfo{};
-    //allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-    //allocInfo.descriptorPool = m_descriptorPool;
-    //allocInfo.descriptorSetCount = 1;
-    //allocInfo.pSetLayouts = &m_descriptorSetLayout;
-    //VK_CHECK_RESULT(vkAllocateDescriptorSets(m_vkData->vkDevice, &allocInfo,
-    //                                         &m_uniformBuffers[i].descriptorSet));
+  VkDescriptorSetAllocateInfo descAllocInfo{};
+  descAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+  descAllocInfo.descriptorPool = m_vkData->vkDescriptorPool;
+  descAllocInfo.descriptorSetCount = 1;
+  descAllocInfo.pSetLayouts = &m_vkData->vkDescriptorSetLayout_Texture;
 
-    //// The m_buffer's information is passed using a m_descriptor info structure
-    //VkDescriptorBufferInfo bufferInfo{};
-    //bufferInfo.buffer = m_uniformBuffers[i].buffer;
-    //bufferInfo.range = sizeof(ShaderData);
+  VK_CHECK_RESULT(vkAllocateDescriptorSets(m_vkData->vkDevice, &descAllocInfo, &m_descriptorSet));
 
-    // Update the m_descriptor set determining the shader binding points
-    // For every binding point used in a shader there needs to be one
-    // m_descriptor set matching that binding point
-    VulkanMemoryData* buffer = shader->GetUniformBuffer(i);
-    std::vector<VkWriteDescriptorSet> writeDescriptorSets = {
-        //{
-        //    // Binding 0 : Uniform m_buffer
-        //    .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-        //    .pNext = nullptr,
-        //    .dstSet = m_uniformBuffers[i].descriptorSet,
-        //    .dstBinding = 0,
-        //    .dstArrayElement = 0,
-        //    .descriptorCount = 1,
-        //    .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-        //    .pImageInfo = nullptr,
-        //    .pBufferInfo = &bufferInfo,
-        //    .pTexelBufferView = nullptr,
-        //},
-        {
-            // Binding 1 : Fragment shader texture sampler
-            .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-            .pNext = nullptr,
-            .dstSet = buffer->descriptorSet,
-            .dstBinding = 1,
-            .dstArrayElement = 0,
-            .descriptorCount = 1,
-            .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-            .pImageInfo = &textureDescriptor,
-            .pBufferInfo = nullptr,
-            .pTexelBufferView = nullptr,
-        },
-    };
-    vkUpdateDescriptorSets(m_vkData->vkDevice, static_cast<uint32_t>(writeDescriptorSets.size()),
-                           writeDescriptorSets.data(), 0, nullptr);
-  }
+  VkWriteDescriptorSet writeDesc{};
+  writeDesc.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+  writeDesc.dstSet = m_descriptorSet;
+  writeDesc.dstBinding = 0;
+  writeDesc.dstArrayElement = 0;
+  writeDesc.descriptorCount = 1;
+  writeDesc.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+  writeDesc.pImageInfo = &textureDescriptor;
+
+  vkUpdateDescriptorSets(m_vkData->vkDevice, 1, &writeDesc, 0, nullptr);
 
   if (!m_bCacheMemory)
   {

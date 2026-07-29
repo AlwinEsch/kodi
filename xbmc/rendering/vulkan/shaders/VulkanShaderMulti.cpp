@@ -24,20 +24,4 @@ CVulkanShaderMulti::CVulkanShaderMulti(const VulkanData* vkData,
 {
 }
 
-bool CVulkanShaderMulti::Create()
-{
-
-  return true;
-}
-
-void CVulkanShaderMulti::Destroy()
-{
-  if (m_vkPipeline != VK_NULL_HANDLE)
-  {
-    // Destroy the Vulkan pipeline
-    vkDestroyPipeline(m_vkData->vkDevice, m_vkPipeline, nullptr);
-    m_vkPipeline = VK_NULL_HANDLE;
-  }
-}
-
 } // namespace KODI::RENDERING::VULKAN

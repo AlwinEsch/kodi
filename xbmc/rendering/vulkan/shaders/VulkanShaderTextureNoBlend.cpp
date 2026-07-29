@@ -26,19 +26,4 @@ CVulkanShaderTextureNoBlend::CVulkanShaderTextureNoBlend(const VulkanData* vkDat
 {
 }
 
-bool CVulkanShaderTextureNoBlend::Create()
-{
-  return true;
-}
-
-void CVulkanShaderTextureNoBlend::Destroy()
-{
-  if (m_vkPipeline != VK_NULL_HANDLE)
-  {
-    // Destroy the Vulkan pipeline
-    vkDestroyPipeline(m_vkData->vkDevice, m_vkPipeline, nullptr);
-    m_vkPipeline = VK_NULL_HANDLE;
-  }
-}
-
 } // namespace KODI::RENDERING::VULKAN

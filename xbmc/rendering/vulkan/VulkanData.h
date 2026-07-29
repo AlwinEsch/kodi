@@ -8,10 +8,22 @@
 
 #pragma once
 
+#include <glm/glm.hpp>
 #include <vulkan/vulkan_core.h>
 
 namespace KODI::RENDERING::VULKAN
 {
+
+constexpr const uint32_t REQUIRED_VK_API_VERSION{VK_API_VERSION_1_2};
+constexpr const uint32_t MIN_DESCRIPTORS_PER_TYPE = 16u;
+constexpr const uint32_t MAX_SANITY_LIGHTMAPS = 256;
+constexpr const uint32_t MAX_TEXTURES = (16u * 4096u);
+constexpr const uint32_t MAX_UNIFORM_ALLOC = 2048u;
+
+// We want to keep GPU and CPU busy. To do that we may start building a new command m_buffer while the previous one is still being executed
+// This number defines how many frames may be worked on simultaneously at once
+// Increasing this number may improve performance but will also introduce additional latency
+constexpr const uint32_t MAX_CONCURRENT_FRAMES = 3u;
 
 /**
  * @brief Structure to hold Vulkan memory data.
@@ -63,16 +75,34 @@ struct VulkanMemoryData
   void* mapped{nullptr};
 };
 
+struct VulkanUniform
+{
+  glm::mat4 projectionMatrix;
+  glm::mat4 modelMatrix;
+  float depth;
+};
+
 struct VulkanData
 {
+  VkInstance vkInstance{VK_NULL_HANDLE};
+  VkDevice vkDevice{VK_NULL_HANDLE};
+  VkPhysicalDevice vkPhysicalDevice{VK_NULL_HANDLE};
   VkSurfaceKHR vkSurface{VK_NULL_HANDLE};
   VkSurfaceFormatKHR vkSurfaceFormat{};
-  VkDevice vkDevice{VK_NULL_HANDLE};
   VkCommandPool vkCommandPool{VK_NULL_HANDLE};
   VkPipelineCache vkPipelineCache{VK_NULL_HANDLE};
   VkRenderPass vkRenderPass{VK_NULL_HANDLE};
   VkQueue vkQueue{VK_NULL_HANDLE};
-  //VkDescriptorPool vkDescriptorPool{VK_NULL_HANDLE};
+  VkSwapchainKHR vkSwapchain{VK_NULL_HANDLE};
+  VkFormat vkSwapchainFormat = VK_FORMAT_UNDEFINED;
+
+  VkDescriptorPool vkDescriptorPool{VK_NULL_HANDLE};
+
+  VkDescriptorSetLayout vkDescriptorSetLayout_Texture{VK_NULL_HANDLE};
+  VkDescriptorSetLayout vkDescriptorSetLayout_Uniform{VK_NULL_HANDLE};
+
+  VkSampler vkPointSampler{VK_NULL_HANDLE};
+  VkSampler vkLinearSampler{VK_NULL_HANDLE};
 };
 
 } // namespace KODI::RENDERING::VULKAN

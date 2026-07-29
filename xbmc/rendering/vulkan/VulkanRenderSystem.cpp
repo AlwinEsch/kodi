@@ -118,23 +118,23 @@ bool CVulkanRenderSystem::InitRenderSystem()
     return false;
   }
 
-  m_vkInstance = m_deviceQueue->vkInstance();
+  m_vkData.vkInstance = m_deviceQueue->vkInstance();
   m_vkData.vkDevice = m_deviceQueue->vkDevice();
-  m_vkPhysicalDevice = m_deviceQueue->vkPhysicalDevice();
+  m_vkData.vkPhysicalDevice = m_deviceQueue->vkPhysicalDevice();
   m_vkData.vkQueue = m_deviceQueue->vkQueue();
   m_vkData.vkCommandPool = m_deviceQueue->CommandPool()->vkCommandPool();
 
-  m_surface = std::make_unique<CVulkanSurface>(m_vkInstance, m_vkData.vkSurface);
+  m_surface = std::make_unique<CVulkanSurface>(m_vkData.vkInstance, m_vkData.vkSurface);
   if (!m_surface->Initialize(m_deviceQueue.get(), SurfaceFormat::FORMAT_RGBA_32))
   {
     CLog::Log(LOGERROR, "Vulkan: Failed to initialize surface ({0}:{1})", __FILENAME__, __LINE__);
     return false;
   }
 
-  m_vkSwapchain = m_surface->vkSwapchain();
-  m_vkSwapchainFormat = m_surface->vkSurfaceFormat().format;
+  m_vkData.vkSwapchain = m_surface->vkSwapchain();
+  m_vkData.vkSwapchainFormat = m_surface->vkSurfaceFormat().format;
 
-  m_renderPass = CVulkanRenderPass::Create(m_vkSwapchainFormat, m_vkData.vkDevice);
+  m_renderPass = CVulkanRenderPass::Create(m_vkData.vkSwapchainFormat, m_vkData.vkDevice);
   if (!m_renderPass)
   {
     CLog::Log(LOGERROR, "Vulkan: Failed to create render pass ({0}:{1})", __FILENAME__, __LINE__);
@@ -222,11 +222,11 @@ bool CVulkanRenderSystem::DestroyRenderSystem()
 
   m_vkData.vkSurface = VK_NULL_HANDLE;
   m_vkData.vkSurfaceFormat = {};
-  m_vkInstance = VK_NULL_HANDLE;
+  m_vkData.vkInstance = VK_NULL_HANDLE;
   m_vkData.vkDevice = VK_NULL_HANDLE;
-  m_vkSwapchain = VK_NULL_HANDLE;
+  m_vkData.vkSwapchain = VK_NULL_HANDLE;
   m_vkData.vkRenderPass = VK_NULL_HANDLE;
-  m_vkSwapchainFormat = VK_FORMAT_UNDEFINED;
+  m_vkData.vkSwapchainFormat = VK_FORMAT_UNDEFINED;
 
   m_bRenderCreated = false;
 

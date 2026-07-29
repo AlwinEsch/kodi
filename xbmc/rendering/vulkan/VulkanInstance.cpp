@@ -10,6 +10,7 @@
 
 #include "CompileInfo.h"
 #include "VulkanFunctionPointers.h"
+#include "rendering/vulkan/VulkanData.h"
 #include "rendering/vulkan/utils/VulkanUtils.h"
 #include "utils/log.h"
 

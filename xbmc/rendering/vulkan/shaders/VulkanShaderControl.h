@@ -9,7 +9,9 @@
 #pragma once
 
 #include "IVulkanShader.h"
+#include "rendering/vulkan/VulkanData.h"
 
+#include <array>
 #include <memory>
 #include <unordered_map>
 
@@ -34,8 +36,10 @@ class IVulkanShader;
 class CVulkanShaderControl
 {
 public:
-  CVulkanShaderControl(const VulkanData* vulkanData, CVulkanDeviceQueue* deviceQueue);
+  CVulkanShaderControl(VulkanData* vulkanData, CVulkanDeviceQueue* deviceQueue);
   virtual ~CVulkanShaderControl() = default;
+
+  ShaderId AddOptionalShader(std::unique_ptr<IVulkanShader> shader);
 
   bool CreateAllShaders(VkDevice device, VkRenderPass renderPass);
   void DestroyAllShaders();
@@ -43,15 +47,32 @@ public:
   IVulkanShader* GetShader(ShaderId shaderId) const;
   VkPipeline GetPipeline(ShaderId shaderId) const;
 
-  ShaderId AddOptionalShader(std::unique_ptr<IVulkanShader> shader);
+  VulkanMemoryData* GetUniformBuffer(uint32_t index) { return &m_uniformBuffers[index]; }
+  void UpdateUniformBuffer(uint32_t index, const VulkanUniform& uniform);
 
 private:
-  const VulkanData* m_vulkanData;
+  bool CreateDescriptorPool();
+  void DestroyDescriptorPool();
+
+  bool CreateDescriptorSetLayouts();
+  void DestroyDescriptorSetLayouts();
+
+  bool CreateSamplers();
+  void DestroySamplers();
+
+  bool CreateUniformBuffers();
+  void DestroyUniformBuffers();
+
+  VulkanData* m_vkData;
   CVulkanDeviceQueue* const m_deviceQueue;
 
   std::unordered_map<ShaderId, std::unique_ptr<IVulkanShader>> m_shaders;
 
   ShaderId m_nextShaderId{VULKAN_SM_OPTIONAL_ID_START};
+
+  std::array<VulkanMemoryData, MAX_CONCURRENT_FRAMES> m_uniformBuffers{};
+
+  static constexpr size_t INITIAL_DYNAMIC_UNIFORM_BUFFER_SIZE_KB = 256;
 };
 
 } // namespace KODI::RENDERING::VULKAN

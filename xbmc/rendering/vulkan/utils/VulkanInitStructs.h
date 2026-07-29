@@ -226,6 +226,7 @@ inline VkDescriptorPoolCreateInfo vkDescriptorPoolCreateInfo(size_t poolSizeCoun
   descriptorPoolInfo.poolSizeCount = static_cast<uint32_t>(poolSizeCount);
   descriptorPoolInfo.pPoolSizes = pPoolSizes;
   descriptorPoolInfo.maxSets = maxSets;
+  descriptorPoolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
   return descriptorPoolInfo;
 }
 

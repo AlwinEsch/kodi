@@ -23,21 +23,4 @@ CVulkanShaderMultiBlendColor::CVulkanShaderMultiBlendColor(const VulkanData* vkD
 {
 }
 
-bool CVulkanShaderMultiBlendColor::Create()
-{
-
-
-  return true;
-}
-
-void CVulkanShaderMultiBlendColor::Destroy()
-{
-  if (m_vkPipeline != VK_NULL_HANDLE)
-  {
-    // Destroy the Vulkan pipeline
-    vkDestroyPipeline(m_vkData->vkDevice, m_vkPipeline, nullptr);
-    m_vkPipeline = VK_NULL_HANDLE;
-  }
-}
-
 } // namespace KODI::RENDERING::VULKAN

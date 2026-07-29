@@ -1,6 +1,6 @@
 #version 450
 
-layout (binding = 1) uniform sampler2D samplerColor;
+layout (set = 1, binding = 0) uniform sampler2D samplerColor;
 
 layout(location = 0) in vec2 frag_cord0;
 layout(location = 1) in vec2 frag_cord1;

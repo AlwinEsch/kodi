@@ -24,13 +24,7 @@ public:
                           CVulkanDeviceQueue* deviceQueue);
   virtual ~CVulkanShaderTextureLim() = default;
 
-  bool Create() override;
-  void Destroy() override;
-
-  VkPipeline VulkanPipeline() const override { return m_vkPipeline; }
-
 private:
-  VkPipeline m_vkPipeline{VK_NULL_HANDLE};
 };
 
 } // namespace KODI::RENDERING::VULKAN

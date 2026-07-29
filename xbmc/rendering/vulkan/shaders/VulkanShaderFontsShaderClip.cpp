@@ -24,19 +24,4 @@ CVulkanShaderFontsShaderClip::CVulkanShaderFontsShaderClip(const VulkanData* vkD
 {
 }
 
-bool CVulkanShaderFontsShaderClip::Create()
-{
-  return true;
-}
-
-void CVulkanShaderFontsShaderClip::Destroy()
-{
-  if (m_vkPipeline != VK_NULL_HANDLE)
-  {
-    // Destroy the Vulkan pipeline
-    vkDestroyPipeline(m_vkData->vkDevice, m_vkPipeline, nullptr);
-    m_vkPipeline = VK_NULL_HANDLE;
-  }
-}
-
 } // namespace KODI::RENDERING::VULKAN

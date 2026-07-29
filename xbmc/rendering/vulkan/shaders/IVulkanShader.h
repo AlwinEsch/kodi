@@ -10,6 +10,7 @@
 
 #include "rendering/vulkan/VulkanData.h"
 
+#include <array>
 #include <memory>
 #include <string>
 
@@ -52,20 +53,35 @@ class IVulkanShader
 {
 public:
   IVulkanShader(const VulkanData* vkData, CVulkanDeviceQueue* deviceQueue);
-  virtual ~IVulkanShader() = default;
+  virtual ~IVulkanShader();
 
-  virtual bool Create() = 0;
-  virtual void Destroy() = 0;
+  bool Create();
+  void Destroy();
 
-  virtual VkPipeline VulkanPipeline() const = 0;
-
-  VkPipelineShaderStageCreateInfo LoadShader(std::string fileName,
-                                             VkShaderStageFlagBits stage);
-  void UnloadShader(VkPipelineShaderStageCreateInfo shaderStage);
+  VkPipelineLayout VulkanPipelineLayout() const { return m_vkPipelineLayout; }
+  VkPipeline VulkanPipeline() const { return m_vkPipeline; }
 
 protected:
+  virtual bool CreatePipelineLayout() { return true; }
+  virtual void DestroyPipelineLayout();
+
+  virtual bool CreateVertexBuffer() { return true; }
+  virtual void DestroyVertexBuffer();
+
+  virtual bool CreatePipeline() { return true; }
+  virtual void DestroyPipeline();
+
+  VkPipelineShaderStageCreateInfo LoadShader(std::string fileName, VkShaderStageFlagBits stage);
+  void UnloadShader(VkPipelineShaderStageCreateInfo shaderStage);
+
   const VulkanData* m_vkData;
   CVulkanDeviceQueue* const m_deviceQueue;
+
+  VkPipelineLayout m_vkPipelineLayout{VK_NULL_HANDLE};
+  VkPipeline m_vkPipeline{VK_NULL_HANDLE};
+
+  std::array<VulkanMemoryData, MAX_CONCURRENT_FRAMES> m_vertexBuffers;
+  std::array<VulkanMemoryData, MAX_CONCURRENT_FRAMES> m_indexBuffers;
 };
 
 } // namespace KODI::RENDERING::VULKAN

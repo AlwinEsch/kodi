@@ -247,16 +247,14 @@ void CVulkanGUITexture::Draw(
 
   const uint32_t renderImageIndex = m_renderSystem->vkCurrentRenderImageIndex();
 
-  Uniform uniform{};
+  VulkanUniform uniform{};
   uniform.projectionMatrix = m_renderSystem->m_projectionMatrix;
   uniform.modelMatrix = m_renderSystem->m_modelMatrix;
-  uniform.viewMatrix = m_renderSystem->m_viewMatrix;
+  uniform.depth = 1.0f;
 
-  m_shaderTexture->UpdateUniformBuffer(renderImageIndex, uniform);
-#if USE_PARTICLES == 1 && defined(USE_BATCHING)
+  m_renderSystem->ShaderControl()->UpdateUniformBuffer(renderImageIndex, uniform);
   m_shaderTexture->UpdateVerticesBuffer(renderImageIndex, m_packedVertices.data());
   m_shaderTexture->UpdateIndeciesBuffer(renderImageIndex, m_idx.data(), m_idx.size());
-#endif
 
   VkViewport viewport{.x = x[0],
                       .y = y[0],
@@ -274,9 +272,10 @@ void CVulkanGUITexture::Draw(
   vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
   // Environment
-  vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1,
-                          &m_shaderTexture->GetUniformBuffer(renderImageIndex)->descriptorSet, 0,
-                          nullptr);
+  vkCmdBindDescriptorSets(
+      commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1,
+      &m_renderSystem->ShaderControl()->GetUniformBuffer(renderImageIndex)->descriptorSet, 0,
+      nullptr);
   vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 
   // Bind triangle vertex m_buffer (contains position and colors)
