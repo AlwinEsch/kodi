@@ -11,6 +11,7 @@
 #include "ServiceBroker.h"
 #include "guilib/Texture.h"
 #include "guilib/TextureFormats.h"
+#include "guilib/graphics/vulkan/VulkanTexture.h"
 #include "rendering/vulkan/VulkanMatrix.h"
 #include "rendering/vulkan/VulkanRenderSystem.h"
 #include "rendering/vulkan/shaders/VulkanShaderControl.h"
@@ -58,7 +59,8 @@ CVulkanGUITexture* CVulkanGUITexture::Clone() const
 
 void CVulkanGUITexture::Begin(KODI::UTILS::COLOR::Color color)
 {
-  CTexture* texture = m_texture.m_textures[m_currentFrame].get();
+  CVulkanTexture* texture =
+      dynamic_cast<CVulkanTexture*>(m_texture.m_textures[m_currentFrame].get());
   texture->LoadToGPU();
   if (m_diffuse.size())
     m_diffuse.m_textures[0]->LoadToGPU();
@@ -241,6 +243,9 @@ void CVulkanGUITexture::Draw(
 
   //--------------------------------------------------------------
 
+  CVulkanTexture* vkTexture =
+      dynamic_cast<CVulkanTexture*>(m_texture.m_textures[m_currentFrame].get());
+
   VkCommandBuffer commandBuffer = m_renderSystem->vkCurrentCommandBuffer();
   VkPipeline pipeline = m_shaderTexture->VulkanPipeline();
   VkPipelineLayout pipelineLayout = m_shaderTexture->VulkanPipelineLayout();
@@ -276,6 +281,8 @@ void CVulkanGUITexture::Draw(
       commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1,
       &m_renderSystem->ShaderControl()->GetUniformBuffer(renderImageIndex)->descriptorSet, 0,
       nullptr);
+  vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 1, 1,
+                          vkTexture->vkDescriptorSet(), 0, nullptr);
   vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 
   // Bind triangle vertex m_buffer (contains position and colors)

@@ -11,6 +11,6 @@ layout (location = 0) out vec4 outFragColor;
 void main()
 {
   //outFragColor = texture(samplerColor, frag_cord0) * frag_colour;
-
-  outFragColor = frag_colour;
+  outFragColor = texture(samplerColor, frag_cord0);
+  //outFragColor = frag_colour;
 }
