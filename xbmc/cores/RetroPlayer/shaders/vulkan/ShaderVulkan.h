@@ -11,7 +11,6 @@
 #include "ShaderTextureVulkan.h"
 #include "cores/RetroPlayer/shaders/IShader.h"
 #include "guilib/graphics/vulkan/VulkanTexture.h"
-#include "rendering/vulkan/VulkanShader.h"
 
 #include <array>
 #include <stdint.h>

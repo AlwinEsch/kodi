@@ -14,7 +14,6 @@
 #include "rendering/vulkan/shaders/VulkanShaderFontsShaderClip.h"
 #include "rendering/vulkan/shaders/VulkanShaderMulti.h"
 #include "rendering/vulkan/shaders/VulkanShaderMultiBlendColor.h"
-#include "rendering/vulkan/shaders/VulkanShaderTest.h"
 #include "rendering/vulkan/shaders/VulkanShaderTexture.h"
 #include "rendering/vulkan/shaders/VulkanShaderTextureLim.h"
 #include "rendering/vulkan/shaders/VulkanShaderTextureNoAlpha.h"
@@ -31,8 +30,7 @@ namespace KODI::RENDERING::VULKAN
 {
 
 // clang-format off
-std::array<ShaderListEntry, 10> shaderList = {{
-    {VULKAN_SM_TEST, ObjectFactory<CVulkanShaderTest>, "TestShader"},
+std::array<ShaderListEntry, 9> shaderList = {{
     {VULKAN_SM_DEFAULT, ObjectFactory<CVulkanShaderDefault>, "Default shader"},
     {VULKAN_SM_TEXTURE, ObjectFactory<CVulkanShaderTexture>, "Texture shader"},
     {VULKAN_SM_TEXTURE_LIM, ObjectFactory<CVulkanShaderTextureLim>, "Texture Lim shader"},

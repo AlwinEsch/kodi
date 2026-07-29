@@ -13,7 +13,6 @@ if(TARGET ${APP_NAME_LC}::Vulkan)
               VulkanRenderSystem.cpp
               VulkanScopedWrite.cpp
               VulkanScreenshotSurface.cpp
-              VulkanShader.cpp
               VulkanSurface.cpp
               VulkanSwapChain.cpp)
 
@@ -33,7 +32,6 @@ if(TARGET ${APP_NAME_LC}::Vulkan)
               VulkanRenderSystem.h
               VulkanScopedWrite.h
               VulkanScreenshotSurface.h
-              VulkanShader.h
               VulkanSurface.h
               VulkanSwapChain.h)
 

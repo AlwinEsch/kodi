@@ -49,11 +49,6 @@ CVulkanGUITexture::CVulkanGUITexture(
   m_renderSystem = dynamic_cast<CVulkanRenderSystem*>(CServiceBroker::GetRenderSystem());
   m_shaderTexture = dynamic_cast<CVulkanShaderTexture*>(
       m_renderSystem->ShaderControl()->GetShader(VULKAN_SM_TEXTURE));
-  m_camera = new Camera;
-  m_camera->type = Camera::CameraType::lookat;
-  m_camera->setPosition(glm::vec3(0.0f, 0.0f, -2.5f));
-  m_camera->setRotation(glm::vec3(0.0f));
-  m_camera->setPerspective(60.0f, (float)1920 / (float)1080, 1.0f, 256.0f);
 }
 
 CVulkanGUITexture* CVulkanGUITexture::Clone() const

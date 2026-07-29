@@ -9,6 +9,7 @@
 #pragma once
 
 #include "guilib/Texture.h"
+#include "rendering/vulkan/VulkanData.h"
 
 #include <vector>
 
@@ -44,11 +45,10 @@ public:
   VkDeviceMemory vkImageMemory() const { return m_imageMemory; }
   VkImageView vkImageView() const { return m_imageView; }
   VkSampler vkSampler() const { return m_sampler; }
+  const VkDescriptorSet* vkDescriptorSet() const { return &m_descriptorSet; }
 
 private:
-  void createDescriptorSetLayout();
-  void createDescriptorPool();
-  void createDescriptorSets();
+  const KODI::RENDERING::VULKAN::VulkanData* m_vkData;
 
   VkDescriptorSetLayout m_descriptorSetLayout{VK_NULL_HANDLE};
   VkDescriptorPool m_descriptorPool{VK_NULL_HANDLE};
@@ -62,6 +62,8 @@ private:
   VkImageView m_imageView{VK_NULL_HANDLE};
   VkDeviceMemory m_imageMemory{VK_NULL_HANDLE};
   VkSampler m_sampler{VK_NULL_HANDLE};
+
+  VkDescriptorSet m_descriptorSet{VK_NULL_HANDLE};
 };
 
 } // namespace KODI::GUILIB::GRAPHICS::VULKAN

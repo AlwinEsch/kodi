@@ -136,7 +136,7 @@ CVulkanTexture::CVulkanTexture(unsigned int width, unsigned int height, XB_FMT f
 {
   using namespace KODI::RENDERING::VULKAN;
   m_renderSystem = dynamic_cast<CVulkanRenderSystem*>(CServiceBroker::GetRenderSystem());
-  m_vkDevice = m_renderSystem->vkDevice();
+  m_vkData = m_renderSystem->vkData();
   m_vkPhysicalDevice = m_renderSystem->vkPhysicalDevice();
 }
 
@@ -153,22 +153,22 @@ void CVulkanTexture::DestroyTextureObject()
 {
   if (m_imageView != VK_NULL_HANDLE)
   {
-    vkDestroyImageView(m_vkDevice, m_imageView, nullptr);
+    vkDestroyImageView(m_vkData->vkDevice, m_imageView, nullptr);
     m_imageView = VK_NULL_HANDLE;
   }
   if (m_image != VK_NULL_HANDLE)
   {
-    vkDestroyImage(m_vkDevice, m_image, nullptr);
+    vkDestroyImage(m_vkData->vkDevice, m_image, nullptr);
     m_image = VK_NULL_HANDLE;
   }
   if (m_sampler != VK_NULL_HANDLE)
   {
-    vkDestroySampler(m_vkDevice, m_sampler, nullptr);
+    vkDestroySampler(m_vkData->vkDevice, m_sampler, nullptr);
     m_sampler = VK_NULL_HANDLE;
   }
   if (m_imageMemory != VK_NULL_HANDLE)
   {
-    vkFreeMemory(m_vkDevice, m_imageMemory, nullptr);
+    vkFreeMemory(m_vkData->vkDevice, m_imageMemory, nullptr);
     m_imageMemory = VK_NULL_HANDLE;
   }
 }
@@ -193,10 +193,10 @@ void CVulkanTexture::LoadToGPU()
       vkBufferCreateInfo(VK_BUFFER_USAGE_TRANSFER_SRC_BIT, size, VK_SHARING_MODE_EXCLUSIVE);
 
   VkBuffer stagingBuffer{};
-  VK_CHECK_RESULT(vkCreateBuffer(m_vkDevice, &bufferInfo, nullptr, &stagingBuffer));
+  VK_CHECK_RESULT(vkCreateBuffer(m_vkData->vkDevice, &bufferInfo, nullptr, &stagingBuffer));
 
   VkMemoryRequirements memReqs;
-  vkGetBufferMemoryRequirements(m_vkDevice, stagingBuffer, &memReqs);
+  vkGetBufferMemoryRequirements(m_vkData->vkDevice, stagingBuffer, &memReqs);
 
   uint32_t memoryTypeIndex = m_renderSystem->DeviceQueue()->GetMemoryType(
       memReqs.memoryTypeBits,
@@ -204,13 +204,13 @@ void CVulkanTexture::LoadToGPU()
   auto allocInfo = vkMemoryAllocateInfo(memReqs.size, memoryTypeIndex);
 
   VkDeviceMemory stagingMemory{};
-  VK_CHECK_RESULT(vkAllocateMemory(m_vkDevice, &allocInfo, nullptr, &stagingMemory));
-  VK_CHECK_RESULT(vkBindBufferMemory(m_vkDevice, stagingBuffer, stagingMemory, 0));
+  VK_CHECK_RESULT(vkAllocateMemory(m_vkData->vkDevice, &allocInfo, nullptr, &stagingMemory));
+  VK_CHECK_RESULT(vkBindBufferMemory(m_vkData->vkDevice, stagingBuffer, stagingMemory, 0));
 
   void* data;
-  VK_CHECK_RESULT(vkMapMemory(m_vkDevice, stagingMemory, 0, size, 0, &data));
+  VK_CHECK_RESULT(vkMapMemory(m_vkData->vkDevice, stagingMemory, 0, size, 0, &data));
   memcpy(data, m_pixels, static_cast<size_t>(size));
-  vkUnmapMemory(m_vkDevice, stagingMemory);
+  vkUnmapMemory(m_vkData->vkDevice, stagingMemory);
 
   // Setup m_buffer copy regions for each mip level
   std::vector<VkBufferImageCopy> bufferCopyRegions;
@@ -237,14 +237,14 @@ void CVulkanTexture::LoadToGPU()
   imageInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
   imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
   imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-  VK_CHECK_RESULT(vkCreateImage(m_vkDevice, &imageInfo, nullptr, &m_image));
+  VK_CHECK_RESULT(vkCreateImage(m_vkData->vkDevice, &imageInfo, nullptr, &m_image));
 
-  vkGetImageMemoryRequirements(m_vkDevice, m_image, &memReqs);
+  vkGetImageMemoryRequirements(m_vkData->vkDevice, m_image, &memReqs);
   memoryTypeIndex = m_renderSystem->DeviceQueue()->GetMemoryType(
       memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
   allocInfo = vkMemoryAllocateInfo(memReqs.size, memoryTypeIndex);
-  VK_CHECK_RESULT(vkAllocateMemory(m_vkDevice, &allocInfo, nullptr, &m_imageMemory));
-  VK_CHECK_RESULT(vkBindImageMemory(m_vkDevice, m_image, m_imageMemory, 0));
+  VK_CHECK_RESULT(vkAllocateMemory(m_vkData->vkDevice, &allocInfo, nullptr, &m_imageMemory));
+  VK_CHECK_RESULT(vkBindImageMemory(m_vkData->vkDevice, m_image, m_imageMemory, 0));
 
   VkImageSubresourceRange subresourceRange{
       .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
@@ -267,8 +267,8 @@ void CVulkanTexture::LoadToGPU()
   m_renderSystem->DeviceQueue()->FlushCommandBuffer(copyCmd);
 
   // Clean up staging resources
-  vkFreeMemory(m_vkDevice, stagingMemory, nullptr);
-  vkDestroyBuffer(m_vkDevice, stagingBuffer, nullptr);
+  vkFreeMemory(m_vkData->vkDevice, stagingMemory, nullptr);
+  vkDestroyBuffer(m_vkData->vkDevice, stagingBuffer, nullptr);
 
   // Create sampler
   VkSamplerCreateInfo samplerInfo = vkSamplerCreateInfo();
@@ -278,7 +278,7 @@ void CVulkanTexture::LoadToGPU()
   samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
   samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
   samplerInfo.anisotropyEnable = VK_FALSE;
-  VK_CHECK_RESULT(vkCreateSampler(m_vkDevice, &samplerInfo, nullptr, &m_sampler));
+  VK_CHECK_RESULT(vkCreateSampler(m_vkData->vkDevice, &samplerInfo, nullptr, &m_sampler));
 
   // Create image view
   VkImageViewCreateInfo view = vkImageViewCreateInfo();
@@ -288,110 +288,14 @@ void CVulkanTexture::LoadToGPU()
   view.format = TextureMapping.at(m_textureFormat);
   if (SwizzleMap.contains(m_textureSwizzle))
     view.components = SwizzleMap.at(m_textureSwizzle);
-  VK_CHECK_RESULT(vkCreateImageView(m_vkDevice, &view, nullptr, &m_imageView));
+  VK_CHECK_RESULT(vkCreateImageView(m_vkData->vkDevice, &view, nullptr, &m_imageView));
 
   //--------------------------------------------------------------------------------
-  createDescriptorSets();
-  //uint32_t swapChainImages = m_renderSystem->vkIndexBuffer();
 
-  //// Pool
-  //std::vector<VkDescriptorPoolSize> poolSizes = {
-  //    vkDescriptorPoolSize(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, m_maxConcurrentFrames),
-  //    // The sample uses a combined image + sampler m_descriptor to sample the m_texture in the fragment shader
-  //    // We need multiple descriptors (NOT images) due to how we set up the m_descriptor bindings in this sample
-  //    vkDescriptorPoolSize(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, m_maxConcurrentFrames)};
-  //auto descriptorPoolInfo = vkDescriptorPoolCreateInfo(poolSizes, swapChainImages);
-  //VK_CHECK_RESULT(
-  //    vkCreateDescriptorPool(m_device, &descriptorPoolInfo, nullptr, &m_vkDescriptorPool));
-
-  //// Layout
-  //std::vector<VkDescriptorSetLayoutBinding> setLayoutBindings = {
-  //    // Binding 0 : Vertex shader uniform buffer
-  //    vkDescriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT,
-  //                                 0),
-  //    // Binding 1 : Fragment shader image sampler
-  //    vkDescriptorSetLayoutBinding(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-  //                                 VK_SHADER_STAGE_FRAGMENT_BIT, 1)};
-  //VkDescriptorSetLayoutCreateInfo descriptorLayout =
-  //    vkDescriptorSetLayoutCreateInfo(setLayoutBindings);
-  //VK_CHECK_RESULT(
-  //    vkCreateDescriptorSetLayout(m_device, &descriptorLayout, nullptr, &m_descriptorSetLayout));
-
-  //auto shader = dynamic_cast<CVulkanShaderTexture*>(
-  //    m_renderSystem->ShaderControl()->GetShader(VULKAN_SM_TEXTURE));
-  //shader->SetupTextureDescriptors(m_imageView, m_sampler, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-
-  if (!m_bCacheMemory)
-  {
-    KODI::MEMORY::AlignedFree(m_pixels);
-    m_pixels = nullptr;
-  }
-
-  m_loadedToGPU = true;
-}
-
-void CVulkanTexture::createDescriptorSetLayout()
-{
-  //// Binding 0: Uniform m_buffer (Vertex shader)
-  //std::vector<VkDescriptorSetLayoutBinding> bindings{
-  //    {
-  //        .binding = 0,
-  //        .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-  //        .descriptorCount = 1,
-  //        .stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
-  //        .pImmutableSamplers = nullptr,
-  //    },
-  //    {
-  //        .binding = 1,
-  //        .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-  //        .descriptorCount = 1,
-  //        .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
-  //        .pImmutableSamplers = nullptr,
-  //    },
-  //};
-
-  //VkDescriptorSetLayoutCreateInfo descriptorLayoutCI{};
-  //descriptorLayoutCI.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-  //descriptorLayoutCI.pNext = nullptr;
-  //descriptorLayoutCI.bindingCount = static_cast<uint32_t>(bindings.size());
-  //descriptorLayoutCI.pBindings = bindings.data();
-  //VK_CHECK_RESULT(vkCreateDescriptorSetLayout(m_vkDevice, &descriptorLayoutCI, nullptr,
-  //                                            &m_descriptorSetLayout));
-}
-
-void CVulkanTexture::createDescriptorPool()
-{
-  //std::vector<VkDescriptorPoolSize> descriptorTypeCounts{
-  //    {
-  //        .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-  //        .descriptorCount = MAX_CONCURRENT_FRAMES,
-  //    },
-  //    {
-  //        .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-  //        .descriptorCount = MAX_CONCURRENT_FRAMES,
-  //    },
-  //};
-
-  //// Create the global m_descriptor pool
-  //// All descriptors used in this example are allocated from this pool
-  //VkDescriptorPoolCreateInfo descriptorPoolCI{};
-  //descriptorPoolCI.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-  //descriptorPoolCI.pNext = nullptr;
-  //descriptorPoolCI.poolSizeCount = static_cast<uint32_t>(descriptorTypeCounts.size());
-  //descriptorPoolCI.pPoolSizes = descriptorTypeCounts.data();
-  //// Set the max. number of m_descriptor sets that can be requested from this pool (requesting beyond this limit will result in an error)
-  //// Our sample will create one set per uniform m_buffer per frame
-  //descriptorPoolCI.maxSets = MAX_CONCURRENT_FRAMES;
-  //VK_CHECK_RESULT(
-  //    vkCreateDescriptorPool(m_vkDevice, &descriptorPoolCI, nullptr, &m_descriptorPool));
-}
-
-void CVulkanTexture::createDescriptorSets()
-{
   CVulkanShaderTexture* shader = dynamic_cast<CVulkanShaderTexture*>(
       m_renderSystem->ShaderControl()->GetShader(VULKAN_SM_TEXTURE));
 
-		// Setup a m_descriptor image info for the current m_texture to be used as a m_descriptor for a combined image sampler
+  // Setup a m_descriptor image info for the current m_texture to be used as a m_descriptor for a combined image sampler
   VkDescriptorImageInfo textureDescriptor{};
   // The image's view (images are never directly accessed by the shader, but rather through views defining subresources)
   textureDescriptor.imageView = m_imageView;
@@ -408,7 +312,7 @@ void CVulkanTexture::createDescriptorSets()
     //allocInfo.descriptorPool = m_descriptorPool;
     //allocInfo.descriptorSetCount = 1;
     //allocInfo.pSetLayouts = &m_descriptorSetLayout;
-    //VK_CHECK_RESULT(vkAllocateDescriptorSets(m_vkDevice, &allocInfo,
+    //VK_CHECK_RESULT(vkAllocateDescriptorSets(m_vkData->vkDevice, &allocInfo,
     //                                         &m_uniformBuffers[i].descriptorSet));
 
     //// The m_buffer's information is passed using a m_descriptor info structure
@@ -448,9 +352,17 @@ void CVulkanTexture::createDescriptorSets()
             .pTexelBufferView = nullptr,
         },
     };
-    vkUpdateDescriptorSets(m_vkDevice, static_cast<uint32_t>(writeDescriptorSets.size()),
+    vkUpdateDescriptorSets(m_vkData->vkDevice, static_cast<uint32_t>(writeDescriptorSets.size()),
                            writeDescriptorSets.data(), 0, nullptr);
   }
+
+  if (!m_bCacheMemory)
+  {
+    KODI::MEMORY::AlignedFree(m_pixels);
+    m_pixels = nullptr;
+  }
+
+  m_loadedToGPU = true;
 }
 
 void CVulkanTexture::SyncGPU()

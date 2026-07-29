@@ -6,7 +6,6 @@ if(TARGET ${APP_NAME_LC}::Vulkan)
               VulkanShaderFontsShaderClip.cpp
               VulkanShaderMulti.cpp
               VulkanShaderMultiBlendColor.cpp
-              VulkanShaderTest.cpp
               VulkanShaderTexture.cpp
               VulkanShaderTextureLim.cpp
               VulkanShaderTextureNoAlpha.cpp
@@ -19,7 +18,6 @@ if(TARGET ${APP_NAME_LC}::Vulkan)
               VulkanShaderFontsShaderClip.h
               VulkanShaderMulti.h
               VulkanShaderMultiBlendColor.h
-              VulkanShaderTest.h
               VulkanShaderTexture.h
               VulkanShaderTextureLim.h
               VulkanShaderTextureNoAlpha.h

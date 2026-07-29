@@ -16,7 +16,6 @@
 namespace KODI::RENDERING::VULKAN
 {
 
-constexpr ShaderId VULKAN_SM_TEST = 0;
 constexpr ShaderId VULKAN_SM_DEFAULT = 1;
 constexpr ShaderId VULKAN_SM_TEXTURE = 2;
 constexpr ShaderId VULKAN_SM_TEXTURE_LIM = 3;

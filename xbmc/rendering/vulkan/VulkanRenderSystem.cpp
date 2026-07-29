@@ -24,7 +24,6 @@
 #include "rendering/vulkan/VulkanScopedWrite.h"
 #include "rendering/vulkan/VulkanSwapChain.h"
 #include "rendering/vulkan/shaders/VulkanShaderControl.h"
-#include "rendering/vulkan/shaders/VulkanShaderTest.h"
 #include "rendering/vulkan/shaders/VulkanShaderTexture.h"
 #include "rendering/vulkan/utils/VulkanInitStructs.h"
 #include "rendering/vulkan/utils/VulkanUtils.h"
@@ -166,19 +165,6 @@ bool CVulkanRenderSystem::InitRenderSystem()
   m_bRenderCreated = true;
 
   CVulkanGUITexture::Register();
-
-  //m_camera.type = Camera::CameraType::lookat;
-  //m_camera.setPosition(glm::vec3(0.0f, 0.0f, -2.5f));
-  //m_camera.setRotation(glm::vec3(0.0f));
-  //m_camera.setPerspective(60.0f, (float)m_width / (float)m_height, 1.0f, 256.0f);
-
-  m_testShaderTexture =
-      dynamic_cast<CVulkanShaderTexture*>(m_shaderControl->GetShader(VULKAN_SM_TEXTURE));
-
-  m_pipeline = m_testShaderTexture->VulkanPipeline();
-  m_pipelineLayout = m_testShaderTexture->VulkanPipelineLayout();
-
-  m_testShader = dynamic_cast<CVulkanShaderTest*>(m_shaderControl->GetShader(VULKAN_SM_TEST));
 
   /*!
    * Make reset here as the width/height is already set from child class and the compare on
@@ -371,44 +357,8 @@ bool CVulkanRenderSystem::BeginRender()
   //vkCmdSetScissor(m_currentVkCommandBuffer, 0, 1, &m_vkScissor);
   //vkCmdSetViewport(m_currentVkCommandBuffer, 0, 1, &m_vkViewport);
 
-  ////@{
-  //{
-  //  VkBuffer vkBuffer = m_testShader->VertexBuffer()->buffer;
-  //  // Bind the graphics pipeline.
-  //  vkCmdBindPipeline(m_currentVkCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_testShader->VulkanPipeline());
-
-  //VkViewport vp{.x = 0.0f,
-  //              .y = 0.0f,
-  //              .width = static_cast<float>(m_width / 2),
-  //              .height = static_cast<float>(m_height / 2),
-  //              .minDepth = 0.0f,
-  //              .maxDepth = 1.0f};
-  //// Set viewport dynamically
-  //vkCmdSetViewport(m_currentVkCommandBuffer, 0, 1, &vp);
-
-  //VkRect2D scissor{
-  //    .offset = {.x = 0, .y = 0},
-  //    .extent = {.width = m_width, .height = m_height},
-  //};
-  //// Set scissor dynamically
-  //vkCmdSetScissor(m_currentVkCommandBuffer, 0, 1, &scissor);
-
-  //  // Bind the vertex buffer to source the draw calls from.
-  //  VkDeviceSize offset = {0};
-  //  vkCmdBindVertexBuffers(m_currentVkCommandBuffer, 0, 1, &vkBuffer, &offset);
-
-  //  // Draw three vertices with one instance from the currently bound vertex bound.
-  //  vkCmdDraw(m_currentVkCommandBuffer, 3, 1, 0, 0);
-  //}
-  ////@}
-
   m_indexBuffer = image;
   m_scopedWrite = std::move(scoped_write);
-
-  //RenderTriangle(0.0f, 0.0f);
-  //  RenderTriangle(static_cast<float>(m_width / 2), 0.0f);
-
-  //fprintf(stderr, "Vulkan: BeginRender: width=%d, height=%d\n", m_width, m_height);
 
   return true;
 }

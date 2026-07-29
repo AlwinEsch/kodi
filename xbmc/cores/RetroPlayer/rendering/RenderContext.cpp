@@ -20,7 +20,6 @@
 
 #if defined(HAS_VULKAN)
 #include "rendering/vulkan/VulkanRenderSystem.h"
-#include "rendering/vulkan/VulkanShader.h"
 #elif defined(HAS_GL)
 #include "rendering/gl/RenderSystemGL.h"
 #elif HAS_GLES >= 2
