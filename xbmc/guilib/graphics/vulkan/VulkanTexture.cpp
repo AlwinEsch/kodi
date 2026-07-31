@@ -216,19 +216,22 @@ void CVulkanTexture::LoadToGPU()
   std::vector<VkBufferImageCopy> bufferCopyRegions;
   const uint32_t mipLevels = 1;
 
+  //fprintf(stderr, "-------------------- IsMipmapped() %d, m_scalingMethod %d\n", IsMipmapped(),
+  //        m_scalingMethod);
+
   VkBufferImageCopy region = {};
   region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
   region.imageSubresource.mipLevel = 0;
   region.imageSubresource.layerCount = 1;
-  region.imageExtent.width = static_cast<uint32_t>(GetWidth());
-  region.imageExtent.height = static_cast<uint32_t>(GetHeight());
+  region.imageExtent.width = m_textureWidth;
+  region.imageExtent.height = m_textureHeight;
   region.imageExtent.depth = 1;
 
   VkImageCreateInfo imageInfo = vkImageCreateInfo();
   imageInfo.imageType = VK_IMAGE_TYPE_2D;
   imageInfo.format = TextureMapping.at(m_textureFormat);
-  imageInfo.extent.width = static_cast<uint32_t>(GetWidth());
-  imageInfo.extent.height = static_cast<uint32_t>(GetHeight());
+  imageInfo.extent.width = m_textureWidth;
+  imageInfo.extent.height = m_textureHeight;
   imageInfo.extent.depth = 1;
   imageInfo.mipLevels = mipLevels;
   imageInfo.arrayLayers = 1;
@@ -270,14 +273,33 @@ void CVulkanTexture::LoadToGPU()
   vkFreeMemory(m_vkData->vkDevice, stagingMemory, nullptr);
   vkDestroyBuffer(m_vkData->vkDevice, stagingBuffer, nullptr);
 
+  const VkFilter filter =
+      (m_scalingMethod == TEXTURE_SCALING::NEAREST ? VK_FILTER_NEAREST : VK_FILTER_LINEAR);
+  const int32_t aniso =
+      CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->m_guiAnisotropicFiltering;
+
   // Create sampler
   VkSamplerCreateInfo samplerInfo = vkSamplerCreateInfo();
-  samplerInfo.magFilter = VK_FILTER_LINEAR;
-  samplerInfo.minFilter = VK_FILTER_LINEAR;
-  samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-  samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-  samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-  samplerInfo.anisotropyEnable = VK_FALSE;
+  samplerInfo.minFilter = filter;
+  samplerInfo.magFilter = filter;
+  samplerInfo.mipmapMode =
+      (m_scalingMethod == TEXTURE_SCALING::NEAREST ? VK_SAMPLER_MIPMAP_MODE_NEAREST
+                                                   : VK_SAMPLER_MIPMAP_MODE_LINEAR);
+  samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+  samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+  samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+  samplerInfo.anisotropyEnable = (aniso > 1 ? VK_TRUE : VK_FALSE);
+  samplerInfo.maxAnisotropy = static_cast<float>(aniso);
+  if (IsMipmapped())
+  {
+    samplerInfo.mipLodBias = -0.5f;
+    //samplerInfo.maxLod = static_cast<float>(mipLevels);
+  }
+  else
+  {
+    samplerInfo.mipLodBias = 0.0f;
+    samplerInfo.maxLod = 0.0f;
+  }
   VK_CHECK_RESULT(vkCreateSampler(m_vkData->vkDevice, &samplerInfo, nullptr, &m_sampler));
 
   // Create image view
@@ -286,15 +308,20 @@ void CVulkanTexture::LoadToGPU()
   view.viewType = VK_IMAGE_VIEW_TYPE_2D;
   view.subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, mipLevels, 0, 1};
   view.format = TextureMapping.at(m_textureFormat);
+  //fprintf(stderr, "--------------------> %s, m_textureFormat 0x%X, view.format %d\n", __func__,
+  //        m_textureFormat, view.format);
   if (SwizzleMap.contains(m_textureSwizzle))
     view.components = SwizzleMap.at(m_textureSwizzle);
+  //fprintf(stderr, "--------------------> %s, m_textureSwizzle 0x%X, view.components %d %d %d %d\n",
+  //        __func__, m_textureSwizzle, view.components.r, view.components.g, view.components.b,
+  //        view.components.a);
   VK_CHECK_RESULT(vkCreateImageView(m_vkData->vkDevice, &view, nullptr, &m_imageView));
 
   //--------------------------------------------------------------------------------
 
   VkDescriptorImageInfo textureDescriptor{};
   textureDescriptor.imageView = m_imageView;
-  textureDescriptor.sampler = m_vkData->vkLinearSampler;
+  textureDescriptor.sampler = m_sampler;
   textureDescriptor.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
   VkDescriptorSetAllocateInfo descAllocInfo{};

@@ -1,5 +1,6 @@
 if(TARGET ${APP_NAME_LC}::Vulkan)
-  set(SOURCES VulkanCommandBuffer.cpp
+  set(SOURCES DynamicBuffers.cpp
+              VulkanCommandBuffer.cpp
               VulkanCommandPool.cpp
               VulkanDeviceQueue.cpp
               VulkanFenceHelper.cpp
@@ -16,7 +17,8 @@ if(TARGET ${APP_NAME_LC}::Vulkan)
               VulkanSurface.cpp
               VulkanSwapChain.cpp)
 
-  set(HEADERS VulkanCommandBuffer.h
+  set(HEADERS DynamicBuffers.h
+              VulkanCommandBuffer.h
               VulkanCommandPool.h
               VulkanData.h
               VulkanDeviceQueue.h

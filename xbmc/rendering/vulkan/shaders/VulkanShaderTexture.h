@@ -28,7 +28,7 @@ constexpr auto PARTICLE_COUNT = 512;
 struct Vertex
 {
   glm::vec3 in_attrpos;
-  glm::vec4 in_attrcol;
+  //glm::vec4 in_attrcol;
   glm::vec2 in_attrcord0;
   glm::vec2 in_attrcord1;
 };
@@ -54,14 +54,8 @@ public:
   CVulkanShaderTexture(const VulkanData* vulkanData, CVulkanDeviceQueue* deviceQueue);
   virtual ~CVulkanShaderTexture() = default;
 
-  VulkanMemoryData* GetVertexBuffer(uint32_t index) { return &m_vertexBuffers[index]; }
-  VulkanMemoryData* GetIndexBuffer(uint32_t index) { return &m_indexBuffers[index]; }
-  void UpdateVerticesBuffer(uint32_t index, const Vertex* vertices);
-  void UpdateIndeciesBuffer(uint32_t index, const uint32_t* indices, size_t count);
-
 protected:
   bool CreatePipelineLayout() override;
-  bool CreateVertexBuffer() override;
   bool CreatePipeline() override;
 };
 

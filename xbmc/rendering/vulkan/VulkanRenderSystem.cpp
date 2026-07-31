@@ -15,6 +15,7 @@
 #include "guilib/DirtyRegion.h"
 #include "guilib/graphics/vulkan/VulkanGUITexture.h"
 #include "platform/MessagePrinter.h"
+#include "rendering/vulkan/DynamicBuffers.h"
 #include "rendering/vulkan/VulkanCommandBuffer.h"
 #include "rendering/vulkan/VulkanCommandPool.h"
 #include "rendering/vulkan/VulkanFramebuffer.h"
@@ -88,6 +89,7 @@ std::unique_ptr<CVulkanDeviceQueue> CreateVulkanDeviceQueue(CVulkanRenderSystem*
 
 CVulkanRenderSystem::CVulkanRenderSystem() : CRenderSystemBase()
 {
+
 }
 
 CVulkanRenderSystem::~CVulkanRenderSystem()
@@ -128,6 +130,14 @@ bool CVulkanRenderSystem::InitRenderSystem()
   if (!m_surface->Initialize(m_deviceQueue.get(), SurfaceFormat::FORMAT_RGBA_32))
   {
     CLog::Log(LOGERROR, "Vulkan: Failed to initialize surface ({0}:{1})", __FILENAME__, __LINE__);
+    return false;
+  }
+
+  m_dynamicBuffers = std::make_unique<CVulkanDynamicBuffers>(&m_vkData, m_deviceQueue.get());
+  if (!m_dynamicBuffers->Create())
+  {
+    CLog::Log(LOGERROR, "Vulkan: Failed to initialize dynamic buffers ({0}:{1})", __FILENAME__,
+              __LINE__);
     return false;
   }
 
@@ -250,11 +260,16 @@ bool CVulkanRenderSystem::ResetRenderSystem(int width, int height)
   fprintf(stderr,
           "----------------------------------222Vulkan: ResetRenderSystem: width=%d, height=%d\n",
           width, height);
+#if 1
+  m_modelMatrix = glm::ortho(0.0f, float(width - 1), 0.0f, float(height - 1), -1.0f, 1.0f);
+  m_projectionMatrix = glm::mat4(1.0f);
+#endif
+
   //vkCmdBeginRenderPass(m_currentVkCommandBuffer, &begin_info, VK_SUBPASS_CONTENTS_INLINE);
 
   vulkanMatrixModview.Clear();
   vulkanMatrixModview->LoadIdentity();
-  //vulkanMatrixModview->Ortho(0.0f, width - 1, height - 1, 0.0f, -1.0f, 1.0f);
+  vulkanMatrixModview->Ortho(0.0f, width - 1, height - 1, 0.0f, -1.0f, 1.0f);
   vulkanMatrixModview.Load();
 
   vulkanMatrixProject.Clear();
@@ -354,21 +369,23 @@ bool CVulkanRenderSystem::BeginRender()
 
   vkCmdBeginRenderPass(m_currentVkCommandBuffer, &begin_info, VK_SUBPASS_CONTENTS_INLINE);
 
-  //vkCmdSetScissor(m_currentVkCommandBuffer, 0, 1, &m_vkScissor);
-  //vkCmdSetViewport(m_currentVkCommandBuffer, 0, 1, &m_vkViewport);
+  vkCmdSetScissor(m_currentVkCommandBuffer, 0, 1, &m_vkScissor);
+  vkCmdSetViewport(m_currentVkCommandBuffer, 0, 1, &m_vkViewport);
 
   m_indexBuffer = image;
   m_scopedWrite = std::move(scoped_write);
+
+  m_dynamicBuffers->BeginFrame(m_indexBuffer);
 
   return true;
 }
 
 bool CVulkanRenderSystem::EndRender()
 {
-  //RenderTriangle(static_cast<float>(m_width / 2), 0.0f);
-  //fprintf(stderr, "Vulkan: EndRender: width=%d, height=%d\n", m_width, m_height);
   if (!m_bRenderCreated || !m_scopedWrite.has_value())
     return false;
+
+  m_dynamicBuffers->EndFrame();
 
   auto& framebuffer = m_framebuffers[m_scopedWrite->ImageIndex()];
   CVulkanCommandBuffer& command_buffer = *framebuffer->CommandBuffer();
@@ -482,35 +499,47 @@ void CVulkanRenderSystem::SetCameraPosition(const CPoint& camera,
   float w = (float)m_vkViewport.width * 0.5f;
   float h = (float)m_vkViewport.height * 0.5f;
 
+#if 1
+  m_modelMatrix = glm::translate(glm::mat4(1.0f),
+                                 glm::vec3(-(w + offset.x - stereoFactor), +(h + offset.y), 0.0f));
+
+  glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, -2.0f * h);
+  glm::vec3 targetPos = glm::vec3(0.0f, 0.0f, 0.0f);
+  glm::vec3 upDir = glm::vec3(0.0f, -1.0f, 0.0f);
+  m_modelMatrix *= glm::lookAt(cameraPos, targetPos, upDir);
+
+  m_projectionMatrix = glm::frustum((-w - offset.x) * 0.5f, (+w - offset.x) * 0.5f,
+                                    (+h + offset.y) * 0.5f, (-h + offset.y) * 0.5f, h, 100 * h);
+#endif
   //fprintf(stderr,
   //        "------------ Vulkan: SetCameraPosition: screenWidth=%d, screenHeight=%d, w=%f, h=%f, offset.x=%d, offset.y=%d, "
   //        "stereoFactor=%f\n",
   //        screenWidth, screenHeight,
   //        double(w), double(h), uint32_t(offset.x), uint32_t(offset.y), double(stereoFactor));
 
-  //vulkanMatrixModview->LoadIdentity();
-  //vulkanMatrixModview->Translatef(-(w + offset.x - stereoFactor), +(h + offset.y), 0);
-  //vulkanMatrixModview->LookAt(0.0f, 0.0f, -2.0f * h, 0.0f, 0.0f, 0.0f, 0.0f, -1.0f, 0.0f);
-  //vulkanMatrixModview.Load();
+  vulkanMatrixModview->LoadIdentity();
+  vulkanMatrixModview->Translatef(-(w + offset.x - stereoFactor), +(h + offset.y), 0);
+  vulkanMatrixModview->LookAt(0.0f, 0.0f, -2.0f * h, 0.0f, 0.0f, 0.0f, 0.0f, -1.0f, 0.0f);
+  vulkanMatrixModview.Load();
 
-  //vulkanMatrixProject->LoadIdentity();
-  //vulkanMatrixProject->Frustum((-w - offset.x) * 0.5f, (w - offset.x) * 0.5f,
-  //                             (-h + offset.y) * 0.5f, (h + offset.y) * 0.5f, h, 100 * h);
-  //vulkanMatrixProject.Load();
+  vulkanMatrixProject->LoadIdentity();
+  vulkanMatrixProject->Frustum((-w - offset.x) * 0.5f, (w - offset.x) * 0.5f,
+                               (+h + offset.y) * 0.5f, (-h + offset.y) * 0.5f, h, 100 * h);
+  vulkanMatrixProject.Load();
 }
 
 void CVulkanRenderSystem::Project(float& x, float& y, float& z)
 {
   //fprintf(stderr, "Vulkan: 1 Project: x=%f, y=%f, z=%f %f %f %f %f\n", double(x), double(y),
   //        double(z), double(m_vkViewport.x), double(m_vkViewport.y), double(m_vkViewport.width), double(m_vkViewport.height));
-  //float coordX, coordY, coordZ;
-  //if (CVulkanMatrix::Project(x, y, z, vulkanMatrixModview.Get(), vulkanMatrixProject.Get(),
-  //                           &m_vkViewport, &coordX, &coordY, &coordZ))
-  //{
-  //  x = coordX;
-  //  y = (float)(m_vkViewport.y + m_vkViewport.height - coordY);
-  //  z = 0;
-  //}
+  float coordX, coordY, coordZ;
+  if (CVulkanMatrix::Project(x, y, z, vulkanMatrixModview.Get(), vulkanMatrixProject.Get(),
+                             &m_vkViewport, &coordX, &coordY, &coordZ))
+  {
+    x = coordX;
+    y = (float)(m_vkViewport.y + m_vkViewport.height - coordY);
+    z = 0;
+  }
   //fprintf(stderr, "Vulkan: 2 Project: x=%f, y=%f, z=%f\n", double(x), double(y), double(z));
   //char* a = nullptr;
   //a[0] = 0;
@@ -536,11 +565,8 @@ void CVulkanRenderSystem::GetViewPort(CRect& viewPort)
 
 void CVulkanRenderSystem::SetViewPort(const CRect& viewPort)
 {
-  if (!m_bRenderCreated)
-    return;
-
   m_vkViewport.x = viewPort.x1;
-  m_vkViewport.y = m_height - viewPort.y1 - viewPort.Height();
+  m_vkViewport.y = viewPort.y1;
   m_vkViewport.width = viewPort.Width();
   m_vkViewport.height = viewPort.Height();
   m_vkViewport.minDepth = 0.0f;
@@ -550,6 +576,15 @@ void CVulkanRenderSystem::SetViewPort(const CRect& viewPort)
   m_vkScissor.offset.y = MathUtils::round_int(static_cast<double>(m_vkViewport.y));
   m_vkScissor.extent.width = MathUtils::round_int(static_cast<double>(m_vkViewport.width));
   m_vkScissor.extent.height = MathUtils::round_int(static_cast<double>(m_vkViewport.height));
+
+  fprintf(stderr, "Vulkan: SetViewPort: x=%d, y=%d, width=%d, height=%d\n", m_vkScissor.offset.x,
+          m_vkScissor.offset.y, m_vkScissor.extent.width, m_vkScissor.extent.height);
+
+  //if (m_bRenderCreated && m_currentVkCommandBuffer != VK_NULL_HANDLE)
+  //{
+  //  vkCmdSetViewport(m_currentVkCommandBuffer, 0, 1, &m_vkViewport);
+  //  vkCmdSetScissor(m_currentVkCommandBuffer, 0, 1, &m_vkScissor);
+  //}
 }
 
 bool CVulkanRenderSystem::ScissorsCanEffectClipping()
@@ -606,13 +641,15 @@ CRect CVulkanRenderSystem::ClipRectToScissorRect(const CRect& rect)
 
 void CVulkanRenderSystem::SetScissors(const CRect& rect)
 {
-  if (!m_bRenderCreated || m_currentVkCommandBuffer == VK_NULL_HANDLE)
-    return;
-
   m_vkScissor.offset.x = MathUtils::round_int(static_cast<double>(rect.x1));
-  m_vkScissor.offset.y = MathUtils::round_int(static_cast<double>(m_height - rect.y1));
+  m_vkScissor.offset.y = MathUtils::round_int(static_cast<double>(rect.y1));
   m_vkScissor.extent.width = MathUtils::round_int(static_cast<double>(rect.x2 - rect.x1));
   m_vkScissor.extent.height = MathUtils::round_int(static_cast<double>(rect.y2 - rect.y1));
+
+  //if (m_bRenderCreated && m_currentVkCommandBuffer != VK_NULL_HANDLE)
+  //{
+  //  vkCmdSetScissor(m_currentVkCommandBuffer, 0, 1, &m_vkScissor);
+  //}
 }
 
 void CVulkanRenderSystem::ResetScissors()

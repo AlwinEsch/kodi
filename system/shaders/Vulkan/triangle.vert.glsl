@@ -8,7 +8,7 @@ layout (set = 0, binding = 0) uniform UBO
 } ubo;
 
 layout(location = 0) in vec3 in_attrpos;
-layout(location = 1) in vec4 in_attrcol;
+//layout(location = 1) in vec4 in_attrcol;
 layout(location = 2) in vec2 in_attrcord0;
 layout(location = 3) in vec2 in_attrcord1;
 
@@ -25,7 +25,7 @@ void main()
 {
 	gl_Position = ubo.projectionMatrix * ubo.modelMatrix * vec4(in_attrpos.xyz, 1.0);
   gl_Position.z = ubo.depth * gl_Position.w;
-  frag_colour = in_attrcol;
+  //frag_colour = in_attrcol;
   frag_cord0 = in_attrcord0;
   frag_cord1 = in_attrcord1;
 }

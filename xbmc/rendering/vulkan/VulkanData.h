@@ -20,6 +20,7 @@ constexpr const uint32_t MAX_SANITY_LIGHTMAPS = 256;
 constexpr const uint32_t MAX_TEXTURES = (16u * 4096u);
 constexpr const uint32_t MAX_UNIFORM_ALLOC = 2048u;
 
+
 // We want to keep GPU and CPU busy. To do that we may start building a new command m_buffer while the previous one is still being executed
 // This number defines how many frames may be worked on simultaneously at once
 // Increasing this number may improve performance but will also introduce additional latency
@@ -44,6 +45,13 @@ struct VulkanMemoryData
    * @brief The Vulkan device memory handle.
    */
   VkDeviceMemory memory{VK_NULL_HANDLE};
+
+  /**
+   * @brief The mapped memory range for this Vulkan memory data.
+   *
+   * This is useful for updating the contents of the memory via a mapped pointer.
+   */
+  VkMappedMemoryRange mappedRange{};
 
   /**
    * @brief The descriptor set stores the resources bound to the binding points in a shader.

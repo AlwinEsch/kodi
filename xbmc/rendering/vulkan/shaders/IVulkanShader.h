@@ -65,8 +65,8 @@ protected:
   virtual bool CreatePipelineLayout() { return true; }
   virtual void DestroyPipelineLayout();
 
-  virtual bool CreateVertexBuffer() { return true; }
-  virtual void DestroyVertexBuffer();
+  //virtual bool CreateVertexBuffer() { return true; }
+  //virtual void DestroyVertexBuffer();
 
   virtual bool CreatePipeline() { return true; }
   virtual void DestroyPipeline();

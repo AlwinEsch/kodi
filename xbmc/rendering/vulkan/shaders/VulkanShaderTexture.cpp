@@ -8,10 +8,12 @@
 
 #include "VulkanShaderTexture.h"
 
+#include "ServiceBroker.h"
 #include "rendering/vulkan/VulkanDeviceQueue.h"
 #include "rendering/vulkan/utils/VulkanInitStructs.h"
 #include "rendering/vulkan/utils/VulkanUtils.h"
 #include "utils/log.h"
+#include "windowing/WinSystem.h"
 
 #include <cassert>
 
@@ -30,14 +32,6 @@ namespace
 constexpr const char* kVertexShaderFile = "triangle.vert.spv";
 constexpr const char* kFragmentShaderFile = "triangle.frag.spv";
 
-const std::vector<Vertex> defaultVertexBuffer{
-    {{1.0f, 1.0f, 0.0f}, {1.0f, 0.0f, 0.0f, 1.0f}, {0.0f, 0.0f}, {0.0f, 0.0f}},
-    {{-1.0f, 1.0f, 0.0f}, {0.0f, 1.0f, 0.0f, 1.0f}, {0.0f, 0.0f}, {0.0f, 0.0f}},
-    {{-1.0f, -1.0f, 0.0f}, {0.0f, 0.0f, 1.0f, 1.0f}, {0.0f, 0.0f}, {0.0f, 0.0f}},
-    {{1.0f, -1.0f, 0.0f}, {1.0f, 0.0f, 1.0f, 1.0f}, {0.0f, 0.0f}, {0.0f, 0.0f}}};
-
-const std::vector<uint32_t> defaultIndexBuffer{0, 1, 2, 2, 3, 0};
-
 } // namespace
 
 CVulkanShaderTexture::CVulkanShaderTexture(const VulkanData* vkData,
@@ -53,68 +47,65 @@ bool CVulkanShaderTexture::CreatePipelineLayout()
       m_vkData->vkDescriptorSetLayout_Texture,
   };
 
-  VkPushConstantRange range = {};
-  range.offset = 0;
-  range.size = 22 * sizeof(float);
-  range.stageFlags = VK_SHADER_STAGE_ALL_GRAPHICS;
+  // Push constant ranges
+  std::vector<VkPushConstantRange> pushConstantRanges = {
+      // Push constant for fragment shader about color
+      vkPushConstantRange(VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(glm::vec4), 0),
+  };
 
   VkPipelineLayoutCreateInfo info = {};
   info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
   info.setLayoutCount = static_cast<uint32_t>(setLayouts.size());
   info.pSetLayouts = setLayouts.data();
-#if 0 // TODO: Enable push constants when we have a shader that uses them
-  info.pushConstantRangeCount = 1;
-  info.pPushConstantRanges = &range;
-#endif
+  info.pushConstantRangeCount = static_cast<uint32_t>(pushConstantRanges.size());
+  info.pPushConstantRanges = pushConstantRanges.data();
 
   VK_CHECK_RESULT(vkCreatePipelineLayout(m_vkData->vkDevice, &info, nullptr, &m_vkPipelineLayout),
                   false);
   return true;
 }
 
-bool CVulkanShaderTexture::CreateVertexBuffer()
-{
-  for (auto& buffer : m_vertexBuffers)
-  {
-    VK_CHECK_RESULT(m_deviceQueue->CreateBuffer(
-                        VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-                        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                        &buffer, sizeof(Vertex) * defaultVertexBuffer.size(),
-                        defaultVertexBuffer.data()),
-                    false);
-    // We map the m_buffer once, so we can update it without having to map it again
-    VK_CHECK_RESULT(vkMapMemory(m_vkData->vkDevice, buffer.memory, 0,
-                                sizeof(Vertex) * defaultVertexBuffer.size(), 0,
-                                (void**)&buffer.mapped),
-                    false);
-  }
-
-  for (auto& buffer : m_indexBuffers)
-  {
-    VK_CHECK_RESULT(m_deviceQueue->CreateBuffer(
-                        VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
-                        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                        &buffer, 64 * sizeof(uint32_t) * defaultIndexBuffer.size()),
-                    false);
-    // We map the m_buffer once, so we can update it without having to map it again
-    VK_CHECK_RESULT(vkMapMemory(m_vkData->vkDevice, buffer.memory, 0,
-                                sizeof(uint32_t) * defaultIndexBuffer.size(), 0,
-                                (void**)&buffer.mapped),
-                    false);
-
-    memcpy(buffer.mapped, defaultIndexBuffer.data(), sizeof(uint32_t) * defaultIndexBuffer.size());
-  }
-
-  return true;
-}
-
 bool CVulkanShaderTexture::CreatePipeline()
 {
   // Pipeline
-  std::vector<VkDynamicState> enables = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
+  std::vector<VkDynamicState> enables = {
+      VK_DYNAMIC_STATE_VIEWPORT,
+      VK_DYNAMIC_STATE_SCISSOR,
+      //VK_DYNAMIC_STATE_COLOR_BLEND_ENABLE_EXT,
+  };
   auto dynState = vkPipelineDynamicStateCreateInfo(enables.data(), enables.size());
   auto inputAssembly = vkPipelineInputAssemblyStateCreateInfo(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
-  auto blendAttachmentState = vkPipelineColorBlendAttachmentState(0xf, VK_FALSE);
+
+  VkPipelineColorBlendAttachmentState blendAttachmentState = {};
+  // Enabled blending (With the background)
+  //
+  //
+  // See CGUIFontTTFGL::FirstBegin for rationale. SDR uses accumulator
+  // coverage alpha; HDR FBO composite uses a compensated squared-alpha
+  // blend because the FBO is color-transformed to PQ before composite,
+  // and alpha blending in non-linear space is mathematically wrong.
+  if (CServiceBroker::GetWinSystem()->IsHdrComposite())
+  {
+    blendAttachmentState.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+    blendAttachmentState.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+    blendAttachmentState.colorBlendOp = VK_BLEND_OP_ADD;
+    blendAttachmentState.srcAlphaBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+    blendAttachmentState.dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+    blendAttachmentState.alphaBlendOp = VK_BLEND_OP_ADD;
+  }
+  else
+  {
+    blendAttachmentState.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+    blendAttachmentState.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+    blendAttachmentState.colorBlendOp = VK_BLEND_OP_ADD;
+    blendAttachmentState.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_DST_ALPHA;
+    blendAttachmentState.dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+    blendAttachmentState.alphaBlendOp = VK_BLEND_OP_ADD;
+  }
+  blendAttachmentState.blendEnable = VK_TRUE;
+  blendAttachmentState.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
+                                        VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+
   auto colorBlendState = vkPipelineColorBlendStateCreateInfo(1, &blendAttachmentState);
   auto viewportState = vkPipelineViewportStateCreateInfo(1, 1, 0);
   auto multisampleState = vkPipelineMultisampleStateCreateInfo(VK_SAMPLE_COUNT_1_BIT);
@@ -129,7 +120,7 @@ bool CVulkanShaderTexture::CreatePipeline()
   };
   std::vector<VkVertexInputAttributeDescription> inputAttributs{
       vkVertexInputAttrDescr(0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, in_attrpos)),
-      vkVertexInputAttrDescr(0, 1, VK_FORMAT_R32G32B32A32_SFLOAT, offsetof(Vertex, in_attrcol)),
+      //vkVertexInputAttrDescr(0, 1, VK_FORMAT_R32G32B32A32_SFLOAT, offsetof(Vertex, in_attrcol)),
       vkVertexInputAttrDescr(0, 2, VK_FORMAT_R32G32_SFLOAT, offsetof(Vertex, in_attrcord0)),
       vkVertexInputAttrDescr(0, 3, VK_FORMAT_R32G32_SFLOAT, offsetof(Vertex, in_attrcord1)),
   };
@@ -172,18 +163,6 @@ bool CVulkanShaderTexture::CreatePipeline()
   UnloadShader(shaderStages[1]);
 
   return true;
-}
-
-void CVulkanShaderTexture::UpdateVerticesBuffer(uint32_t index, const Vertex* vertices)
-{
-  memcpy(m_vertexBuffers[index].mapped, vertices, sizeof(Vertex) * defaultVertexBuffer.size());
-}
-
-void CVulkanShaderTexture::UpdateIndeciesBuffer(uint32_t index,
-                                                const uint32_t* indices,
-                                                size_t count)
-{
-  memcpy(m_indexBuffers[index].mapped, indices, sizeof(uint32_t) * count);
 }
 
 } // namespace KODI::RENDERING::VULKAN

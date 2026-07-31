@@ -34,11 +34,11 @@ bool IVulkanShader::Create()
     CLog::Log(LOGERROR, "IVulkanShader::Create - failed to create pipeline layout");
     return false;
   }
-  if (!CreateVertexBuffer())
-  {
-    CLog::Log(LOGERROR, "IVulkanShader::Create - failed to create vertex buffer");
-    return false;
-  }
+  //if (!CreateVertexBuffer())
+  //{
+  //  CLog::Log(LOGERROR, "IVulkanShader::Create - failed to create vertex buffer");
+  //  return false;
+  //}
   if (!CreatePipeline())
   {
     CLog::Log(LOGERROR, "IVulkanShader::Create - failed to create pipeline");
@@ -50,7 +50,7 @@ bool IVulkanShader::Create()
 void IVulkanShader::Destroy()
 {
   DestroyPipeline();
-  DestroyVertexBuffer();
+  //DestroyVertexBuffer();
   DestroyPipelineLayout();
 }
 
@@ -63,19 +63,19 @@ void IVulkanShader::DestroyPipelineLayout()
   }
 }
 
-void IVulkanShader::DestroyVertexBuffer()
-{
-  for (auto& buffer : m_vertexBuffers)
-  {
-    m_deviceQueue->DestroyBuffer(&buffer);
-    buffer = {};
-  }
-  for (auto& buffer : m_indexBuffers)
-  {
-    m_deviceQueue->DestroyBuffer(&buffer);
-    buffer = {};
-  }
-}
+//void IVulkanShader::DestroyVertexBuffer()
+//{
+//  //for (auto& buffer : m_vertexBuffers)
+//  //{
+//  //  m_deviceQueue->DestroyBuffer(&buffer);
+//  //  buffer = {};
+//  //}
+//  for (auto& buffer : m_indexBuffers)
+//  {
+//    m_deviceQueue->DestroyBuffer(&buffer);
+//    buffer = {};
+//  }
+//}
 
 void IVulkanShader::DestroyPipeline()
 {

@@ -21,7 +21,8 @@ namespace KODI::RENDERING::VULKAN
 {
 class CVulkanRenderSystem;
 class CVulkanShaderTexture;
-class Camera;
+class CVulkanDynamicBuffer;
+class CVulkanDynamicBuffers;
 struct Vertex;
 } // KODI::RENDERING::VULKAN
 
@@ -67,8 +68,10 @@ private:
   std::vector<uint32_t> m_idx;
   KODI::RENDERING::VULKAN::CVulkanRenderSystem* m_renderSystem;
   KODI::RENDERING::VULKAN::CVulkanShaderTexture* m_shaderTexture;
-
-  KODI::RENDERING::VULKAN::Camera* m_camera; // Temporary until we have a proper GUI camera
+  KODI::RENDERING::VULKAN::CVulkanDynamicBuffers* m_dynamicBuffers;
+  KODI::RENDERING::VULKAN::CVulkanDynamicBuffer* m_uniformBuffer;
+  KODI::RENDERING::VULKAN::CVulkanDynamicBuffer* m_vertexBuffer;
+  KODI::RENDERING::VULKAN::CVulkanDynamicBuffer* m_indexBuffer;
 };
 
 } // namespace KODI::GUILIB::GRAPHICS::VULKAN
