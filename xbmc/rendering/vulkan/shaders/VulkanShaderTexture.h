@@ -28,7 +28,6 @@ constexpr auto PARTICLE_COUNT = 512;
 struct Vertex
 {
   glm::vec3 in_attrpos;
-  //glm::vec4 in_attrcol;
   glm::vec2 in_attrcord0;
   glm::vec2 in_attrcord1;
 };

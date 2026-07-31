@@ -212,13 +212,6 @@ void CVulkanTexture::LoadToGPU()
   memcpy(data, m_pixels, static_cast<size_t>(size));
   vkUnmapMemory(m_vkData->vkDevice, stagingMemory);
 
-  // Setup m_buffer copy regions for each mip level
-  std::vector<VkBufferImageCopy> bufferCopyRegions;
-  const uint32_t mipLevels = 1;
-
-  //fprintf(stderr, "-------------------- IsMipmapped() %d, m_scalingMethod %d\n", IsMipmapped(),
-  //        m_scalingMethod);
-
   VkBufferImageCopy region = {};
   region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
   region.imageSubresource.mipLevel = 0;
@@ -233,7 +226,7 @@ void CVulkanTexture::LoadToGPU()
   imageInfo.extent.width = m_textureWidth;
   imageInfo.extent.height = m_textureHeight;
   imageInfo.extent.depth = 1;
-  imageInfo.mipLevels = mipLevels;
+  imageInfo.mipLevels = 1;
   imageInfo.arrayLayers = 1;
   imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
   imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
@@ -252,7 +245,7 @@ void CVulkanTexture::LoadToGPU()
   VkImageSubresourceRange subresourceRange{
       .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
       .baseMipLevel = 0,
-      .levelCount = mipLevels,
+      .levelCount = 1,
       .baseArrayLayer = 0,
       .layerCount = 1,
   };
@@ -306,15 +299,10 @@ void CVulkanTexture::LoadToGPU()
   VkImageViewCreateInfo view = vkImageViewCreateInfo();
   view.image = m_image;
   view.viewType = VK_IMAGE_VIEW_TYPE_2D;
-  view.subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, mipLevels, 0, 1};
+  view.subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
   view.format = TextureMapping.at(m_textureFormat);
-  //fprintf(stderr, "--------------------> %s, m_textureFormat 0x%X, view.format %d\n", __func__,
-  //        m_textureFormat, view.format);
   if (SwizzleMap.contains(m_textureSwizzle))
     view.components = SwizzleMap.at(m_textureSwizzle);
-  //fprintf(stderr, "--------------------> %s, m_textureSwizzle 0x%X, view.components %d %d %d %d\n",
-  //        __func__, m_textureSwizzle, view.components.r, view.components.g, view.components.b,
-  //        view.components.a);
   VK_CHECK_RESULT(vkCreateImageView(m_vkData->vkDevice, &view, nullptr, &m_imageView));
 
   //--------------------------------------------------------------------------------

@@ -76,7 +76,6 @@ if(TARGET ${APP_NAME_LC}::Vulkan)
   endfunction()
 
   set(SHADERS_VERTEX
-    triangle.vert.glsl
     vulkan_shader_gr0_vert_test_triangle.glsl
     vulkan_shader_gr1_vert.glsl
     vulkan_shader_gr2_vert_default.glsl
@@ -84,11 +83,9 @@ if(TARGET ${APP_NAME_LC}::Vulkan)
     vulkan_shader_gr3_vert_simple.glsl
     vulkan_shader_gr4_vert_gui_composite.glsl
     vulkan_shader_gr5_vert_videofilter.glsl
-    text.vert.glsl
   )
 
   set(SHADERS_PIXEL
-    triangle.frag.glsl
     vulkan_shader_gr0_frag_test_triangle.glsl
     vulkan_shader_gr1_fraq_multi.glsl
     vulkan_shader_gr1_fraq_multi_blendcolor.glsl
@@ -100,7 +97,6 @@ if(TARGET ${APP_NAME_LC}::Vulkan)
     vulkan_shader_gr4_frag_gui_composite.glsl
     vulkan_shader_gr5_frag_stretch.glsl
     vulkan_shader_gr5_frag_videofilter.glsl
-    text.frag.glsl
   )
 
   compile_shader(rendering_vulkan

@@ -71,8 +71,7 @@ void CVulkanGUITexture::Begin(KODI::UTILS::COLOR::Color color)
     m_diffuse.m_textures[0]->LoadToGPU();
 
   // Setup Colors
-  //m_color = glm::unpackUnorm4x8(glm::uvec4((color >> 16) & 0xFF, (color >> 8) & 0xFF, (color >> 0) & 0xFF,
-  //                              (color >> 24) & 0xFF));
+  // NOTE: Vulkan uses ARGB format, but we need to convert it to RGBA for the shader
   m_color.r = float((color >> 16) & 0xFF) / 255.0f;
   m_color.g = float((color >> 8) & 0xFF) / 255.0f;
   m_color.b = float((color >> 0) & 0xFF) / 255.0f;

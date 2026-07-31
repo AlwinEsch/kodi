@@ -26,11 +26,9 @@ namespace KODI::RENDERING::VULKAN
 
 namespace
 {
-//constexpr const char* kVertexShaderFile = "vulkan_shader_gr1_vert.spv";
-//constexpr const char* kFragmentShaderFile = "vulkan_shader_gr1_fraq_texture.spv";
 
-constexpr const char* kVertexShaderFile = "triangle.vert.spv";
-constexpr const char* kFragmentShaderFile = "triangle.frag.spv";
+constexpr const char* kVertexShaderFile = "vulkan_shader_gr1_vert.spv";
+constexpr const char* kFragmentShaderFile = "vulkan_shader_gr1_fraq_texture.spv";
 
 } // namespace
 
@@ -110,7 +108,7 @@ bool CVulkanShaderTexture::CreatePipeline()
   auto viewportState = vkPipelineViewportStateCreateInfo(1, 1, 0);
   auto multisampleState = vkPipelineMultisampleStateCreateInfo(VK_SAMPLE_COUNT_1_BIT);
   auto raster = vkPipelineRasterStateCreateInfo(VK_POLYGON_MODE_FILL, VK_CULL_MODE_NONE,
-                                                VK_FRONT_FACE_COUNTER_CLOCKWISE);
+                                                VK_FRONT_FACE_CLOCKWISE);
   auto depthStencilState =
       vkPipelineDepthStencilStateCreateInfo(VK_TRUE, VK_TRUE, VK_COMPARE_OP_LESS_OR_EQUAL);
 
@@ -120,9 +118,8 @@ bool CVulkanShaderTexture::CreatePipeline()
   };
   std::vector<VkVertexInputAttributeDescription> inputAttributs{
       vkVertexInputAttrDescr(0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, in_attrpos)),
-      //vkVertexInputAttrDescr(0, 1, VK_FORMAT_R32G32B32A32_SFLOAT, offsetof(Vertex, in_attrcol)),
-      vkVertexInputAttrDescr(0, 2, VK_FORMAT_R32G32_SFLOAT, offsetof(Vertex, in_attrcord0)),
-      vkVertexInputAttrDescr(0, 3, VK_FORMAT_R32G32_SFLOAT, offsetof(Vertex, in_attrcord1)),
+      vkVertexInputAttrDescr(0, 1, VK_FORMAT_R32G32_SFLOAT, offsetof(Vertex, in_attrcord0)),
+      vkVertexInputAttrDescr(0, 2, VK_FORMAT_R32G32_SFLOAT, offsetof(Vertex, in_attrcord1)),
   };
 
   // Vertex input state used for pipeline creation
@@ -134,8 +131,41 @@ bool CVulkanShaderTexture::CreatePipeline()
 
   // Load Vertex and Fragment shaders
   std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages{};
-  shaderStages[0] = LoadShader(kVertexShaderFile, VK_SHADER_STAGE_VERTEX_BIT);
-  shaderStages[1] = LoadShader(kFragmentShaderFile, VK_SHADER_STAGE_FRAGMENT_BIT);
+  std::array<VkSpecializationMapEntry, 1> specializationMapEntries;
+  {
+    shaderStages[0] = LoadShader(kVertexShaderFile, VK_SHADER_STAGE_VERTEX_BIT);
+  }
+  {
+    // Prepare specialization data for fragment shader to enable/disable about
+    // SPIR-V where becomes set during final compile to set limited color output
+    // based on system settings.
+    struct SpecializationData
+    {
+      bool useLimitedColor{CServiceBroker::GetWinSystem()->UseLimitedColor()};
+    } specializationData;
+
+    specializationMapEntries[0].constantID = 0;
+    specializationMapEntries[0].size = sizeof(specializationData.useLimitedColor);
+    specializationMapEntries[0].offset = 0;
+
+    VkSpecializationInfo specializationInfo{
+        .mapEntryCount = static_cast<uint32_t>(specializationMapEntries.size()),
+        .pMapEntries = specializationMapEntries.data(),
+        .dataSize = sizeof(specializationData),
+        .pData = &specializationData,
+    };
+
+    shaderStages[1] = LoadShader(kFragmentShaderFile, VK_SHADER_STAGE_FRAGMENT_BIT);
+    /*!
+     * @todo Find out why specializationInfo is not working with the fragment shader.
+     * It should be possible to set the useLimitedColor variable in the fragment shader
+     * to enable/disable limited color output based on system settings.
+     *
+     * It producees a crash by call of vkCreateGraphicsPipelines with the specializationInfo
+     * set in the shaderStages[1].pSpecializationInfo.
+     */
+    //shaderStages[1].pSpecializationInfo = &specializationInfo;
+  }
   if (shaderStages[0].module == VK_NULL_HANDLE || shaderStages[1].module == VK_NULL_HANDLE)
   {
     CLog::Log(LOGERROR, "Failed to load shaders: {} and {}", kVertexShaderFile,

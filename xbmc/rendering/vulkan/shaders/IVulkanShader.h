@@ -71,7 +71,8 @@ protected:
   virtual bool CreatePipeline() { return true; }
   virtual void DestroyPipeline();
 
-  VkPipelineShaderStageCreateInfo LoadShader(std::string fileName, VkShaderStageFlagBits stage);
+  VkPipelineShaderStageCreateInfo LoadShader(std::string fileName,
+                                             VkShaderStageFlagBits stage);
   void UnloadShader(VkPipelineShaderStageCreateInfo shaderStage);
 
   const VulkanData* m_vkData;
