@@ -9,7 +9,6 @@ if(TARGET ${APP_NAME_LC}::Vulkan)
               VulkanGuiCompositeShader.cpp
               VulkanImplementation.cpp
               VulkanInstance.cpp
-              VulkanMatrix.cpp
               VulkanRenderPass.cpp
               VulkanRenderSystem.cpp
               VulkanScopedWrite.cpp
@@ -29,7 +28,6 @@ if(TARGET ${APP_NAME_LC}::Vulkan)
               VulkanImplementation.h
               VulkanInfo.h
               VulkanInstance.h
-              VulkanMatrix.h
               VulkanRenderPass.h
               VulkanRenderSystem.h
               VulkanScopedWrite.h

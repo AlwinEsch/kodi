@@ -17,8 +17,6 @@
 
 #include <cassert>
 
-#define DEFAULT_FENCE_TIMEOUT 100000000000
-
 using namespace KODI::RENDERING::VULKAN::UTILS;
 
 namespace KODI::RENDERING::VULKAN
@@ -168,8 +166,8 @@ bool CVulkanShaderTexture::CreatePipeline()
   }
   if (shaderStages[0].module == VK_NULL_HANDLE || shaderStages[1].module == VK_NULL_HANDLE)
   {
-    CLog::Log(LOGERROR, "Failed to load shaders: {} and {}", kVertexShaderFile,
-              kFragmentShaderFile);
+    CLog::Log(LOGERROR, "Vulkan: Failed to load shaders: {0} and {1} ({2}:{3})", kVertexShaderFile,
+              kFragmentShaderFile, __FILENAME__, __LINE__);
     return false;
   }
 

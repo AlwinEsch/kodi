@@ -140,9 +140,6 @@ public:
 
   const VulkanData* vkData() const { return &m_vkData; }
 
-  glm::mat4 m_modelMatrix = glm::mat4(1.0f);
-  glm::mat4 m_projectionMatrix = glm::mat4(1.0f);
-
 protected:
   /**
    * @brief Gets the width and height of the render system.

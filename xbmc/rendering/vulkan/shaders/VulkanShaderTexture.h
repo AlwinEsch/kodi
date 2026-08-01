@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include "rendering/vulkan/VulkanData.h"
 #include "rendering/vulkan/shaders/IVulkanShader.h"
 
 #include <array>
@@ -30,18 +31,6 @@ struct Vertex
   glm::vec3 in_attrpos;
   glm::vec2 in_attrcord0;
   glm::vec2 in_attrcord1;
-};
-
-struct Texture
-{
-  VkSampler sampler{VK_NULL_HANDLE};
-  VkImage image{VK_NULL_HANDLE};
-  VkImageLayout imageLayout;
-  VkDeviceMemory deviceMemory{VK_NULL_HANDLE};
-  VkImageView view{VK_NULL_HANDLE};
-  uint32_t width{0};
-  uint32_t height{0};
-  uint32_t mipLevels{0};
 };
 
 class CVulkanDeviceQueue;

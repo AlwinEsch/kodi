@@ -12,8 +12,8 @@
 #include "guilib/Texture.h"
 #include "guilib/TextureFormats.h"
 #include "guilib/graphics/vulkan/VulkanTexture.h"
+#include "rendering/MatrixStack.h"
 #include "rendering/vulkan/DynamicBuffers.h"
-#include "rendering/vulkan/VulkanMatrix.h"
 #include "rendering/vulkan/VulkanRenderSystem.h"
 #include "rendering/vulkan/shaders/VulkanShaderControl.h"
 #include "rendering/vulkan/shaders/VulkanShaderTexture.h"
@@ -129,27 +129,12 @@ void CVulkanGUITexture::End()
   const uint32_t renderImageIndex = m_renderSystem->vkCurrentRenderImageIndex();
 
   VulkanUniform uniform{};
-  //uniform.projectionMatrix = m_renderSystem->m_projectionMatrix;
-  //uniform.modelMatrix = m_renderSystem->m_modelMatrix;
-  const float* projMatrix = vulkanMatrixProject.Get();
-  const float* modelMatrix = vulkanMatrixModview.Get();
-  uniform.projectionMatrix = glm::make_mat4(projMatrix);
-  uniform.modelMatrix = glm::make_mat4(modelMatrix);
+  uniform.projectionMatrix = KODI::RENDERING::globalMatrixProject;
+  uniform.modelMatrix = KODI::RENDERING::globalMatrixModview;
   uniform.depth = 1.0f;
 
   VkBuffer buffer;
   VkDeviceSize bufferOffset;
-  VkDescriptorSet descriptorSet;
-
-  //VulkanUniform* uniform = static_cast<VulkanUniform*>(m_uniformBuffer->AllocateOffset(
-  //    sizeof(VulkanUniform), buffer, bufferOffset, &descriptorSet));
-  //uniform->projectionMatrix = glm::make_mat4(projMatrix);
-  //uniform->modelMatrix = glm::make_mat4(modelMatrix);
-  //uniform->depth = 1.0f;
-
-  //uint32_t descBufferOffset = bufferOffset;
-  //vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1,
-  //                        &descriptorSet, 0, &descBufferOffset);
 
   Vertex* vertices = static_cast<Vertex*>(m_vertexBuffer->AllocateOffset(
       sizeof(Vertex) * m_packedVertices.size(), buffer, bufferOffset));

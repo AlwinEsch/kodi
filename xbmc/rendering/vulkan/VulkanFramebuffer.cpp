@@ -71,13 +71,7 @@ bool CVulkanFramebuffer::Create(
   };
 
   VkResult result;
-  result = vkCreateImageView(vk_device, &vkImageViewCreateInfo, nullptr, &m_vkImageView);
-  if (result != VK_SUCCESS)
-  {
-    CLog::Log(LOGFATAL, "Vulkan: Failed to create a Vulkan image view. ERROR {0} (FILE {1} LINE {2})",
-              ErrorString(result), __FILE__, __LINE__);
-    return false;
-  }
+  VK_CHECK_RESULT(vkCreateImageView(vk_device, &vkImageViewCreateInfo, nullptr, &m_vkImageView), false);
   VkFramebufferCreateInfo vkFramebufferCreateInfo = {
       .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
       .pNext = nullptr,

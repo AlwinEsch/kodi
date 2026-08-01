@@ -17,10 +17,6 @@
 namespace KODI::RENDERING::VULKAN
 {
 
-constexpr const uint32_t INITIAL_DYNAMIC_VERTEX_BUFFER_SIZE_KB = 256;
-constexpr const uint32_t INITIAL_DYNAMIC_INDEX_BUFFER_SIZE_KB = 1024;
-constexpr const uint32_t INITIAL_DYNAMIC_UNIFORM_BUFFER_SIZE_KB = 256;
-
 enum BufferType
 {
   BUFFER_TYPE_VERTEX,
@@ -30,7 +26,31 @@ enum BufferType
 };
 
 class CVulkanDeviceQueue;
-class CVulkanDynamicBuffers;
+class CVulkanDynamicBuffer;
+
+class CVulkanDynamicBuffers
+{
+public:
+  CVulkanDynamicBuffers(const VulkanData* vkData, CVulkanDeviceQueue* deviceQueue);
+  virtual ~CVulkanDynamicBuffers();
+
+  CVulkanDynamicBuffer* GetBuffer(BufferType type) { return m_buffers[type].get(); }
+
+  bool Create();
+  void Destroy();
+  void BeginFrame(uint32_t indexBuffer);
+  void EndFrame();
+  VkMappedMemoryRange GetMappedMemoryRange() const;
+
+private:
+  const VulkanData* m_vkData;
+  CVulkanDeviceQueue* const m_deviceQueue;
+
+  std::array<std::unique_ptr<CVulkanDynamicBuffer>, BUFFER_TYPE_COUNT> m_buffers;
+  uint32_t m_currentFrameIndex{0};
+};
+
+//--------------------------------------------------------------------------------------------------
 
 class CVulkanDynamicBuffer
 {
@@ -64,30 +84,6 @@ private:
   std::array<VulkanMemoryData, MAX_CONCURRENT_FRAMES> m_memData;
 
   mutable CCriticalSection m_criticalSection;
-};
-
-//--------------------------------------------------------------------------------------------------
-
-class CVulkanDynamicBuffers
-{
-public:
-  CVulkanDynamicBuffers(const VulkanData* vkData, CVulkanDeviceQueue* deviceQueue);
-  virtual ~CVulkanDynamicBuffers();
-
-  CVulkanDynamicBuffer* GetBuffer(BufferType type) { return m_buffers[type].get(); }
-
-  bool Create();
-  void Destroy();
-  void BeginFrame(uint32_t indexBuffer);
-  void EndFrame();
-  VkMappedMemoryRange GetMappedMemoryRange() const;
-
-private:
-  const VulkanData* m_vkData;
-  CVulkanDeviceQueue* const m_deviceQueue;
-
-  std::array<std::unique_ptr<CVulkanDynamicBuffer>, BUFFER_TYPE_COUNT> m_buffers;
-  uint32_t m_currentFrameIndex{0};
 };
 
 } // namespace KODI::RENDERING::VULKAN

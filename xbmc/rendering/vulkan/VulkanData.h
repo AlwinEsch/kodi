@@ -83,6 +83,66 @@ struct VulkanMemoryData
   void* mapped{nullptr};
 };
 
+/**
+ * @brief Structure to hold Vulkan texture data.
+ *
+ * This structure encapsulates the Vulkan handles and properties related to a texture,
+ * including the sampler, image, image layout, device memory, image view, width, height,
+ * and mip levels.
+ */
+struct VulkanTextureData
+{
+  /**
+   * @brief The Vulkan sampler handle.
+   *
+   * This is used to sample textures in shaders, defining how the texture is filtered and wrapped.
+   */
+  VkSampler sampler{VK_NULL_HANDLE};
+
+  /**
+   * @brief The Vulkan image handle.
+   *
+   * This is the actual image object that can be used for rendering or compute operations.
+   */
+  VkImage image{VK_NULL_HANDLE};
+
+  /**
+   * @brief The Vulkan image layout.
+   *
+   * This defines how the image is currently being used (e.g., as a color attachment, depth attachment, etc.).
+   */
+  VkImageLayout imageLayout;
+
+  /**
+   * @brief The Vulkan device memory handle.
+   *
+   * This is the memory allocated for the image, which can be used to store the image data.
+   */
+  VkDeviceMemory deviceMemory{VK_NULL_HANDLE};
+
+  /**
+   * @brief The Vulkan image view handle.
+   *
+   * This is used to access the image in shaders, defining how the image is viewed (e.g., as a 2D texture, 3D texture, etc.).
+   */
+  VkImageView view{VK_NULL_HANDLE};
+
+  /**
+   * @brief The width of the image.
+   */
+  uint32_t width{0};
+
+  /**
+   * @brief The height of the image.
+   */
+  uint32_t height{0};
+
+  /**
+   * @brief The number of mipmap levels in the image.
+   */
+  uint32_t mipLevels{0};
+};
+
 struct VulkanUniform
 {
   glm::mat4 projectionMatrix;

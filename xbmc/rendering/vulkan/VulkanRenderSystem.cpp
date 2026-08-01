@@ -15,12 +15,12 @@
 #include "guilib/DirtyRegion.h"
 #include "guilib/graphics/vulkan/VulkanGUITexture.h"
 #include "platform/MessagePrinter.h"
+#include "rendering/MatrixStack.h"
 #include "rendering/vulkan/DynamicBuffers.h"
 #include "rendering/vulkan/VulkanCommandBuffer.h"
 #include "rendering/vulkan/VulkanCommandPool.h"
 #include "rendering/vulkan/VulkanFramebuffer.h"
 #include "rendering/vulkan/VulkanInstance.h"
-#include "rendering/vulkan/VulkanMatrix.h"
 #include "rendering/vulkan/VulkanRenderPass.h"
 #include "rendering/vulkan/VulkanScopedWrite.h"
 #include "rendering/vulkan/VulkanSwapChain.h"
@@ -89,7 +89,6 @@ std::unique_ptr<CVulkanDeviceQueue> CreateVulkanDeviceQueue(CVulkanRenderSystem*
 
 CVulkanRenderSystem::CVulkanRenderSystem() : CRenderSystemBase()
 {
-
 }
 
 CVulkanRenderSystem::~CVulkanRenderSystem()
@@ -245,40 +244,20 @@ bool CVulkanRenderSystem::DestroyRenderSystem()
 
 bool CVulkanRenderSystem::ResetRenderSystem(int width, int height)
 {
-  fprintf(stderr,
-          "--------------------------------Vulkan: ResetRenderSystem: width=%d, height=%d\n", width,
-          height);
   if (!m_bRenderCreated)
     return false;
 
-  //if (static_cast<uint32_t>(width) == m_width && static_cast<uint32_t>(height) == m_height)
-  //  return true;
+  if (static_cast<uint32_t>(width) == m_width && static_cast<uint32_t>(height) == m_height)
+    return true;
+
+  m_width = width;
+  m_height = height;
 
   CRect rect(0, 0, width, height);
   SetViewPort(rect);
 
-  fprintf(stderr,
-          "----------------------------------222Vulkan: ResetRenderSystem: width=%d, height=%d\n",
-          width, height);
-#if 1
-  m_modelMatrix = glm::ortho(0.0f, float(width - 1), 0.0f, float(height - 1), -1.0f, 1.0f);
-  m_projectionMatrix = glm::mat4(1.0f);
-#endif
-
-  //vkCmdBeginRenderPass(m_currentVkCommandBuffer, &begin_info, VK_SUBPASS_CONTENTS_INLINE);
-
-  vulkanMatrixModview.Clear();
-  vulkanMatrixModview->LoadIdentity();
-  vulkanMatrixModview->Ortho(0.0f, width - 1, height - 1, 0.0f, -1.0f, 1.0f);
-  vulkanMatrixModview.Load();
-
-  vulkanMatrixProject.Clear();
-  vulkanMatrixProject->LoadIdentity();
-  vulkanMatrixProject.Load();
-
-  vulkanMatrixTexture.Clear();
-  vulkanMatrixTexture->LoadIdentity();
-  vulkanMatrixTexture.Load();
+  globalMatrixModview = glm::ortho(0.0f, float(width - 1), 0.0f, float(height - 1), -1.0f, 1.0f);
+  globalMatrixProject = glm::mat4(1.0f);
 
   return true;
 }
@@ -471,9 +450,9 @@ void CVulkanRenderSystem::CaptureStateBlock()
   if (!m_bRenderCreated)
     return;
 
-  vulkanMatrixProject.Push();
-  vulkanMatrixModview.Push();
-  vulkanMatrixTexture.Push();
+  globalMatrixProject.Push();
+  globalMatrixModview.Push();
+  globalMatrixTexture.Push();
 }
 
 void CVulkanRenderSystem::ApplyStateBlock()
@@ -481,9 +460,9 @@ void CVulkanRenderSystem::ApplyStateBlock()
   if (!m_bRenderCreated)
     return;
 
-  vulkanMatrixProject.PopLoad();
-  vulkanMatrixModview.PopLoad();
-  vulkanMatrixTexture.PopLoad();
+  globalMatrixProject.Pop();
+  globalMatrixModview.Pop();
+  globalMatrixTexture.Pop();
 }
 
 void CVulkanRenderSystem::SetCameraPosition(const CPoint& camera,
@@ -496,53 +475,30 @@ void CVulkanRenderSystem::SetCameraPosition(const CPoint& camera,
 
   CPoint offset = camera - CPoint(screenWidth * 0.5f, screenHeight * 0.5f);
 
-  float w = (float)m_vkViewport.width * 0.5f;
-  float h = (float)m_vkViewport.height * 0.5f;
+  float w = static_cast<float>(m_vkViewport.width) * 0.5f;
+  float h = static_cast<float>(m_vkViewport.height) * 0.5f;
 
-#if 1
-  m_modelMatrix = glm::translate(glm::mat4(1.0f),
-                                 glm::vec3(-(w + offset.x - stereoFactor), +(h + offset.y), 0.0f));
+  globalMatrixModview = glm::translate(
+      glm::mat4(1.0f), glm::vec3(-(w + offset.x - stereoFactor), +(h + offset.y), 0.0f));
 
   glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, -2.0f * h);
   glm::vec3 targetPos = glm::vec3(0.0f, 0.0f, 0.0f);
   glm::vec3 upDir = glm::vec3(0.0f, -1.0f, 0.0f);
-  m_modelMatrix *= glm::lookAt(cameraPos, targetPos, upDir);
+  globalMatrixModview *= glm::lookAt(cameraPos, targetPos, upDir);
 
-  m_projectionMatrix = glm::frustum((-w - offset.x) * 0.5f, (+w - offset.x) * 0.5f,
-                                    (+h + offset.y) * 0.5f, (-h + offset.y) * 0.5f, h, 100 * h);
-#endif
-  //fprintf(stderr,
-  //        "------------ Vulkan: SetCameraPosition: screenWidth=%d, screenHeight=%d, w=%f, h=%f, offset.x=%d, offset.y=%d, "
-  //        "stereoFactor=%f\n",
-  //        screenWidth, screenHeight,
-  //        double(w), double(h), uint32_t(offset.x), uint32_t(offset.y), double(stereoFactor));
-
-  vulkanMatrixModview->LoadIdentity();
-  vulkanMatrixModview->Translatef(-(w + offset.x - stereoFactor), +(h + offset.y), 0);
-  vulkanMatrixModview->LookAt(0.0f, 0.0f, -2.0f * h, 0.0f, 0.0f, 0.0f, 0.0f, -1.0f, 0.0f);
-  vulkanMatrixModview.Load();
-
-  vulkanMatrixProject->LoadIdentity();
-  vulkanMatrixProject->Frustum((-w - offset.x) * 0.5f, (w - offset.x) * 0.5f,
-                               (+h + offset.y) * 0.5f, (-h + offset.y) * 0.5f, h, 100 * h);
-  vulkanMatrixProject.Load();
+  globalMatrixProject = glm::frustum((-w - offset.x) * 0.5f, (+w - offset.x) * 0.5f,
+                                     (+h + offset.y) * 0.5f, (-h + offset.y) * 0.5f, h, 100 * h);
 }
 
 void CVulkanRenderSystem::Project(float& x, float& y, float& z)
 {
-  //fprintf(stderr, "Vulkan: 1 Project: x=%f, y=%f, z=%f %f %f %f %f\n", double(x), double(y),
-  //        double(z), double(m_vkViewport.x), double(m_vkViewport.y), double(m_vkViewport.width), double(m_vkViewport.height));
-  float coordX, coordY, coordZ;
-  if (CVulkanMatrix::Project(x, y, z, vulkanMatrixModview.Get(), vulkanMatrixProject.Get(),
-                             &m_vkViewport, &coordX, &coordY, &coordZ))
-  {
-    x = coordX;
-    y = (float)(m_vkViewport.y + m_vkViewport.height - coordY);
-    z = 0;
-  }
-  //fprintf(stderr, "Vulkan: 2 Project: x=%f, y=%f, z=%f\n", double(x), double(y), double(z));
-  //char* a = nullptr;
-  //a[0] = 0;
+  glm::ivec4 viewport =
+      glm::ivec4(m_vkViewport.x, m_vkViewport.y, m_vkViewport.width, m_vkViewport.height);
+  glm::vec3 coord =
+      glm::project(glm::vec3(x, y, z), globalMatrixModview, globalMatrixProject, viewport);
+  x = coord.x;
+  y = coord.y;
+  z = 0;
 }
 
 void CVulkanRenderSystem::GetViewPort(CRect& viewPort)
@@ -551,24 +507,17 @@ void CVulkanRenderSystem::GetViewPort(CRect& viewPort)
     return;
 
   viewPort.x1 = m_vkViewport.x;
-  viewPort.y1 = m_height - m_vkViewport.y - m_vkViewport.height;
+  viewPort.y1 = m_vkViewport.y;
   viewPort.x2 = m_vkViewport.x + m_vkViewport.width;
-  viewPort.y2 = viewPort.y1 + m_vkViewport.height;
-
-  //const VkRect2D& imageSize = m_surface->vkImageSize();
-
-  //viewPort.x1 = imageSize.offset.x;
-  //viewPort.y1 = m_height - imageSize.offset.y - imageSize.extent.height;
-  //viewPort.x2 = imageSize.offset.x + imageSize.extent.width;
-  //viewPort.y2 = viewPort.y1 + imageSize.extent.height;
+  viewPort.y2 = m_vkViewport.y + m_vkViewport.height;
 }
 
 void CVulkanRenderSystem::SetViewPort(const CRect& viewPort)
 {
   m_vkViewport.x = viewPort.x1;
   m_vkViewport.y = viewPort.y1;
-  m_vkViewport.width = viewPort.Width();
-  m_vkViewport.height = viewPort.Height();
+  m_vkViewport.width = viewPort.x2 - viewPort.x1;
+  m_vkViewport.height = viewPort.y2 - viewPort.y1;
   m_vkViewport.minDepth = 0.0f;
   m_vkViewport.maxDepth = 1.0f;
 
@@ -576,15 +525,6 @@ void CVulkanRenderSystem::SetViewPort(const CRect& viewPort)
   m_vkScissor.offset.y = MathUtils::round_int(static_cast<double>(m_vkViewport.y));
   m_vkScissor.extent.width = MathUtils::round_int(static_cast<double>(m_vkViewport.width));
   m_vkScissor.extent.height = MathUtils::round_int(static_cast<double>(m_vkViewport.height));
-
-  fprintf(stderr, "Vulkan: SetViewPort: x=%d, y=%d, width=%d, height=%d\n", m_vkScissor.offset.x,
-          m_vkScissor.offset.y, m_vkScissor.extent.width, m_vkScissor.extent.height);
-
-  //if (m_bRenderCreated && m_currentVkCommandBuffer != VK_NULL_HANDLE)
-  //{
-  //  vkCmdSetViewport(m_currentVkCommandBuffer, 0, 1, &m_vkViewport);
-  //  vkCmdSetScissor(m_currentVkCommandBuffer, 0, 1, &m_vkScissor);
-  //}
 }
 
 bool CVulkanRenderSystem::ScissorsCanEffectClipping()
@@ -595,8 +535,8 @@ bool CVulkanRenderSystem::ScissorsCanEffectClipping()
 CRect CVulkanRenderSystem::ClipRectToScissorRect(const CRect& rect)
 {
   return rect;
-  //const float* projMatrix = vulkanMatrixProject.Get();
-  //const float* modelMatrix = vulkanMatrixModview.Get();
+  //const float* projMatrix = globalMatrixProject.Get();
+  //const float* modelMatrix = globalMatrixModview.Get();
 
   //const TransformMatrix& guiMatrix = CServiceBroker::GetWinSystem()->GetGfxContext().GetGUIMatrix();
   //CRect viewPort; // absolute positions of corners
@@ -645,11 +585,6 @@ void CVulkanRenderSystem::SetScissors(const CRect& rect)
   m_vkScissor.offset.y = MathUtils::round_int(static_cast<double>(rect.y1));
   m_vkScissor.extent.width = MathUtils::round_int(static_cast<double>(rect.x2 - rect.x1));
   m_vkScissor.extent.height = MathUtils::round_int(static_cast<double>(rect.y2 - rect.y1));
-
-  //if (m_bRenderCreated && m_currentVkCommandBuffer != VK_NULL_HANDLE)
-  //{
-  //  vkCmdSetScissor(m_currentVkCommandBuffer, 0, 1, &m_vkScissor);
-  //}
 }
 
 void CVulkanRenderSystem::ResetScissors()

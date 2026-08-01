@@ -1,8 +1,11 @@
-set(SOURCES RenderSystem.cpp)
+set(SOURCES MatrixStack.cpp
+            RenderSystem.cpp)
 
-set(HEADERS RenderSystem.h
+set(HEADERS MatrixStack.h
+            RenderSystem.h
             RenderSystemTypes.h)
 
+# TODO: Remove this to use the new MatrixStack implementation in the future
 if(TARGET ${APP_NAME_LC}::OpenGl OR TARGET ${APP_NAME_LC}::OpenGLES)
   list(APPEND SOURCES GLExtensions.cpp
                       MatrixGL.cpp)

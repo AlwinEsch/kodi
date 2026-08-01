@@ -16,6 +16,10 @@
 namespace KODI::RENDERING::VULKAN
 {
 
+constexpr const uint32_t INITIAL_DYNAMIC_VERTEX_BUFFER_SIZE_KB = 256;
+constexpr const uint32_t INITIAL_DYNAMIC_INDEX_BUFFER_SIZE_KB = 1024;
+constexpr const uint32_t INITIAL_DYNAMIC_UNIFORM_BUFFER_SIZE_KB = 256;
+
 CVulkanDynamicBuffers::CVulkanDynamicBuffers(const VulkanData* vkData,
                                              CVulkanDeviceQueue* deviceQueue)
   : m_vkData(vkData),
@@ -36,19 +40,20 @@ bool CVulkanDynamicBuffers::Create()
   if (!m_buffers[BUFFER_TYPE_VERTEX]->Create(INITIAL_DYNAMIC_VERTEX_BUFFER_SIZE_KB * 1024,
                                              VK_BUFFER_USAGE_VERTEX_BUFFER_BIT))
   {
-    CLog::Log(LOGERROR, "CVulkanDynamicBuffers::Create - failed to create vertex buffer");
+    CLog::Log(LOGERROR, "Vulkan: Failed to create vertex buffer ({0}:{1})", __FILENAME__, __LINE__);
     return false;
   }
   if (!m_buffers[BUFFER_TYPE_INDEX]->Create(INITIAL_DYNAMIC_INDEX_BUFFER_SIZE_KB * 1024,
                                             VK_BUFFER_USAGE_INDEX_BUFFER_BIT))
   {
-    CLog::Log(LOGERROR, "CVulkanDynamicBuffers::Create - failed to create index buffer");
+    CLog::Log(LOGERROR, "Vulkan: Failed to create index buffer ({0}:{1})", __FILENAME__, __LINE__);
     return false;
   }
   if (!m_buffers[BUFFER_TYPE_UNIFORM]->Create(INITIAL_DYNAMIC_UNIFORM_BUFFER_SIZE_KB * 1024,
                                               VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT))
   {
-    CLog::Log(LOGERROR, "CVulkanDynamicBuffers::Create - failed to create uniform buffer");
+    CLog::Log(LOGERROR, "Vulkan: Failed to create uniform buffer ({0}:{1})", __FILENAME__,
+              __LINE__);
     return false;
   }
   return true;
@@ -65,9 +70,6 @@ void CVulkanDynamicBuffers::Destroy()
 void CVulkanDynamicBuffers::BeginFrame(uint32_t indexBuffer)
 {
   m_currentFrameIndex = indexBuffer;
-  //m_currentFrameIndex = (m_currentFrameIndex + 1) % MAX_CONCURRENT_FRAMES;
-
-
 
   for (auto& buffer : m_buffers)
   {
@@ -175,7 +177,7 @@ void* CVulkanDynamicBuffer::AllocateOffset(size_t size,
   if (m_currentOffset + size > m_currentSize)
   {
     // Not enough space in the current buffer, need to resize
-    VkDeviceSize newSize = std::max(m_currentSize * 2, m_currentOffset + size);
+    const VkDeviceSize newSize = std::max(m_currentSize * 2, m_currentOffset + size);
     Destroy();
     Create(newSize, m_usage, descriptorSet);
   }
