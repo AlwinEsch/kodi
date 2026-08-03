@@ -84,7 +84,7 @@ std::vector<const char*> CVulkanRenderSystemWayland::GetRequiredDeviceExtensions
 
 std::vector<const char*> CVulkanRenderSystemWayland::GetOptionalDeviceExtensions()
 {
-  return {};
+  return {VK_EXT_EXTENDED_DYNAMIC_STATE_EXTENSION_NAME};
 }
 
 bool CVulkanRenderSystemWayland::GetPhysicalDevicePresentationSupport(

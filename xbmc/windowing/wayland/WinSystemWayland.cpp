@@ -144,7 +144,6 @@ CWinSystemWayland::~CWinSystemWayland() noexcept = default;
 
 bool CWinSystemWayland::InitWindowSystem()
 {
-  fprintf(stderr, "---> %s\n", __PRETTY_FUNCTION__);
   const char* env = getenv("WAYLAND_DISPLAY");
   if (!env)
   {
@@ -212,7 +211,6 @@ bool CWinSystemWayland::InitWindowSystem()
 
   m_colorManager = std::make_unique<CColorManager>(*m_connection);
 
-  fprintf(stderr, "--222-> %s\n", __PRETTY_FUNCTION__);
   return CWinSystemBase::InitWindowSystem();
 }
 
@@ -249,7 +247,6 @@ bool CWinSystemWayland::CreateNewWindow(const std::string& name,
                                         bool fullScreen,
                                         RESOLUTION_INFO& res)
 {
-  fprintf(stderr, "---> %s\n", __PRETTY_FUNCTION__);
   CLog::LogF(LOGINFO, "Starting {} size {}x{}", fullScreen ? "full screen" : "windowed", res.iWidth,
              res.iHeight);
 
@@ -401,9 +398,6 @@ bool CWinSystemWayland::CreateNewWindow(const std::string& name,
 
 IShellSurface* CWinSystemWayland::CreateShellSurface(const std::string& name)
 {
-  fprintf(stderr, "CWinSystemWayland::CreateShellSurface: Trying to create shell surface for %s\n",
-          name.c_str());
-
   IShellSurface* shell = CShellSurfaceXdgShell::TryCreate(*this, *m_connection, m_surface, name,
                                                           std::string(CCompileInfo::GetAppName()));
   if (!shell)
@@ -674,7 +668,6 @@ bool CWinSystemWayland::SetFullScreen(bool fullScreen, RESOLUTION_INFO& res, boo
 
 void CWinSystemWayland::ApplySizeUpdate(SizeUpdateInformation update)
 {
-fprintf(stderr, "##########################---> %s\n", __PRETTY_FUNCTION__);
   if (update.bufferScaleChanged)
   {
     // Buffer scale must also match egl size configuration

@@ -41,8 +41,6 @@ constexpr size_t ELEMENT_ARRAY_MAX_CHAR_INDEX = 1000;
 
 CGUIFontTTF* CGUIFontTTF::CreateGUIFontTTF(const std::string& fontIdent)
 {
-  fprintf(stderr, "CGUIFontTTF::CreateGUIFontTTF: Creating Vulkan font for %s\n",
-          fontIdent.c_str());
   return new CVulkanGUIFontTTF(fontIdent);
 }
 
@@ -56,7 +54,6 @@ CVulkanGUIFontTTF::CVulkanGUIFontTTF(const std::string& fontIdent) : CGUIFontTTF
 
 CVulkanGUIFontTTF::~CVulkanGUIFontTTF()
 {
-  fprintf(stderr, "--------------> %s\n", __func__);
   // It's important that all the CGUIFontCacheEntry objects are
   // destructed before the CVulkanGUIFontTTF goes out of scope, because
   // our virtual methods won't be accessible after this point

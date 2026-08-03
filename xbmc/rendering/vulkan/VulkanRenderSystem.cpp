@@ -56,8 +56,6 @@ namespace KODI::RENDERING::VULKAN
 namespace
 {
 
-VkClearColorValue defaultClearColor = {{0.0f, 0.0f, 0.0f, 1.0f}};
-
 std::unique_ptr<CVulkanDeviceQueue> CreateVulkanDeviceQueue(CVulkanRenderSystem* vulkanRenderSystem,
                                                             DeviceQueueOptions options,
                                                             uint32_t heapMemoryLimit,
@@ -290,10 +288,6 @@ bool CVulkanRenderSystem::BeginRender()
     }
   }
 
-  VkClearValue clearValues[2]{};
-  clearValues[0].color = defaultClearColor;
-  clearValues[1].depthStencil = {1.0f, 0};
-
   {
     CVulkanCommandBuffer& command_buffer = *framebuffer->CommandBuffer();
 
@@ -336,17 +330,26 @@ bool CVulkanRenderSystem::BeginRender()
         nullptr /* pBufferMemoryBarriers */, 1, &image_memory_barrier);
   }
 
+  std::array<VkClearValue, 2> clearValues;
+  clearValues[0].color = {{m_clearColor.r, m_clearColor.g, m_clearColor.b, m_clearColor.a}};
+  clearValues[1].depthStencil = {1.0f, 0};
+
   VkRenderPassBeginInfo begin_info = {
       .sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
       .pNext = nullptr,
       .renderPass = m_vkData.vkRenderPass,
       .framebuffer = framebuffer->vkFramebuffer(),
-      .renderArea = m_surface->SwapChain()->Size(),
-      .clearValueCount = 2,
-      .pClearValues = clearValues,
+      .renderArea = {{0, 0}, {m_width, m_height}},
+      .clearValueCount = m_stereoEnabled ? 0 : static_cast<uint32_t>(clearValues.size()),
+      .pClearValues = m_stereoEnabled ? nullptr : clearValues.data(),
+  };
+  VkSubpassBeginInfo subpass_begin_info = {
+      .sType = VK_STRUCTURE_TYPE_SUBPASS_BEGIN_INFO,
+      .pNext = nullptr,
+      .contents = VK_SUBPASS_CONTENTS_INLINE,
   };
 
-  vkCmdBeginRenderPass(m_currentVkCommandBuffer, &begin_info, VK_SUBPASS_CONTENTS_INLINE);
+  vkCmdBeginRenderPass2(m_currentVkCommandBuffer, &begin_info, &subpass_begin_info);
 
   vkCmdSetScissor(m_currentVkCommandBuffer, 0, 1, &m_vkScissor);
   vkCmdSetViewport(m_currentVkCommandBuffer, 0, 1, &m_vkViewport);
@@ -357,7 +360,7 @@ bool CVulkanRenderSystem::BeginRender()
   m_dynamicBuffers->BeginFrame(m_indexBuffer);
 
   return true;
-}
+} // namespace KODI::RENDERING::VULKAN
 
 bool CVulkanRenderSystem::EndRender()
 {
@@ -369,7 +372,12 @@ bool CVulkanRenderSystem::EndRender()
   auto& framebuffer = m_framebuffers[m_scopedWrite->ImageIndex()];
   CVulkanCommandBuffer& command_buffer = *framebuffer->CommandBuffer();
 
-  vkCmdEndRenderPass(m_currentVkCommandBuffer);
+  VkSubpassEndInfo subpass_end_info = {
+      .sType = VK_STRUCTURE_TYPE_SUBPASS_END_INFO,
+      .pNext = nullptr,
+  };
+
+  vkCmdEndRenderPass2(m_currentVkCommandBuffer, &subpass_end_info);
 
   VK_CHECK_RESULT(vkEndCommandBuffer(m_currentVkCommandBuffer), false);
 
@@ -421,15 +429,62 @@ bool CVulkanRenderSystem::EndRender()
 
 void CVulkanRenderSystem::InvalidateColorBuffer()
 {
-
+  fprintf(stderr, "---> %s", __PRETTY_FUNCTION__);
   if (!m_bRenderCreated)
     return;
+
+  /* clear is not affected by stipple pattern, so we can only clear on first frame */
+  if (m_stereoMode == RenderStereoMode::INTERLACED && m_stereoView == RenderStereoView::RIGHT)
+    return;
+
+  // some platforms prefer a clear, instead of rendering over
+  if (GetClearFunction() == ClearFunction::FIXED_FUNCTION)
+  {
+    ClearBuffers(0);
+    return;
+  }
+
+  if (!GetEnabledFrontToBackRendering())
+    return;
+
+  if (!m_currentVkCommandBuffer)
+    return;
+
+  // Visible pass
+  // Clear color and depth attachments
+  VkClearAttachment clearAttachments[2] = {};
+
+  clearAttachments[0].aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+  clearAttachments[0].clearValue.color = {{0, 0, 0, 0}};
+  clearAttachments[0].colorAttachment = 0;
+
+  clearAttachments[1].aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+  clearAttachments[1].clearValue.depthStencil = {1.0f, 0};
+
+  VkClearRect clearRect = {};
+  clearRect.layerCount = 1;
+  clearRect.rect.offset = {0, 0};
+  clearRect.rect.extent = {m_width, m_height};
+
+  vkCmdClearAttachments(m_currentVkCommandBuffer, 2, clearAttachments, 1, &clearRect);
 }
 
 bool CVulkanRenderSystem::ClearBuffers(KODI::UTILS::COLOR::Color color)
 {
   if (!m_bRenderCreated)
     return false;
+
+  /* clear is not affected by stipple pattern, so we can only clear on first frame */
+  if (m_stereoMode == RenderStereoMode::INTERLACED && m_stereoView == RenderStereoView::RIGHT)
+  {
+    m_stereoEnabled = true;
+    return true;
+  }
+
+  m_clearColor.r = float((color >> 16) & 0xFF) / 255.0f;
+  m_clearColor.g = float((color >> 8) & 0xFF) / 255.0f;
+  m_clearColor.b = float((color >> 0) & 0xFF) / 255.0f;
+  m_clearColor.a = float((color >> 24) & 0xFF) / 255.0f;
 
   return true;
 }
@@ -443,6 +498,11 @@ void CVulkanRenderSystem::PresentRender(bool rendered, bool videoLayer)
 {
   if (!m_bRenderCreated)
     return;
+  //fprintf(stderr, "---> %s: rendered = %d, videoLayer = %d\n", __PRETTY_FUNCTION__, rendered,
+  //        videoLayer);
+
+  if (!rendered)
+    KODI::TIME::Sleep(40ms);
 }
 
 void CVulkanRenderSystem::CaptureStateBlock()
@@ -529,11 +589,13 @@ void CVulkanRenderSystem::SetViewPort(const CRect& viewPort)
 
 bool CVulkanRenderSystem::ScissorsCanEffectClipping()
 {
+  fprintf(stderr, "---> %s", __PRETTY_FUNCTION__);
   return false;
 }
 
 CRect CVulkanRenderSystem::ClipRectToScissorRect(const CRect& rect)
 {
+  fprintf(stderr, "---> %s", __PRETTY_FUNCTION__);
   return rect;
   //const float* projMatrix = globalMatrixProject.Get();
   //const float* modelMatrix = globalMatrixModview.Get();
@@ -594,6 +656,7 @@ void CVulkanRenderSystem::ResetScissors()
 
 void CVulkanRenderSystem::SetDepthCulling(DepthCulling culling)
 {
+
   fprintf(stderr, "---> %s", __PRETTY_FUNCTION__);
 }
 

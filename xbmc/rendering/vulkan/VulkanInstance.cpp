@@ -227,7 +227,6 @@ bool CVulkanInstance::GetBasicInfos(const std::vector<const char*>& requiredLaye
       vkEnumerateInstanceLayerProperties(&numInstanceLayers, m_vulkanInfo.instanceLayers.data()),
       false);
 
-
   return true;
 }
 
@@ -269,23 +268,63 @@ bool CVulkanInstance::GetDeviceInfos(VkPhysicalDevice physicalDevice /* = VK_NUL
         vkEnumerateDeviceExtensionProperties(device, nullptr /* pLayerName */, &count, nullptr),
         false);
 
-    info.extensions.resize(count);
-    VK_CHECK_RESULT(vkEnumerateDeviceExtensionProperties(device, nullptr /* pLayerName */, &count,
-                                                         info.extensions.data()),
-                    false);
+    if (count)
+    {
+      info.extensions.resize(count);
+      VK_CHECK_RESULT(vkEnumerateDeviceExtensionProperties(device, nullptr /* pLayerName */, &count,
+                                                           info.extensions.data()),
+                      false);
+
+      CLog::Log(LOGDEBUG, "Vulkan: Device {0}", info.properties.deviceName);
+      CLog::Log(LOGDEBUG, "        - Extensions:");
+      for (const auto& ext : info.extensions)
+      {
+        CLog::Log(LOGDEBUG, "          - {0} - Version {1}", ext.extensionName, ext.specVersion);
+        info.extensions2.push_back(ext.extensionName);
+      }
+    }
 
     if (info.properties.apiVersion >= REQUIRED_VK_API_VERSION)
     {
-      bool has_drm_extension = std::ranges::any_of(
-          info.extensions, [](const auto& ext)
-          { return strcmp(ext.extensionName, VK_EXT_PHYSICAL_DEVICE_DRM_EXTENSION_NAME) == 0; });
+      //--------------------------------------------------------------------------------------------
+      // Query the features of the physical device, including the extended dynamic state feature.
+
+      VkPhysicalDeviceProtectedMemoryFeatures protected_memory_feature{};
+      protected_memory_feature.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROTECTED_MEMORY_FEATURES;
+      protected_memory_feature.pNext = nullptr;
+
+      VkPhysicalDeviceSamplerYcbcrConversionFeatures ycbcr_conversion{};
+      ycbcr_conversion.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SAMPLER_YCBCR_CONVERSION_FEATURES;
+      ycbcr_conversion.pNext = &protected_memory_feature;
+
+      VkPhysicalDeviceExtendedDynamicStateFeaturesEXT dyn_state{};
+      dyn_state.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_FEATURES_EXT;
+      dyn_state.pNext = &ycbcr_conversion;
+
+      VkPhysicalDeviceExtendedDynamicState2FeaturesEXT dyn_state2{};
+      dyn_state2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_2_FEATURES_EXT;
+      dyn_state2.pNext = &dyn_state;
+
+      VkPhysicalDeviceExtendedDynamicState3FeaturesEXT dyn_state3{};
+      dyn_state3.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_3_FEATURES_EXT;
+      dyn_state3.pNext = &dyn_state2;
+
+      VkPhysicalDeviceFeatures2 features_2{};
+      features_2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+      features_2.pNext = &dyn_state3;
+
+      vkGetPhysicalDeviceFeatures2(device, &features_2);
+
+      //--------------------------------------------------------------------------------------------
+      // Query the driver properties of the physical device, including the DRM properties.
+      // TODO: Not finished yet, but we can use this to query the driver version and other properties.
 
       info.driverProperties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DRIVER_PROPERTIES;
 
       VkPhysicalDeviceDrmPropertiesEXT drm_properties{};
       drm_properties.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DRM_PROPERTIES_EXT;
 
-      if (has_drm_extension)
+      if (info.ExtensionSupported(VK_EXT_PHYSICAL_DEVICE_DRM_EXTENSION_NAME))
       {
         info.driverProperties.pNext = &drm_properties;
       }
@@ -297,27 +336,137 @@ bool CVulkanInstance::GetDeviceInfos(VkPhysicalDevice physicalDevice /* = VK_NUL
       };
       vkGetPhysicalDeviceProperties2(device, &properties2);
 
-      VkPhysicalDeviceProtectedMemoryFeatures protected_memory_feature = {
-          .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROTECTED_MEMORY_FEATURES,
-          .pNext = nullptr,
-          .protectedMemory = VK_FALSE,
-      };
-      VkPhysicalDeviceSamplerYcbcrConversionFeatures ycbcr_conversion_features = {
-          .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SAMPLER_YCBCR_CONVERSION_FEATURES,
-          .pNext = &protected_memory_feature,
-          .samplerYcbcrConversion = VK_FALSE,
-      };
-      VkPhysicalDeviceFeatures2 features_2 = {
-          .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
-          .pNext = &ycbcr_conversion_features,
-          .features = {},
-      };
-
-      vkGetPhysicalDeviceFeatures2(device, &features_2);
+      //--------------------------------------------------------------------------------------------
+      // Store the features in the device info structure.
 
       info.features = features_2.features;
-      info.featureSamplerYCBCRconversion = ycbcr_conversion_features.samplerYcbcrConversion;
+      info.featureSamplerYCBCRconversion = ycbcr_conversion.samplerYcbcrConversion;
       info.featureProtectedMemory = protected_memory_feature.protectedMemory;
+      info.featureDeviceDRM = info.ExtensionSupported(VK_EXT_PHYSICAL_DEVICE_DRM_EXTENSION_NAME);
+      info.featureExtendedDynamicState =
+          info.ExtensionSupported(VK_EXT_EXTENDED_DYNAMIC_STATE_EXTENSION_NAME) &&
+          dyn_state.extendedDynamicState;
+      info.featureExtendedDynamicState2 =
+          info.ExtensionSupported(VK_EXT_EXTENDED_DYNAMIC_STATE_2_EXTENSION_NAME);
+      info.featureExtendedDynamicState3 =
+          info.ExtensionSupported(VK_EXT_EXTENDED_DYNAMIC_STATE_3_EXTENSION_NAME);
+
+      CLog::Log(LOGDEBUG, "        - Features:");
+      CLog::Log(LOGDEBUG, "          - samplerYcbcrConversion - Supported: {0}",
+                info.featureSamplerYCBCRconversion ? "true" : "false");
+      CLog::Log(LOGDEBUG, "          - protectedMemory - Supported: {0}",
+                info.featureProtectedMemory ? "true" : "false");
+      CLog::Log(LOGDEBUG, "          - deviceDRM - Supported: {0}",
+                info.featureDeviceDRM ? "true" : "false");
+
+      CLog::Log(LOGDEBUG, "          - extendedDynamicState - Supported: {0}",
+                info.featureExtendedDynamicState ? "true" : "false");
+
+      CLog::Log(LOGDEBUG, "          - extendedDynamicState2 - Supported: {0}",
+                info.featureExtendedDynamicState2 ? "true" : "false");
+      CLog::Log(LOGDEBUG, "            - extendedDynamicState2LogicOp - Supported: {0}",
+                dyn_state2.extendedDynamicState2LogicOp ? "true" : "false");
+      CLog::Log(LOGDEBUG, "            - extendedDynamicState2PatchControlPoints - Supported: {0}",
+                dyn_state2.extendedDynamicState2PatchControlPoints ? "true" : "false");
+
+      CLog::Log(LOGDEBUG, "          - extendedDynamicState3 - Supported: {0}",
+                info.featureExtendedDynamicState3 ? "true" : "false");
+      CLog::Log(LOGDEBUG, "            - extendedDynamicState3TessellationDomainOrigin - Supported: {0}",
+                dyn_state3.extendedDynamicState3TessellationDomainOrigin ? "true" : "false");
+
+      CLog::Log(LOGDEBUG, "            - extendedDynamicState3DepthClampEnable - Supported: {0}",
+                dyn_state3.extendedDynamicState3DepthClampEnable ? "true" : "false");
+
+      CLog::Log(LOGDEBUG, "            - extendedDynamicState3PolygonMode - Supported: {0}",
+                dyn_state3.extendedDynamicState3PolygonMode ? "true" : "false");
+
+      CLog::Log(LOGDEBUG, "            - extendedDynamicState3RasterizationSamples - Supported: {0}",
+                dyn_state3.extendedDynamicState3RasterizationSamples ? "true" : "false");
+
+      CLog::Log(LOGDEBUG, "            - extendedDynamicState3SampleMask - Supported: {0}",
+                dyn_state3.extendedDynamicState3SampleMask ? "true" : "false");
+
+      CLog::Log(LOGDEBUG, "            - extendedDynamicState3AlphaToCoverageEnable - Supported: {0}",
+                dyn_state3.extendedDynamicState3AlphaToCoverageEnable ? "true" : "false");
+
+      CLog::Log(LOGDEBUG, "            - extendedDynamicState3AlphaToOneEnable - Supported: {0}",
+                dyn_state3.extendedDynamicState3AlphaToOneEnable ? "true" : "false");
+
+      CLog::Log(LOGDEBUG, "            - extendedDynamicState3LogicOpEnable - Supported: {0}",
+                dyn_state3.extendedDynamicState3LogicOpEnable ? "true" : "false");
+
+      CLog::Log(LOGDEBUG, "            - extendedDynamicState3ColorBlendEnable - Supported: {0}",
+                dyn_state3.extendedDynamicState3ColorBlendEnable ? "true" : "false");
+
+      CLog::Log(LOGDEBUG, "            - extendedDynamicState3ColorBlendEquation - Supported: {0}",
+                dyn_state3.extendedDynamicState3ColorBlendEquation ? "true" : "false");
+
+      CLog::Log(LOGDEBUG, "            - extendedDynamicState3ColorWriteMask - Supported: {0}",
+                dyn_state3.extendedDynamicState3ColorWriteMask ? "true" : "false");
+
+      CLog::Log(LOGDEBUG, "            - extendedDynamicState3RasterizationStream - Supported: {0}",
+                dyn_state3.extendedDynamicState3RasterizationStream ? "true" : "false");
+
+      CLog::Log(LOGDEBUG,
+                "            - extendedDynamicState3ConservativeRasterizationMode - Supported: {0}",
+                dyn_state3.extendedDynamicState3ConservativeRasterizationMode ? "true" : "false");
+
+      CLog::Log(
+          LOGDEBUG, "            - extendedDynamicState3ExtraPrimitiveOverestimationSize - Supported: {0}",
+          dyn_state3.extendedDynamicState3ExtraPrimitiveOverestimationSize ? "true" : "false");
+
+      CLog::Log(LOGDEBUG, "            - extendedDynamicState3DepthClipEnable - Supported: {0}",
+                dyn_state3.extendedDynamicState3DepthClipEnable ? "true" : "false");
+
+      CLog::Log(LOGDEBUG, "            - extendedDynamicState3SampleLocationsEnable - Supported: {0}",
+                dyn_state3.extendedDynamicState3SampleLocationsEnable ? "true" : "false");
+
+      CLog::Log(LOGDEBUG, "            - extendedDynamicState3ColorBlendAdvanced - Supported: {0}",
+                dyn_state3.extendedDynamicState3ColorBlendAdvanced ? "true" : "false");
+
+      CLog::Log(LOGDEBUG, "            - extendedDynamicState3ProvokingVertexMode - Supported: {0}",
+                dyn_state3.extendedDynamicState3ProvokingVertexMode ? "true" : "false");
+
+      CLog::Log(LOGDEBUG, "            - extendedDynamicState3LineRasterizationMode - Supported: {0}",
+                dyn_state3.extendedDynamicState3LineRasterizationMode ? "true" : "false");
+
+      CLog::Log(LOGDEBUG, "            - extendedDynamicState3LineStippleEnable - Supported: {0}",
+                dyn_state3.extendedDynamicState3LineStippleEnable ? "true" : "false");
+
+      CLog::Log(LOGDEBUG, "            - extendedDynamicState3DepthClipNegativeOneToOne - Supported: {0}",
+                dyn_state3.extendedDynamicState3DepthClipNegativeOneToOne ? "true" : "false");
+
+      CLog::Log(LOGDEBUG, "            - extendedDynamicState3ViewportWScalingEnable - Supported: {0}",
+                dyn_state3.extendedDynamicState3ViewportWScalingEnable ? "true" : "false");
+
+      CLog::Log(LOGDEBUG, "            - extendedDynamicState3ViewportSwizzle - Supported: {0}",
+                dyn_state3.extendedDynamicState3ViewportSwizzle ? "true" : "false");
+
+      CLog::Log(LOGDEBUG, "            - extendedDynamicState3CoverageToColorEnable - Supported: {0}",
+                dyn_state3.extendedDynamicState3CoverageToColorEnable ? "true" : "false");
+
+      CLog::Log(LOGDEBUG, "            - extendedDynamicState3CoverageToColorLocation - Supported: {0}",
+                dyn_state3.extendedDynamicState3CoverageToColorLocation ? "true" : "false");
+
+      CLog::Log(LOGDEBUG, "            - extendedDynamicState3CoverageModulationMode - Supported: {0}",
+                dyn_state3.extendedDynamicState3CoverageModulationMode ? "true" : "false");
+
+      CLog::Log(LOGDEBUG,
+                "            - extendedDynamicState3CoverageModulationTableEnable - Supported: {0}",
+                dyn_state3.extendedDynamicState3CoverageModulationTableEnable ? "true" : "false");
+
+      CLog::Log(LOGDEBUG, "            - extendedDynamicState3CoverageModulationTable - Supported: {0}",
+                dyn_state3.extendedDynamicState3CoverageModulationTable ? "true" : "false");
+
+      CLog::Log(LOGDEBUG, "            - extendedDynamicState3CoverageReductionMode - Supported: {0}",
+                dyn_state3.extendedDynamicState3CoverageReductionMode ? "true" : "false");
+
+      CLog::Log(
+          LOGDEBUG, "            - extendedDynamicState3RepresentativeFragmentTestEnable - Supported: {0}",
+          dyn_state3.extendedDynamicState3RepresentativeFragmentTestEnable ? "true" : "false");
+
+      CLog::Log(LOGDEBUG, "            - extendedDynamicState3ShadingRateImageEnable - Supported: {0}",
+                dyn_state3.extendedDynamicState3ShadingRateImageEnable ? "true" : "false");
     }
 
     count = 0;
@@ -338,8 +487,6 @@ bool CVulkanInstance::ValidateExtensions(const char* extension,
   bool found = false;
   for (auto& available_extension : available)
   {
-    CLog::Log(LOGDEBUG, "Vulkan: Available extension: {} - Required: {}",
-              available_extension.extensionName, extension);
     if (strcmp(available_extension.extensionName, extension) == 0)
     {
       found = true;

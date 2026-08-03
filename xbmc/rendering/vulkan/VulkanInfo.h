@@ -8,6 +8,8 @@
 
 #pragma once
 
+#include <algorithm>
+#include <string>
 #include <vector>
 #include <vulkan/vulkan_core.h>
 
@@ -29,6 +31,7 @@ struct CVulkanPhysicalDeviceInfo
   uint64_t drmDeviceId{0};
 
   std::vector<VkExtensionProperties> extensions;
+  std::vector<std::string> extensions2;
 
   VkPhysicalDeviceFeatures features = {};
 
@@ -36,8 +39,28 @@ struct CVulkanPhysicalDeviceInfo
   bool featureSamplerYCBCRconversion = false;
   bool featureProtectedMemory = false;
   bool featureSamplerAnisotropy = false;
+  bool featureDeviceDRM = false;
+  bool featureExtendedDynamicState = false;
+  // TODO: The content of this struct is not used yet, but we can use it in the future
+  // to check for extended dynamic state features.
+  // Within CVulkanInstance::GetBasicInfos, we can query for the extended dynamic state
+  // features and set these flags accordingly.
+  bool featureExtendedDynamicState2 = false;
+  bool featureExtendedDynamicState3 = false;
 
   std::vector<VkQueueFamilyProperties> queueFamilies;
+
+  /**
+   * Check if an extension is supported by the (physical device)
+   *
+   * @param extension Name of the extension to check
+   * @return True if the extension is supported (present in the list read at device creation time)
+   */
+  bool ExtensionSupported(const std::string& extension) const
+  {
+    return (std::find(extensions2.begin(), extensions2.end(), extension) !=
+            extensions2.end());
+  }
 };
 
 struct CVulkanInfo

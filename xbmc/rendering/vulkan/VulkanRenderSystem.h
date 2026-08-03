@@ -167,6 +167,9 @@ private:
   VkViewport m_vkViewport{};
   VkRect2D m_vkScissor{};
 
+  glm::vec4 m_clearColor;
+  bool m_stereoEnabled{false};
+
   VulkanData m_vkData;
 
   VkCommandBuffer m_currentVkCommandBuffer{VK_NULL_HANDLE};

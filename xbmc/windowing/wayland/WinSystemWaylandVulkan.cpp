@@ -27,19 +27,16 @@ using namespace KODI::WINDOWING::WAYLAND;
 
 void CWinSystemWaylandVulkan::Register()
 {
-  fprintf(stderr, "---> %s\n", __PRETTY_FUNCTION__);
   CWindowSystemFactory::RegisterWindowSystem(CreateWinSystem, "wayland");
 }
 
 std::unique_ptr<CWinSystemBase> CWinSystemWaylandVulkan::CreateWinSystem()
 {
-  fprintf(stderr, "---> %s\n", __PRETTY_FUNCTION__);
   return std::make_unique<CWinSystemWaylandVulkan>();
 }
 
 bool CWinSystemWaylandVulkan::InitWindowSystem()
 {
-  fprintf(stderr, "---> %s\n", __PRETTY_FUNCTION__);
   if (!CWinSystemWayland::InitWindowSystem())
   {
     return false;
@@ -63,17 +60,15 @@ bool CWinSystemWaylandVulkan::InitWindowSystem()
   //    WAYLAND::VAAPIRegister(m_vaapiProxy.get(), deepColor);
   //  }
   //
-  //  CBufferObjectFactory::ClearBufferObjects();
+    CBufferObjectFactory::ClearBufferObjects();
   //#if defined(HAVE_LINUX_MEMFD) && defined(HAVE_LINUX_UDMABUF)
   //  CUDMABufferObject::Register();
   //#endif
   //#if defined(HAVE_LINUX_DMA_HEAP)
   //  CDMAHeapBufferObject::Register();
   //#endif
-  //
-  KODI::RENDERING::VULKAN::CScreenshotSurface::Register();
 
-  fprintf(stderr, "-22--> %s\n", __PRETTY_FUNCTION__);
+  KODI::RENDERING::VULKAN::CScreenshotSurface::Register();
 
   return true;
 }
@@ -82,7 +77,6 @@ bool CWinSystemWaylandVulkan::CreateNewWindow(const std::string& name,
                                               bool fullScreen,
                                               RESOLUTION_INFO& res)
 {
-  fprintf(stderr, "---> %s\n", __PRETTY_FUNCTION__);
   if (!CWinSystemWayland::CreateNewWindow(name, fullScreen, res))
   {
     return false;
@@ -103,31 +97,26 @@ bool CWinSystemWaylandVulkan::CreateNewWindow(const std::string& name,
 
 bool CWinSystemWaylandVulkan::DestroyWindow()
 {
-  fprintf(stderr, "---> %s\n", __PRETTY_FUNCTION__);
   return CWinSystemWayland::DestroyWindow();
 }
 
 bool CWinSystemWaylandVulkan::DestroyWindowSystem()
 {
-  fprintf(stderr, "---> %s\n", __PRETTY_FUNCTION__);
   return CWinSystemWayland::DestroyWindowSystem();
 }
 
 bool CWinSystemWaylandVulkan::BindTextureUploadContext()
 {
-  fprintf(stderr, "---> %s\n", __PRETTY_FUNCTION__);
   return true;
 }
 
 bool CWinSystemWaylandVulkan::UnbindTextureUploadContext()
 {
-  fprintf(stderr, "---> %s\n", __PRETTY_FUNCTION__);
   return true;
 }
 
 bool CWinSystemWaylandVulkan::HasContext()
 {
-  fprintf(stderr, "---> %s\n", __PRETTY_FUNCTION__);
   return true;
 }
 

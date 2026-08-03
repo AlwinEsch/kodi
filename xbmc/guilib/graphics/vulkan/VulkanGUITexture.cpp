@@ -116,9 +116,6 @@ void CVulkanGUITexture::Begin(KODI::UTILS::COLOR::Color color)
 
 void CVulkanGUITexture::End()
 {
-
-  //--------------------------------------------------------------
-
   CVulkanTexture* vkTexture =
       dynamic_cast<CVulkanTexture*>(m_texture.m_textures[m_currentFrame].get());
 
@@ -236,13 +233,6 @@ void CVulkanGUITexture::Draw(
     m_packedVertices.push_back(vertices[i]);
   }
 
-  //fprintf(stderr, "DrawQuad: x1=%.02f, y1=%.02f, "
-  //                          "x2=%.02f, y2=%.02f, "
-  //                          "x3=%.02f, y3=%.02f, "
-  //                          "x4=%.02f, y4=%.02f\n",
-  // double(x[0]), double(y[0]), double(x[1]), double(y[1]),
-  // double(x[2]), double(y[2]), double(x[3]), double(y[3]));
-
   if ((m_packedVertices.size() / 4) > (m_idx.size() / 6))
   {
     size_t i = m_packedVertices.size() - 4;
@@ -262,8 +252,26 @@ void CVulkanGUITexture::DrawQuad(const CRect& rect,
                                  const float depth,
                                  const bool blending)
 {
+  fprintf(stderr,
+          "CVulkanGUITexture::DrawQuad: rect = (%f, %f, %f, %f), color = 0x%08X, depth = %f, "
+          "blending = %d\n",
+          double(rect.x1), double(rect.y1), double(rect.x2), double(rect.y2), color, double(depth),
+          blending);
+  return;
   CVulkanRenderSystem* renderSystem =
       dynamic_cast<CVulkanRenderSystem*>(CServiceBroker::GetRenderSystem());
+  CVulkanShaderTexture* shaderTexture = dynamic_cast<CVulkanShaderTexture*>(
+      renderSystem->ShaderControl()->GetShader(VULKAN_SM_TEXTURE));
+  VkCommandBuffer commandBuffer = renderSystem->vkCurrentCommandBuffer();
+  const uint32_t renderImageIndex = renderSystem->vkCurrentRenderImageIndex();
+
+  VkPipeline pipeline = shaderTexture->VulkanPipeline();
+  VkPipelineLayout pipelineLayout = shaderTexture->VulkanPipelineLayout();
+  CVulkanDynamicBuffers* dynamicBuffers = renderSystem->DynamicBuffers();
+  CVulkanDynamicBuffer* uniformBuffer = dynamicBuffers->GetBuffer(BUFFER_TYPE_UNIFORM);
+  CVulkanDynamicBuffer* vertexBuffer = dynamicBuffers->GetBuffer(BUFFER_TYPE_VERTEX);
+  CVulkanDynamicBuffer* indexBuffer = dynamicBuffers->GetBuffer(BUFFER_TYPE_INDEX);
+
   if (texture)
   {
     texture->LoadToGPU();
@@ -280,22 +288,10 @@ void CVulkanGUITexture::DrawQuad(const CRect& rect,
     //  glDisable(GL_BLEND);
   }
 
-  //VerifyVulkanState();
-
-  //GLubyte col[4];
-  //GLfloat ver[4][3];
-  //GLfloat tex[4][2];
-  //GLubyte idx[4] = {0, 1, 3, 2}; // Determines order of triangle strip
-
   if (texture)
     renderSystem->EnableShader(VULKAN_SM_TEXTURE);
   else
     renderSystem->EnableShader(VULKAN_SM_DEFAULT);
-
-  //GLint posLoc = renderSystem->GUIShaderGetPos();
-  //GLint tex0Loc = renderSystem->GUIShaderGetCoord0();
-  //GLint uniColLoc = renderSystem->GUIShaderGetUniCol();
-  //GLint depthLoc = renderSystem->GUIShaderGetDepth();
 
   //glVertexAttribPointer(posLoc, 3, GL_FLOAT, 0, 0, ver);
   //if (texture)
@@ -305,39 +301,82 @@ void CVulkanGUITexture::DrawQuad(const CRect& rect,
   //if (texture)
   //  glEnableVertexAttribArray(tex0Loc);
 
-  //// Setup Colors
-  //col[0] = KODI::UTILS::RENDER::GetChannelFromARGB(KODI::UTILS::VULKAN::ColorChannel::R, color);
-  //col[1] = KODI::UTILS::RENDER::GetChannelFromARGB(KODI::UTILS::VULKAN::ColorChannel::G, color);
-  //col[2] = KODI::UTILS::RENDER::GetChannelFromARGB(KODI::UTILS::VULKAN::ColorChannel::B, color);
-  //col[3] = KODI::UTILS::RENDER::GetChannelFromARGB(KODI::UTILS::VULKAN::ColorChannel::A, color);
+  glm::vec4 col;
+  std::array<Vertex, 4> ver;
+  std::array<uint32_t, 4> idx = {0, 1, 3, 2}; // Determines order of triangle strip
 
-  //glUniform4f(uniColLoc, col[0] / 255.0f, col[1] / 255.0f, col[2] / 255.0f, col[3] / 255.0f);
-  //glUniform1f(depthLoc, depth);
+  // Setup Colors
+  // NOTE: Vulkan uses ARGB format, but we need to convert it to RGBA for the shader
+  col.r = float((color >> 16) & 0xFF) / 255.0f;
+  col.g = float((color >> 8) & 0xFF) / 255.0f;
+  col.b = float((color >> 0) & 0xFF) / 255.0f;
+  col.a = float((color >> 24) & 0xFF) / 255.0f;
 
-  //ver[0][0] = ver[3][0] = rect.x1;
-  //ver[0][1] = ver[1][1] = rect.y1;
-  //ver[1][0] = ver[2][0] = rect.x2;
-  //ver[2][1] = ver[3][1] = rect.y2;
-  //ver[0][2] = ver[1][2] = ver[2][2] = ver[3][2] = 0;
+  // bottom left
+  ver[0].in_attrpos.x = rect.x1;
+  ver[0].in_attrpos.y = rect.y1;
+  ver[0].in_attrpos.z = 0;
 
-  //if (texture)
-  //{
-  //  // Setup texture coordinates
-  //  CRect coords = texCoords ? *texCoords : CRect(0.0f, 0.0f, 1.0f, 1.0f);
-  //  tex[0][0] = tex[3][0] = coords.x1;
-  //  tex[0][1] = tex[1][1] = coords.y1;
-  //  tex[1][0] = tex[2][0] = coords.x2;
-  //  tex[2][1] = tex[3][1] = coords.y2;
-  //}
+  // bottom right
+  ver[1].in_attrpos.x = rect.x2;
+  ver[1].in_attrpos.y = rect.y1;
+  ver[1].in_attrpos.z = 0;
 
-  //glDrawElements(GL_TRIANGLE_STRIP, 4, GL_UNSIGNED_BYTE, idx);
-  //CRenderSystemBase::m_GUIElementCount++;
+  // top right
+  ver[2].in_attrpos.x = rect.x2;
+  ver[2].in_attrpos.y = rect.y2;
+  ver[2].in_attrpos.z = 0;
 
-  //glDisableVertexAttribArray(posLoc);
-  //if (texture)
-  //  glDisableVertexAttribArray(tex0Loc);
+  // top left
+  ver[3].in_attrpos.x = rect.x1;
+  ver[3].in_attrpos.y = rect.y2;
+  ver[3].in_attrpos.z = 0;
 
-  renderSystem->DisableShader();
+  if (texture)
+  {
+    // Setup texture coordinates
+    CRect coords = texCoords ? *texCoords : CRect(0.0f, 0.0f, 1.0f, 1.0f);
+    ver[0].in_attrcord0.x = ver[3].in_attrcord0.x = coords.x1;
+    ver[0].in_attrcord0.y = ver[1].in_attrcord0.y = coords.y1;
+    ver[1].in_attrcord0.x = ver[2].in_attrcord0.x = coords.x2;
+    ver[2].in_attrcord0.y = ver[3].in_attrcord0.y = coords.y2;
+  }
+
+
+
+  //VulkanUniform uniform{};
+  //uniform.projectionMatrix = KODI::RENDERING::globalMatrixProject;
+  //uniform.modelMatrix = KODI::RENDERING::globalMatrixModview;
+  //uniform.depth = 1.0f;
+
+  //vkCmdPushConstants(renderSystem->vkCurrentCommandBuffer(), shaderTexture->VulkanPipelineLayout(),
+  //                   VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(glm::vec4), glm::value_ptr(col));
+
+  //VkBuffer buffer;
+  //VkDeviceSize bufferOffset;
+
+  //Vertex* vertices = static_cast<Vertex*>(
+  //    vertexBuffer->AllocateOffset(sizeof(Vertex) * ver.size(), buffer, bufferOffset));
+  //memcpy(vertices, ver.data(), sizeof(Vertex) * ver.size());
+  //vkCmdBindVertexBuffers(commandBuffer, 0, 1, &buffer, &bufferOffset);
+
+  //uint32_t* indices = static_cast<uint32_t*>(
+  //    indexBuffer->AllocateOffset(sizeof(uint32_t) * idx.size(), buffer, bufferOffset));
+  //memcpy(indices, idx.data(), sizeof(uint32_t) * idx.size());
+  //vkCmdBindIndexBuffer(commandBuffer, buffer, bufferOffset, VK_INDEX_TYPE_UINT32);
+
+  //renderSystem->ShaderControl()->UpdateUniformBuffer(renderImageIndex, uniform);
+  //vkCmdBindDescriptorSets(
+  //    commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1,
+  //    &renderSystem->ShaderControl()->GetUniformBuffer(renderImageIndex)->descriptorSet, 0,
+  //    nullptr);
+  //vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 1, 1,
+  //                        vkTexture->vkDescriptorSet(), 0, nullptr);
+  //vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+
+  // Draw indexed triangle
+  vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(idx.size()), 1, 0, 0, 0);
+  CRenderSystemBase::m_GUIElementCount++;
 }
 
 } // namespace KODI::GUILIB::GRAPHICS::VULKAN
