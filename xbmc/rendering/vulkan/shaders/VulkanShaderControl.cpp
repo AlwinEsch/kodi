@@ -112,9 +112,9 @@ void CVulkanShaderControl::DestroyAllShaders()
   // Implementation of DestroyAllShaders
   m_shaders.clear();
 
+  DestroyUniformBuffers();
   DestroyDescriptorPool();
   DestroyDescriptorSetLayouts();
-  DestroyUniformBuffers();
   DestroySamplers();
 }
 

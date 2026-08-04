@@ -130,10 +130,12 @@ bool CVulkanDynamicBuffer::Create(VkDeviceSize initialSize,
       allocInfo.descriptorSetCount = 1;
       allocInfo.pSetLayouts = &m_vkData->vkDescriptorSetLayout_Uniform;
 
+      /// Allocate a descriptor set for the uniform buffer
+      /// @note @ref vkFreeDescriptorSets becomes called within the @ref CVulkanDeviceQueue::DestroyBuffer.
       VK_CHECK_RESULT(
           vkAllocateDescriptorSets(m_vkData->vkDevice, &allocInfo, &memData.descriptorSet), false);
 
-      // The m_buffer's information is passed using a m_descriptor info structure
+      // The buffer's information is passed using a m_descriptor info structure
       VkDescriptorBufferInfo bufferInfo{};
       bufferInfo.buffer = memData.buffer;
       bufferInfo.offset = 0;

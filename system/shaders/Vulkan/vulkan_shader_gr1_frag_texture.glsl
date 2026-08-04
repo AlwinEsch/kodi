@@ -10,23 +10,23 @@
 
 layout(constant_id = 0) const int useLimitedColor = 0;
 
-layout (set = 1, binding = 0) uniform sampler2D samplerColor;
-
 layout(location = 0) in vec2 frag_cord0;
 layout(location = 1) in vec2 frag_cord1;
 
+layout (set = 1, binding = 0) uniform sampler2D u_samp0;
+
 layout(push_constant) uniform PushConsts {
-  vec4 colour;
+  vec4 color;
 } pushConsts;
 
-layout (location = 0) out vec4 outFragColor;
+layout (location = 0) out vec4 out_color;
 
 void main()
 {
-  outFragColor = texture(samplerColor, frag_cord0) * pushConsts.colour;
+  out_color = texture(u_samp0, frag_cord0) * pushConsts.color;
   if (useLimitedColor == 1)
   {
-    outFragColor.rgb *= (235.0-16.0) / 255.0;
-    outFragColor.rgb += 16.0 / 255.0;
+    out_color.rgb *= (235.0-16.0) / 255.0;
+    out_color.rgb += 16.0 / 255.0;
   }
 }

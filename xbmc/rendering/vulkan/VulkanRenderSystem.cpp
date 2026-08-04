@@ -210,6 +210,12 @@ bool CVulkanRenderSystem::DestroyRenderSystem()
   }
   m_framebuffers.clear();
 
+  if (m_dynamicBuffers)
+  {
+    m_dynamicBuffers->Destroy();
+    m_dynamicBuffers.reset();
+  }
+
   if (m_renderPass)
   {
     m_renderPass.reset();

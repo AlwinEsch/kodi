@@ -85,11 +85,11 @@ if(TARGET ${APP_NAME_LC}::Vulkan)
 
   set(SHADERS_PIXEL
     vulkan_shader_gr0_frag_test_triangle.glsl
-    vulkan_shader_gr1_fraq_multi.glsl
-    vulkan_shader_gr1_fraq_multi_blendcolor.glsl
-    vulkan_shader_gr1_fraq_texture.glsl
-    vulkan_shader_gr1_fraq_texture_lim.glsl
-    vulkan_shader_gr1_fraq_texture_noblend.glsl
+    vulkan_shader_gr1_frag_multi.glsl
+    vulkan_shader_gr1_frag_multi_blendcolor.glsl
+    vulkan_shader_gr1_frag_texture.glsl
+    vulkan_shader_gr1_frag_texture_lim.glsl
+    vulkan_shader_gr1_frag_texture_noblend.glsl
     vulkan_shader_gr2_frag_default.glsl
     vulkan_shader_gr3_frag_fonts.glsl
     vulkan_shader_gr4_frag_gui_composite.glsl

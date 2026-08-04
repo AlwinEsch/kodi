@@ -353,120 +353,120 @@ bool CVulkanInstance::GetDeviceInfos(VkPhysicalDevice physicalDevice /* = VK_NUL
 
       CLog::Log(LOGDEBUG, "        - Features:");
       CLog::Log(LOGDEBUG, "          - samplerYcbcrConversion - Supported: {0}",
-                info.featureSamplerYCBCRconversion ? "true" : "false");
+                info.featureSamplerYCBCRconversion ? "yes" : "no");
       CLog::Log(LOGDEBUG, "          - protectedMemory - Supported: {0}",
-                info.featureProtectedMemory ? "true" : "false");
+                info.featureProtectedMemory ? "yes" : "no");
       CLog::Log(LOGDEBUG, "          - deviceDRM - Supported: {0}",
-                info.featureDeviceDRM ? "true" : "false");
+                info.featureDeviceDRM ? "yes" : "no");
 
       CLog::Log(LOGDEBUG, "          - extendedDynamicState - Supported: {0}",
-                info.featureExtendedDynamicState ? "true" : "false");
+                info.featureExtendedDynamicState ? "yes" : "no");
 
       CLog::Log(LOGDEBUG, "          - extendedDynamicState2 - Supported: {0}",
-                info.featureExtendedDynamicState2 ? "true" : "false");
+                info.featureExtendedDynamicState2 ? "yes" : "no");
       CLog::Log(LOGDEBUG, "            - extendedDynamicState2LogicOp - Supported: {0}",
-                dyn_state2.extendedDynamicState2LogicOp ? "true" : "false");
+                dyn_state2.extendedDynamicState2LogicOp ? "yes" : "no");
       CLog::Log(LOGDEBUG, "            - extendedDynamicState2PatchControlPoints - Supported: {0}",
-                dyn_state2.extendedDynamicState2PatchControlPoints ? "true" : "false");
+                dyn_state2.extendedDynamicState2PatchControlPoints ? "yes" : "no");
 
       CLog::Log(LOGDEBUG, "          - extendedDynamicState3 - Supported: {0}",
-                info.featureExtendedDynamicState3 ? "true" : "false");
+                info.featureExtendedDynamicState3 ? "yes" : "no");
       CLog::Log(LOGDEBUG, "            - extendedDynamicState3TessellationDomainOrigin - Supported: {0}",
-                dyn_state3.extendedDynamicState3TessellationDomainOrigin ? "true" : "false");
+                dyn_state3.extendedDynamicState3TessellationDomainOrigin ? "yes" : "no");
 
       CLog::Log(LOGDEBUG, "            - extendedDynamicState3DepthClampEnable - Supported: {0}",
-                dyn_state3.extendedDynamicState3DepthClampEnable ? "true" : "false");
+                dyn_state3.extendedDynamicState3DepthClampEnable ? "yes" : "no");
 
       CLog::Log(LOGDEBUG, "            - extendedDynamicState3PolygonMode - Supported: {0}",
-                dyn_state3.extendedDynamicState3PolygonMode ? "true" : "false");
+                dyn_state3.extendedDynamicState3PolygonMode ? "yes" : "no");
 
       CLog::Log(LOGDEBUG, "            - extendedDynamicState3RasterizationSamples - Supported: {0}",
-                dyn_state3.extendedDynamicState3RasterizationSamples ? "true" : "false");
+                dyn_state3.extendedDynamicState3RasterizationSamples ? "yes" : "no");
 
       CLog::Log(LOGDEBUG, "            - extendedDynamicState3SampleMask - Supported: {0}",
-                dyn_state3.extendedDynamicState3SampleMask ? "true" : "false");
+                dyn_state3.extendedDynamicState3SampleMask ? "yes" : "no");
 
       CLog::Log(LOGDEBUG, "            - extendedDynamicState3AlphaToCoverageEnable - Supported: {0}",
-                dyn_state3.extendedDynamicState3AlphaToCoverageEnable ? "true" : "false");
+                dyn_state3.extendedDynamicState3AlphaToCoverageEnable ? "yes" : "no");
 
       CLog::Log(LOGDEBUG, "            - extendedDynamicState3AlphaToOneEnable - Supported: {0}",
-                dyn_state3.extendedDynamicState3AlphaToOneEnable ? "true" : "false");
+                dyn_state3.extendedDynamicState3AlphaToOneEnable ? "yes" : "no");
 
       CLog::Log(LOGDEBUG, "            - extendedDynamicState3LogicOpEnable - Supported: {0}",
-                dyn_state3.extendedDynamicState3LogicOpEnable ? "true" : "false");
+                dyn_state3.extendedDynamicState3LogicOpEnable ? "yes" : "no");
 
       CLog::Log(LOGDEBUG, "            - extendedDynamicState3ColorBlendEnable - Supported: {0}",
-                dyn_state3.extendedDynamicState3ColorBlendEnable ? "true" : "false");
+                dyn_state3.extendedDynamicState3ColorBlendEnable ? "yes" : "no");
 
       CLog::Log(LOGDEBUG, "            - extendedDynamicState3ColorBlendEquation - Supported: {0}",
-                dyn_state3.extendedDynamicState3ColorBlendEquation ? "true" : "false");
+                dyn_state3.extendedDynamicState3ColorBlendEquation ? "yes" : "no");
 
       CLog::Log(LOGDEBUG, "            - extendedDynamicState3ColorWriteMask - Supported: {0}",
-                dyn_state3.extendedDynamicState3ColorWriteMask ? "true" : "false");
+                dyn_state3.extendedDynamicState3ColorWriteMask ? "yes" : "no");
 
       CLog::Log(LOGDEBUG, "            - extendedDynamicState3RasterizationStream - Supported: {0}",
-                dyn_state3.extendedDynamicState3RasterizationStream ? "true" : "false");
+                dyn_state3.extendedDynamicState3RasterizationStream ? "yes" : "no");
 
       CLog::Log(LOGDEBUG,
                 "            - extendedDynamicState3ConservativeRasterizationMode - Supported: {0}",
-                dyn_state3.extendedDynamicState3ConservativeRasterizationMode ? "true" : "false");
+                dyn_state3.extendedDynamicState3ConservativeRasterizationMode ? "yes" : "no");
 
       CLog::Log(
           LOGDEBUG, "            - extendedDynamicState3ExtraPrimitiveOverestimationSize - Supported: {0}",
-          dyn_state3.extendedDynamicState3ExtraPrimitiveOverestimationSize ? "true" : "false");
+          dyn_state3.extendedDynamicState3ExtraPrimitiveOverestimationSize ? "yes" : "no");
 
       CLog::Log(LOGDEBUG, "            - extendedDynamicState3DepthClipEnable - Supported: {0}",
-                dyn_state3.extendedDynamicState3DepthClipEnable ? "true" : "false");
+                dyn_state3.extendedDynamicState3DepthClipEnable ? "yes" : "no");
 
       CLog::Log(LOGDEBUG, "            - extendedDynamicState3SampleLocationsEnable - Supported: {0}",
-                dyn_state3.extendedDynamicState3SampleLocationsEnable ? "true" : "false");
+                dyn_state3.extendedDynamicState3SampleLocationsEnable ? "yes" : "no");
 
       CLog::Log(LOGDEBUG, "            - extendedDynamicState3ColorBlendAdvanced - Supported: {0}",
-                dyn_state3.extendedDynamicState3ColorBlendAdvanced ? "true" : "false");
+                dyn_state3.extendedDynamicState3ColorBlendAdvanced ? "yes" : "no");
 
       CLog::Log(LOGDEBUG, "            - extendedDynamicState3ProvokingVertexMode - Supported: {0}",
-                dyn_state3.extendedDynamicState3ProvokingVertexMode ? "true" : "false");
+                dyn_state3.extendedDynamicState3ProvokingVertexMode ? "yes" : "no");
 
       CLog::Log(LOGDEBUG, "            - extendedDynamicState3LineRasterizationMode - Supported: {0}",
-                dyn_state3.extendedDynamicState3LineRasterizationMode ? "true" : "false");
+                dyn_state3.extendedDynamicState3LineRasterizationMode ? "yes" : "no");
 
       CLog::Log(LOGDEBUG, "            - extendedDynamicState3LineStippleEnable - Supported: {0}",
-                dyn_state3.extendedDynamicState3LineStippleEnable ? "true" : "false");
+                dyn_state3.extendedDynamicState3LineStippleEnable ? "yes" : "no");
 
       CLog::Log(LOGDEBUG, "            - extendedDynamicState3DepthClipNegativeOneToOne - Supported: {0}",
-                dyn_state3.extendedDynamicState3DepthClipNegativeOneToOne ? "true" : "false");
+                dyn_state3.extendedDynamicState3DepthClipNegativeOneToOne ? "yes" : "no");
 
       CLog::Log(LOGDEBUG, "            - extendedDynamicState3ViewportWScalingEnable - Supported: {0}",
-                dyn_state3.extendedDynamicState3ViewportWScalingEnable ? "true" : "false");
+                dyn_state3.extendedDynamicState3ViewportWScalingEnable ? "yes" : "no");
 
       CLog::Log(LOGDEBUG, "            - extendedDynamicState3ViewportSwizzle - Supported: {0}",
-                dyn_state3.extendedDynamicState3ViewportSwizzle ? "true" : "false");
+                dyn_state3.extendedDynamicState3ViewportSwizzle ? "yes" : "no");
 
       CLog::Log(LOGDEBUG, "            - extendedDynamicState3CoverageToColorEnable - Supported: {0}",
-                dyn_state3.extendedDynamicState3CoverageToColorEnable ? "true" : "false");
+                dyn_state3.extendedDynamicState3CoverageToColorEnable ? "yes" : "no");
 
       CLog::Log(LOGDEBUG, "            - extendedDynamicState3CoverageToColorLocation - Supported: {0}",
-                dyn_state3.extendedDynamicState3CoverageToColorLocation ? "true" : "false");
+                dyn_state3.extendedDynamicState3CoverageToColorLocation ? "yes" : "no");
 
       CLog::Log(LOGDEBUG, "            - extendedDynamicState3CoverageModulationMode - Supported: {0}",
-                dyn_state3.extendedDynamicState3CoverageModulationMode ? "true" : "false");
+                dyn_state3.extendedDynamicState3CoverageModulationMode ? "yes" : "no");
 
       CLog::Log(LOGDEBUG,
                 "            - extendedDynamicState3CoverageModulationTableEnable - Supported: {0}",
-                dyn_state3.extendedDynamicState3CoverageModulationTableEnable ? "true" : "false");
+                dyn_state3.extendedDynamicState3CoverageModulationTableEnable ? "yes" : "no");
 
       CLog::Log(LOGDEBUG, "            - extendedDynamicState3CoverageModulationTable - Supported: {0}",
-                dyn_state3.extendedDynamicState3CoverageModulationTable ? "true" : "false");
+                dyn_state3.extendedDynamicState3CoverageModulationTable ? "yes" : "no");
 
       CLog::Log(LOGDEBUG, "            - extendedDynamicState3CoverageReductionMode - Supported: {0}",
-                dyn_state3.extendedDynamicState3CoverageReductionMode ? "true" : "false");
+                dyn_state3.extendedDynamicState3CoverageReductionMode ? "yes" : "no");
 
       CLog::Log(
           LOGDEBUG, "            - extendedDynamicState3RepresentativeFragmentTestEnable - Supported: {0}",
-          dyn_state3.extendedDynamicState3RepresentativeFragmentTestEnable ? "true" : "false");
+          dyn_state3.extendedDynamicState3RepresentativeFragmentTestEnable ? "yes" : "no");
 
       CLog::Log(LOGDEBUG, "            - extendedDynamicState3ShadingRateImageEnable - Supported: {0}",
-                dyn_state3.extendedDynamicState3ShadingRateImageEnable ? "true" : "false");
+                dyn_state3.extendedDynamicState3ShadingRateImageEnable ? "yes" : "no");
     }
 
     count = 0;

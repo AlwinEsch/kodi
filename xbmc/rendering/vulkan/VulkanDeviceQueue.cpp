@@ -538,12 +538,6 @@ void CVulkanDeviceQueue::DestroyBuffer(VulkanMemoryData* memoryData)
     vkUnmapMemory(m_vkDevice, memoryData->memory);
     memoryData->mapped = nullptr;
   }
-  if (memoryData->descriptorSet != VK_NULL_HANDLE)
-  {
-    vkFreeDescriptorSets(m_vkDevice, m_vulkanRenderSystem->vkData()->vkDescriptorPool, 1,
-                         &memoryData->descriptorSet);
-    memoryData->descriptorSet = VK_NULL_HANDLE;
-  }
   if (memoryData->buffer)
   {
     vkDestroyBuffer(m_vkDevice, memoryData->buffer, nullptr);
@@ -553,6 +547,12 @@ void CVulkanDeviceQueue::DestroyBuffer(VulkanMemoryData* memoryData)
   {
     vkFreeMemory(m_vkDevice, memoryData->memory, nullptr);
     memoryData->memory = VK_NULL_HANDLE;
+  }
+  if (memoryData->descriptorSet != VK_NULL_HANDLE)
+  {
+    vkFreeDescriptorSets(m_vkDevice, m_vulkanRenderSystem->vkData()->vkDescriptorPool, 1,
+                         &memoryData->descriptorSet);
+    memoryData->descriptorSet = VK_NULL_HANDLE;
   }
 }
 

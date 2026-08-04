@@ -23,7 +23,7 @@ class CVulkanRenderSystem;
 class CVulkanShaderTexture;
 class CVulkanDynamicBuffer;
 class CVulkanDynamicBuffers;
-struct Vertex;
+struct ShaderTextureVertex;
 } // KODI::RENDERING::VULKAN
 
 
@@ -60,11 +60,13 @@ protected:
   void End() override;
 
 private:
+  using Vertex = KODI::RENDERING::VULKAN::ShaderTextureVertex;
+
   CVulkanGUITexture(const CVulkanGUITexture& texture) = default;
 
   glm::vec4 m_color{1.0f, 1.0f, 1.0f, 1.0f};
 
-  std::vector<KODI::RENDERING::VULKAN::Vertex> m_packedVertices;
+  std::vector<Vertex> m_packedVertices;
   std::vector<uint32_t> m_idx;
   KODI::RENDERING::VULKAN::CVulkanRenderSystem* m_renderSystem;
   KODI::RENDERING::VULKAN::CVulkanShaderTexture* m_shaderTexture;

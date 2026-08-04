@@ -15,6 +15,14 @@
 namespace KODI::RENDERING::VULKAN
 {
 
+struct ShaderFontsVertex
+{
+  glm::vec3 in_attrpos;
+  glm::vec4 in_attrcolor;
+  glm::vec2 in_attrcord0;
+  glm::vec2 in_attrcord1;
+};
+
 class CVulkanDeviceQueue;
 
 class CVulkanShaderFonts : public IVulkanShader
@@ -24,7 +32,9 @@ public:
                      CVulkanDeviceQueue* deviceQueue);
   virtual ~CVulkanShaderFonts() = default;
 
-private:
+protected:
+  bool CreatePipelineLayout() override;
+  bool CreatePipeline() override;
 };
 
 } // namespace KODI::RENDERING::VULKAN

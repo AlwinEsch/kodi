@@ -26,7 +26,7 @@ namespace
 {
 
 constexpr const char* kVertexShaderFile = "vulkan_shader_gr1_vert.spv";
-constexpr const char* kFragmentShaderFile = "vulkan_shader_gr1_fraq_texture.spv";
+constexpr const char* kFragmentShaderFile = "vulkan_shader_gr1_frag_texture.spv";
 
 } // namespace
 
@@ -63,6 +63,8 @@ bool CVulkanShaderTexture::CreatePipelineLayout()
 
 bool CVulkanShaderTexture::CreatePipeline()
 {
+  using Vertex = KODI::RENDERING::VULKAN::ShaderTextureVertex;
+
   //================================================================================================
   /// Pipeline creation info
   ///

@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2005-2026 Team Kodi
+ *  Copyright (C) 2026 Team Kodi
  *  This file is part of Kodi - https://kodi.tv
  *
  *  SPDX-License-Identifier: GPL-2.0-or-later
@@ -8,23 +8,21 @@
 
 #version 450
 
-layout(location = 0) in vec2 frag_cord0;
-layout(location = 1) in vec4 frag_colour;
+layout(constant_id = 0) const int useLimitedColor = 0;
 
-layout(binding = 0) uniform sampler2D u_samp0;
-layout(binding = 1) uniform UBO
-{
-  bool limitedRange;
-} u_ubo;
+layout(location = 0) in vec2 frag_cord0;
+layout(location = 1) in vec4 frag_color;
+
+layout (set = 1, binding = 0) uniform sampler2D u_samp0;
 
 layout(location = 0) out vec4 out_color;
 
 // SM_FONTS shader
 void main()
 {
-  out_color = frag_colour;
+  out_color = frag_color;
   out_color.a *= texture(u_samp0, frag_cord0).r;
-  if (u_ubo.limitedRange)
+  if (useLimitedColor == 1)
   {
     out_color.rgb *= (235.0-16.0) / 255.0;
     out_color.rgb += 16.0 / 255.0;
