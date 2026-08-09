@@ -51,12 +51,13 @@ bool CVulkanDynamicBuffers::Create()
     return false;
   }
   if (!m_buffers[BUFFER_TYPE_UNIFORM]->Create(INITIAL_DYNAMIC_UNIFORM_BUFFER_SIZE_KB * 1024,
-                                              VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT))
+                                              VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, true))
   {
     CLog::Log(LOGERROR, "Vulkan: Failed to create uniform buffer ({0}:{1})", __FILENAME__,
               __LINE__);
     return false;
   }
+
   return true;
 }
 
@@ -104,10 +105,10 @@ CVulkanDynamicBuffer::~CVulkanDynamicBuffer()
   Destroy();
 }
 
-bool CVulkanDynamicBuffer::Create(VkDeviceSize initialSize,
-                                  VkBufferUsageFlags usage,
-                                  VkDescriptorSet* descriptorSet)
+bool CVulkanDynamicBuffer::Create(VkDeviceSize initialSize, VkBufferUsageFlags usage, bool uniform)
 {
+  assert(m_vkData->vkDescriptorPool != VK_NULL_HANDLE);
+
   m_usage = usage;
 
   for (auto& memData : m_memData)
@@ -118,18 +119,20 @@ bool CVulkanDynamicBuffer::Create(VkDeviceSize initialSize,
                                                 &memData, initialSize),
                     false);
 
+    VK_CHECK_RESULT(vkBindBufferMemory(m_vkData->vkDevice, memData.buffer, memData.memory, 0), false);
+
     // We map the buffer once, so we can update it without having to map it again
     VK_CHECK_RESULT(
         vkMapMemory(m_vkData->vkDevice, memData.memory, 0, initialSize, 0, (void**)&memData.mapped),
         false);
 
-    if (descriptorSet)
+    if (uniform)
     {
       VkDescriptorSetAllocateInfo allocInfo{};
       allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
       allocInfo.descriptorPool = m_vkData->vkDescriptorPool;
       allocInfo.descriptorSetCount = 1;
-      allocInfo.pSetLayouts = &m_vkData->vkDescriptorSetLayout_Uniform;
+      allocInfo.pSetLayouts = &m_vkData->vkDescriptorSetLayout_UniformDynamic;
 
       /// Allocate a descriptor set for the uniform buffer
       /// @note @ref vkFreeDescriptorSets becomes called within the @ref CVulkanDeviceQueue::DestroyBuffer.
@@ -173,7 +176,8 @@ void CVulkanDynamicBuffer::Destroy()
 void* CVulkanDynamicBuffer::AllocateOffset(size_t size,
                                            VkBuffer& buffer,
                                            VkDeviceSize& bufferOffset,
-                                           VkDescriptorSet* descriptorSet)
+                                           bool uniform /*= false*/,
+                                           VkDescriptorSet* descriptorSet /*= nullptr*/)
 {
   std::unique_lock lock(m_criticalSection);
 
@@ -182,12 +186,14 @@ void* CVulkanDynamicBuffer::AllocateOffset(size_t size,
     // Not enough space in the current buffer, need to resize
     const VkDeviceSize newSize = std::max(m_currentSize * 2, m_currentOffset + size);
     Destroy();
-    Create(newSize, m_usage, descriptorSet);
+    Create(newSize, m_usage, uniform);
   }
 
   buffer = m_memData[m_currentFrameIndex].buffer;
   bufferOffset = m_currentOffset;
   m_currentOffset += size;
+  if (descriptorSet)
+    *descriptorSet = m_memData[m_currentFrameIndex].descriptorSet;
   return m_memData[m_currentFrameIndex].mapped + bufferOffset;
 }
 

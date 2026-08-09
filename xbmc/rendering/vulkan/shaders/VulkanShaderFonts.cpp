@@ -472,7 +472,7 @@ bool CVulkanShaderFonts::CreateUniformBuffers()
     uboWrite.dstBinding = 0;
     uboWrite.dstArrayElement = 0;
     uboWrite.descriptorCount = 1;
-    uboWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
+    uboWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     uboWrite.pBufferInfo = &bufferInfo;
 
     vkUpdateDescriptorSets(m_vkData->vkDevice, 1, &uboWrite, 0, nullptr);
@@ -497,23 +497,23 @@ void CVulkanShaderFonts::DestroyUniformBuffers()
 
 void CVulkanShaderFonts::UpdateUniformBuffer(uint32_t index, const VulkanUniformScissorClip& uniformData)
 {
-  //VK_CHECK_RESULT(vkMapMemory(m_vkData->vkDevice, m_uniformBuffers[index].memory, 0, sizeof(VulkanUniformShaderClip),
-  //                            0, (void**)&m_uniformBuffers[index].mapped));
+  VK_CHECK_RESULT(vkMapMemory(m_vkData->vkDevice, m_uniformBuffers[index].memory, 0, sizeof(VulkanUniformShaderClip),
+                              0, (void**)&m_uniformBuffers[index].mapped));
 
   memcpy(m_uniformBuffers[index].mapped, &uniformData, sizeof(VulkanUniformScissorClip));
 
-  //    VkMappedMemoryRange mappedRange{
-  //    .sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE,
-  //    .pNext = nullptr,
-  //    .memory = m_uniformBuffers[index].memory,
-  //    .offset = 0,
-  //    .size = sizeof(VulkanUniformScissorClip),
-  //};
-  //vkFlushMappedMemoryRanges(m_vkData->vkDevice, 1, &mappedRange);
+      VkMappedMemoryRange mappedRange{
+      .sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE,
+      .pNext = nullptr,
+      .memory = m_uniformBuffers[index].memory,
+      .offset = 0,
+      .size = sizeof(VulkanUniformScissorClip),
+  };
+  vkFlushMappedMemoryRanges(m_vkData->vkDevice, 1, &mappedRange);
 
-  //vkUnmapMemory(m_vkData->vkDevice, m_uniformBuffers[index].memory);
-  //VK_CHECK_RESULT(vkBindBufferMemory(m_vkData->vkDevice, m_uniformBuffers[index].buffer,
-  //                                   m_uniformBuffers[index].memory, 0));
+  vkUnmapMemory(m_vkData->vkDevice, m_uniformBuffers[index].memory);
+  VK_CHECK_RESULT(vkBindBufferMemory(m_vkData->vkDevice, m_uniformBuffers[index].buffer,
+                                     m_uniformBuffers[index].memory, 0));
 }
 
 void CVulkanShaderFonts::UpdateUniformBuffer(uint32_t index, const VulkanUniformShaderClip& uniformData)

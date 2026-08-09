@@ -130,14 +130,6 @@ bool CVulkanRenderSystem::InitRenderSystem()
     return false;
   }
 
-  m_dynamicBuffers = std::make_unique<CVulkanDynamicBuffers>(&m_vkData, m_deviceQueue.get());
-  if (!m_dynamicBuffers->Create())
-  {
-    CLog::Log(LOGERROR, "Vulkan: Failed to initialize dynamic buffers ({0}:{1})", __FILENAME__,
-              __LINE__);
-    return false;
-  }
-
   m_vkData.vkSwapchain = m_surface->vkSwapchain();
   m_vkData.vkSwapchainFormat = m_surface->vkSurfaceFormat().format;
 
@@ -159,7 +151,22 @@ bool CVulkanRenderSystem::InitRenderSystem()
   }
 
   m_shaderControl = std::make_unique<CVulkanShaderControl>(&m_vkData, m_deviceQueue.get());
-  if (!m_shaderControl->CreateAllShaders(m_vkData.vkDevice, m_vkData.vkRenderPass))
+  if (!m_shaderControl->Init())
+  {
+    CLog::Log(LOGERROR, "Vulkan: Failed to initialize shader control ({0}:{1})", __FILENAME__,
+              __LINE__);
+    return false;
+  }
+
+  m_dynamicBuffers = std::make_unique<CVulkanDynamicBuffers>(&m_vkData, m_deviceQueue.get());
+  if (!m_dynamicBuffers->Create())
+  {
+    CLog::Log(LOGERROR, "Vulkan: Failed to initialize dynamic buffers ({0}:{1})", __FILENAME__,
+              __LINE__);
+    return false;
+  }
+
+  if (!m_shaderControl->CreateAllShaders())
   {
     CLog::Log(LOGERROR, "Vulkan: Failed to initialize shader control ({0}:{1})", __FILENAME__,
               __LINE__);
@@ -195,6 +202,8 @@ bool CVulkanRenderSystem::DestroyRenderSystem()
   EndRender2();
 
   m_shaderControl->DestroyAllShaders();
+  m_shaderControl->DeInit();
+  m_shaderControl.reset();
 
   VkResult result = vkQueueWaitIdle(m_deviceQueue->vkQueue());
   if (result != VK_SUCCESS)

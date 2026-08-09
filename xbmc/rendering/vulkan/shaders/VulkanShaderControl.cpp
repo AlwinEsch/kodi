@@ -50,20 +50,8 @@ CVulkanShaderControl::CVulkanShaderControl(VulkanData* vulkanData,
 {
 }
 
-bool CVulkanShaderControl::CreateAllShaders(VkDevice device, VkRenderPass renderPass)
+bool CVulkanShaderControl::Init()
 {
-  for (const auto& entry : shaderList)
-  {
-    std::unique_ptr<IVulkanShader> shader = entry.create(m_vkData, m_deviceQueue);
-    if (shader == nullptr)
-    {
-      CLog::Log(LOGERROR, "Vulkan: Failed to allocate shader: {}", entry.name);
-      return false;
-    }
-
-    m_shaders[entry.id] = std::move(shader);
-  }
-
   /**
    * Doing below the initialization of all shader parts.
    *
@@ -89,6 +77,30 @@ bool CVulkanShaderControl::CreateAllShaders(VkDevice device, VkRenderPass render
     return false;
   }
 
+  return true;
+}
+
+void CVulkanShaderControl::DeInit()
+{
+  DestroyDescriptorPool();
+  DestroyDescriptorSetLayouts();
+  DestroySamplers();
+}
+
+bool CVulkanShaderControl::CreateAllShaders()
+{
+  for (const auto& entry : shaderList)
+  {
+    std::unique_ptr<IVulkanShader> shader = entry.create(m_vkData, m_deviceQueue);
+    if (shader == nullptr)
+    {
+      CLog::Log(LOGERROR, "Vulkan: Failed to allocate shader: {}", entry.name);
+      return false;
+    }
+
+    m_shaders[entry.id] = std::move(shader);
+  }
+
   for (const auto& entry : m_shaders)
   {
     if (!entry.second->Create())
@@ -106,10 +118,6 @@ void CVulkanShaderControl::DestroyAllShaders()
 {
   // Implementation of DestroyAllShaders
   m_shaders.clear();
-
-  DestroyDescriptorPool();
-  DestroyDescriptorSetLayouts();
-  DestroySamplers();
 }
 
 bool CVulkanShaderControl::CreateDescriptorSetLayouts()
@@ -130,6 +138,20 @@ bool CVulkanShaderControl::CreateDescriptorSetLayouts()
 
     VK_CHECK_RESULT(vkCreateDescriptorSetLayout(m_vkData->vkDevice, &layoutInfo, nullptr,
                                                 &m_vkData->vkDescriptorSetLayout_Uniform),
+                    false);
+  }
+
+  {
+    binding.binding = 0;
+    binding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
+    binding.descriptorCount = 1;
+    binding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+    binding.pImmutableSamplers = nullptr;
+
+    layoutInfo.pBindings = &binding;
+
+    VK_CHECK_RESULT(vkCreateDescriptorSetLayout(m_vkData->vkDevice, &layoutInfo, nullptr,
+                                                &m_vkData->vkDescriptorSetLayout_UniformDynamic),
                     false);
   }
 
@@ -169,11 +191,13 @@ void CVulkanShaderControl::DestroyDescriptorSetLayouts()
 bool CVulkanShaderControl::CreateDescriptorPool()
 {
   // clang-format off
-  std::array<VkDescriptorPoolSize, 2> poolSizes{};
+  std::array<VkDescriptorPoolSize, 3> poolSizes{};
   poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
   poolSizes[0].descriptorCount = MIN_DESCRIPTORS_PER_TYPE;
-  poolSizes[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-  poolSizes[1].descriptorCount = MIN_DESCRIPTORS_PER_TYPE + (MAX_TEXTURES + 1);
+  poolSizes[1].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
+  poolSizes[1].descriptorCount = MIN_DESCRIPTORS_PER_TYPE;
+  poolSizes[2].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+  poolSizes[2].descriptorCount = MIN_DESCRIPTORS_PER_TYPE + (MAX_TEXTURES + 1);
   // clang-format on
 
   VkDescriptorPoolCreateInfo poolCreateInfo = {};

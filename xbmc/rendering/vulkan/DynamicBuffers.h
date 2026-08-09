@@ -61,14 +61,13 @@ public:
   void* AllocateOffset(size_t size,
                        VkBuffer& buffer,
                        VkDeviceSize& bufferOffset,
+                       bool uniform = false,
                        VkDescriptorSet* descriptorSet = nullptr);
 
 private:
   friend class CVulkanDynamicBuffers;
 
-  bool Create(VkDeviceSize initialSize,
-              VkBufferUsageFlags usage,
-              VkDescriptorSet* descriptorSet = nullptr);
+  bool Create(VkDeviceSize initialSize, VkBufferUsageFlags usage, bool uniform = false);
   void Destroy();
 
   VkMappedMemoryRange GetMappedMemoryRange() const;

@@ -41,7 +41,10 @@ public:
 
   ShaderId AddOptionalShader(std::unique_ptr<IVulkanShader> shader);
 
-  bool CreateAllShaders(VkDevice device, VkRenderPass renderPass);
+  bool Init();
+  void DeInit();
+
+  bool CreateAllShaders();
   void DestroyAllShaders();
 
   IVulkanShader* GetShader(ShaderId shaderId) const;
