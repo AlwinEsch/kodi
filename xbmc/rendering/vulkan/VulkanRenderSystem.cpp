@@ -123,6 +123,11 @@ bool CVulkanRenderSystem::InitRenderSystem()
   m_vkData.vkQueue = m_deviceQueue->vkQueue();
   m_vkData.vkCommandPool = m_deviceQueue->CommandPool()->vkCommandPool();
 
+  // TODO: This is a temporary solution to get the physical device properties. We should find a better way to get this information.
+  const CVulkanInfo& info = GetVulkanInstance()->GetVulkanInfo();
+  m_vkData.vkProperties = info.physicalDevices[info.usedPhysicalDeviceIndex].properties;
+  m_vkData.vkDriverProperties = info.physicalDevices[info.usedPhysicalDeviceIndex].driverProperties;
+
   m_surface = std::make_unique<CVulkanSurface>(m_vkData.vkInstance, m_vkData.vkSurface);
   if (!m_surface->Initialize(m_deviceQueue.get(), SurfaceFormat::FORMAT_RGBA_32))
   {

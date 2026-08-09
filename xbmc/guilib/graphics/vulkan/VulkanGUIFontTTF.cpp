@@ -86,11 +86,11 @@ bool CVulkanGUIFontTTF::FirstBegin()
   ScissorsCanEffectClipping(m_clipFactor, m_clipOffset);
   if (m_scissorClip)
   {
-    m_vkPipelineUsed = m_shaderFonts->VulkanPipeline(FONTS_TYPE_SCISSOR_CLIP);
+    m_vkPipelineUsed = m_shaderFonts->VulkanPipeline(/*FONTS_TYPE_SCISSOR_CLIP*/);
   }
   else
   {
-    m_vkPipelineUsed = m_shaderFonts->VulkanPipeline(FONTS_TYPE_SHADER_CLIP);
+    m_vkPipelineUsed = m_shaderFonts->VulkanPipeline(/*FONTS_TYPE_SHADER_CLIP*/);
   }
 
   if (m_textureStatus == TEXTURE_REALLOCATED)
@@ -280,103 +280,32 @@ void CVulkanGUIFontTTF::LastEnd()
       fractY = -fractY + std::round(fractY);
 
       // proj * model * gui * scroll * translation * scaling * correction factor
-      glm::mat4 matrix2 = context.GetGUIMatrix().GetGLMMatrix();
-
-      glm::mat4 matrix = glm::mat4(1.0f);
-      matrix = matrix * KODI::RENDERING::globalMatrixProject;
+      glm::mat4 matrix = KODI::RENDERING::globalMatrixProject;
       matrix = matrix * KODI::RENDERING::globalMatrixModview;
-      //matrix[3][0] += matrix2[3][0];
-      matrix[3][1] += matrix2[3][1];
-      matrix[3][1] += 512.0f;
-      matrix[3][1] += (i * 25);
-      //matrix = matrix * context.GetGUIMatrix().GetGLMMatrix();
+      matrix = matrix * context.GetGUIMatrix().GetGLMMatrix();
+      matrix = glm::translate(
+          matrix, glm::vec3(m_vertexTrans[i].m_offsetX, m_vertexTrans[i].m_offsetY, 0.0f));
+      matrix = glm::translate(
+          matrix, glm::vec3(m_vertexTrans[i].m_translateX, m_vertexTrans[i].m_translateY, 0.0f));
+      // the gui matrix messes with the scale. correct it here for now.
+      matrix = glm::scale(matrix, glm::vec3(context.GetGUIScaleX(), context.GetGUIScaleY(), 1.0f));
+      // the gui matrix doesn't align to exact pixel coords atm. correct it here for now.
+      matrix = glm::translate(matrix, glm::vec3(fractX, fractY, 0.0f));
 
-      //Translatef(matrix, m_vertexTrans[i].m_offsetX, m_vertexTrans[i].m_offsetY, 0.0f);
-      //Translatef(matrix, m_vertexTrans[i].m_translateX, m_vertexTrans[i].m_translateY, 0.0f);
-      //fprintf(stderr,
-      //        "CVulkanGUIFontTTF::LastEnd: Using font %s with "
-      //        "translation (%f, %f) and offset (%f, %f) and fractional offset (%f, %f)\n",
-      //        GetFontIdent().c_str(), double(m_vertexTrans[i].m_translateX),
-      //        double(m_vertexTrans[i].m_translateY), double(m_vertexTrans[i].m_offsetX),
-      //        double(m_vertexTrans[i].m_offsetY), double(fractX), double(fractY));
-      //matrix = glm::translate(
-      //    matrix, glm::vec3(m_vertexTrans[i].m_offsetX, m_vertexTrans[i].m_offsetY, 0.0f));
-      //matrix = glm::translate(
-      //    matrix, glm::vec3(m_vertexTrans[i].m_translateX, m_vertexTrans[i].m_translateY, 0.0f));
-      fprintf(stderr, "1- (%f, %f, %f, %f) (%f, %f, %f, %f) (%f, %f, %f, %f) (%f, %f, %f, %f)\n",
-              double(matrix[0][0]), double(matrix[0][1]), double(matrix[0][2]),
-              double(matrix[0][3]), double(matrix[1][0]), double(matrix[1][1]),
-              double(matrix[1][2]), double(matrix[1][3]), double(matrix[2][0]),
-              double(matrix[2][1]), double(matrix[2][2]), double(matrix[2][3]),
-              double(matrix[3][0]), double(matrix[3][1]), double(matrix[3][2]),
-              double(matrix[3][3]));
-      //fprintf(
-      //    stderr, "2- (%f, %f, %f, %f) (%f, %f, %f, %f) (%f, %f, %f, %f) (%f, %f, %f, %f)\n",
-      //    double(matrix2[0][0]), double(matrix2[0][1]), double(matrix2[0][2]), double(matrix2[0][3]),
-      //    double(matrix2[1][0]), double(matrix2[1][1]), double(matrix2[1][2]), double(matrix2[1][3]),
-      //    double(matrix2[2][0]), double(matrix2[2][1]), double(matrix2[2][2]), double(matrix2[2][3]),
-      //    double(matrix2[3][0]), double(matrix2[3][1]), double(matrix2[3][2]), double(matrix2[3][3]));
-      //// the gui matrix messes with the scale. correct it here for now.
-      //matrix = glm::scale(matrix, glm::vec3(context.GetGUIScaleX(), context.GetGUIScaleY(), 1.0f));
-      //// the gui matrix doesn't align to exact pixel coords atm. correct it here for now.
-      //matrix = glm::translate(matrix, glm::vec3(fractX, fractY, 0.0f));
 
-      const float depth = CServiceBroker::GetWinSystem()->GetGfxContext().GetTransformDepth();
+      VkPipeline pipeline = m_shaderFonts->VulkanPipeline(/*FONTS_TYPE_SCISSOR_CLIP*/);
+      VkPipelineLayout pipelineLayout =
+          m_shaderFonts->VulkanPipelineLayout(/*FONTS_TYPE_SCISSOR_CLIP*/);
 
-      VkPipeline pipeline;
-      VkPipelineLayout pipelineLayout;
-      //if (m_scissorClip)
-      //{
-      // clip using scissors
-      //fprintf(stderr,
-      //        "CVulkanGUIFontTTF::LastEnd: Using scissor clip for font %s with clip rect (%f, %f, "
-      //        "%f, %f)\n",
-      //        GetFontIdent().c_str(), double(clip.x1), double(clip.y1), double(clip.x2),
-      //        double(clip.y2));
-      //m_renderSystem->SetScissors(clip);
-
-      CVulkanShaderFonts::VulkanUniformScissorClip uniform{};
-
-      uniform.matrix = matrix;
-      uniform.depth = depth;
-
+      CVulkanShaderFonts::VulkanUniform uniform{};
+      uniform.projectionMatrix = KODI::RENDERING::globalMatrixProject;
+      uniform.modelMatrix = KODI::RENDERING::globalMatrixModview;
+      uniform.depth = CServiceBroker::GetWinSystem()->GetGfxContext().GetTransformDepth();
       m_shaderFonts->UpdateUniformBuffer(renderImageIndex, uniform);
-      pipeline = m_shaderFonts->VulkanPipeline(FONTS_TYPE_SCISSOR_CLIP);
-      pipelineLayout = m_shaderFonts->VulkanPipelineLayout(FONTS_TYPE_SCISSOR_CLIP);
-      //}
-      //else
-      //{
-      //  // clip using vertex shader
-      //  m_renderSystem->ResetScissors();
 
-      //  CVulkanShaderFonts::VulkanUniformShaderClip uniform{};
-
-      //  const glm::vec4 clipBoundaries = {
-      //      (m_vertexTrans[i].m_clip.x1 - m_vertexTrans[i].m_translateX -
-      //       m_vertexTrans[i].m_offsetX) /
-      //          context.GetGUIScaleX(),
-      //      (m_vertexTrans[i].m_clip.y1 - m_vertexTrans[i].m_translateY -
-      //       m_vertexTrans[i].m_offsetY) /
-      //          context.GetGUIScaleY(),
-      //      (m_vertexTrans[i].m_clip.x2 - m_vertexTrans[i].m_translateX -
-      //       m_vertexTrans[i].m_offsetX) /
-      //          context.GetGUIScaleX(),
-      //      (m_vertexTrans[i].m_clip.y2 - m_vertexTrans[i].m_translateY -
-      //       m_vertexTrans[i].m_offsetY) /
-      //          context.GetGUIScaleY()};
-
-      //  const glm::vec4 textureSteps = {1.f / static_cast<float>(m_textureWidth),
-      //                                  1.f / static_cast<float>(m_textureHeight), 1.f, 1.f};
-
-      //  uniform.matrix = matrix;
-      //  uniform.shaderClip = clipBoundaries;
-      //  uniform.cordStep = textureSteps;
-      //  uniform.depth = depth;
-
-      //  m_shaderFonts->UpdateUniformBuffer(renderImageIndex, uniform);
-      //  pipeline = m_shaderFonts->VulkanPipeline(FONTS_TYPE_SHADER_CLIP);
-      //  pipelineLayout = m_shaderFonts->VulkanPipelineLayout(FONTS_TYPE_SHADER_CLIP);
-      //}
+      vkCmdPushConstants(m_renderSystem->vkCurrentCommandBuffer(), pipelineLayout,
+                           VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4),
+                           glm::value_ptr(matrix));
 
       VkDeviceSize bufferOffset = 0;
       VkBuffer vertexBuffer = m_vertexTrans[i].m_vertexBuffer->bufferHandle->buffer;

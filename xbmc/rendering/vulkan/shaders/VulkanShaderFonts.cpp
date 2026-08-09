@@ -32,8 +32,7 @@ constexpr const char* kFragmentShaderFile = "fonts_frag.spv";
 
 } // namespace
 
-CVulkanShaderFonts::CVulkanShaderFonts(const VulkanData* vkData,
-                                           CVulkanDeviceQueue* deviceQueue)
+CVulkanShaderFonts::CVulkanShaderFonts(const VulkanData* vkData, CVulkanDeviceQueue* deviceQueue)
   : IVulkanShader(vkData, deviceQueue)
 {
 }
@@ -51,8 +50,14 @@ bool CVulkanShaderFonts::CreatePipelineLayout()
   info.setLayoutCount = static_cast<uint32_t>(setLayouts.size());
   info.pSetLayouts = setLayouts.data();
 
-  VK_CHECK_RESULT(vkCreatePipelineLayout(m_vkData->vkDevice, &info, nullptr,
-                                         &m_vkPipelineLayout),
+  // Push constant ranges
+  pushConstantRanges = {
+      vkPushConstantRange(VK_SHADER_STAGE_VERTEX_BIT, sizeof(glm::mat4), 0),
+  };
+  info.pushConstantRangeCount = static_cast<uint32_t>(pushConstantRanges.size());
+  info.pPushConstantRanges = pushConstantRanges.data();
+
+  VK_CHECK_RESULT(vkCreatePipelineLayout(m_vkData->vkDevice, &info, nullptr, &m_vkPipelineLayout),
                   false);
 
   return true;
@@ -370,51 +375,49 @@ bool CVulkanShaderFonts::CreatePipeline()
   //------------------------------------------------------------------------------------------------
 
   auto vertShader = LoadShader(kVertexShaderFile, VK_SHADER_STAGE_VERTEX_BIT);
-  auto vertShaderClip = LoadShader(kVertexShaderFileClip, VK_SHADER_STAGE_VERTEX_BIT);
+  //auto vertShaderClip = LoadShader(kVertexShaderFileClip, VK_SHADER_STAGE_VERTEX_BIT);
   auto fragShader = LoadShader(kFragmentShaderFile, VK_SHADER_STAGE_FRAGMENT_BIT);
-  if (vertShader.module == VK_NULL_HANDLE || vertShaderClip.module == VK_NULL_HANDLE ||
+  if (vertShader.module == VK_NULL_HANDLE /* || vertShaderClip.module == VK_NULL_HANDLE*/ ||
       fragShader.module == VK_NULL_HANDLE)
   {
     std::string failedShaders;
     if (vertShader.module == VK_NULL_HANDLE)
     {
       failedShaders += kVertexShaderFile;
-      if (vertShaderClip.module == VK_NULL_HANDLE || fragShader.module == VK_NULL_HANDLE)
+      if (/*vertShaderClip.module == VK_NULL_HANDLE ||*/ fragShader.module == VK_NULL_HANDLE)
         failedShaders += ", ";
     }
-    if (vertShaderClip.module == VK_NULL_HANDLE)
-    {
-      failedShaders += kVertexShaderFileClip;
-      if (fragShader.module == VK_NULL_HANDLE)
-        failedShaders += ", ";
-    }
+    //if (vertShaderClip.module == VK_NULL_HANDLE)
+    //{
+    //  failedShaders += kVertexShaderFileClip;
+    //  if (fragShader.module == VK_NULL_HANDLE)
+    //    failedShaders += ", ";
+    //}
     if (fragShader.module == VK_NULL_HANDLE)
       failedShaders += kFragmentShaderFile;
-    CLog::Log(LOGERROR, "Vulkan: Failed to load shaders: {0} ({1}:{2})", failedShaders, __FILENAME__,
-              __LINE__);
+    CLog::Log(LOGERROR, "Vulkan: Failed to load shaders: {0} ({1}:{2})", failedShaders,
+              __FILENAME__, __LINE__);
     return false;
   }
 
   fragShader.pSpecializationInfo = &specializationInfo;
 
-
   shaderStages[0] = vertShader;
   shaderStages[1] = fragShader;
   VK_CHECK_RESULT(vkCreateGraphicsPipelines(m_vkData->vkDevice, m_vkData->vkPipelineCache, 1,
                                             &pipelineCreateInfo, nullptr,
-                                            &m_vkPipeline[FONTS_TYPE_SCISSOR_CLIP]),
+                                            &m_vkPipeline /*[FONTS_TYPE_SCISSOR_CLIP]*/),
                   false);
 
-  shaderStages[0] = vertShaderClip;
-  VK_CHECK_RESULT(vkCreateGraphicsPipelines(m_vkData->vkDevice, m_vkData->vkPipelineCache, 1,
-                                            &pipelineCreateInfo, nullptr,
-                                            &m_vkPipeline[FONTS_TYPE_SHADER_CLIP]),
-                  false);
-
+  //shaderStages[0] = vertShaderClip;
+  //VK_CHECK_RESULT(vkCreateGraphicsPipelines(m_vkData->vkDevice, m_vkData->vkPipelineCache, 1,
+  //                                          &pipelineCreateInfo, nullptr,
+  //                                          &m_vkPipeline[FONTS_TYPE_SHADER_CLIP]),
+  //                false);
 
   // Shader modules are no longer needed once the graphics m_pipeline has been created
   UnloadShader(vertShader);
-  UnloadShader(vertShaderClip);
+  //UnloadShader(vertShaderClip);
   UnloadShader(fragShader);
 
   return true;
@@ -422,13 +425,10 @@ bool CVulkanShaderFonts::CreatePipeline()
 
 void CVulkanShaderFonts::DestroyPipeline()
 {
-  for (auto& pipeline : m_vkPipeline)
+  if (m_vkPipeline != VK_NULL_HANDLE)
   {
-    if (pipeline != VK_NULL_HANDLE)
-    {
-      vkDestroyPipeline(m_vkData->vkDevice, pipeline, nullptr);
-      pipeline = VK_NULL_HANDLE;
-    }
+    vkDestroyPipeline(m_vkData->vkDevice, m_vkPipeline, nullptr);
+    m_vkPipeline = VK_NULL_HANDLE;
   }
 }
 
@@ -448,12 +448,11 @@ bool CVulkanShaderFonts::CreateUniformBuffers()
     VK_CHECK_RESULT(m_deviceQueue->CreateBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
                                                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
                                                     VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                                                &entry, sizeof(VulkanUniformShaderClip), nullptr),
+                                                &entry, sizeof(VulkanUniform), nullptr),
                     false);
 
     VK_CHECK_RESULT(vkBindBufferMemory(m_vkData->vkDevice, entry.buffer, entry.memory, 0), false);
-    VK_CHECK_RESULT(vkMapMemory(m_vkData->vkDevice, entry.memory, 0,
-                                sizeof(VulkanUniformShaderClip), 0,
+    VK_CHECK_RESULT(vkMapMemory(m_vkData->vkDevice, entry.memory, 0, sizeof(VulkanUniform), 0,
                                 (void**)&entry.mapped),
                     false);
 
@@ -464,7 +463,7 @@ bool CVulkanShaderFonts::CreateUniformBuffers()
     VkDescriptorBufferInfo bufferInfo{};
     bufferInfo.buffer = entry.buffer;
     bufferInfo.offset = 0;
-    bufferInfo.range = sizeof(VulkanUniformShaderClip);
+    bufferInfo.range = sizeof(VulkanUniform);
 
     VkWriteDescriptorSet uboWrite{};
     uboWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -495,30 +494,9 @@ void CVulkanShaderFonts::DestroyUniformBuffers()
   }
 }
 
-void CVulkanShaderFonts::UpdateUniformBuffer(uint32_t index, const VulkanUniformScissorClip& uniformData)
+void CVulkanShaderFonts::UpdateUniformBuffer(uint32_t index, const VulkanUniform& uniformData)
 {
-  VK_CHECK_RESULT(vkMapMemory(m_vkData->vkDevice, m_uniformBuffers[index].memory, 0, sizeof(VulkanUniformShaderClip),
-                              0, (void**)&m_uniformBuffers[index].mapped));
-
-  memcpy(m_uniformBuffers[index].mapped, &uniformData, sizeof(VulkanUniformScissorClip));
-
-      VkMappedMemoryRange mappedRange{
-      .sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE,
-      .pNext = nullptr,
-      .memory = m_uniformBuffers[index].memory,
-      .offset = 0,
-      .size = sizeof(VulkanUniformScissorClip),
-  };
-  vkFlushMappedMemoryRanges(m_vkData->vkDevice, 1, &mappedRange);
-
-  vkUnmapMemory(m_vkData->vkDevice, m_uniformBuffers[index].memory);
-  VK_CHECK_RESULT(vkBindBufferMemory(m_vkData->vkDevice, m_uniformBuffers[index].buffer,
-                                     m_uniformBuffers[index].memory, 0));
-}
-
-void CVulkanShaderFonts::UpdateUniformBuffer(uint32_t index, const VulkanUniformShaderClip& uniformData)
-{
-  memcpy(m_uniformBuffers[index].mapped, &uniformData, sizeof(VulkanUniformShaderClip));
+  memcpy(m_uniformBuffers[index].mapped, &uniformData, sizeof(VulkanUniform));
 }
 
 } // namespace KODI::RENDERING::VULKAN

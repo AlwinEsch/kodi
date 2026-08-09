@@ -172,6 +172,9 @@ struct VulkanData
 
   VkSampler vkPointSampler{VK_NULL_HANDLE};
   VkSampler vkLinearSampler{VK_NULL_HANDLE};
+
+  VkPhysicalDeviceProperties vkProperties = {};
+  VkPhysicalDeviceDriverProperties vkDriverProperties = {};
 };
 
 } // namespace KODI::RENDERING::VULKAN

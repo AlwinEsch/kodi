@@ -79,6 +79,7 @@ private:
   VkDeviceSize m_currentSize{0};
   VkDeviceSize m_currentOffset{0};
   uint32_t m_currentFrameIndex{0};
+  size_t m_dynamicAlignment{0};
 
   std::array<VulkanMemoryData, MAX_CONCURRENT_FRAMES> m_memData;
 
