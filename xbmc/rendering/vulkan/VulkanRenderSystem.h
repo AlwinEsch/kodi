@@ -156,6 +156,9 @@ private:
   bool CreatePipeline();
   void DestroyPipeline();
 
+  bool BeginRender2();
+  bool EndRender2();
+
   std::unique_ptr<CVulkanShaderControl> m_shaderControl;
   std::unique_ptr<CVulkanDeviceQueue> m_deviceQueue;
   std::unique_ptr<CVulkanSurface> m_surface;
@@ -169,6 +172,7 @@ private:
 
   glm::vec4 m_clearColor;
   bool m_stereoEnabled{false};
+  bool m_rendered{true};
 
   VulkanData m_vkData;
 

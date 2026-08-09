@@ -51,10 +51,11 @@ CVulkanGUITexture::CVulkanGUITexture(
   m_renderSystem = dynamic_cast<CVulkanRenderSystem*>(CServiceBroker::GetRenderSystem());
   m_shaderTexture = dynamic_cast<CVulkanShaderTexture*>(
       m_renderSystem->ShaderControl()->GetShader(VULKAN_SM_TEXTURE));
-  m_dynamicBuffers = m_renderSystem->DynamicBuffers();
-  m_uniformBuffer = m_dynamicBuffers->GetBuffer(BUFFER_TYPE_UNIFORM);
-  m_vertexBuffer = m_dynamicBuffers->GetBuffer(BUFFER_TYPE_VERTEX);
-  m_indexBuffer = m_dynamicBuffers->GetBuffer(BUFFER_TYPE_INDEX);
+
+  CVulkanDynamicBuffers* dynamicBuffers = m_renderSystem->DynamicBuffers();
+  m_uniformBuffer = dynamicBuffers->GetBuffer(BUFFER_TYPE_UNIFORM);
+  m_vertexBuffer = dynamicBuffers->GetBuffer(BUFFER_TYPE_VERTEX);
+  m_indexBuffer = dynamicBuffers->GetBuffer(BUFFER_TYPE_INDEX);
 }
 
 CVulkanGUITexture* CVulkanGUITexture::Clone() const
@@ -78,9 +79,12 @@ void CVulkanGUITexture::Begin(KODI::UTILS::COLOR::Color color)
   m_color.a = float((color >> 24) & 0xFF) / 255.0f;
 
   bool hasAlpha = m_texture.m_textures[m_currentFrame]->HasAlpha() || m_color.a < 1.0f;
+  TexturePipelineType usedPipelineType;
 
   if (m_diffuse.size())
   {
+    hasAlpha |= m_diffuse.m_textures[0]->HasAlpha();
+
     if (color == 0xFFFFFFFF)
     {
       fprintf(stderr, "Enabling shader: SM_MULTI\n");
@@ -92,23 +96,30 @@ void CVulkanGUITexture::Begin(KODI::UTILS::COLOR::Color color)
       //m_renderSystem->EnableShader(ShaderMethodGL::SM_MULTI_BLENDCOLOR);
     }
 
-    hasAlpha |= m_diffuse.m_textures[0]->HasAlpha();
-
     m_diffuse.m_textures[0]->BindToUnit(1);
   }
-  //else
-  //{
-  //  if (color == 0xFFFFFFFF)
-  //  {
-  //    //fprintf(stderr, "Enabling shader: SM_TEXTURE_NOBLEND\n");
-  //    //m_renderSystem->EnableShader(ShaderMethodGL::SM_TEXTURE_NOBLEND);
-  //  }
-  //  //else
-  //  //{
-  //  //  fprintf(stderr, "Enabling shader: SM_TEXTURE\n");
-  //  //  //m_renderSystem->EnableShader(ShaderMethodGL::SM_TEXTURE);
-  //  //}
-  //}
+  else
+  {
+    if (color == 0xFFFFFFFF)
+    {
+      m_usePushConst = false;
+      if (hasAlpha)
+        usedPipelineType = TEXTURE_TYPE_NO_BLEND;
+      else
+        usedPipelineType = TEXTURE_TYPE_NO_BLEND_NO_ALPHA;
+    }
+    else
+    {
+      m_usePushConst = true;
+      if (hasAlpha)
+        usedPipelineType = TEXTURE_TYPE_BLEND;
+      else
+        usedPipelineType = TEXTURE_TYPE_BLEND_NO_ALPHA;
+    }
+
+    m_usedPipeline = m_shaderTexture->VulkanPipeline(usedPipelineType);
+    m_usedPipelineLayout = m_shaderTexture->VulkanPipelineLayout(usedPipelineType);
+  }
 
   m_packedVertices.clear();
   m_idx.clear();
@@ -120,18 +131,22 @@ void CVulkanGUITexture::End()
       dynamic_cast<CVulkanTexture*>(m_texture.m_textures[m_currentFrame].get());
 
   VkCommandBuffer commandBuffer = m_renderSystem->vkCurrentCommandBuffer();
-  VkPipeline pipeline = m_shaderTexture->VulkanPipeline();
-  VkPipelineLayout pipelineLayout = m_shaderTexture->VulkanPipelineLayout();
 
   const uint32_t renderImageIndex = m_renderSystem->vkCurrentRenderImageIndex();
 
-  VulkanUniform uniform{};
+  CVulkanShaderTexture::VulkanUniform uniform{};
   uniform.projectionMatrix = KODI::RENDERING::globalMatrixProject;
   uniform.modelMatrix = KODI::RENDERING::globalMatrixModview;
   uniform.depth = 1.0f;
 
   VkBuffer buffer;
   VkDeviceSize bufferOffset;
+
+  if (m_usePushConst)
+  {
+    vkCmdPushConstants(m_renderSystem->vkCurrentCommandBuffer(), m_usedPipelineLayout,
+                       VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(glm::vec4), glm::value_ptr(m_color));
+  }
 
   Vertex* vertices = static_cast<Vertex*>(m_vertexBuffer->AllocateOffset(
       sizeof(Vertex) * m_packedVertices.size(), buffer, bufferOffset));
@@ -143,14 +158,14 @@ void CVulkanGUITexture::End()
   memcpy(indices, m_idx.data(), sizeof(uint32_t) * m_idx.size());
   vkCmdBindIndexBuffer(commandBuffer, buffer, bufferOffset, VK_INDEX_TYPE_UINT32);
 
-  m_renderSystem->ShaderControl()->UpdateUniformBuffer(renderImageIndex, uniform);
+  m_shaderTexture->UpdateUniformBuffer(renderImageIndex, uniform);
   vkCmdBindDescriptorSets(
-      commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1,
-      &m_renderSystem->ShaderControl()->GetUniformBuffer(renderImageIndex)->descriptorSet, 0,
+      commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_usedPipelineLayout, 0, 1,
+      &m_shaderTexture->GetUniformBuffer(renderImageIndex)->descriptorSet, 0,
       nullptr);
-  vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 1, 1,
-                          vkTexture->vkDescriptorSet(), 0, nullptr);
-  vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+  vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_usedPipelineLayout, 1,
+                          1, vkTexture->vkDescriptorSet(), 0, nullptr);
+  vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_usedPipeline);
 
   // Draw indexed triangle
   vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(m_idx.size()), 1, 0, 0, 0);
@@ -217,13 +232,6 @@ void CVulkanGUITexture::Draw(
     }
   }
 
-  vkCmdPushConstants(m_renderSystem->vkCurrentCommandBuffer(),
-                     m_shaderTexture->VulkanPipelineLayout(), VK_SHADER_STAGE_FRAGMENT_BIT, 0,
-                     sizeof(glm::vec4), glm::value_ptr(m_color));
-
-  //fprintf(stderr, "CVulkanGUITexture::Begin: color = %f, %f, %f, %f\n", double(m_color.r),
-  //        double(m_color.g), double(m_color.b), double(m_color.a));
-
   for (int i = 0; i < 4; i++)
   {
     //vertices[i].in_attrpos = {x[i], y[i], z[i]};
@@ -265,8 +273,8 @@ void CVulkanGUITexture::DrawQuad(const CRect& rect,
   VkCommandBuffer commandBuffer = renderSystem->vkCurrentCommandBuffer();
   const uint32_t renderImageIndex = renderSystem->vkCurrentRenderImageIndex();
 
-  VkPipeline pipeline = shaderTexture->VulkanPipeline();
-  VkPipelineLayout pipelineLayout = shaderTexture->VulkanPipelineLayout();
+  VkPipeline pipeline = shaderTexture->VulkanPipeline(TEXTURE_TYPE_BLEND);
+  VkPipelineLayout pipelineLayout = shaderTexture->VulkanPipelineLayout(TEXTURE_TYPE_BLEND);
   CVulkanDynamicBuffers* dynamicBuffers = renderSystem->DynamicBuffers();
   CVulkanDynamicBuffer* uniformBuffer = dynamicBuffers->GetBuffer(BUFFER_TYPE_UNIFORM);
   CVulkanDynamicBuffer* vertexBuffer = dynamicBuffers->GetBuffer(BUFFER_TYPE_VERTEX);
@@ -341,8 +349,6 @@ void CVulkanGUITexture::DrawQuad(const CRect& rect,
     ver[1].in_attrcord0.x = ver[2].in_attrcord0.x = coords.x2;
     ver[2].in_attrcord0.y = ver[3].in_attrcord0.y = coords.y2;
   }
-
-
 
   //VulkanUniform uniform{};
   //uniform.projectionMatrix = KODI::RENDERING::globalMatrixProject;

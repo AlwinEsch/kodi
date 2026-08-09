@@ -18,16 +18,14 @@
 #include <vk_mem_alloc.h>
 #include <vulkan/vulkan_core.h>
 
-namespace KODI
-{
-namespace RENDERING
-{
-namespace VULKAN
+namespace KODI::RENDERING::VULKAN
 {
 class CVulkanRenderSystem;
-} // namespace VULKAN
-} // namespace RENDERING
-} // namespace KODI
+class CVulkanDynamicBuffer;
+class CVulkanShaderFonts;
+struct VulkanMemoryData;
+struct ShaderFontsVertex;
+} // namespace KODI::RENDERING::VULKAN
 
 namespace KODI
 {
@@ -85,6 +83,9 @@ private:
    */
   static void VulkanDestroyVertexBuffer(CVulkanGUIFontTTF* ref, CVertexBuffer& bufferHandle);
 
+  CRect ClipRectToScissorRect(const CRect& rect);
+  static bool ScissorsCanEffectClipping(glm::vec2 &factor, glm::vec2 &offset);
+
   std::unique_ptr<KODI::RENDERING::VULKAN::CVulkanShaderFonts> m_shader;
 
   VkSampler m_sampler{VK_NULL_HANDLE};
@@ -101,8 +102,6 @@ private:
   VkRenderPass m_renderPass{VK_NULL_HANDLE};
   VkQueue m_queue{VK_NULL_HANDLE};
 
-  KODI::RENDERING::VULKAN::CVulkanRenderSystem* m_renderSystem{nullptr};
-
   unsigned int m_updateY1{0};
   unsigned int m_updateY2{0};
 
@@ -116,14 +115,22 @@ private:
 
   TextureStatus m_textureStatus{TEXTURE_VOID};
 
-  struct StaticIndexBuffer
-  {
-    bool created{false};
-    VkBuffer buffer{VK_NULL_HANDLE};
-    VmaAllocation allocation{VK_NULL_HANDLE};
-  };
+  using Vertex = KODI::RENDERING::VULKAN::ShaderFontsVertex;
 
-  static StaticIndexBuffer m_staticIndexBuffer;
+  std::vector<Vertex> m_packedVertices;
+  std::vector<uint32_t> m_idx;
+  KODI::RENDERING::VULKAN::CVulkanRenderSystem* m_renderSystem;
+  KODI::RENDERING::VULKAN::CVulkanShaderFonts* m_shaderFonts;
+  KODI::RENDERING::VULKAN::CVulkanDynamicBuffer* m_uniformBuffer;
+  KODI::RENDERING::VULKAN::CVulkanDynamicBuffer* m_vertexBuffer;
+  KODI::RENDERING::VULKAN::CVulkanDynamicBuffer* m_indexBuffer;
+
+  VkPipeline m_vkPipelineUsed{};
+
+  // clip to scissors params
+  bool m_scissorClip{false};
+  glm::vec2 m_clipFactor{0.0f};
+  glm::vec2 m_clipOffset{0.0f};
 };
 
 } // namespace VULKAN

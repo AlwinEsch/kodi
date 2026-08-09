@@ -34,14 +34,14 @@ bool IVulkanShader::Create()
     CLog::Log(LOGERROR, "IVulkanShader::Create - failed to create pipeline layout");
     return false;
   }
-  //if (!CreateVertexBuffer())
-  //{
-  //  CLog::Log(LOGERROR, "IVulkanShader::Create - failed to create vertex buffer");
-  //  return false;
-  //}
   if (!CreatePipeline())
   {
     CLog::Log(LOGERROR, "IVulkanShader::Create - failed to create pipeline");
+    return false;
+  }
+  if (!CreateUniformBuffers())
+  {
+    CLog::Log(LOGERROR, "Vulkan: Failed to create uniform buffers");
     return false;
   }
   return true;
@@ -50,40 +50,7 @@ bool IVulkanShader::Create()
 void IVulkanShader::Destroy()
 {
   DestroyPipeline();
-  //DestroyVertexBuffer();
   DestroyPipelineLayout();
-}
-
-void IVulkanShader::DestroyPipelineLayout()
-{
-  if (m_vkPipelineLayout != VK_NULL_HANDLE)
-  {
-    vkDestroyPipelineLayout(m_vkData->vkDevice, m_vkPipelineLayout, nullptr);
-    m_vkPipelineLayout = VK_NULL_HANDLE;
-  }
-}
-
-//void IVulkanShader::DestroyVertexBuffer()
-//{
-//  //for (auto& buffer : m_vertexBuffers)
-//  //{
-//  //  m_deviceQueue->DestroyBuffer(&buffer);
-//  //  buffer = {};
-//  //}
-//  for (auto& buffer : m_indexBuffers)
-//  {
-//    m_deviceQueue->DestroyBuffer(&buffer);
-//    buffer = {};
-//  }
-//}
-
-void IVulkanShader::DestroyPipeline()
-{
-  if (m_vkPipeline != VK_NULL_HANDLE)
-  {
-    vkDestroyPipeline(m_vkData->vkDevice, m_vkPipeline, nullptr);
-    m_vkPipeline = VK_NULL_HANDLE;
-  }
 }
 
 VkPipelineShaderStageCreateInfo IVulkanShader::LoadShader(std::string fileName,

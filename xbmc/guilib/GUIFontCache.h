@@ -27,8 +27,10 @@
 #include <vector>
 
 #if defined(HAS_VULKAN)
-#include <vk_mem_alloc.h>
-#include <vulkan/vulkan_core.h>
+namespace KODI::RENDERING::VULKAN
+{
+  struct VulkanMemoryData;
+} // namespace KODI::RENDERING::VULKAN
 #endif // HAS_VULKAN
 
 constexpr float FONT_CACHE_DIST_LIMIT = 0.01f;
@@ -234,13 +236,8 @@ struct CGUIFontCacheDynamicPosition
 struct CVertexBuffer
 {
 #if defined(HAS_VULKAN)
-  struct BufferHandleType
-  {
-    VkBuffer buffer;
-    VmaAllocation allocation;
-  };
-  typedef BufferHandleType BufferHandleType;
-#define BUFFER_HANDLE_INIT {VK_NULL_HANDLE, VK_NULL_HANDLE}
+  typedef KODI::RENDERING::VULKAN::VulkanMemoryData* BufferHandleType;
+#define BUFFER_HANDLE_INIT nullptr
 #elif defined(HAS_GL) || defined(HAS_GLES)
   typedef unsigned int BufferHandleType;
 #define BUFFER_HANDLE_INIT 0
@@ -262,8 +259,7 @@ struct CVertexBuffer
      * has been attached. If this should ever change, we'll need another support
      * function in GUIFontTTFGL/DX to duplicate a buffer, given its handle. */
 #if defined(HAS_VULKAN)
-    assert(other.bufferHandle.buffer == VK_NULL_HANDLE &&
-           other.bufferHandle.allocation == VK_NULL_HANDLE);
+    assert(other.bufferHandle == nullptr);
 #else
     assert(other.bufferHandle == 0);
 #endif
@@ -272,12 +268,9 @@ struct CVertexBuffer
   {
     /* This is used with move-assignment semantics for initialising the object in the font cache */
 #if defined(HAS_VULKAN)
-    assert(bufferHandle.buffer == VK_NULL_HANDLE ||
-           bufferHandle.allocation == VK_NULL_HANDLE);
-    bufferHandle.buffer = other.bufferHandle.buffer;
-    bufferHandle.allocation = other.bufferHandle.allocation;
-    other.bufferHandle.buffer = VK_NULL_HANDLE;
-    other.bufferHandle.allocation = VK_NULL_HANDLE;
+    assert(bufferHandle == nullptr);
+    bufferHandle = other.bufferHandle;
+    other.bufferHandle = nullptr;
 #else
     assert(other.bufferHandle == 0);
     bufferHandle = other.bufferHandle;

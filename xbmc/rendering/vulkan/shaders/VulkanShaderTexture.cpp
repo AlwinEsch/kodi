@@ -24,9 +24,9 @@ namespace KODI::RENDERING::VULKAN
 
 namespace
 {
-
 constexpr const char* kVertexShaderFile = "vulkan_shader_gr1_vert.spv";
-constexpr const char* kFragmentShaderFile = "vulkan_shader_gr1_frag_texture.spv";
+constexpr const char* kFragShaderFile = "vulkan_shader_gr1_frag_texture.spv";
+constexpr const char* kFragShaderFile_NoBlend = "vulkan_shader_gr1_frag_texture_noblend.spv";
 
 } // namespace
 
@@ -38,27 +38,46 @@ CVulkanShaderTexture::CVulkanShaderTexture(const VulkanData* vkData,
 
 bool CVulkanShaderTexture::CreatePipelineLayout()
 {
+  std::vector<VkPushConstantRange> pushConstantRanges;
   std::array<VkDescriptorSetLayout, 2> setLayouts = {
       m_vkData->vkDescriptorSetLayout_Uniform,
       m_vkData->vkDescriptorSetLayout_Texture,
-  };
-
-  // Push constant ranges
-  std::vector<VkPushConstantRange> pushConstantRanges = {
-      // Push constant for fragment shader about color
-      vkPushConstantRange(VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(glm::vec4), 0),
   };
 
   VkPipelineLayoutCreateInfo info = {};
   info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
   info.setLayoutCount = static_cast<uint32_t>(setLayouts.size());
   info.pSetLayouts = setLayouts.data();
+
+  VK_CHECK_RESULT(vkCreatePipelineLayout(m_vkData->vkDevice, &info, nullptr,
+                                         &m_vkPipelineLayout[TEXTURE_TYPE_NO_BLEND]),
+                  false);
+  m_vkPipelineLayout[TEXTURE_TYPE_NO_BLEND_NO_ALPHA] = m_vkPipelineLayout[TEXTURE_TYPE_NO_BLEND];
+
+  // Push constant ranges
+  pushConstantRanges = {
+      // Push constant for fragment shader about color
+      vkPushConstantRange(VK_SHADER_STAGE_FRAGMENT_BIT, sizeof(glm::vec4), 0),
+  };
   info.pushConstantRangeCount = static_cast<uint32_t>(pushConstantRanges.size());
   info.pPushConstantRanges = pushConstantRanges.data();
-
-  VK_CHECK_RESULT(vkCreatePipelineLayout(m_vkData->vkDevice, &info, nullptr, &m_vkPipelineLayout),
+  VK_CHECK_RESULT(vkCreatePipelineLayout(m_vkData->vkDevice, &info, nullptr,
+                                         &m_vkPipelineLayout[TEXTURE_TYPE_BLEND]),
                   false);
+  m_vkPipelineLayout[TEXTURE_TYPE_BLEND_NO_ALPHA] = m_vkPipelineLayout[TEXTURE_TYPE_BLEND];
   return true;
+}
+
+void CVulkanShaderTexture::DestroyPipelineLayout()
+{
+  for (auto& pipelineLayout : m_vkPipelineLayout)
+  {
+    if (pipelineLayout != VK_NULL_HANDLE)
+    {
+      vkDestroyPipelineLayout(m_vkData->vkDevice, pipelineLayout, nullptr);
+      pipelineLayout = VK_NULL_HANDLE;
+    }
+  }
 }
 
 bool CVulkanShaderTexture::CreatePipeline()
@@ -87,7 +106,6 @@ bool CVulkanShaderTexture::CreatePipeline()
   VkGraphicsPipelineCreateInfo pipelineCreateInfo{};
   pipelineCreateInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
   pipelineCreateInfo.flags = 0;
-  pipelineCreateInfo.layout = m_vkPipelineLayout;
   pipelineCreateInfo.renderPass = m_vkData->vkRenderPass;
   pipelineCreateInfo.subpass = 0;
   pipelineCreateInfo.basePipelineHandle = VK_NULL_HANDLE;
@@ -161,8 +179,8 @@ bool CVulkanShaderTexture::CreatePipeline()
     blendAttachmentState.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
     blendAttachmentState.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
     blendAttachmentState.colorBlendOp = VK_BLEND_OP_ADD;
-    blendAttachmentState.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
-    blendAttachmentState.dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+    blendAttachmentState.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_DST_ALPHA;
+    blendAttachmentState.dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
     blendAttachmentState.alphaBlendOp = VK_BLEND_OP_ADD;
   }
   blendAttachmentState.blendEnable = VK_TRUE;
@@ -333,7 +351,7 @@ bool CVulkanShaderTexture::CreatePipeline()
   struct SpecializationData
   {
     uint32_t useLimitedColor{CServiceBroker::GetWinSystem()->UseLimitedColor() &&
-                              !CServiceBroker::GetWinSystem()->IsHdrComposite()};
+                             !CServiceBroker::GetWinSystem()->IsHdrComposite()};
   } specializationData;
 
   std::array<VkSpecializationMapEntry, 1> specializationMapEntries;
@@ -357,31 +375,143 @@ bool CVulkanShaderTexture::CreatePipeline()
 
   // Load the vertex and fragment shader modules
   std::array<VkPipelineShaderStageCreateInfo, 2> shaderStages{};
-  shaderStages[0] = LoadShader(kVertexShaderFile, VK_SHADER_STAGE_VERTEX_BIT);
-  shaderStages[1] = LoadShader(kFragmentShaderFile, VK_SHADER_STAGE_FRAGMENT_BIT);
-  shaderStages[1].pSpecializationInfo = &specializationInfo;
-  if (shaderStages[0].module == VK_NULL_HANDLE || shaderStages[1].module == VK_NULL_HANDLE)
-  {
-    CLog::Log(LOGERROR, "Vulkan: Failed to load shaders: {0} and {1} ({2}:{3})", kVertexShaderFile,
-              kFragmentShaderFile, __FILENAME__, __LINE__);
-    return false;
-  }
-
   pipelineCreateInfo.stageCount = static_cast<uint32_t>(shaderStages.size());
   pipelineCreateInfo.pStages = shaderStages.data();
 
   ///@}
   //------------------------------------------------------------------------------------------------
 
+  auto vertShader = LoadShader(kVertexShaderFile, VK_SHADER_STAGE_VERTEX_BIT);
+  auto fragShader = LoadShader(kFragShaderFile, VK_SHADER_STAGE_FRAGMENT_BIT);
+  auto fragShader_NoBlend = LoadShader(kFragShaderFile_NoBlend, VK_SHADER_STAGE_FRAGMENT_BIT);
+  if (vertShader.module == VK_NULL_HANDLE || fragShader.module == VK_NULL_HANDLE ||
+      fragShader_NoBlend.module == VK_NULL_HANDLE)
+  {
+    CLog::Log(LOGERROR, "Vulkan: Failed to load shaders: {0}, {1} and {2} ({3}:{4})",
+              kVertexShaderFile, kFragShaderFile, kFragShaderFile_NoBlend, __FILENAME__, __LINE__);
+    return false;
+  }
+
+  fragShader.pSpecializationInfo = &specializationInfo;
+  fragShader_NoBlend.pSpecializationInfo = &specializationInfo;
+
+  shaderStages[0] = vertShader;
+
+  pipelineCreateInfo.layout = m_vkPipelineLayout[TEXTURE_TYPE_BLEND];
+  shaderStages[1] = fragShader;
   VK_CHECK_RESULT(vkCreateGraphicsPipelines(m_vkData->vkDevice, m_vkData->vkPipelineCache, 1,
-                                            &pipelineCreateInfo, nullptr, &m_vkPipeline),
+                                            &pipelineCreateInfo, nullptr,
+                                            &m_vkPipeline[TEXTURE_TYPE_BLEND]),
+                  false);
+
+  pipelineCreateInfo.layout = m_vkPipelineLayout[TEXTURE_TYPE_NO_BLEND];
+  shaderStages[1] = fragShader_NoBlend;
+  VK_CHECK_RESULT(vkCreateGraphicsPipelines(m_vkData->vkDevice, m_vkData->vkPipelineCache, 1,
+                                            &pipelineCreateInfo, nullptr,
+                                            &m_vkPipeline[TEXTURE_TYPE_NO_BLEND]),
+                  false);
+
+  blendAttachmentState.blendEnable = VK_FALSE;
+
+  pipelineCreateInfo.layout = m_vkPipelineLayout[TEXTURE_TYPE_BLEND_NO_ALPHA];
+  shaderStages[1] = fragShader;
+  VK_CHECK_RESULT(vkCreateGraphicsPipelines(m_vkData->vkDevice, m_vkData->vkPipelineCache, 1,
+                                            &pipelineCreateInfo, nullptr,
+                                            &m_vkPipeline[TEXTURE_TYPE_BLEND_NO_ALPHA]),
+                  false);
+
+  pipelineCreateInfo.layout = m_vkPipelineLayout[TEXTURE_TYPE_NO_BLEND_NO_ALPHA];
+  shaderStages[1] = fragShader_NoBlend;
+  VK_CHECK_RESULT(vkCreateGraphicsPipelines(m_vkData->vkDevice, m_vkData->vkPipelineCache, 1,
+                                            &pipelineCreateInfo, nullptr,
+                                            &m_vkPipeline[TEXTURE_TYPE_NO_BLEND_NO_ALPHA]),
                   false);
 
   // Shader modules are no longer needed once the graphics m_pipeline has been created
-  UnloadShader(shaderStages[0]);
-  UnloadShader(shaderStages[1]);
+  UnloadShader(vertShader);
+  UnloadShader(fragShader);
+  UnloadShader(fragShader_NoBlend);
 
   return true;
+}
+
+void CVulkanShaderTexture::DestroyPipeline()
+{
+  for (auto& pipeline : m_vkPipeline)
+  {
+    if (pipeline != VK_NULL_HANDLE)
+    {
+      vkDestroyPipeline(m_vkData->vkDevice, pipeline, nullptr);
+      pipeline = VK_NULL_HANDLE;
+    }
+  }
+}
+
+bool CVulkanShaderTexture::CreateUniformBuffers()
+{
+  assert(m_vkData->vkDescriptorPool != VK_NULL_HANDLE);
+  assert(m_vkData->vkDescriptorSetLayout_Uniform != VK_NULL_HANDLE);
+
+  VkDescriptorSetAllocateInfo allocInfo{};
+  allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+  allocInfo.descriptorPool = m_vkData->vkDescriptorPool;
+  allocInfo.descriptorSetCount = 1;
+  allocInfo.pSetLayouts = &m_vkData->vkDescriptorSetLayout_Uniform;
+
+  for (auto& entry : m_uniformBuffers)
+  {
+    VK_CHECK_RESULT(m_deviceQueue->CreateBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                                                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                                                    VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                                                &entry, sizeof(VulkanUniform), nullptr),
+                    false);
+
+    VK_CHECK_RESULT(vkBindBufferMemory(m_vkData->vkDevice, entry.buffer, entry.memory, 0), false);
+    VK_CHECK_RESULT(vkMapMemory(m_vkData->vkDevice, entry.memory, 0, sizeof(VulkanUniform), 0,
+                                (void**)&entry.mapped),
+                    false);
+
+    VK_CHECK_RESULT(vkAllocateDescriptorSets(m_vkData->vkDevice, &allocInfo, &entry.descriptorSet),
+                    false);
+
+    // The m_buffer's information is passed using a m_descriptor info structure
+    VkDescriptorBufferInfo bufferInfo{};
+    bufferInfo.buffer = entry.buffer;
+    bufferInfo.offset = 0;
+    bufferInfo.range = sizeof(VulkanUniform);
+
+    VkWriteDescriptorSet uboWrite{};
+    uboWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    uboWrite.dstSet = entry.descriptorSet;
+    uboWrite.dstBinding = 0;
+    uboWrite.dstArrayElement = 0;
+    uboWrite.descriptorCount = 1;
+    uboWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    uboWrite.pBufferInfo = &bufferInfo;
+
+    vkUpdateDescriptorSets(m_vkData->vkDevice, 1, &uboWrite, 0, nullptr);
+  }
+
+  return true;
+}
+
+void CVulkanShaderTexture::DestroyUniformBuffers()
+{
+  for (auto& entry : m_uniformBuffers)
+  {
+    if (entry.mapped)
+    {
+      vkUnmapMemory(m_vkData->vkDevice, entry.memory);
+      entry.mapped = nullptr;
+    }
+    m_deviceQueue->DestroyBuffer(&entry);
+    entry = {};
+  }
+}
+
+void CVulkanShaderTexture::UpdateUniformBuffer(uint32_t index, const VulkanUniform& uniformData)
+{
+  memcpy(m_uniformBuffers[index].mapped, &uniformData, sizeof(VulkanUniform));
 }
 
 } // namespace KODI::RENDERING::VULKAN

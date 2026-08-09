@@ -216,6 +216,8 @@ void CVulkanTexture::LoadToGPU()
   region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
   region.imageSubresource.mipLevel = 0;
   region.imageSubresource.layerCount = 1;
+  region.imageSubresource.baseArrayLayer = 0;
+  region.imageOffset = {0, 0, 0};
   region.imageExtent.width = m_textureWidth;
   region.imageExtent.height = m_textureHeight;
   region.imageExtent.depth = 1;

@@ -98,7 +98,6 @@ public:
                          VkMemoryPropertyFlags properties,
                          VkBool32* memTypeFound = nullptr) const;
 
-
   VkCommandBuffer CreateCommandBuffer(VkCommandBufferLevel level, bool begin = false);
   VkCommandBuffer CreateCommandBuffer(VkCommandBufferLevel level,
                                       VkCommandPool pool,

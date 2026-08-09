@@ -252,9 +252,9 @@ void CGUIFontTTFGL::LastEnd()
       matrix.Translatef(m_vertexTrans[i].m_offsetX, m_vertexTrans[i].m_offsetY, 0.0f);
       matrix.Translatef(m_vertexTrans[i].m_translateX, m_vertexTrans[i].m_translateY, 0.0f);
       // the gui matrix messes with the scale. correct it here for now.
-      matrix.Scalef(context.GetGUIScaleX(), context.GetGUIScaleY(), 1.0f);
-      // the gui matrix doesn't align to exact pixel coords atm. correct it here for now.
-      matrix.Translatef(fractX, fractY, 0.0f);
+      //matrix.Scalef(context.GetGUIScaleX(), context.GetGUIScaleY(), 1.0f);
+      //// the gui matrix doesn't align to exact pixel coords atm. correct it here for now.
+      //matrix.Translatef(fractX, fractY, 0.0f);
 
       glUniformMatrix4fv(matrixUniformLoc, 1, GL_FALSE, matrix);
 

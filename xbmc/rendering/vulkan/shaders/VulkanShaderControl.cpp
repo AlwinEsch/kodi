@@ -82,11 +82,6 @@ bool CVulkanShaderControl::CreateAllShaders(VkDevice device, VkRenderPass render
     CLog::Log(LOGERROR, "Vulkan: Failed to create descriptor pool");
     return false;
   }
-  if (!CreateUniformBuffers())
-  {
-    CLog::Log(LOGERROR, "Vulkan: Failed to create uniform buffers");
-    return false;
-  }
 
   if (!CreateSamplers())
   {
@@ -112,7 +107,6 @@ void CVulkanShaderControl::DestroyAllShaders()
   // Implementation of DestroyAllShaders
   m_shaders.clear();
 
-  DestroyUniformBuffers();
   DestroyDescriptorPool();
   DestroyDescriptorSetLayouts();
   DestroySamplers();
@@ -205,68 +199,6 @@ void CVulkanShaderControl::DestroyDescriptorPool()
   }
 }
 
-bool CVulkanShaderControl::CreateUniformBuffers()
-{
-  assert(m_vkData->vkDescriptorPool != VK_NULL_HANDLE);
-  assert(m_vkData->vkDescriptorSetLayout_Uniform != VK_NULL_HANDLE);
-
-  VkDescriptorSetAllocateInfo allocInfo{};
-  allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-  allocInfo.descriptorPool = m_vkData->vkDescriptorPool;
-  allocInfo.descriptorSetCount = 1;
-  allocInfo.pSetLayouts = &m_vkData->vkDescriptorSetLayout_Uniform;
-
-  for (auto& entry : m_uniformBuffers)
-  {
-    VK_CHECK_RESULT(m_deviceQueue->CreateBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-                                                VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
-                                                    VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                                                &entry, sizeof(VulkanUniform), nullptr),
-                    false);
-
-    VK_CHECK_RESULT(vkBindBufferMemory(m_vkData->vkDevice, entry.buffer, entry.memory, 0), false);
-    VK_CHECK_RESULT(vkMapMemory(m_vkData->vkDevice, entry.memory, 0, sizeof(VulkanUniform), 0,
-                                (void**)&entry.mapped),
-                    false);
-
-    VK_CHECK_RESULT(vkAllocateDescriptorSets(m_vkData->vkDevice, &allocInfo, &entry.descriptorSet),
-                    false);
-
-    // The m_buffer's information is passed using a m_descriptor info structure
-    VkDescriptorBufferInfo bufferInfo{};
-    bufferInfo.buffer = entry.buffer;
-    bufferInfo.offset = 0;
-    bufferInfo.range = sizeof(VulkanUniform);
-
-    VkWriteDescriptorSet uboWrite{};
-    uboWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-    uboWrite.dstSet = entry.descriptorSet;
-    uboWrite.dstBinding = 0;
-    uboWrite.dstArrayElement = 0;
-    uboWrite.descriptorCount = 1;
-    uboWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    uboWrite.pBufferInfo = &bufferInfo;
-
-    vkUpdateDescriptorSets(m_vkData->vkDevice, 1, &uboWrite, 0, nullptr);
-  }
-
-  return true;
-}
-
-void CVulkanShaderControl::DestroyUniformBuffers()
-{
-  for (auto& entry : m_uniformBuffers)
-  {
-    if (entry.mapped)
-    {
-      vkUnmapMemory(m_vkData->vkDevice, entry.memory);
-      entry.mapped = nullptr;
-    }
-    m_deviceQueue->DestroyBuffer(&entry);
-    entry = {};
-  }
-}
-
 bool CVulkanShaderControl::CreateSamplers()
 {
   VkSamplerCreateInfo samplerInfo = vkSamplerCreateInfo();
@@ -316,26 +248,11 @@ IVulkanShader* CVulkanShaderControl::GetShader(ShaderId shaderId) const
   return nullptr;
 }
 
-VkPipeline CVulkanShaderControl::GetPipeline(ShaderId shaderId) const
-{
-  auto shader = GetShader(shaderId);
-  if (shader)
-  {
-    return shader->VulkanPipeline();
-  }
-  return VK_NULL_HANDLE;
-}
-
 ShaderId CVulkanShaderControl::AddOptionalShader(std::unique_ptr<IVulkanShader> shader)
 {
   ShaderId shaderId = m_nextShaderId++;
   m_shaders[shaderId] = std::move(shader);
   return shaderId;
-}
-
-void CVulkanShaderControl::UpdateUniformBuffer(uint32_t index, const VulkanUniform& uniformData)
-{
-  memcpy(m_uniformBuffers[index].mapped, &uniformData, sizeof(VulkanUniform));
 }
 
 } // namespace KODI::RENDERING::VULKAN

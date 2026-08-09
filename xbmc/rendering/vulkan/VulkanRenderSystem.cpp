@@ -182,7 +182,7 @@ bool CVulkanRenderSystem::InitRenderSystem()
    * so it can be set in the child class before calling this function.
    */
   ResetRenderSystem(m_width, m_height);
-  return true;
+  return BeginRender2();
 }
 
 bool CVulkanRenderSystem::DestroyRenderSystem()
@@ -191,6 +191,8 @@ bool CVulkanRenderSystem::DestroyRenderSystem()
     return false;
 
   CLog::Log(LOGDEBUG, "Vulkan: Render system becoming destroyed ({0}:{1})", __FILENAME__, __LINE__);
+
+  EndRender2();
 
   m_shaderControl->DestroyAllShaders();
 
@@ -267,6 +269,22 @@ bool CVulkanRenderSystem::ResetRenderSystem(int width, int height)
 }
 
 bool CVulkanRenderSystem::BeginRender()
+{
+  if (!m_bRenderCreated)
+    return false;
+
+  return true;
+}
+
+bool CVulkanRenderSystem::EndRender()
+{
+  if (!m_bRenderCreated)
+    return false;
+
+  return true;
+}
+
+bool CVulkanRenderSystem::BeginRender2()
 {
   if (!m_bRenderCreated)
     return false;
@@ -366,9 +384,9 @@ bool CVulkanRenderSystem::BeginRender()
   m_dynamicBuffers->BeginFrame(m_indexBuffer);
 
   return true;
-} // namespace KODI::RENDERING::VULKAN
+}
 
-bool CVulkanRenderSystem::EndRender()
+bool CVulkanRenderSystem::EndRender2()
 {
   if (!m_bRenderCreated || !m_scopedWrite.has_value())
     return false;
@@ -428,6 +446,7 @@ bool CVulkanRenderSystem::EndRender()
 
   m_currentVkCommandBuffer = VK_NULL_HANDLE;
 
+  //if (m_rendered)
   m_surface->SwapBuffers();
 
   return true;
@@ -504,8 +523,12 @@ void CVulkanRenderSystem::PresentRender(bool rendered, bool videoLayer)
 {
   if (!m_bRenderCreated)
     return;
-  //fprintf(stderr, "---> %s: rendered = %d, videoLayer = %d\n", __PRETTY_FUNCTION__, rendered,
-  //        videoLayer);
+
+  if (rendered)
+  {
+    EndRender2();
+    BeginRender2();
+  }
 
   if (!rendered)
     KODI::TIME::Sleep(40ms);
@@ -554,6 +577,7 @@ void CVulkanRenderSystem::SetCameraPosition(const CPoint& camera,
 
   globalMatrixProject = glm::frustum((-w - offset.x) * 0.5f, (+w - offset.x) * 0.5f,
                                      (+h + offset.y) * 0.5f, (-h + offset.y) * 0.5f, h, 100 * h);
+  globalMatrixProject[3][2] *= 2.0f; // scale z to [0, 1] range
 }
 
 void CVulkanRenderSystem::Project(float& x, float& y, float& z)
@@ -601,50 +625,7 @@ bool CVulkanRenderSystem::ScissorsCanEffectClipping()
 
 CRect CVulkanRenderSystem::ClipRectToScissorRect(const CRect& rect)
 {
-  fprintf(stderr, "---> %s", __PRETTY_FUNCTION__);
   return rect;
-  //const float* projMatrix = globalMatrixProject.Get();
-  //const float* modelMatrix = globalMatrixModview.Get();
-
-  //const TransformMatrix& guiMatrix = CServiceBroker::GetWinSystem()->GetGfxContext().GetGUIMatrix();
-  //CRect viewPort; // absolute positions of corners
-  //CServiceBroker::GetRenderSystem()->GetViewPort(viewPort);
-
-  //bool clipPossible =
-  //    guiMatrix.m[0][1] == 0 && guiMatrix.m[1][0] == 0 && guiMatrix.m[2][0] == 0 &&
-  //    guiMatrix.m[2][1] == 0 && modelMatrix[0 + 1 * 4] == 0 && modelMatrix[0 + 2 * 4] == 0 &&
-  //    modelMatrix[1 + 0 * 4] == 0 && modelMatrix[1 + 2 * 4] == 0 && modelMatrix[2 + 0 * 4] == 0 &&
-  //    modelMatrix[2 + 1 * 4] == 0 && projMatrix[0 + 1 * 4] == 0 && projMatrix[0 + 2 * 4] == 0 &&
-  //    projMatrix[0 + 3 * 4] == 0 && projMatrix[1 + 0 * 4] == 0 && projMatrix[1 + 2 * 4] == 0 &&
-  //    projMatrix[1 + 3 * 4] == 0 && projMatrix[3 + 0 * 4] == 0 && projMatrix[3 + 1 * 4] == 0 &&
-  //    projMatrix[3 + 3 * 4] == 0;
-
-  //float xFactor = 0.0;
-  //float xOffset = 0.0;
-  //float yFactor = 0.0;
-  //float yOffset = 0.0;
-
-  //if (clipPossible)
-  //{
-  //  xFactor = guiMatrix.m[0][0] * modelMatrix[0 + 0 * 4] * projMatrix[0 + 0 * 4];
-  //  xOffset = (guiMatrix.m[0][3] * modelMatrix[0 + 0 * 4] + modelMatrix[0 + 3 * 4]) *
-  //                  projMatrix[0 + 0 * 4];
-  //  yFactor = guiMatrix.m[1][1] * modelMatrix[1 + 1 * 4] * projMatrix[1 + 1 * 4];
-  //  yOffset = (guiMatrix.m[1][3] * modelMatrix[1 + 1 * 4] + modelMatrix[1 + 3 * 4]) *
-  //                  projMatrix[1 + 1 * 4];
-  //  float clipW = (guiMatrix.m[2][3] * modelMatrix[2 + 2 * 4] + modelMatrix[2 + 3 * 4]) *
-  //                projMatrix[3 + 2 * 4];
-  //  float xMult = (viewPort.x2 - viewPort.x1) / (2 * clipW);
-  //  float yMult =
-  //      (viewPort.y1 - viewPort.y2) / (2 * clipW); // correct for inverted window coordinate scheme
-  //  xFactor = xFactor * xMult;
-  //  xOffset = xOffset * xMult + (viewPort.x2 + viewPort.x1) / 2;
-  //  yFactor = yFactor * yMult;
-  //  yOffset = yOffset * yMult + (viewPort.y2 + viewPort.y1) / 2;
-  //}
-
-  //return CRect(rect.x1 * xFactor + xOffset, rect.y1 * yFactor + yOffset,
-  //             rect.x2 * xFactor + xOffset, rect.y2 * yFactor + yOffset);
 }
 
 void CVulkanRenderSystem::SetScissors(const CRect& rect)
@@ -653,6 +634,11 @@ void CVulkanRenderSystem::SetScissors(const CRect& rect)
   m_vkScissor.offset.y = MathUtils::round_int(static_cast<double>(rect.y1));
   m_vkScissor.extent.width = MathUtils::round_int(static_cast<double>(rect.x2 - rect.x1));
   m_vkScissor.extent.height = MathUtils::round_int(static_cast<double>(rect.y2 - rect.y1));
+
+  if (!m_currentVkCommandBuffer)
+    return;
+
+  vkCmdSetScissor(m_currentVkCommandBuffer, 0, 1, &m_vkScissor);
 }
 
 void CVulkanRenderSystem::ResetScissors()

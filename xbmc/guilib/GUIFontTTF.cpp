@@ -1265,16 +1265,16 @@ void CGUIFontTTF::RenderCharacter(CGraphicContext& context,
   float yOffset = (vertex.y1 - std::floor(vertex.y1));
 
   v[0].cord0 = glm::vec2(tl, tt);
-  v[0].pos = glm::vec2(vertex.x1 - xOffset - 0.5f, vertex.y1 - yOffset - 0.5f);
+  v[0].pos = glm::vec3(vertex.x1 - xOffset - 0.5f, vertex.y1 - yOffset - 0.5f, 0.0f);
 
   v[1].cord0 = glm::vec2(tr, tt);
-  v[1].pos = glm::vec2(vertex.x1 - xOffset - 0.5f, vertex.y1 - yOffset + 0.5f);
+  v[1].pos = glm::vec3(vertex.x1 - xOffset - 0.5f, vertex.y2 - yOffset + 0.5f, 0.0f);
 
   v[2].cord0 = glm::vec2(tr, tb);
-  v[2].pos = glm::vec2(vertex.x1 - xOffset + 0.5f, vertex.y1 - yOffset - 0.5f);
+  v[2].pos = glm::vec3(vertex.x2 - xOffset + 0.5f, vertex.y1 - yOffset - 0.5f, 0.0f);
 
   v[3].cord0 = glm::vec2(tl, tb);
-  v[3].pos = glm::vec2(vertex.x1 - xOffset + 0.5f, vertex.y1 - yOffset + 0.5f);
+  v[3].pos = glm::vec3(vertex.x2 - xOffset + 0.5f, vertex.y2 - yOffset + 0.5f, 0.0f);
 #elif defined(HAS_DX)
   for (int i = 0; i < VERTEX_PER_GLYPH; i++)
   {

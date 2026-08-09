@@ -25,9 +25,10 @@ CVulkanDynamicBuffers::CVulkanDynamicBuffers(const VulkanData* vkData,
   : m_vkData(vkData),
     m_deviceQueue(deviceQueue)
 {
-  m_buffers[BUFFER_TYPE_VERTEX] = std::make_unique<CVulkanDynamicBuffer>(vkData, deviceQueue);
-  m_buffers[BUFFER_TYPE_INDEX] = std::make_unique<CVulkanDynamicBuffer>(vkData, deviceQueue);
-  m_buffers[BUFFER_TYPE_UNIFORM] = std::make_unique<CVulkanDynamicBuffer>(vkData, deviceQueue);
+  for (auto& buffer : m_buffers)
+  {
+    buffer = std::make_unique<CVulkanDynamicBuffer>(vkData, deviceQueue);
+  }
 }
 
 CVulkanDynamicBuffers::~CVulkanDynamicBuffers()

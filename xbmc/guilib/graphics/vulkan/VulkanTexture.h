@@ -54,7 +54,6 @@ private:
   VkDescriptorPool m_descriptorPool{VK_NULL_HANDLE};
 
   KODI::RENDERING::VULKAN::CVulkanRenderSystem* m_renderSystem;
-  KODI::RENDERING::VULKAN::CVulkanShaderTexture* m_shaderTexture;
   VkDevice m_vkDevice{VK_NULL_HANDLE};
   VkPhysicalDevice m_vkPhysicalDevice{VK_NULL_HANDLE};
 

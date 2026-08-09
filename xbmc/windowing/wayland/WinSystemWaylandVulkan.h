@@ -35,7 +35,7 @@ public:
   {
     //m_eglContext.SetDamagedRegions(dirtyRegions);
   }
-  int GetBufferAge() override { return 0 /*m_eglContext.GetBufferAge()*/; }
+  //int GetBufferAge() override { return 0 /*m_eglContext.GetBufferAge()*/; }
 
   bool BindTextureUploadContext() override;
   bool UnbindTextureUploadContext() override;

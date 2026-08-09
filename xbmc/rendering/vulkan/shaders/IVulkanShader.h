@@ -58,18 +58,15 @@ public:
   bool Create();
   void Destroy();
 
-  VkPipelineLayout VulkanPipelineLayout() const { return m_vkPipelineLayout; }
-  VkPipeline VulkanPipeline() const { return m_vkPipeline; }
-
 protected:
   virtual bool CreatePipelineLayout() { return true; }
-  virtual void DestroyPipelineLayout();
-
-  //virtual bool CreateVertexBuffer() { return true; }
-  //virtual void DestroyVertexBuffer();
+  virtual void DestroyPipelineLayout() {}
 
   virtual bool CreatePipeline() { return true; }
-  virtual void DestroyPipeline();
+  virtual void DestroyPipeline() {}
+
+  virtual bool CreateUniformBuffers() { return true; }
+  virtual void DestroyUniformBuffers() {}
 
   VkPipelineShaderStageCreateInfo LoadShader(std::string fileName,
                                              VkShaderStageFlagBits stage);
@@ -77,9 +74,6 @@ protected:
 
   const VulkanData* m_vkData;
   CVulkanDeviceQueue* const m_deviceQueue;
-
-  VkPipelineLayout m_vkPipelineLayout{VK_NULL_HANDLE};
-  VkPipeline m_vkPipeline{VK_NULL_HANDLE};
 
   std::array<VulkanMemoryData, MAX_CONCURRENT_FRAMES> m_vertexBuffers;
   std::array<VulkanMemoryData, MAX_CONCURRENT_FRAMES> m_indexBuffers;

@@ -168,6 +168,7 @@ struct VulkanData
 
   VkDescriptorSetLayout vkDescriptorSetLayout_Texture{VK_NULL_HANDLE};
   VkDescriptorSetLayout vkDescriptorSetLayout_Uniform{VK_NULL_HANDLE};
+  VkDescriptorSetLayout vkDescriptorSetLayout_UniformDynamic{VK_NULL_HANDLE};
 
   VkSampler vkPointSampler{VK_NULL_HANDLE};
   VkSampler vkLinearSampler{VK_NULL_HANDLE};

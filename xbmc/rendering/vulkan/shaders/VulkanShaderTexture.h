@@ -13,17 +13,21 @@
 
 #include <array>
 #include <cstring>
-#include <memory>
-#include <vector>
 
 #include <glm/glm.hpp>
-
-#define USE_PARTICLES 1
 
 namespace KODI::RENDERING::VULKAN
 {
 
 constexpr auto PARTICLE_COUNT = 512;
+
+typedef enum TexturePipelineType {
+  TEXTURE_TYPE_BLEND = 0,
+  TEXTURE_TYPE_BLEND_NO_ALPHA = 1,
+  TEXTURE_TYPE_NO_BLEND = 2,
+  TEXTURE_TYPE_NO_BLEND_NO_ALPHA = 3,
+  TEXTURE_TYPE_SIZE = 4
+} TexturePipelineType;
 
 // Vertex layout used for the texture shader. This layout is used to define the input
 // attributes for the vertex shader stage of the graphics pipeline.
@@ -44,9 +48,36 @@ public:
   CVulkanShaderTexture(const VulkanData* vulkanData, CVulkanDeviceQueue* deviceQueue);
   virtual ~CVulkanShaderTexture() = default;
 
+  struct VulkanUniform
+  {
+    glm::mat4 projectionMatrix;
+    glm::mat4 modelMatrix;
+    float depth;
+  };
+
+  VkPipelineLayout VulkanPipelineLayout(TexturePipelineType type) const
+  {
+    return m_vkPipelineLayout[type];
+  }
+  VkPipeline VulkanPipeline(TexturePipelineType type) const { return m_vkPipeline[type]; }
+
+  VulkanMemoryData* GetUniformBuffer(uint32_t index) { return &m_uniformBuffers[index]; }
+  void UpdateUniformBuffer(uint32_t index, const VulkanUniform& uniform);
+
 protected:
   bool CreatePipelineLayout() override;
+  void DestroyPipelineLayout() override;
+
   bool CreatePipeline() override;
+  void DestroyPipeline() override;
+
+  bool CreateUniformBuffers() override;
+  void DestroyUniformBuffers() override;
+
+private:
+  std::array<VkPipelineLayout, TEXTURE_TYPE_SIZE> m_vkPipelineLayout{};
+  std::array<VkPipeline, TEXTURE_TYPE_SIZE> m_vkPipeline{};
+  std::array<VulkanMemoryData, MAX_CONCURRENT_FRAMES> m_uniformBuffers{};
 };
 
 } // namespace KODI::RENDERING::VULKAN

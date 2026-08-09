@@ -58,10 +58,10 @@ typedef std::vector<character_t> vecText;
 #if defined(HAS_VULKAN)
 struct SVertex
 {
-  glm::vec2 pos;
+  glm::vec3 pos;
   glm::vec4 col;
   glm::vec2 cord0;
-  glm::vec2 cord1; // Unused
+  //glm::vec2 cord1; // Unused
 };
 #elif defined(HAS_DX)
 struct SVertex

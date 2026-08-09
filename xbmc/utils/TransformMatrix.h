@@ -11,6 +11,8 @@
 #include "utils/ColorUtils.h"
 
 #include <algorithm>
+#include <glm/glm.hpp>
+#include <glm/gtc/type_ptr.hpp>
 #include <math.h>
 #include <memory>
 #include <string.h>
@@ -286,6 +288,35 @@ public:
 
     return ((a << 24) & 0xff000000) | ((r << 16) & 0xff0000) | ((g << 8) & 0xff00) | (b & 0xff);
   }
+
+  inline glm::mat4 GetGLMMatrix() const
+  {
+    float pMatrix[16];
+    for (int i = 0; i < 3; i++)
+      for (int j = 0; j < 4; j++)
+        pMatrix[j * 4 + i] = m[i][j];
+
+  pMatrix[3] = 0.0f;
+    pMatrix[7] = 0.0f;
+    pMatrix[11] = 0.0f;
+    pMatrix[15] = 1.0f;
+
+    return glm::make_mat4(pMatrix);
+  }
+
+  //inline glm::mat4 GetGLMMatrix() const
+  //{
+  //  glm::mat4 matrix;
+  //  for (int i = 0; i < 3; i++)
+  //    for (int j = 0; j < 4; j++)
+  //      matrix[j][i] = m[i][j];
+
+  //  matrix[0][3] = 0.0f;
+  //  matrix[1][3] = 0.0f;
+  //  matrix[2][3] = 0.0f;
+  //  matrix[3][3] = 1.0f;
+  //  return matrix;
+  //}
 
   float m[3][4];
   float alpha;

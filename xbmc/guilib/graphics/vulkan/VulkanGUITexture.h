@@ -9,23 +9,21 @@
 #pragma once
 
 #include "guilib/GUITexture.h"
-#include "system_vulkan.h"
 #include "utils/ColorUtils.h"
 
 #include <array>
 #include <vector>
 
 #include <glm/glm.hpp>
+#include <vulkan/vulkan_core.h>
 
 namespace KODI::RENDERING::VULKAN
 {
 class CVulkanRenderSystem;
-class CVulkanShaderTexture;
 class CVulkanDynamicBuffer;
-class CVulkanDynamicBuffers;
+class CVulkanShaderTexture;
 struct ShaderTextureVertex;
-} // KODI::RENDERING::VULKAN
-
+} // namespace KODI::RENDERING::VULKAN
 
 namespace KODI::GUILIB::GRAPHICS::VULKAN
 {
@@ -64,16 +62,19 @@ private:
 
   CVulkanGUITexture(const CVulkanGUITexture& texture) = default;
 
-  glm::vec4 m_color{1.0f, 1.0f, 1.0f, 1.0f};
+  glm::vec4 m_color;
 
   std::vector<Vertex> m_packedVertices;
   std::vector<uint32_t> m_idx;
   KODI::RENDERING::VULKAN::CVulkanRenderSystem* m_renderSystem;
   KODI::RENDERING::VULKAN::CVulkanShaderTexture* m_shaderTexture;
-  KODI::RENDERING::VULKAN::CVulkanDynamicBuffers* m_dynamicBuffers;
   KODI::RENDERING::VULKAN::CVulkanDynamicBuffer* m_uniformBuffer;
   KODI::RENDERING::VULKAN::CVulkanDynamicBuffer* m_vertexBuffer;
   KODI::RENDERING::VULKAN::CVulkanDynamicBuffer* m_indexBuffer;
+
+  bool m_usePushConst{false};
+  VkPipeline m_usedPipeline{VK_NULL_HANDLE};
+  VkPipelineLayout m_usedPipelineLayout{VK_NULL_HANDLE};
 };
 
 } // namespace KODI::GUILIB::GRAPHICS::VULKAN
