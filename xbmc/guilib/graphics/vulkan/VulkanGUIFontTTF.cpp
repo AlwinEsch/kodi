@@ -18,6 +18,7 @@
 #include "rendering/vulkan/DynamicBuffers.h"
 #include "rendering/vulkan/VulkanRenderSystem.h"
 #include "rendering/vulkan/shaders/VulkanShaderFonts.h"
+#include "rendering/vulkan/utils/VulkanInitStructs.h"
 #include "rendering/vulkan/utils/VulkanUtils.h"
 #include "settings/AdvancedSettings.h"
 #include "settings/SettingsComponent.h"
@@ -38,6 +39,7 @@
 using namespace KODI::GUILIB::GRAPHICS::VULKAN;
 using namespace KODI::RENDERING;
 using namespace KODI::RENDERING::VULKAN;
+using namespace KODI::RENDERING::VULKAN::UTILS;
 
 namespace
 {
@@ -62,6 +64,7 @@ CVulkanGUIFontTTF::CVulkanGUIFontTTF(const std::string& fontIdent) : CGUIFontTTF
 {
   using KODI::RENDERING::VULKAN::CVulkanRenderSystem;
   m_renderSystem = dynamic_cast<CVulkanRenderSystem*>(CServiceBroker::GetRenderSystem());
+  m_vkData = m_renderSystem->vkData();
   m_shaderFonts = dynamic_cast<CVulkanShaderFonts*>(
       m_renderSystem->ShaderControl()->GetShader(VULKAN_SM_FONTS));
 
@@ -107,124 +110,19 @@ bool CVulkanGUIFontTTF::FirstBegin()
 
   if (m_textureStatus == TEXTURE_UPDATED)
   {
+    //fprintf(stderr, "CVulkanGUIFontTTF::FirstBegin: Updating texture from %u to %u\n", m_updateY1,
+    //        m_updateY2);
+    //// Copies one more line in case we have to sample from there
+    //m_updateY2 = std::min(m_updateY2 + 1, m_texture->GetHeight());
 
+    //SetImageContent(0, m_updateY1, m_texture->GetWidth(), m_updateY2 - m_updateY1,
+    //                m_texture->GetPixels() + m_updateY1 * m_texture->GetPitch());
+
+    //m_updateY1 = m_updateY2 = 0;
     m_textureStatus = TEXTURE_READY;
   }
 
   return true;
-}
-
-void MultMatrixf(glm::mat4& matrixGLM, const float* matrix) noexcept
-{
-  float* m_pMatrix = glm::value_ptr(matrixGLM);
-
-  float a = (matrix[0] * m_pMatrix[0]) + (matrix[1] * m_pMatrix[4]) +
-              (matrix[2] * m_pMatrix[8]) + (matrix[3] * m_pMatrix[12]);
-  float b = (matrix[0] * m_pMatrix[1]) + (matrix[1] * m_pMatrix[5]) +
-              (matrix[2] * m_pMatrix[9]) + (matrix[3] * m_pMatrix[13]);
-  float c = (matrix[0] * m_pMatrix[2]) + (matrix[1] * m_pMatrix[6]) +
-              (matrix[2] * m_pMatrix[10]) + (matrix[3] * m_pMatrix[14]);
-  float d = (matrix[0] * m_pMatrix[3]) + (matrix[1] * m_pMatrix[7]) +
-              (matrix[2] * m_pMatrix[11]) + (matrix[3] * m_pMatrix[15]);
-  float e = (matrix[4] * m_pMatrix[0]) + (matrix[5] * m_pMatrix[4]) +
-              (matrix[6] * m_pMatrix[8]) + (matrix[7] * m_pMatrix[12]);
-  float f = (matrix[4] * m_pMatrix[1]) + (matrix[5] * m_pMatrix[5]) +
-              (matrix[6] * m_pMatrix[9]) + (matrix[7] * m_pMatrix[13]);
-  float g = (matrix[4] * m_pMatrix[2]) + (matrix[5] * m_pMatrix[6]) +
-              (matrix[6] * m_pMatrix[10]) + (matrix[7] * m_pMatrix[14]);
-  float h = (matrix[4] * m_pMatrix[3]) + (matrix[5] * m_pMatrix[7]) +
-              (matrix[6] * m_pMatrix[11]) + (matrix[7] * m_pMatrix[15]);
-  float i = (matrix[8] * m_pMatrix[0]) + (matrix[9] * m_pMatrix[4]) +
-              (matrix[10] * m_pMatrix[8]) + (matrix[11] * m_pMatrix[12]);
-  float j = (matrix[8] * m_pMatrix[1]) + (matrix[9] * m_pMatrix[5]) +
-              (matrix[10] * m_pMatrix[9]) + (matrix[11] * m_pMatrix[13]);
-  float k = (matrix[8] * m_pMatrix[2]) + (matrix[9] * m_pMatrix[6]) +
-              (matrix[10] * m_pMatrix[10]) + (matrix[11] * m_pMatrix[14]);
-  float l = (matrix[8] * m_pMatrix[3]) + (matrix[9] * m_pMatrix[7]) +
-              (matrix[10] * m_pMatrix[11]) + (matrix[11] * m_pMatrix[15]);
-  float m = (matrix[12] * m_pMatrix[0]) + (matrix[13] * m_pMatrix[4]) +
-              (matrix[14] * m_pMatrix[8]) + (matrix[15] * m_pMatrix[12]);
-  float n = (matrix[12] * m_pMatrix[1]) + (matrix[13] * m_pMatrix[5]) +
-              (matrix[14] * m_pMatrix[9]) + (matrix[15] * m_pMatrix[13]);
-  float o = (matrix[12] * m_pMatrix[2]) + (matrix[13] * m_pMatrix[6]) +
-              (matrix[14] * m_pMatrix[10]) + (matrix[15] * m_pMatrix[14]);
-  float p = (matrix[12] * m_pMatrix[3]) + (matrix[13] * m_pMatrix[7]) +
-              (matrix[14] * m_pMatrix[11]) + (matrix[15] * m_pMatrix[15]);
-  m_pMatrix[0] = a;
-  m_pMatrix[4] = e;
-  m_pMatrix[8] = i;
-  m_pMatrix[12] = m;
-  m_pMatrix[1] = b;
-  m_pMatrix[5] = f;
-  m_pMatrix[9] = j;
-  m_pMatrix[13] = n;
-  m_pMatrix[2] = c;
-  m_pMatrix[6] = g;
-  m_pMatrix[10] = k;
-  m_pMatrix[14] = o;
-  m_pMatrix[3] = d;
-  m_pMatrix[7] = h;
-  m_pMatrix[11] = l;
-  m_pMatrix[15] = p;
-
-
-}
-
-void Translatef(glm::mat4& matrixGLM, float x, float y, float z)
-{
-  const float matrix[16]{1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f,
-                         0.0f, 0.0f, 1.0f, 0.0f, x,    y,    z,    1.0f};
-
-  float* m_pMatrix = glm::value_ptr(matrixGLM);
-
-  float a = (matrix[0] * m_pMatrix[0]) + (matrix[1] * m_pMatrix[4]) + (matrix[2] * m_pMatrix[8]) +
-            (matrix[3] * m_pMatrix[12]);
-  float b = (matrix[0] * m_pMatrix[1]) + (matrix[1] * m_pMatrix[5]) + (matrix[2] * m_pMatrix[9]) +
-            (matrix[3] * m_pMatrix[13]);
-  float c = (matrix[0] * m_pMatrix[2]) + (matrix[1] * m_pMatrix[6]) + (matrix[2] * m_pMatrix[10]) +
-            (matrix[3] * m_pMatrix[14]);
-  float d = (matrix[0] * m_pMatrix[3]) + (matrix[1] * m_pMatrix[7]) + (matrix[2] * m_pMatrix[11]) +
-            (matrix[3] * m_pMatrix[15]);
-  float e = (matrix[4] * m_pMatrix[0]) + (matrix[5] * m_pMatrix[4]) + (matrix[6] * m_pMatrix[8]) +
-            (matrix[7] * m_pMatrix[12]);
-  float f = (matrix[4] * m_pMatrix[1]) + (matrix[5] * m_pMatrix[5]) + (matrix[6] * m_pMatrix[9]) +
-            (matrix[7] * m_pMatrix[13]);
-  float g = (matrix[4] * m_pMatrix[2]) + (matrix[5] * m_pMatrix[6]) + (matrix[6] * m_pMatrix[10]) +
-            (matrix[7] * m_pMatrix[14]);
-  float h = (matrix[4] * m_pMatrix[3]) + (matrix[5] * m_pMatrix[7]) + (matrix[6] * m_pMatrix[11]) +
-            (matrix[7] * m_pMatrix[15]);
-  float i = (matrix[8] * m_pMatrix[0]) + (matrix[9] * m_pMatrix[4]) + (matrix[10] * m_pMatrix[8]) +
-            (matrix[11] * m_pMatrix[12]);
-  float j = (matrix[8] * m_pMatrix[1]) + (matrix[9] * m_pMatrix[5]) + (matrix[10] * m_pMatrix[9]) +
-            (matrix[11] * m_pMatrix[13]);
-  float k = (matrix[8] * m_pMatrix[2]) + (matrix[9] * m_pMatrix[6]) + (matrix[10] * m_pMatrix[10]) +
-            (matrix[11] * m_pMatrix[14]);
-  float l = (matrix[8] * m_pMatrix[3]) + (matrix[9] * m_pMatrix[7]) + (matrix[10] * m_pMatrix[11]) +
-            (matrix[11] * m_pMatrix[15]);
-  float m = (matrix[12] * m_pMatrix[0]) + (matrix[13] * m_pMatrix[4]) +
-            (matrix[14] * m_pMatrix[8]) + (matrix[15] * m_pMatrix[12]);
-  float n = (matrix[12] * m_pMatrix[1]) + (matrix[13] * m_pMatrix[5]) +
-            (matrix[14] * m_pMatrix[9]) + (matrix[15] * m_pMatrix[13]);
-  float o = (matrix[12] * m_pMatrix[2]) + (matrix[13] * m_pMatrix[6]) +
-            (matrix[14] * m_pMatrix[10]) + (matrix[15] * m_pMatrix[14]);
-  float p = (matrix[12] * m_pMatrix[3]) + (matrix[13] * m_pMatrix[7]) +
-            (matrix[14] * m_pMatrix[11]) + (matrix[15] * m_pMatrix[15]);
-  m_pMatrix[0] = a;
-  m_pMatrix[4] = e;
-  m_pMatrix[8] = i;
-  m_pMatrix[12] = m;
-  m_pMatrix[1] = b;
-  m_pMatrix[5] = f;
-  m_pMatrix[9] = j;
-  m_pMatrix[13] = n;
-  m_pMatrix[2] = c;
-  m_pMatrix[6] = g;
-  m_pMatrix[10] = k;
-  m_pMatrix[14] = o;
-  m_pMatrix[3] = d;
-  m_pMatrix[7] = h;
-  m_pMatrix[11] = l;
-  m_pMatrix[15] = p;
 }
 
 void CVulkanGUIFontTTF::LastEnd()
@@ -292,7 +190,6 @@ void CVulkanGUIFontTTF::LastEnd()
       // the gui matrix doesn't align to exact pixel coords atm. correct it here for now.
       matrix = glm::translate(matrix, glm::vec3(fractX, fractY, 0.0f));
 
-
       VkPipeline pipeline = m_shaderFonts->VulkanPipeline(/*FONTS_TYPE_SCISSOR_CLIP*/);
       VkPipelineLayout pipelineLayout =
           m_shaderFonts->VulkanPipelineLayout(/*FONTS_TYPE_SCISSOR_CLIP*/);
@@ -304,8 +201,7 @@ void CVulkanGUIFontTTF::LastEnd()
       m_shaderFonts->UpdateUniformBuffer(renderImageIndex, uniform);
 
       vkCmdPushConstants(m_renderSystem->vkCurrentCommandBuffer(), pipelineLayout,
-                           VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4),
-                           glm::value_ptr(matrix));
+                         VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), glm::value_ptr(matrix));
 
       VkDeviceSize bufferOffset = 0;
       VkBuffer vertexBuffer = m_vertexTrans[i].m_vertexBuffer->bufferHandle->buffer;
@@ -318,7 +214,7 @@ void CVulkanGUIFontTTF::LastEnd()
                               &m_shaderFonts->GetUniformBuffer(renderImageIndex)->descriptorSet, 0,
                               nullptr);
       vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 1, 1,
-                              vkTexture->vkDescriptorSet(), 0, nullptr);
+                              &m_descriptorSet, 0, nullptr);
       vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 
       uint32_t size = static_cast<uint32_t>(m_vertexTrans[i].m_vertexBuffer->size);
@@ -384,13 +280,14 @@ void CVulkanGUIFontTTF::VulkanDestroyVertexBuffer(CVulkanGUIFontTTF* ref, CVerte
 
 std::unique_ptr<CTexture> CVulkanGUIFontTTF::ReallocTexture(unsigned int& newHeight)
 {
-  fprintf(stderr, "CVulkanGUIFontTTF::ReallocTexture: Reallocating texture for %s\n",
-          GetFontIdent().c_str());
+  fprintf(stderr, "CVulkanGUIFontTTF::ReallocTexture: (%p) Reallocating texture for %s (%u)\n",
+          this, GetFontIdent().c_str(), newHeight);
+  /*
+
+  */
   newHeight = CTexture::PadPow2(newHeight);
 
-  std::unique_ptr<CTexture> newTexture =
-      CTexture::CreateTexture(m_textureWidth, newHeight, XB_FMT_A8);
-
+  auto newTexture = std::make_unique<CVulkanTexture>(m_textureWidth, newHeight, XB_FMT_A8);
   if (!newTexture || !newTexture->GetPixels())
   {
     CLog::LogF(LOGERROR, "Error creating new cache texture for size {:f} ({}:{})", m_height,
@@ -407,6 +304,11 @@ std::unique_ptr<CTexture> CVulkanGUIFontTTF::ReallocTexture(unsigned int& newHei
                newHeight);
   m_staticCache.Flush();
   m_dynamicCache.Flush();
+
+  if (!m_texture)
+  {
+    CreateTextureResources();
+  }
 
   memset(newTexture->GetPixels(), 0, m_textureHeight * newTexture->GetPitch());
   if (m_texture)
@@ -429,6 +331,156 @@ std::unique_ptr<CTexture> CVulkanGUIFontTTF::ReallocTexture(unsigned int& newHei
   return newTexture;
 }
 
+void CVulkanGUIFontTTF::CreateTextureResources()
+{
+  VkDeviceSize size = static_cast<VkDeviceSize>(m_textureWidth * m_textureHeight);
+  if (size == 0)
+    return;
+
+  VkImageCreateInfo imageInfo = vkImageCreateInfo();
+  imageInfo.imageType = VK_IMAGE_TYPE_2D;
+  imageInfo.format = VK_FORMAT_R8_UNORM;
+  imageInfo.extent.width = m_textureWidth;
+  imageInfo.extent.height = m_textureHeight;
+  imageInfo.extent.depth = 1;
+  imageInfo.mipLevels = 1;
+  imageInfo.arrayLayers = 1;
+  imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
+  imageInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+  imageInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+  imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+  imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+  VK_CHECK_RESULT(vkCreateImage(m_vkData->vkDevice, &imageInfo, nullptr, &m_image));
+
+  VkMemoryRequirements memReqs;
+  vkGetImageMemoryRequirements(m_vkData->vkDevice, m_image, &memReqs);
+  uint32_t memoryTypeIndex = m_renderSystem->DeviceQueue()->GetMemoryType(
+      memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+  auto allocInfo = vkMemoryAllocateInfo(memReqs.size, memoryTypeIndex);
+  VK_CHECK_RESULT(vkAllocateMemory(m_vkData->vkDevice, &allocInfo, nullptr, &m_imageMemory));
+  VK_CHECK_RESULT(vkBindImageMemory(m_vkData->vkDevice, m_image, m_imageMemory, 0));
+
+  const int32_t aniso =
+      CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->m_guiAnisotropicFiltering;
+
+  // Create sampler
+  VkSamplerCreateInfo samplerInfo = vkSamplerCreateInfo();
+  samplerInfo.minFilter = VK_FILTER_LINEAR;
+  samplerInfo.magFilter = VK_FILTER_LINEAR;
+  samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+  samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+  samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+  samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+  samplerInfo.anisotropyEnable = (aniso > 1 ? VK_TRUE : VK_FALSE);
+  samplerInfo.maxAnisotropy = static_cast<float>(aniso);
+  samplerInfo.mipLodBias = 0.0f;
+  samplerInfo.maxLod = 0.0f;
+  VK_CHECK_RESULT(vkCreateSampler(m_vkData->vkDevice, &samplerInfo, nullptr, &m_sampler));
+
+  // Create image view
+  VkImageViewCreateInfo view = vkImageViewCreateInfo();
+  view.image = m_image;
+  view.viewType = VK_IMAGE_VIEW_TYPE_2D;
+  view.subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
+  view.format = VK_FORMAT_R8_UNORM;
+  view.components = {VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_ZERO,
+                     VK_COMPONENT_SWIZZLE_ZERO,
+                     VK_COMPONENT_SWIZZLE_ZERO};
+  VK_CHECK_RESULT(vkCreateImageView(m_vkData->vkDevice, &view, nullptr, &m_imageView));
+
+  //--------------------------------------------------------------------------------
+
+  VkDescriptorImageInfo textureDescriptor{};
+  textureDescriptor.imageView = m_imageView;
+  textureDescriptor.sampler = m_sampler;
+  textureDescriptor.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+
+  VkDescriptorSetAllocateInfo descAllocInfo{};
+  descAllocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+  descAllocInfo.descriptorPool = m_vkData->vkDescriptorPool;
+  descAllocInfo.descriptorSetCount = 1;
+  descAllocInfo.pSetLayouts = &m_vkData->vkDescriptorSetLayout_Texture;
+
+  VK_CHECK_RESULT(vkAllocateDescriptorSets(m_vkData->vkDevice, &descAllocInfo, &m_descriptorSet));
+
+  VkWriteDescriptorSet writeDesc{};
+  writeDesc.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+  writeDesc.dstSet = m_descriptorSet;
+  writeDesc.dstBinding = 0;
+  writeDesc.dstArrayElement = 0;
+  writeDesc.descriptorCount = 1;
+  writeDesc.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+  writeDesc.pImageInfo = &textureDescriptor;
+
+  vkUpdateDescriptorSets(m_vkData->vkDevice, 1, &writeDesc, 0, nullptr);
+}
+
+void CVulkanGUIFontTTF::SetImageContent(
+    int32_t x, int32_t y, uint32_t width, uint32_t height, const void* imageData)
+{
+  VkDeviceSize size = static_cast<VkDeviceSize>(width * height);
+  if (size == 0)
+    return;
+
+  VkBufferImageCopy region = {};
+  region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+  region.imageSubresource.mipLevel = 0;
+  region.imageSubresource.layerCount = 1;
+  region.imageSubresource.baseArrayLayer = 0;
+  region.imageOffset = {x, y, 0};
+  region.imageExtent.width = width;
+  region.imageExtent.height = height;
+  region.imageExtent.depth = 1;
+
+  VkImageSubresourceRange subresourceRange = {};
+  subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+  subresourceRange.baseMipLevel = 0;
+  subresourceRange.levelCount = 1;
+  subresourceRange.baseArrayLayer = 0;
+  subresourceRange.layerCount = 1;
+
+  auto bufferInfo =
+      vkBufferCreateInfo(VK_BUFFER_USAGE_TRANSFER_SRC_BIT, size, VK_SHARING_MODE_EXCLUSIVE);
+
+  VkBuffer stagingBuffer{};
+  VK_CHECK_RESULT(vkCreateBuffer(m_vkData->vkDevice, &bufferInfo, nullptr, &stagingBuffer));
+
+  VkMemoryRequirements memReqs;
+  vkGetBufferMemoryRequirements(m_vkData->vkDevice, stagingBuffer, &memReqs);
+
+  uint32_t memoryTypeIndex = m_renderSystem->DeviceQueue()->GetMemoryType(
+      memReqs.memoryTypeBits,
+      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+  auto allocInfo = vkMemoryAllocateInfo(memReqs.size, memoryTypeIndex);
+
+  VkDeviceMemory stagingMemory{};
+  VK_CHECK_RESULT(vkAllocateMemory(m_vkData->vkDevice, &allocInfo, nullptr, &stagingMemory));
+  VK_CHECK_RESULT(vkBindBufferMemory(m_vkData->vkDevice, stagingBuffer, stagingMemory, 0));
+
+  void* data;
+  VK_CHECK_RESULT(vkMapMemory(m_vkData->vkDevice, stagingMemory, 0, size, 0, &data));
+  //memset(data, 0x01, static_cast<size_t>(size));
+  memcpy(data, imageData, static_cast<size_t>(size));
+  vkUnmapMemory(m_vkData->vkDevice, stagingMemory);
+
+  VkCommandBuffer copyCmd = m_renderSystem->DeviceQueue()->CreateCommandBuffer(
+      VK_COMMAND_BUFFER_LEVEL_PRIMARY, m_vkData->vkCommandPool, true);
+
+  SetImageLayout(copyCmd, m_image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                 subresourceRange, VK_PIPELINE_STAGE_HOST_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
+  vkCmdCopyBufferToImage(copyCmd, stagingBuffer, m_image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1,
+                         &region);
+  SetImageLayout(copyCmd, m_image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                 VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, subresourceRange,
+                 VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
+
+  m_renderSystem->DeviceQueue()->FlushCommandBuffer(copyCmd);
+
+  // Clean up staging resources
+  vkFreeMemory(m_vkData->vkDevice, stagingMemory, nullptr);
+  vkDestroyBuffer(m_vkData->vkDevice, stagingBuffer, nullptr);
+}
+
 bool CVulkanGUIFontTTF::CopyCharToTexture(
     FT_BitmapGlyph bitGlyph, unsigned int x1, unsigned int y1, unsigned int x2, unsigned int y2)
 {
@@ -437,43 +489,47 @@ bool CVulkanGUIFontTTF::CopyCharToTexture(
           GetFontIdent().c_str(), x1, y1, x2, y2);
   FT_Bitmap bitmap = bitGlyph->bitmap;
 
-  unsigned char* source = bitmap.buffer;
-  unsigned char* target = m_texture->GetPixels() + y1 * m_texture->GetPitch() + x1;
 
-  for (unsigned int y = y1; y < y2; y++)
-  {
-    memcpy(target, source, x2 - x1);
-    source += bitmap.width;
-    target += m_texture->GetPitch();
-  }
+  SetImageContent(x1, y1, x2 - x1, y2 - y1, bitmap.buffer);
 
-  switch (m_textureStatus)
-  {
-    case TEXTURE_UPDATED:
-    {
-      m_updateY1 = std::min(m_updateY1, y1);
-      m_updateY2 = std::max(m_updateY2, y2);
-    }
-    break;
 
-    case TEXTURE_READY:
-    {
-      m_updateY1 = y1;
-      m_updateY2 = y2;
-      m_textureStatus = TEXTURE_UPDATED;
-    }
-    break;
+  //unsigned char* source = bitmap.buffer;
+  //unsigned char* target = m_texture->GetPixels() + y1 * m_texture->GetPitch() + x1;
 
-    case TEXTURE_REALLOCATED:
-    {
-      m_updateY2 = std::max(m_updateY2, y2);
-    }
-    break;
+  //for (unsigned int y = y1; y < y2; y++)
+  //{
+  //  memcpy(target, source, x2 - x1);
+  //  source += bitmap.width;
+  //  target += m_texture->GetPitch();
+  //}
 
-    case TEXTURE_VOID:
-    default:
-      break;
-  }
+  //switch (m_textureStatus)
+  //{
+  //  case TEXTURE_UPDATED:
+  //  {
+  //    m_updateY1 = std::min(m_updateY1, y1);
+  //    m_updateY2 = std::max(m_updateY2, y2);
+  //  }
+  //  break;
+
+  //  case TEXTURE_READY:
+  //  {
+  //    m_updateY1 = y1;
+  //    m_updateY2 = y2;
+  //    m_textureStatus = TEXTURE_UPDATED;
+  //  }
+  //  break;
+
+  //  case TEXTURE_REALLOCATED:
+  //  {
+  //    m_updateY2 = std::max(m_updateY2, y2);
+  //  }
+  //  break;
+
+  //  case TEXTURE_VOID:
+  //  default:
+  //    break;
+  //}
 
   return true;
 }
@@ -482,6 +538,27 @@ void CVulkanGUIFontTTF::DeleteHardwareTexture()
 {
   //fprintf(stderr, "CVulkanGUIFontTTF::DeleteHardwareTexture: Deleting hardware texture for %s\n",
   //        GetFontIdent().c_str());
+
+  if (m_imageView != VK_NULL_HANDLE)
+  {
+    vkDestroyImageView(m_vkData->vkDevice, m_imageView, nullptr);
+    m_imageView = VK_NULL_HANDLE;
+  }
+  if (m_image != VK_NULL_HANDLE)
+  {
+    vkDestroyImage(m_vkData->vkDevice, m_image, nullptr);
+    m_image = VK_NULL_HANDLE;
+  }
+  if (m_sampler != VK_NULL_HANDLE)
+  {
+    vkDestroySampler(m_vkData->vkDevice, m_sampler, nullptr);
+    m_sampler = VK_NULL_HANDLE;
+  }
+  if (m_imageMemory != VK_NULL_HANDLE)
+  {
+    vkFreeMemory(m_vkData->vkDevice, m_imageMemory, nullptr);
+    m_imageMemory = VK_NULL_HANDLE;
+  }
 }
 
 void CVulkanGUIFontTTF::CreateStaticIndexBuffers()
@@ -546,40 +623,40 @@ bool CVulkanGUIFontTTF::ScissorsCanEffectClipping(glm::vec2& factor, glm::vec2& 
   CRect viewPort; // absolute positions of corners
   CServiceBroker::GetRenderSystem()->GetViewPort(viewPort);
 
-  ///* glScissor operates in window coordinates. In order that we can use it to
-  // * perform clipping, we must ensure that there is an independent linear
-  // * transformation from the coordinate system used by CGraphicContext::ClipRect
-  // * to window coordinates, separately for X and Y (in other words, no
-  // * rotation or shear is introduced at any stage). To do, this, we need to
-  // * check that zeros are present in the following locations:
-  // *
-  // * GUI matrix:
-  // * / * 0 * * \
-  // * | 0 * * * |
-  // * \ 0 0 * * /
-  // *       ^ TransformMatrix::TransformX/Y/ZCoord are only ever called with
-  // *         input z = 0, so this column doesn't matter
-  // * Model-view matrix:
-  // * / * 0 0 * \
-  // * | 0 * 0 * |
-  // * | 0 0 * * |
-  // * \ * * * * /  <- eye w has no influence on window x/y (last column below
-  // *                                                       is either 0 or ignored)
-  // * Projection matrix:
-  // * / * 0 0 0 \
-  // * | 0 * 0 0 |
-  // * | * * * * |  <- normalised device coordinate z has no influence on window x/y
-  // * \ 0 0 * 0 /
-  // *
-  // * Some of these zeros are not strictly required to ensure this, but they tend
-  // * to be zeroed in the common case, so by checking for zeros here, we simplify
-  // * the calculation of the window x/y coordinates further down the line.
-  // *
-  // * (Minor detail: we don't quite deal in window coordinates as defined by
-  // * OpenGL, because CRenderSystemGLES::SetScissors flips the Y axis. But all
-  // * that's needed to handle that is an effective negation at the stage where
-  // * Y is in normalised device coordinates.)
-  // */
+  /* glScissor operates in window coordinates. In order that we can use it to
+   * perform clipping, we must ensure that there is an independent linear
+   * transformation from the coordinate system used by CGraphicContext::ClipRect
+   * to window coordinates, separately for X and Y (in other words, no
+   * rotation or shear is introduced at any stage). To do, this, we need to
+   * check that zeros are present in the following locations:
+   *
+   * GUI matrix:
+   * / * 0 * * \
+   * | 0 * * * |
+   * \ 0 0 * * /
+   *       ^ TransformMatrix::TransformX/Y/ZCoord are only ever called with
+   *         input z = 0, so this column doesn't matter
+   * Model-view matrix:
+   * / * 0 0 * \
+   * | 0 * 0 * |
+   * | 0 0 * * |
+   * \ * * * * /  <- eye w has no influence on window x/y (last column below
+   *                                                       is either 0 or ignored)
+   * Projection matrix:
+   * / * 0 0 0 \
+   * | 0 * 0 0 |
+   * | * * * * |  <- normalised device coordinate z has no influence on window x/y
+   * \ 0 0 * 0 /
+   *
+   * Some of these zeros are not strictly required to ensure this, but they tend
+   * to be zeroed in the common case, so by checking for zeros here, we simplify
+   * the calculation of the window x/y coordinates further down the line.
+   *
+   * (Minor detail: we don't quite deal in window coordinates as defined by
+   * OpenGL, because CRenderSystemGLES::SetScissors flips the Y axis. But all
+   * that's needed to handle that is an effective negation at the stage where
+   * Y is in normalised device coordinates.)
+   */
   //const bool clipPossible =
   //    guiMatrix.m[0][1] == 0 && guiMatrix.m[1][0] == 0 && guiMatrix.m[2][0] == 0 &&
   //    guiMatrix.m[2][1] == 0 && modelMatrix[1][0] == 0 && modelMatrix[2][0] == 0 &&

@@ -159,4 +159,14 @@ std::string ConvertToHexRGB(const Color argb)
   return StringUtils::Format("{:06X}", argb & ~0xFF000000);
 }
 
+glm::vec4 ConvertToGLM(const Color argb)
+{
+  glm::vec4 color;
+  color.a = static_cast<float>((argb >> 24) & 0xFF) / 255.0f;
+  color.r = static_cast<float>((argb >> 16) & 0xFF) / 255.0f;
+  color.g = static_cast<float>((argb >> 8) & 0xFF) / 255.0f;
+  color.b = static_cast<float>((argb >> 0) & 0xFF) / 255.0f;
+  return color;
+}
+
 } // namespace KODI::UTILS::COLOR

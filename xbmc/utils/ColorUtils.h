@@ -11,6 +11,7 @@
 #include "utils/Map.h"
 
 #include <cstdint>
+#include <glm/glm.hpp>
 #include <string>
 #include <utility>
 #include <vector>
@@ -162,5 +163,13 @@ ColorFloats ConvertToFloats(const Color argb);
  * \return The original color converted to hex RGB
  */
 std::string ConvertToHexRGB(const Color argb);
+
+/**
+ * @brief Converts an ARGB color value to a glm::vec4 color representation.
+ *
+ * @param[in] argb The ARGB color value as a 32-bit unsigned integer.
+ * @return A glm::vec4 representing the color in RGBA format, with each component in the range [0.0, 1.0].
+ */
+glm::vec4 ConvertToGLM(const Color argb);
 
 } // namespace KODI::UTILS::COLOR

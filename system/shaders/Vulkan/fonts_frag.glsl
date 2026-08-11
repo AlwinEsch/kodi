@@ -21,7 +21,7 @@ layout(location = 0) out vec4 out_color;
 void main()
 {
   out_color = frag_color;
-  //out_color.a *= texture(u_samp0, frag_cord0).r;
+  out_color.a *= texture(u_samp0, frag_cord0).r;
   if (useLimitedColor == 1)
   {
     out_color.rgb *= (235.0-16.0) / 255.0;

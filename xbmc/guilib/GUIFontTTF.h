@@ -61,7 +61,6 @@ struct SVertex
   glm::vec3 pos;
   glm::vec4 col;
   glm::vec2 cord0;
-  //glm::vec2 cord1; // Unused
 };
 #elif defined(HAS_DX)
 struct SVertex

@@ -60,6 +60,9 @@ protected:
   void DeleteHardwareTexture() override;
 
 private:
+  void CreateTextureResources();
+  void SetImageContent(int32_t y1, int32_t y2, uint32_t width, uint32_t height, const void* imageData);
+
   /**
    * @brief Creates a Vulkan vertex buffer.
    *
@@ -86,11 +89,12 @@ private:
   CRect ClipRectToScissorRect(const CRect& rect);
   static bool ScissorsCanEffectClipping(glm::vec2 &factor, glm::vec2 &offset);
 
+  const KODI::RENDERING::VULKAN::VulkanData* m_vkData;
   std::unique_ptr<KODI::RENDERING::VULKAN::CVulkanShaderFonts> m_shader;
 
   VkSampler m_sampler{VK_NULL_HANDLE};
   VkImage m_image{VK_NULL_HANDLE};
-  VkImageView m_view{VK_NULL_HANDLE};
+  VkImageView m_imageView{VK_NULL_HANDLE};
   VkDeviceMemory m_imageMemory{VK_NULL_HANDLE};
   VkDescriptorPool m_descriptorPool{VK_NULL_HANDLE};
   VkDescriptorSet m_descriptorSet{VK_NULL_HANDLE};

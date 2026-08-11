@@ -54,8 +54,6 @@ private:
   VkDescriptorPool m_descriptorPool{VK_NULL_HANDLE};
 
   KODI::RENDERING::VULKAN::CVulkanRenderSystem* m_renderSystem;
-  VkDevice m_vkDevice{VK_NULL_HANDLE};
-  VkPhysicalDevice m_vkPhysicalDevice{VK_NULL_HANDLE};
 
   VkImage m_image{VK_NULL_HANDLE};
   VkImageView m_imageView{VK_NULL_HANDLE};
