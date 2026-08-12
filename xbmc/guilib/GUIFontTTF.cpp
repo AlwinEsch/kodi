@@ -1231,8 +1231,8 @@ void CGUIFontTTF::RenderCharacter(CGraphicContext& context,
   m_color = color;
 
 #if defined(HAS_VULKAN)
-  // Vulkan uses triangle strips, not quads, so have to rearrange the vertex order
-  // GL uses vertex shaders to manipulate text rotation/translation/scaling/clipping.
+  // Vulkan uses triangle strips like OpenGL, not quads, so have to rearrange the vertex order
+  // We uses vertex shaders to manipulate text rotation/translation/scaling/clipping.
 
   // nudge position to align with raster grid. messes up kerning, but also avoids
   // linear filtering (when not scaled/rotated).
@@ -1242,21 +1242,21 @@ void CGUIFontTTF::RenderCharacter(CGraphicContext& context,
   float yOffset = (vertex.y1 - std::floor(vertex.y1));
   const glm::vec4 glmcol = KODI::UTILS::COLOR::ConvertToGLM(color);
 
-  v[0].pos = glm::vec3(vertex.x1 - xOffset - 0.5f, vertex.y1 - yOffset - 0.5f, 0.0f);
-  v[0].col = glmcol;
-  v[0].cord0 = glm::vec2(tl, tt);
+  v[0].in_attrpos = glm::vec3(vertex.x1 - xOffset - 0.5f, vertex.y1 - yOffset - 0.5f, 0.0f);
+  v[0].in_attrcolor = glmcol;
+  v[0].in_attrcord0 = glm::vec2(tl, tt);
 
-  v[1].pos = glm::vec3(vertex.x1 - xOffset - 0.5f, vertex.y2 - yOffset + 0.5f, 0.0f);
-  v[1].col = glmcol;
-  v[1].cord0 = glm::vec2(tl, tb);
+  v[1].in_attrpos = glm::vec3(vertex.x1 - xOffset - 0.5f, vertex.y2 - yOffset + 0.5f, 0.0f);
+  v[1].in_attrcolor = glmcol;
+  v[1].in_attrcord0 = glm::vec2(tl, tb);
 
-  v[2].pos = glm::vec3(vertex.x2 - xOffset + 0.5f, vertex.y1 - yOffset - 0.5f, 0.0f);
-  v[2].col = glmcol;
-  v[2].cord0 = glm::vec2(tr, tt);
+  v[2].in_attrpos = glm::vec3(vertex.x2 - xOffset + 0.5f, vertex.y1 - yOffset - 0.5f, 0.0f);
+  v[2].in_attrcolor = glmcol;
+  v[2].in_attrcord0 = glm::vec2(tr, tt);
 
-  v[3].pos = glm::vec3(vertex.x2 - xOffset + 0.5f, vertex.y2 - yOffset + 0.5f, 0.0f);
-  v[3].col = glmcol;
-  v[3].cord0 = glm::vec2(tr, tb);
+  v[3].in_attrpos = glm::vec3(vertex.x2 - xOffset + 0.5f, vertex.y2 - yOffset + 0.5f, 0.0f);
+  v[3].in_attrcolor = glmcol;
+  v[3].in_attrcord0 = glm::vec2(tr, tb);
 #elif defined(HAS_DX)
   for (int i = 0; i < VERTEX_PER_GLYPH; i++)
   {

@@ -18,13 +18,6 @@
 namespace KODI::RENDERING::VULKAN
 {
 
-struct ShaderFontsVertex
-{
-  glm::vec3 in_attrpos;
-  glm::vec4 in_attrcolor;
-  glm::vec2 in_attrcord0;
-};
-
 class CVulkanDeviceQueue;
 
 class CVulkanShaderFonts : public IVulkanShader
@@ -35,8 +28,7 @@ public:
 
   struct VulkanUniform
   {
-    glm::mat4 projectionMatrix;
-    glm::mat4 modelMatrix;
+    glm::mat4 projModelMatrix;
     float depth;
   };
 

@@ -9,6 +9,7 @@
 #include "VulkanShaderFonts.h"
 
 #include "ServiceBroker.h"
+#include "guilib/GUIFontTTF.h" // include for SVertex
 #include "rendering/vulkan/VulkanDeviceQueue.h"
 #include "rendering/vulkan/utils/VulkanInitStructs.h"
 #include "rendering/vulkan/utils/VulkanUtils.h"
@@ -74,8 +75,6 @@ void CVulkanShaderFonts::DestroyPipelineLayout()
 
 bool CVulkanShaderFonts::CreatePipeline()
 {
-  using Vertex = KODI::RENDERING::VULKAN::ShaderFontsVertex;
-
   //================================================================================================
   /// Pipeline creation info
   ///
@@ -311,12 +310,12 @@ bool CVulkanShaderFonts::CreatePipeline()
   ///@{
 
   std::vector<VkVertexInputBindingDescription> vertexInputBindings = {
-      vkVertexInputBindingDescr(0, sizeof(Vertex), VK_VERTEX_INPUT_RATE_VERTEX),
+      vkVertexInputBindingDescr(0, sizeof(SVertex), VK_VERTEX_INPUT_RATE_VERTEX),
   };
   std::vector<VkVertexInputAttributeDescription> inputAttributs{
-      vkVertexInputAttrDescr(0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(Vertex, in_attrpos)),
-      vkVertexInputAttrDescr(0, 1, VK_FORMAT_R32G32B32A32_SFLOAT, offsetof(Vertex, in_attrcolor)),
-      vkVertexInputAttrDescr(0, 2, VK_FORMAT_R32G32_SFLOAT, offsetof(Vertex, in_attrcord0)),
+      vkVertexInputAttrDescr(0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(SVertex, in_attrpos)),
+      vkVertexInputAttrDescr(0, 1, VK_FORMAT_R32G32B32A32_SFLOAT, offsetof(SVertex, in_attrcolor)),
+      vkVertexInputAttrDescr(0, 2, VK_FORMAT_R32G32_SFLOAT, offsetof(SVertex, in_attrcord0)),
   };
 
   // Vertex input state used for pipeline creation

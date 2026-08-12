@@ -58,9 +58,9 @@ typedef std::vector<character_t> vecText;
 #if defined(HAS_VULKAN)
 struct SVertex
 {
-  glm::vec3 pos;
-  glm::vec4 col;
-  glm::vec2 cord0;
+  glm::vec3 in_attrpos;
+  glm::vec4 in_attrcolor;
+  glm::vec2 in_attrcord0;
 };
 #elif defined(HAS_DX)
 struct SVertex

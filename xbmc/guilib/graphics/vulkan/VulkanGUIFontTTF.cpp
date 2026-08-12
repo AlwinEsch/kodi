@@ -184,6 +184,12 @@ void CVulkanGUIFontTTF::LastEnd()
 
     const uint32_t renderImageIndex = m_renderSystem->vkCurrentRenderImageIndex();
 
+    CVulkanShaderFonts::VulkanUniform uniform{};
+    uniform.projModelMatrix =
+        KODI::RENDERING::globalMatrixProject * KODI::RENDERING::globalMatrixModview;
+    uniform.depth = CServiceBroker::GetWinSystem()->GetGfxContext().GetTransformDepth();
+    m_shaderFonts->UpdateUniformBuffer(renderImageIndex, uniform);
+
     for (size_t i = 0; i < m_vertexTrans.size(); i++)
     {
       if (m_vertexTrans[i].m_vertexBuffer->bufferHandle == nullptr)
@@ -219,9 +225,9 @@ void CVulkanGUIFontTTF::LastEnd()
       fractY = -fractY + std::round(fractY);
 
       // proj * model * gui * scroll * translation * scaling * correction factor
-      glm::mat4 matrix = KODI::RENDERING::globalMatrixProject;
-      matrix = matrix * KODI::RENDERING::globalMatrixModview;
-      matrix = matrix * context.GetGUIMatrix().GetGLMMatrix();
+      // Note: Projection and model matrices are already combined in the uniform buffer, so we only need to apply
+      // the GUI matrix and the translation/scaling/correction here.
+      glm::mat4 matrix = context.GetGUIMatrix().GetGLMMatrix();
       matrix = glm::translate(
           matrix, glm::vec3(m_vertexTrans[i].m_offsetX, m_vertexTrans[i].m_offsetY, 0.0f));
       matrix = glm::translate(
@@ -234,12 +240,6 @@ void CVulkanGUIFontTTF::LastEnd()
       VkPipeline pipeline = m_shaderFonts->VulkanPipeline(/*FONTS_TYPE_SCISSOR_CLIP*/);
       VkPipelineLayout pipelineLayout =
           m_shaderFonts->VulkanPipelineLayout(/*FONTS_TYPE_SCISSOR_CLIP*/);
-
-      CVulkanShaderFonts::VulkanUniform uniform{};
-      uniform.projectionMatrix = KODI::RENDERING::globalMatrixProject;
-      uniform.modelMatrix = KODI::RENDERING::globalMatrixModview;
-      uniform.depth = CServiceBroker::GetWinSystem()->GetGfxContext().GetTransformDepth();
-      m_shaderFonts->UpdateUniformBuffer(renderImageIndex, uniform);
 
       vkCmdPushConstants(m_renderSystem->vkCurrentCommandBuffer(), pipelineLayout,
                          VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), glm::value_ptr(matrix));
@@ -531,7 +531,6 @@ void CVulkanGUIFontTTF::SetImageContent(
 
   void* data;
   VK_CHECK_RESULT(vkMapMemory(m_vkData->vkDevice, stagingMemory, 0, size, 0, &data));
-  //memset(data, 0x01, static_cast<size_t>(size));
   memcpy(data, imageData, static_cast<size_t>(size));
   vkUnmapMemory(m_vkData->vkDevice, stagingMemory);
 
@@ -640,7 +639,8 @@ bool CVulkanGUIFontTTF::ScissorsCanEffectClipping()
     m_clipFactor.x = guiMatrix.m[0][0] * modelMatrix[0][0] * projMatrix[0][0];
     m_clipOffset.x = (guiMatrix.m[0][3] * modelMatrix[0][0] + modelMatrix[3][0]) * projMatrix[0][0];
     m_clipFactor.y = guiMatrix.m[1][1] * modelMatrix[1][1] * -projMatrix[1][1];
-    m_clipOffset.y = (guiMatrix.m[1][3] * modelMatrix[1][1] + modelMatrix[3][1]) * -projMatrix[1][1];
+    m_clipOffset.y =
+        (guiMatrix.m[1][3] * modelMatrix[1][1] + modelMatrix[3][1]) * -projMatrix[1][1];
 
     // correct for inverted window coordinate scheme
     const float clipW =
@@ -659,8 +659,7 @@ bool CVulkanGUIFontTTF::ScissorsCanEffectClipping()
 
 CRect CVulkanGUIFontTTF::ClipRectToScissorRect(const CRect& rect)
 {
-  return CRect(rect.x1 * m_clipFactor.x + m_clipOffset.x,
-               rect.y1 * m_clipFactor.y + m_clipOffset.y,
+  return CRect(rect.x1 * m_clipFactor.x + m_clipOffset.x, rect.y1 * m_clipFactor.y + m_clipOffset.y,
                rect.x2 * m_clipFactor.x + m_clipOffset.x,
                rect.y2 * m_clipFactor.y + m_clipOffset.y);
 }
