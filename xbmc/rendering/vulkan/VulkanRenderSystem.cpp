@@ -631,17 +631,6 @@ void CVulkanRenderSystem::SetViewPort(const CRect& viewPort)
   m_vkScissor.extent.height = MathUtils::round_int(static_cast<double>(m_vkViewport.height));
 }
 
-bool CVulkanRenderSystem::ScissorsCanEffectClipping()
-{
-  fprintf(stderr, "---> %s", __PRETTY_FUNCTION__);
-  return false;
-}
-
-CRect CVulkanRenderSystem::ClipRectToScissorRect(const CRect& rect)
-{
-  return rect;
-}
-
 void CVulkanRenderSystem::SetScissors(const CRect& rect)
 {
   m_vkScissor.offset.x = MathUtils::round_int(static_cast<double>(rect.x1));

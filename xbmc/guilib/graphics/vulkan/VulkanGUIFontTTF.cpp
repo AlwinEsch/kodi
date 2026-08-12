@@ -85,8 +85,7 @@ CVulkanGUIFontTTF::~CVulkanGUIFontTTF()
 
 bool CVulkanGUIFontTTF::FirstBegin()
 {
-  m_scissorClip = true;
-  ScissorsCanEffectClipping(m_clipFactor, m_clipOffset);
+  m_scissorClip = ScissorsCanEffectClipping();
   if (m_scissorClip)
   {
     m_vkPipelineUsed = m_shaderFonts->VulkanPipeline(/*FONTS_TYPE_SCISSOR_CLIP*/);
@@ -383,8 +382,7 @@ void CVulkanGUIFontTTF::CreateTextureResources()
   view.viewType = VK_IMAGE_VIEW_TYPE_2D;
   view.subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
   view.format = VK_FORMAT_R8_UNORM;
-  view.components = {VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_ZERO,
-                     VK_COMPONENT_SWIZZLE_ZERO,
+  view.components = {VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_ZERO, VK_COMPONENT_SWIZZLE_ZERO,
                      VK_COMPONENT_SWIZZLE_ZERO};
   VK_CHECK_RESULT(vkCreateImageView(m_vkData->vkDevice, &view, nullptr, &m_imageView));
 
@@ -489,9 +487,7 @@ bool CVulkanGUIFontTTF::CopyCharToTexture(
           GetFontIdent().c_str(), x1, y1, x2, y2);
   FT_Bitmap bitmap = bitGlyph->bitmap;
 
-
   SetImageContent(x1, y1, x2 - x1, y2 - y1, bitmap.buffer);
-
 
   //unsigned char* source = bitmap.buffer;
   //unsigned char* target = m_texture->GetPixels() + y1 * m_texture->GetPitch() + x1;
@@ -598,126 +594,85 @@ void CVulkanGUIFontTTF::DestroyStaticIndexBuffers()
   staticIndexBuffer.created = false;
 }
 
-CRect CVulkanGUIFontTTF::ClipRectToScissorRect(const CRect& rect)
+/**
+ * vkCmdSetScissor or glScissor operates in window coordinates.
+ * In order that we can use it to perform clipping, we must ensure that there is an independent
+ * linear transformation from the coordinate system used by @ref CGraphicContext::ClipRect
+ * to window coordinates, separately for X and Y (in other words, no rotation or shear is
+ * introduced at any stage). To do, this, we need to check that zeros are present in the
+ * following locations:
+ *
+ * GUI matrix:
+ * / * 0 * * \
+ * | 0 * * * |
+ * \ 0 0 * * /
+ *       ^ TransformMatrix::TransformX/Y/ZCoord are only ever called with
+ *         input z = 0, so this column doesn't matter
+ * Model-view matrix:
+ * / * 0 0 * \
+ * | 0 * 0 * |
+ * | 0 0 * * |
+ * \ * * * * /  <- eye w has no influence on window x/y (last column below
+ *                                                       is either 0 or ignored)
+ * Projection matrix:
+ * / * 0 0 0 \
+ * | 0 * 0 0 |
+ * | * * * * |  <- normalised device coordinate z has no influence on window x/y
+ * \ 0 0 * 0 /
+ *
+ * Some of these zeros are not strictly required to ensure this, but they tend
+ * to be zeroed in the common case, so by checking for zeros here, we simplify
+ * the calculation of the window x/y coordinates further down the line.
+ *
+ * (Minor detail: we don't quite deal in window coordinates as defined by
+ * Vulkan or OpenGL, because CRenderSystemGLES::SetScissors flips the Y axis. But all
+ * that's needed to handle that is an effective negation at the stage where
+ * Y is in normalised device coordinates.)
+ */
+bool CVulkanGUIFontTTF::ScissorsCanEffectClipping()
 {
-  //fprintf(
-  //    stderr,
-  //    "CVulkanGUIFontTTF::ClipRectToScissorRect: Clipping rect (%f, %f, %f, %f) to scissor rect\n",
-  //    double(rect.x1), double(rect.y1), double(rect.x2), double(rect.y2));
-  //fprintf(
-  //    stderr,
-  //    "CVulkanGUIFontTTF::ClipRectToScissorRect: Using clip factor (%f, %f) and offset (%f, %f)\n",
-  //    double(m_clipFactor.x), double(m_clipFactor.y), double(m_clipOffset.x),
-  //    double(m_clipOffset.y));
-  return CRect(rect.x1 * m_clipFactor.x + m_clipOffset.x, rect.y1 * m_clipFactor.y + m_clipOffset.y,
-               rect.x2 * m_clipFactor.x + m_clipOffset.x,
-               rect.y2 * m_clipFactor.y + m_clipOffset.y);
-}
-
-bool CVulkanGUIFontTTF::ScissorsCanEffectClipping(glm::vec2& factor, glm::vec2& offset)
-{
-  //const glm::mat4& projMatrix = globalMatrixProject;
-  //const glm::mat4& modelMatrix = globalMatrixModview;
+  const glm::mat4& projMatrix = globalMatrixProject;
+  const glm::mat4& modelMatrix = globalMatrixModview;
   const TransformMatrix& guiMatrix = CServiceBroker::GetWinSystem()->GetGfxContext().GetGUIMatrix();
 
   CRect viewPort; // absolute positions of corners
   CServiceBroker::GetRenderSystem()->GetViewPort(viewPort);
 
-  /* glScissor operates in window coordinates. In order that we can use it to
-   * perform clipping, we must ensure that there is an independent linear
-   * transformation from the coordinate system used by CGraphicContext::ClipRect
-   * to window coordinates, separately for X and Y (in other words, no
-   * rotation or shear is introduced at any stage). To do, this, we need to
-   * check that zeros are present in the following locations:
-   *
-   * GUI matrix:
-   * / * 0 * * \
-   * | 0 * * * |
-   * \ 0 0 * * /
-   *       ^ TransformMatrix::TransformX/Y/ZCoord are only ever called with
-   *         input z = 0, so this column doesn't matter
-   * Model-view matrix:
-   * / * 0 0 * \
-   * | 0 * 0 * |
-   * | 0 0 * * |
-   * \ * * * * /  <- eye w has no influence on window x/y (last column below
-   *                                                       is either 0 or ignored)
-   * Projection matrix:
-   * / * 0 0 0 \
-   * | 0 * 0 0 |
-   * | * * * * |  <- normalised device coordinate z has no influence on window x/y
-   * \ 0 0 * 0 /
-   *
-   * Some of these zeros are not strictly required to ensure this, but they tend
-   * to be zeroed in the common case, so by checking for zeros here, we simplify
-   * the calculation of the window x/y coordinates further down the line.
-   *
-   * (Minor detail: we don't quite deal in window coordinates as defined by
-   * OpenGL, because CRenderSystemGLES::SetScissors flips the Y axis. But all
-   * that's needed to handle that is an effective negation at the stage where
-   * Y is in normalised device coordinates.)
-   */
-  //const bool clipPossible =
-  //    guiMatrix.m[0][1] == 0 && guiMatrix.m[1][0] == 0 && guiMatrix.m[2][0] == 0 &&
-  //    guiMatrix.m[2][1] == 0 && modelMatrix[1][0] == 0 && modelMatrix[2][0] == 0 &&
-  //    modelMatrix[0][1] == 0 && modelMatrix[2][1] == 0 && modelMatrix[0][2] == 0 &&
-  //    modelMatrix[1][2] == 0 && projMatrix[1][0] == 0 && projMatrix[2][0] == 0 &&
-  //    projMatrix[3][0] == 0 && projMatrix[0][1] == 0 && projMatrix[2][1] == 0 &&
-  //    projMatrix[3][1] == 0 && projMatrix[0][3] == 0 && projMatrix[1][3] == 0 &&
-  //    projMatrix[3][3] == 0;
-
-  //factor = glm::vec2(0.0f);
-  //offset = glm::vec2(0.0f);
-
-  //if (clipPossible)
-  //{
-  //  factor.x = guiMatrix.m[0][0] * modelMatrix[0][0] * projMatrix[0][0];
-  //  offset.x = (guiMatrix.m[0][3] * modelMatrix[0][0] + modelMatrix[3][0]) * projMatrix[0][0];
-  //  factor.y = guiMatrix.m[1][1] * modelMatrix[1][1] * projMatrix[1][1];
-  //  offset.y = (guiMatrix.m[1][3] * modelMatrix[1][1] + modelMatrix[3][1]) * projMatrix[1][1];
-
-  //  const float clipW =
-  //      (guiMatrix.m[2][3] * modelMatrix[2][2] + modelMatrix[3][2]) * projMatrix[2][3];
-  //  const float xMult = (viewPort.x2 - viewPort.x1) / (2 * clipW);
-  //  const float yMult =
-  //      (viewPort.y1 - viewPort.y2) / (2 * clipW); // correct for inverted window coordinate scheme
-  //  factor *= glm::vec2(xMult, yMult);
-  //  offset *= glm::vec2(xMult, yMult) +
-  //            glm::vec2((viewPort.x2 + viewPort.x1) / 2, (viewPort.y2 + viewPort.y1) / 2);
-  //}
-
-  //return clipPossible;
-
-  const float* projMatrix = glm::value_ptr(globalMatrixProject.Get());
-  const float* modelMatrix = glm::value_ptr(globalMatrixModview.Get());
-
   const bool clipPossible =
       guiMatrix.m[0][1] == 0 && guiMatrix.m[1][0] == 0 && guiMatrix.m[2][0] == 0 &&
-      guiMatrix.m[2][1] == 0 && modelMatrix[0 + 1 * 4] == 0 && modelMatrix[0 + 2 * 4] == 0 &&
-      modelMatrix[1 + 0 * 4] == 0 && modelMatrix[1 + 2 * 4] == 0 && modelMatrix[2 + 0 * 4] == 0 &&
-      modelMatrix[2 + 1 * 4] == 0 && projMatrix[0 + 1 * 4] == 0 && projMatrix[0 + 2 * 4] == 0 &&
-      projMatrix[0 + 3 * 4] == 0 && projMatrix[1 + 0 * 4] == 0 && projMatrix[1 + 2 * 4] == 0 &&
-      projMatrix[1 + 3 * 4] == 0 && projMatrix[3 + 0 * 4] == 0 && projMatrix[3 + 1 * 4] == 0 &&
-      projMatrix[3 + 3 * 4] == 0;
+      guiMatrix.m[2][1] == 0 && modelMatrix[1][0] == 0 && modelMatrix[2][0] == 0 &&
+      modelMatrix[0][1] == 0 && modelMatrix[2][1] == 0 && modelMatrix[0][2] == 0 &&
+      modelMatrix[1][2] == 0 && projMatrix[1][0] == 0 && projMatrix[2][0] == 0 &&
+      projMatrix[3][0] == 0 && projMatrix[0][1] == 0 && projMatrix[2][1] == 0 &&
+      projMatrix[3][1] == 0 && projMatrix[0][3] == 0 && projMatrix[1][3] == 0 &&
+      projMatrix[3][3] == 0;
+
+  m_clipFactor = glm::vec2(0.0f);
+  m_clipOffset = glm::vec2(0.0f);
 
   if (clipPossible)
   {
-    factor.x = guiMatrix.m[0][0] * modelMatrix[0 + 0 * 4] * projMatrix[0 + 0 * 4];
-    offset.x = (guiMatrix.m[0][3] * modelMatrix[0 + 0 * 4] + modelMatrix[0 + 3 * 4]) *
-               projMatrix[0 + 0 * 4];
-    factor.y = guiMatrix.m[1][1] * modelMatrix[1 + 1 * 4] * projMatrix[1 + 1 * 4];
-    offset.y = (guiMatrix.m[1][3] * modelMatrix[1 + 1 * 4] + modelMatrix[1 + 3 * 4]) *
-               projMatrix[1 + 1 * 4];
-    float clipW = (guiMatrix.m[2][3] * modelMatrix[2 + 2 * 4] + modelMatrix[2 + 3 * 4]) *
-                  projMatrix[3 + 2 * 4];
-    float xMult = (viewPort.x2 - viewPort.x1) / (2 * clipW);
-    float yMult =
-        (viewPort.y1 - viewPort.y2) / (2 * clipW); // correct for inverted window coordinate scheme
-    factor.x = factor.x * xMult;
-    offset.x = offset.x * xMult + (viewPort.x2 + viewPort.x1) / 2;
-    factor.y = factor.y * yMult;
-    offset.y = offset.y * yMult + (viewPort.y2 + viewPort.y1) / 2;
+    m_clipFactor.x = guiMatrix.m[0][0] * modelMatrix[0][0] * projMatrix[0][0];
+    m_clipOffset.x = (guiMatrix.m[0][3] * modelMatrix[0][0] + modelMatrix[3][0]) * projMatrix[0][0];
+    m_clipFactor.y = guiMatrix.m[1][1] * modelMatrix[1][1] * projMatrix[1][1];
+    m_clipOffset.y = (guiMatrix.m[1][3] * modelMatrix[1][1] + modelMatrix[3][1]) * projMatrix[1][1];
+
+    const float clipW =
+        (guiMatrix.m[2][3] * modelMatrix[2][2] + modelMatrix[3][2]) * projMatrix[2][3];
+    // correct for inverted window coordinate scheme
+    const float xMult = (viewPort.x2 - viewPort.x1) / (2 * clipW);
+    const float yMult = (viewPort.y1 - viewPort.y2) / (2 * clipW);
+    m_clipFactor *= glm::vec2(xMult, yMult);
+    m_clipOffset *= glm::vec2(xMult, yMult) +
+                    glm::vec2((viewPort.x2 + viewPort.x1) / 2, (viewPort.y2 + viewPort.y1) / 2);
   }
 
   return clipPossible;
+}
+
+CRect CVulkanGUIFontTTF::ClipRectToScissorRect(const CRect& rect)
+{
+  return CRect(rect.x1 * m_clipFactor.x + m_clipOffset.x, rect.y1 * m_clipFactor.y + m_clipOffset.y,
+               rect.x2 * m_clipFactor.x + m_clipOffset.x,
+               rect.y2 * m_clipFactor.y + m_clipOffset.y);
 }

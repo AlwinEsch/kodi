@@ -68,8 +68,10 @@ public:
   void SetViewPort(const CRect& viewPort) override;
   void GetViewPort(CRect& viewPort) override;
 
-  bool ScissorsCanEffectClipping() override;
-  CRect ClipRectToScissorRect(const CRect& rect) override;
+  /**
+   * @note @ref CRenderSystemBase::ScissorsCanEffectClipping and @ref CRenderSystemBase::ClipRectToScissorRect
+   * are only used by @ref CGUIFontTTF, which done directly on @ref CVulkanGUIFontTTF.
+   */
   void SetScissors(const CRect& rect) override;
   void ResetScissors() override;
 

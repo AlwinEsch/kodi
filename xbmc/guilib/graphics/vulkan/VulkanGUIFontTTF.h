@@ -86,9 +86,6 @@ private:
    */
   static void VulkanDestroyVertexBuffer(CVulkanGUIFontTTF* ref, CVertexBuffer& bufferHandle);
 
-  CRect ClipRectToScissorRect(const CRect& rect);
-  static bool ScissorsCanEffectClipping(glm::vec2 &factor, glm::vec2 &offset);
-
   const KODI::RENDERING::VULKAN::VulkanData* m_vkData;
   std::unique_ptr<KODI::RENDERING::VULKAN::CVulkanShaderFonts> m_shader;
 
@@ -131,7 +128,26 @@ private:
 
   VkPipeline m_vkPipelineUsed{};
 
-  // clip to scissors params
+  /**
+   * @brief Determines if scissors can affect clipping.
+   *
+   * Values @ref m_clipFactor and @ref m_clipOffset are set by call of ScissorsCanEffectClipping.
+   *
+   * @return True if scissors can affect clipping, false otherwise.
+   *
+   * @note This function and @ref ClipRectToScissorRect are normally included on @ref CRenderSystemBase,
+   * but as it only be used on fonts and Vulkan is a bit more complex than OpenGL, it is included here.
+   */
+  bool ScissorsCanEffectClipping();
+
+  /**
+   * @brief Clips a rectangle to the scissor rectangle.
+   *
+   * @param rect The rectangle to be clipped.
+   * @return The clipped rectangle.
+   */
+  CRect ClipRectToScissorRect(const CRect& rect);
+
   bool m_scissorClip{false};
   glm::vec2 m_clipFactor{0.0f};
   glm::vec2 m_clipOffset{0.0f};
