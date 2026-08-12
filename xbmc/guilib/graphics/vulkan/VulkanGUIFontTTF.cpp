@@ -15,7 +15,6 @@
 #include "guilib/TextureManager.h"
 #include "guilib/graphics/vulkan/VulkanTexture.h"
 #include "rendering/MatrixStack.h"
-#include "rendering/vulkan/DynamicBuffers.h"
 #include "rendering/vulkan/VulkanRenderSystem.h"
 #include "rendering/vulkan/shaders/VulkanShaderFonts.h"
 #include "rendering/vulkan/utils/VulkanInitStructs.h"

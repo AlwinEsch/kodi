@@ -9,13 +9,11 @@
 #pragma once
 
 #include "guilib/GUIFontTTF.h"
-#include "rendering/vulkan/shaders/VulkanShaderFonts.h"
 
 #include <memory>
 #include <string>
 #include <vector>
 
-#include <vk_mem_alloc.h>
 #include <vulkan/vulkan_core.h>
 
 namespace KODI::RENDERING::VULKAN
@@ -23,15 +21,10 @@ namespace KODI::RENDERING::VULKAN
 class CVulkanRenderSystem;
 class CVulkanDeviceQueue;
 class CVulkanShaderFonts;
+struct VulkanData;
 } // namespace KODI::RENDERING::VULKAN
 
-namespace KODI
-{
-namespace GUILIB
-{
-namespace GRAPHICS
-{
-namespace VULKAN
+namespace KODI::GUILIB::GRAPHICS::VULKAN
 {
 
 class CVulkanGUIFontTTF : public CGUIFontTTF
@@ -56,13 +49,37 @@ protected:
   void DeleteHardwareTexture() override;
 
 private:
-  void CreateTextureResources();
-  void SetImageContent(int32_t y1, int32_t y2, uint32_t width, uint32_t height, const void* imageData);
-
+  // Vulkan resources, becomes set during constuction.
   KODI::RENDERING::VULKAN::CVulkanRenderSystem* m_renderSystem;
   KODI::RENDERING::VULKAN::CVulkanDeviceQueue* m_deviceQueue;
   KODI::RENDERING::VULKAN::CVulkanShaderFonts* m_shaderFonts;
   const KODI::RENDERING::VULKAN::VulkanData* m_vkData;
+
+  /**
+   * @brief Creates the texture resources
+   *
+   * @note Destroy becomes done in the virtual @ref DeleteHardwareTexture() and is called
+   * when the texture is reallocated or the font is destroyed.
+   */
+  void CreateTextureResources();
+
+  /**
+   * @brief Sets the content of the image.
+   *
+   * This function is used to update the content of the texture image in Vulkan.
+   * It is called when a character is copied to the texture.
+   *
+   * @param y1 The starting y-coordinate.
+   * @param y2 The ending y-coordinate.
+   * @param width The width of the image.
+   * @param height The height of the image.
+   * @param imageData A pointer to the image data.
+   *
+   * @note @ref CreateTextureResources() needs to be called before this function to
+   * ensure that the texture resources are created.
+   */
+  void SetImageContent(
+      int32_t y1, int32_t y2, uint32_t width, uint32_t height, const void* imageData);
 
   VkSampler m_sampler{VK_NULL_HANDLE};
   VkImage m_image{VK_NULL_HANDLE};
@@ -108,7 +125,4 @@ private:
   glm::vec2 m_clipOffset{0.0f};
 };
 
-} // namespace VULKAN
-} // namespace GRAPHICS
-} // namespace GUILIB
-} // namespace KODI
+} // namespace KODI::GUILIB::GRAPHICS::VULKAN
