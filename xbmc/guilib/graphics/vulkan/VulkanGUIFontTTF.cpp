@@ -44,16 +44,72 @@ using namespace KODI::RENDERING::VULKAN::UTILS;
 namespace
 {
 
-struct StaticIndexBuffer
+constexpr size_t ELEMENT_ARRAY_MAX_CHAR_INDEX = 1000;
+
+struct StaticIndexBuffer : public VulkanMemoryData
 {
   bool created{false};
-  VulkanMemoryData memoryData;
 };
 
 static StaticIndexBuffer staticIndexBuffer;
 
-constexpr size_t ELEMENT_ARRAY_MAX_CHAR_INDEX = 1000;
+/**
+ * @brief Creates static index buffers.
+ *
+ * The static index buffers are used for rendering text and are shared across all instances of
+ * CVulkanGUIFontTTF. Due to the nature of Vulkan, these buffers are created once and reused to
+ * avoid unnecessary overhead.
+ *
+ * The from here called Vulkan functions are only access CPU side and not GPU side,
+ * so we not need to care about synchronization and class construction can proceed safely.
+ */
+static void CreateStaticIndexBuffers()
+{
+  if (staticIndexBuffer.created)
+    return;
+
+  auto queue = dynamic_cast<CVulkanRenderSystem*>(CServiceBroker::GetRenderSystem())->DeviceQueue();
+
+  // Create an array holding the mesh indices to convert quads to triangles
+  uint32_t index[ELEMENT_ARRAY_MAX_CHAR_INDEX][6];
+  for (size_t i = 0; i < ELEMENT_ARRAY_MAX_CHAR_INDEX; i++)
+  {
+    index[i][0] = 4 * i;
+    index[i][1] = 4 * i + 1;
+    index[i][2] = 4 * i + 2;
+    index[i][3] = 4 * i + 1;
+    index[i][4] = 4 * i + 3;
+    index[i][5] = 4 * i + 2;
+  }
+
+  VK_CHECK_RESULT(queue->CreateBuffer(VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
+                                      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                                          VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                                      &staticIndexBuffer, sizeof(index), &index));
+  staticIndexBuffer.created = true;
+}
+
+/**
+ * @brief Destroys static index buffers.
+ *
+ * The from here called Vulkan functions are only access CPU side and not GPU side,
+ * so we not need to care about synchronization.
+ */
+static void DestroyStaticIndexBuffers()
+{
+  if (!staticIndexBuffer.created)
+    return;
+
+  auto queue = dynamic_cast<CVulkanRenderSystem*>(CServiceBroker::GetRenderSystem())->DeviceQueue();
+
+  queue->DestroyBuffer(&staticIndexBuffer);
+
+  staticIndexBuffer.created = false;
+}
+
 } /* namespace */
+
+//-----------------------------------------------------------------------------
 
 CGUIFontTTF* CGUIFontTTF::CreateGUIFontTTF(const std::string& fontIdent)
 {
@@ -63,19 +119,22 @@ CGUIFontTTF* CGUIFontTTF::CreateGUIFontTTF(const std::string& fontIdent)
 CVulkanGUIFontTTF::CVulkanGUIFontTTF(const std::string& fontIdent) : CGUIFontTTF(fontIdent)
 {
   using KODI::RENDERING::VULKAN::CVulkanRenderSystem;
+
+  // Stored to avoid repeated dynamic_casts in the render loop and to avoid
+  // having to call CServiceBroker::GetRenderSystem() repeatedly
   m_renderSystem = dynamic_cast<CVulkanRenderSystem*>(CServiceBroker::GetRenderSystem());
-  m_vkData = m_renderSystem->vkData();
+  m_deviceQueue = m_renderSystem->DeviceQueue();
   m_shaderFonts = dynamic_cast<CVulkanShaderFonts*>(
       m_renderSystem->ShaderControl()->GetShader(VULKAN_SM_FONTS));
+  m_vkData = m_renderSystem->vkData();
 
-  CVulkanDynamicBuffers* dynamicBuffers = m_renderSystem->DynamicBuffers();
-  m_uniformBuffer = dynamicBuffers->GetBuffer(BUFFER_TYPE_UNIFORM);
-  m_vertexBuffer = dynamicBuffers->GetBuffer(BUFFER_TYPE_VERTEX);
-  m_indexBuffer = dynamicBuffers->GetBuffer(BUFFER_TYPE_INDEX);
+  CreateStaticIndexBuffers();
 }
 
 CVulkanGUIFontTTF::~CVulkanGUIFontTTF()
 {
+  DestroyStaticIndexBuffers();
+
   // It's important that all the CGUIFontCacheEntry objects are
   // destructed before the CVulkanGUIFontTTF goes out of scope, because
   // our virtual methods won't be accessible after this point
@@ -86,38 +145,20 @@ CVulkanGUIFontTTF::~CVulkanGUIFontTTF()
 bool CVulkanGUIFontTTF::FirstBegin()
 {
   m_scissorClip = ScissorsCanEffectClipping();
-  if (m_scissorClip)
+  if (!m_scissorClip)
   {
-    m_vkPipelineUsed = m_shaderFonts->VulkanPipeline(/*FONTS_TYPE_SCISSOR_CLIP*/);
-  }
-  else
-  {
-    m_vkPipelineUsed = m_shaderFonts->VulkanPipeline(/*FONTS_TYPE_SHADER_CLIP*/);
-  }
-
-  if (m_textureStatus == TEXTURE_REALLOCATED)
-  {
-
-    m_textureStatus = TEXTURE_VOID;
-  }
-
-  if (m_textureStatus == TEXTURE_VOID)
-  {
-
-    m_textureStatus = TEXTURE_UPDATED;
+    m_renderSystem->ResetScissors();
   }
 
   if (m_textureStatus == TEXTURE_UPDATED)
   {
-    //fprintf(stderr, "CVulkanGUIFontTTF::FirstBegin: Updating texture from %u to %u\n", m_updateY1,
-    //        m_updateY2);
-    //// Copies one more line in case we have to sample from there
-    //m_updateY2 = std::min(m_updateY2 + 1, m_texture->GetHeight());
+    // Copies one more line in case we have to sample from there
+    m_updateY2 = std::min(m_updateY2 + 1, m_texture->GetHeight());
 
-    //SetImageContent(0, m_updateY1, m_texture->GetWidth(), m_updateY2 - m_updateY1,
-    //                m_texture->GetPixels() + m_updateY1 * m_texture->GetPitch());
+    SetImageContent(0, m_updateY1, m_texture->GetWidth(), m_updateY2 - m_updateY1,
+                    m_texture->GetPixels() + m_updateY1 * m_texture->GetPitch());
 
-    //m_updateY1 = m_updateY2 = 0;
+    m_updateY1 = m_updateY2 = 0;
     m_textureStatus = TEXTURE_READY;
   }
 
@@ -135,14 +176,11 @@ void CVulkanGUIFontTTF::LastEnd()
 
   VkCommandBuffer commandBuffer = m_renderSystem->vkCurrentCommandBuffer();
 
-  CreateStaticIndexBuffers();
-
   if (!m_vertexTrans.empty())
   {
     // Store current scissor
     CGraphicContext& context = winSystem->GetGfxContext();
-    //CRect scissor = context.StereoCorrection(context.GetScissors());
-    CVulkanTexture* vkTexture = dynamic_cast<CVulkanTexture*>(m_texture.get());
+    CRect scissor = context.StereoCorrection(context.GetScissors());
 
     const uint32_t renderImageIndex = m_renderSystem->vkCurrentRenderImageIndex();
 
@@ -150,23 +188,27 @@ void CVulkanGUIFontTTF::LastEnd()
     {
       if (m_vertexTrans[i].m_vertexBuffer->bufferHandle == nullptr)
       {
-        fprintf(stderr, "CVulkanGUIFontTTF::LastEnd: Skipping font %s with empty vertex buffer\n",
-                GetFontIdent().c_str());
         continue;
       }
 
       // Apply the clip rectangle
-      //CRect clip = ClipRectToScissorRect(m_vertexTrans[i].m_clip);
-      //if (!clip.IsEmpty())
-      //{
-      //  // intersect with current scissor
-      //  clip.Intersect(scissor);
-      //  // skip empty clip
-      //  if (clip.IsEmpty())
-      //  {
-      //    continue;
-      //  }
-      //}
+      CRect clip = ClipRectToScissorRect(m_vertexTrans[i].m_clip);
+      if (!clip.IsEmpty())
+      {
+        // intersect with current scissor
+        clip.Intersect(scissor);
+        // skip empty clip
+        if (clip.IsEmpty())
+        {
+          continue;
+        }
+      }
+
+      if (m_scissorClip)
+      {
+        // clip using scissors
+        m_renderSystem->SetScissors(clip);
+      }
 
       // calculate the fractional offset to the ideal position
       float fractX =
@@ -206,7 +248,7 @@ void CVulkanGUIFontTTF::LastEnd()
       VkBuffer vertexBuffer = m_vertexTrans[i].m_vertexBuffer->bufferHandle->buffer;
       vkCmdBindVertexBuffers(commandBuffer, 0, 1, &vertexBuffer, &bufferOffset);
 
-      VkBuffer indexBuffer = staticIndexBuffer.memoryData.buffer;
+      VkBuffer indexBuffer = staticIndexBuffer.buffer;
       vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT32);
 
       vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1,
@@ -231,59 +273,36 @@ void CVulkanGUIFontTTF::LastEnd()
     }
 
     // Restore the original scissor rectangle
-    //if (m_scissorClip)
-    //  m_renderSystem->SetScissors(scissor);
+    if (m_scissorClip)
+      m_renderSystem->SetScissors(scissor);
   }
 }
 
 CVertexBuffer CVulkanGUIFontTTF::CreateVertexBuffer(const std::vector<SVertex>& vertices) const
-{
-  // We need to cast away constness here because the Vulkan vertex buffer creation modifies the
-  // internal state of the font object
-  return VulkanCreateVertexBuffer(const_cast<CVulkanGUIFontTTF*>(this), vertices);
-}
-
-void CVulkanGUIFontTTF::DestroyVertexBuffer(CVertexBuffer& buffer) const
-{
-  VulkanDestroyVertexBuffer(const_cast<CVulkanGUIFontTTF*>(this), buffer);
-}
-
-CVertexBuffer CVulkanGUIFontTTF::VulkanCreateVertexBuffer(CVulkanGUIFontTTF* ref,
-                                                          const std::vector<SVertex>& vertices)
 {
   assert(vertices.size() % 4 == 0);
 
   const VkDeviceSize buffer_size = vertices.size() * sizeof(SVertex);
 
   VulkanMemoryData* memData = new VulkanMemoryData();
-  VK_CHECK_RESULT(ref->m_renderSystem->DeviceQueue()->CreateBuffer(
-                      VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-                      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                      memData, buffer_size, vertices.data()),
+  VK_CHECK_RESULT(m_deviceQueue->CreateBuffer(VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+                                              VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                                                  VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                                              memData, buffer_size, vertices.data()),
                   CVertexBuffer());
 
-  //  // We map the buffer once, so we can update it without having to map it again
-  //VK_CHECK_RESULT(vkMapMemory(ref->m_renderSystem->vkDevice(), memData->memory, 0, buffer_size, 0,
-  //                            (void**)&memData->mapped),
-  //                CVertexBuffer());
-
-  return CVertexBuffer(CVertexBuffer::BufferHandleType(memData), vertices.size() / 4, ref);
+  return CVertexBuffer(CVertexBuffer::BufferHandleType(memData), vertices.size() / 4, this);
 }
 
-void CVulkanGUIFontTTF::VulkanDestroyVertexBuffer(CVulkanGUIFontTTF* ref, CVertexBuffer& buffer)
+void CVulkanGUIFontTTF::DestroyVertexBuffer(CVertexBuffer& buffer) const
 {
-  ref->m_renderSystem->DeviceQueue()->DestroyBuffer(buffer.bufferHandle);
+  m_deviceQueue->DestroyBuffer(buffer.bufferHandle);
   delete buffer.bufferHandle;
   buffer.bufferHandle = nullptr;
 }
 
 std::unique_ptr<CTexture> CVulkanGUIFontTTF::ReallocTexture(unsigned int& newHeight)
 {
-  fprintf(stderr, "CVulkanGUIFontTTF::ReallocTexture: (%p) Reallocating texture for %s (%u)\n",
-          this, GetFontIdent().c_str(), newHeight);
-  /*
-
-  */
   newHeight = CTexture::PadPow2(newHeight);
 
   auto newTexture = std::make_unique<CVulkanTexture>(m_textureWidth, newHeight, XB_FMT_A8);
@@ -304,11 +323,6 @@ std::unique_ptr<CTexture> CVulkanGUIFontTTF::ReallocTexture(unsigned int& newHei
   m_staticCache.Flush();
   m_dynamicCache.Flush();
 
-  if (!m_texture)
-  {
-    CreateTextureResources();
-  }
-
   memset(newTexture->GetPixels(), 0, m_textureHeight * newTexture->GetPitch());
   if (m_texture)
   {
@@ -323,11 +337,71 @@ std::unique_ptr<CTexture> CVulkanGUIFontTTF::ReallocTexture(unsigned int& newHei
       src += m_texture->GetPitch();
       dst += newTexture->GetPitch();
     }
+
+    DeleteHardwareTexture();
   }
+
+  CreateTextureResources();
 
   m_textureStatus = TEXTURE_REALLOCATED;
 
   return newTexture;
+}
+
+bool CVulkanGUIFontTTF::CopyCharToTexture(
+    FT_BitmapGlyph bitGlyph, unsigned int x1, unsigned int y1, unsigned int x2, unsigned int y2)
+{
+  FT_Bitmap bitmap = bitGlyph->bitmap;
+
+  // Copy the bitmap buffer to the texture using memcpy.
+  // Is to reduce the number of Vulkan commands and avoid the overhead of creating staging
+  // buffers for each character.
+  //
+  // Directly copy the bitmap buffer from here with call below can works as well,
+  // only like described before more works.
+  // ```cpp
+  // SetImageContent(x1, y1, x2 - x1, y2 - y1, bitmap.buffer);
+  // ```
+  unsigned char* source = bitmap.buffer;
+  unsigned char* target = m_texture->GetPixels() + y1 * m_texture->GetPitch() + x1;
+
+  for (unsigned int y = y1; y < y2; y++)
+  {
+    memcpy(target, source, x2 - x1);
+    source += bitmap.width;
+    target += m_texture->GetPitch();
+  }
+
+  switch (m_textureStatus)
+  {
+    case TEXTURE_UPDATED:
+    {
+      m_updateY1 = std::min(m_updateY1, y1);
+      m_updateY2 = std::max(m_updateY2, y2);
+    }
+    break;
+
+    case TEXTURE_READY:
+    {
+      m_updateY1 = y1;
+      m_updateY2 = y2;
+      m_textureStatus = TEXTURE_UPDATED;
+    }
+    break;
+
+    case TEXTURE_REALLOCATED:
+    {
+      m_updateY2 = std::max(m_updateY2, y2);
+      m_textureStatus = TEXTURE_UPDATED;
+    }
+    break;
+
+    case TEXTURE_VOID:
+    default:
+      break;
+  }
+
+  return true;
 }
 
 void CVulkanGUIFontTTF::CreateTextureResources()
@@ -353,8 +427,8 @@ void CVulkanGUIFontTTF::CreateTextureResources()
 
   VkMemoryRequirements memReqs;
   vkGetImageMemoryRequirements(m_vkData->vkDevice, m_image, &memReqs);
-  uint32_t memoryTypeIndex = m_renderSystem->DeviceQueue()->GetMemoryType(
-      memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+  uint32_t memoryTypeIndex =
+      m_deviceQueue->GetMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
   auto allocInfo = vkMemoryAllocateInfo(memReqs.size, memoryTypeIndex);
   VK_CHECK_RESULT(vkAllocateMemory(m_vkData->vkDevice, &allocInfo, nullptr, &m_imageMemory));
   VK_CHECK_RESULT(vkBindImageMemory(m_vkData->vkDevice, m_image, m_imageMemory, 0));
@@ -446,9 +520,9 @@ void CVulkanGUIFontTTF::SetImageContent(
   VkMemoryRequirements memReqs;
   vkGetBufferMemoryRequirements(m_vkData->vkDevice, stagingBuffer, &memReqs);
 
-  uint32_t memoryTypeIndex = m_renderSystem->DeviceQueue()->GetMemoryType(
-      memReqs.memoryTypeBits,
-      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+  uint32_t memoryTypeIndex = m_deviceQueue->GetMemoryType(memReqs.memoryTypeBits,
+                                                          VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
+                                                              VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
   auto allocInfo = vkMemoryAllocateInfo(memReqs.size, memoryTypeIndex);
 
   VkDeviceMemory stagingMemory{};
@@ -461,8 +535,8 @@ void CVulkanGUIFontTTF::SetImageContent(
   memcpy(data, imageData, static_cast<size_t>(size));
   vkUnmapMemory(m_vkData->vkDevice, stagingMemory);
 
-  VkCommandBuffer copyCmd = m_renderSystem->DeviceQueue()->CreateCommandBuffer(
-      VK_COMMAND_BUFFER_LEVEL_PRIMARY, m_vkData->vkCommandPool, true);
+  VkCommandBuffer copyCmd = m_deviceQueue->CreateCommandBuffer(VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+                                                               m_vkData->vkCommandPool, true);
 
   SetImageLayout(copyCmd, m_image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                  subresourceRange, VK_PIPELINE_STAGE_HOST_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
@@ -472,69 +546,15 @@ void CVulkanGUIFontTTF::SetImageContent(
                  VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, subresourceRange,
                  VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
 
-  m_renderSystem->DeviceQueue()->FlushCommandBuffer(copyCmd);
+  m_deviceQueue->FlushCommandBuffer(copyCmd);
 
   // Clean up staging resources
   vkFreeMemory(m_vkData->vkDevice, stagingMemory, nullptr);
   vkDestroyBuffer(m_vkData->vkDevice, stagingBuffer, nullptr);
 }
 
-bool CVulkanGUIFontTTF::CopyCharToTexture(
-    FT_BitmapGlyph bitGlyph, unsigned int x1, unsigned int y1, unsigned int x2, unsigned int y2)
-{
-  fprintf(stderr,
-          "CVulkanGUIFontTTF::CopyCharToTexture: Copying char to texture for %s (%u, %u, %u, %u)\n",
-          GetFontIdent().c_str(), x1, y1, x2, y2);
-  FT_Bitmap bitmap = bitGlyph->bitmap;
-
-  SetImageContent(x1, y1, x2 - x1, y2 - y1, bitmap.buffer);
-
-  //unsigned char* source = bitmap.buffer;
-  //unsigned char* target = m_texture->GetPixels() + y1 * m_texture->GetPitch() + x1;
-
-  //for (unsigned int y = y1; y < y2; y++)
-  //{
-  //  memcpy(target, source, x2 - x1);
-  //  source += bitmap.width;
-  //  target += m_texture->GetPitch();
-  //}
-
-  //switch (m_textureStatus)
-  //{
-  //  case TEXTURE_UPDATED:
-  //  {
-  //    m_updateY1 = std::min(m_updateY1, y1);
-  //    m_updateY2 = std::max(m_updateY2, y2);
-  //  }
-  //  break;
-
-  //  case TEXTURE_READY:
-  //  {
-  //    m_updateY1 = y1;
-  //    m_updateY2 = y2;
-  //    m_textureStatus = TEXTURE_UPDATED;
-  //  }
-  //  break;
-
-  //  case TEXTURE_REALLOCATED:
-  //  {
-  //    m_updateY2 = std::max(m_updateY2, y2);
-  //  }
-  //  break;
-
-  //  case TEXTURE_VOID:
-  //  default:
-  //    break;
-  //}
-
-  return true;
-}
-
 void CVulkanGUIFontTTF::DeleteHardwareTexture()
 {
-  //fprintf(stderr, "CVulkanGUIFontTTF::DeleteHardwareTexture: Deleting hardware texture for %s\n",
-  //        GetFontIdent().c_str());
-
   if (m_imageView != VK_NULL_HANDLE)
   {
     vkDestroyImageView(m_vkData->vkDevice, m_imageView, nullptr);
@@ -555,43 +575,6 @@ void CVulkanGUIFontTTF::DeleteHardwareTexture()
     vkFreeMemory(m_vkData->vkDevice, m_imageMemory, nullptr);
     m_imageMemory = VK_NULL_HANDLE;
   }
-}
-
-void CVulkanGUIFontTTF::CreateStaticIndexBuffers()
-{
-  if (staticIndexBuffer.created)
-    return;
-
-  const auto renderSystem = dynamic_cast<CVulkanRenderSystem*>(CServiceBroker::GetRenderSystem());
-
-  // Create an array holding the mesh indices to convert quads to triangles
-  uint32_t index[ELEMENT_ARRAY_MAX_CHAR_INDEX][6];
-  for (size_t i = 0; i < ELEMENT_ARRAY_MAX_CHAR_INDEX; i++)
-  {
-    index[i][0] = 4 * i;
-    index[i][1] = 4 * i + 1;
-    index[i][2] = 4 * i + 2;
-    index[i][3] = 4 * i + 1;
-    index[i][4] = 4 * i + 3;
-    index[i][5] = 4 * i + 2;
-  }
-
-  VK_CHECK_RESULT(renderSystem->DeviceQueue()->CreateBuffer(
-      VK_BUFFER_USAGE_INDEX_BUFFER_BIT,
-      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-      &staticIndexBuffer.memoryData, sizeof(index), &index));
-  staticIndexBuffer.created = true;
-}
-
-void CVulkanGUIFontTTF::DestroyStaticIndexBuffers()
-{
-  if (!staticIndexBuffer.created)
-    return;
-
-  const auto renderSystem = dynamic_cast<CVulkanRenderSystem*>(CServiceBroker::GetRenderSystem());
-  renderSystem->DeviceQueue()->DestroyBuffer(&staticIndexBuffer.memoryData);
-
-  staticIndexBuffer.created = false;
 }
 
 /**
@@ -647,24 +630,28 @@ bool CVulkanGUIFontTTF::ScissorsCanEffectClipping()
       projMatrix[3][1] == 0 && projMatrix[0][3] == 0 && projMatrix[1][3] == 0 &&
       projMatrix[3][3] == 0;
 
-  m_clipFactor = glm::vec2(0.0f);
-  m_clipOffset = glm::vec2(0.0f);
+  m_clipFactor = glm::vec2(0.0);
+  m_clipOffset = glm::vec2(0.0);
 
   if (clipPossible)
   {
+    // Note: Vulkan uses a right-handed coordinate system, so the Y axis is inverted compared to OpenGL.
+    // This is why we negate the Y component of the clip factor and offset.
     m_clipFactor.x = guiMatrix.m[0][0] * modelMatrix[0][0] * projMatrix[0][0];
     m_clipOffset.x = (guiMatrix.m[0][3] * modelMatrix[0][0] + modelMatrix[3][0]) * projMatrix[0][0];
-    m_clipFactor.y = guiMatrix.m[1][1] * modelMatrix[1][1] * projMatrix[1][1];
-    m_clipOffset.y = (guiMatrix.m[1][3] * modelMatrix[1][1] + modelMatrix[3][1]) * projMatrix[1][1];
+    m_clipFactor.y = guiMatrix.m[1][1] * modelMatrix[1][1] * -projMatrix[1][1];
+    m_clipOffset.y = (guiMatrix.m[1][3] * modelMatrix[1][1] + modelMatrix[3][1]) * -projMatrix[1][1];
 
+    // correct for inverted window coordinate scheme
     const float clipW =
         (guiMatrix.m[2][3] * modelMatrix[2][2] + modelMatrix[3][2]) * projMatrix[2][3];
-    // correct for inverted window coordinate scheme
-    const float xMult = (viewPort.x2 - viewPort.x1) / (2 * clipW);
-    const float yMult = (viewPort.y1 - viewPort.y2) / (2 * clipW);
-    m_clipFactor *= glm::vec2(xMult, yMult);
-    m_clipOffset *= glm::vec2(xMult, yMult) +
-                    glm::vec2((viewPort.x2 + viewPort.x1) / 2, (viewPort.y2 + viewPort.y1) / 2);
+    float xMult = (viewPort.x2 - viewPort.x1) / (2 * clipW);
+    float yMult = (viewPort.y1 - viewPort.y2) / (2 * clipW);
+
+    m_clipFactor.x = m_clipFactor.x * xMult;
+    m_clipOffset.x = m_clipOffset.x * xMult + (viewPort.x2 + viewPort.x1) / 2;
+    m_clipFactor.y = m_clipFactor.y * yMult;
+    m_clipOffset.y = m_clipOffset.y * yMult + (viewPort.y2 + viewPort.y1) / 2;
   }
 
   return clipPossible;
@@ -672,7 +659,8 @@ bool CVulkanGUIFontTTF::ScissorsCanEffectClipping()
 
 CRect CVulkanGUIFontTTF::ClipRectToScissorRect(const CRect& rect)
 {
-  return CRect(rect.x1 * m_clipFactor.x + m_clipOffset.x, rect.y1 * m_clipFactor.y + m_clipOffset.y,
+  return CRect(rect.x1 * m_clipFactor.x + m_clipOffset.x,
+               rect.y1 * m_clipFactor.y + m_clipOffset.y,
                rect.x2 * m_clipFactor.x + m_clipOffset.x,
                rect.y2 * m_clipFactor.y + m_clipOffset.y);
 }

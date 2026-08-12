@@ -209,39 +209,6 @@ void CVulkanTexture::LoadToGPU()
   VK_CHECK_RESULT(vkAllocateMemory(m_vkData->vkDevice, &allocInfo, nullptr, &m_imageMemory));
   VK_CHECK_RESULT(vkBindImageMemory(m_vkData->vkDevice, m_image, m_imageMemory, 0));
 
-  ////@{
-  //uint32_t memoryTypeIndex = m_renderSystem->DeviceQueue()->GetMemoryType(
-  //    memReqs.memoryTypeBits,
-  //    VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
-  //auto allocInfo = vkMemoryAllocateInfo(memReqs.size, memoryTypeIndex);
-
-  //VkDeviceMemory stagingMemory{};
-  //VK_CHECK_RESULT(vkAllocateMemory(m_vkData->vkDevice, &allocInfo, nullptr, &stagingMemory));
-  //VK_CHECK_RESULT(vkBindBufferMemory(m_vkData->vkDevice, stagingBuffer, stagingMemory, 0));
-
-  //void* data;
-  //VK_CHECK_RESULT(vkMapMemory(m_vkData->vkDevice, stagingMemory, 0, size, 0, &data));
-  //memcpy(data, m_pixels, static_cast<size_t>(size));
-  //vkUnmapMemory(m_vkData->vkDevice, stagingMemory);
-
-  //VkCommandBuffer copyCmd = m_renderSystem->DeviceQueue()->CreateCommandBuffer(
-  //    VK_COMMAND_BUFFER_LEVEL_PRIMARY, command_pool, true);
-
-  //SetImageLayout(copyCmd, m_image, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-  //               subresourceRange, VK_PIPELINE_STAGE_HOST_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT);
-  //vkCmdCopyBufferToImage(copyCmd, stagingBuffer, m_image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1,
-  //                       &region);
-  //SetImageLayout(copyCmd, m_image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-  //               VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, subresourceRange,
-  //               VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
-
-  //m_renderSystem->DeviceQueue()->FlushCommandBuffer(copyCmd);
-
-  //// Clean up staging resources
-  //vkFreeMemory(m_vkData->vkDevice, stagingMemory, nullptr);
-  //vkDestroyBuffer(m_vkData->vkDevice, stagingBuffer, nullptr);
-  ////@}
-
   const VkFilter filter =
       (m_scalingMethod == TEXTURE_SCALING::NEAREST ? VK_FILTER_NEAREST : VK_FILTER_LINEAR);
   const int32_t aniso =

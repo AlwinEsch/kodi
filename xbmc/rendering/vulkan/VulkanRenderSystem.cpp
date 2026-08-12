@@ -199,6 +199,7 @@ bool CVulkanRenderSystem::InitRenderSystem()
 
 bool CVulkanRenderSystem::DestroyRenderSystem()
 {
+  fprintf(stderr, "Vulkan: DestroyRenderSystem() called (%s:%d)\n", __FILENAME__, __LINE__);
   if (!m_bRenderCreated)
     return false;
 
