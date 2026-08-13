@@ -29,7 +29,7 @@ out gl_PerVertex
 
 void main()
 {
-	gl_Position = ubo.projectionMatrix * ubo.modelMatrix * vec4(in_attrpos.xyz, 1.0);
+  gl_Position = ubo.projectionMatrix * ubo.modelMatrix * vec4(in_attrpos.xyz, 1.0);
   gl_Position.z = ubo.depth * gl_Position.w;
   frag_cord0 = in_attrcord0;
   frag_cord1 = in_attrcord1;

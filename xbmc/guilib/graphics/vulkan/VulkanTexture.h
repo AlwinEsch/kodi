@@ -9,18 +9,17 @@
 #pragma once
 
 #include "guilib/Texture.h"
-#include "rendering/vulkan/VulkanData.h"
 
 #include <vector>
 
-#include <glm/glm.hpp>
 #include <vulkan/vulkan_core.h>
 
 namespace KODI::RENDERING::VULKAN
 {
 
+class CVulkanDeviceQueue;
 class CVulkanRenderSystem;
-class CVulkanShaderTexture;
+struct VulkanData;
 
 } // namespace KODI::RENDERING::VULKAN
 
@@ -37,29 +36,26 @@ public:
   void CreateTextureObject() override;
   void DestroyTextureObject() override;
   void LoadToGPU() override;
-  void SyncGPU() override;
-  void BindToUnit(unsigned int unit) override;
   bool SupportsFormat(KD_TEX_FMT textureFormat, KD_TEX_SWIZ textureSwizzle) override;
 
-  VkImage vkImage() const { return m_image; }
-  VkDeviceMemory vkImageMemory() const { return m_imageMemory; }
   VkImageView vkImageView() const { return m_imageView; }
-  VkSampler vkSampler() const { return m_sampler; }
   const VkDescriptorSet* vkDescriptorSet() const { return &m_descriptorSet; }
 
+  // Unused functions for Vulkan, but required to implement CTexture interface
+  void BindToUnit(unsigned int unit) override {}
+  void SyncGPU() override {}
+
 private:
+  // Vulkan resources, becomes set during constuction.
+  KODI::RENDERING::VULKAN::CVulkanRenderSystem* m_renderSystem;
+  KODI::RENDERING::VULKAN::CVulkanDeviceQueue* m_deviceQueue;
   const KODI::RENDERING::VULKAN::VulkanData* m_vkData;
 
-  VkDescriptorSetLayout m_descriptorSetLayout{VK_NULL_HANDLE};
-  VkDescriptorPool m_descriptorPool{VK_NULL_HANDLE};
-
-  KODI::RENDERING::VULKAN::CVulkanRenderSystem* m_renderSystem;
-
+  // Vulkan resources, becomes set during CreateTextureObject()
   VkImage m_image{VK_NULL_HANDLE};
   VkImageView m_imageView{VK_NULL_HANDLE};
   VkDeviceMemory m_imageMemory{VK_NULL_HANDLE};
   VkSampler m_sampler{VK_NULL_HANDLE};
-
   VkDescriptorSet m_descriptorSet{VK_NULL_HANDLE};
 };
 

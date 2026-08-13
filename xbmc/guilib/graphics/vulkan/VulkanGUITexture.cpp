@@ -73,10 +73,7 @@ void CVulkanGUITexture::Begin(KODI::UTILS::COLOR::Color color)
 
   // Setup Colors
   // NOTE: Vulkan uses ARGB format, but we need to convert it to RGBA for the shader
-  m_color.r = float((color >> 16) & 0xFF) / 255.0f;
-  m_color.g = float((color >> 8) & 0xFF) / 255.0f;
-  m_color.b = float((color >> 0) & 0xFF) / 255.0f;
-  m_color.a = float((color >> 24) & 0xFF) / 255.0f;
+  m_color = KODI::UTILS::COLOR::ConvertToGLM(color);
 
   bool hasAlpha = m_texture.m_textures[m_currentFrame]->HasAlpha() || m_color.a < 1.0f;
   TexturePipelineType usedPipelineType;
@@ -103,18 +100,12 @@ void CVulkanGUITexture::Begin(KODI::UTILS::COLOR::Color color)
     if (color == 0xFFFFFFFF)
     {
       m_usePushConst = false;
-      if (hasAlpha)
-        usedPipelineType = TEXTURE_TYPE_NO_BLEND;
-      else
-        usedPipelineType = TEXTURE_TYPE_NO_BLEND_NO_ALPHA;
+      usedPipelineType = TEXTURE_TYPE_NO_BLEND;
     }
     else
     {
       m_usePushConst = true;
-      if (hasAlpha)
-        usedPipelineType = TEXTURE_TYPE_BLEND;
-      else
-        usedPipelineType = TEXTURE_TYPE_BLEND_NO_ALPHA;
+      usedPipelineType = TEXTURE_TYPE_BLEND;
     }
 
     m_usedPipeline = m_shaderTexture->VulkanPipeline(usedPipelineType);

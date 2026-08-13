@@ -23,10 +23,8 @@ constexpr auto PARTICLE_COUNT = 512;
 
 typedef enum TexturePipelineType {
   TEXTURE_TYPE_BLEND = 0,
-  TEXTURE_TYPE_BLEND_NO_ALPHA = 1,
-  TEXTURE_TYPE_NO_BLEND = 2,
-  TEXTURE_TYPE_NO_BLEND_NO_ALPHA = 3,
-  TEXTURE_TYPE_SIZE = 4
+  TEXTURE_TYPE_NO_BLEND = 1,
+  TEXTURE_TYPE_SIZE = 2
 } TexturePipelineType;
 
 // Vertex layout used for the texture shader. This layout is used to define the input

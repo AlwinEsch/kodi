@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2005-2018 Team Kodi
+ *  Copyright (C) 2005-2026 Team Kodi
  *  This file is part of Kodi - https://kodi.tv
  *
  *  SPDX-License-Identifier: GPL-2.0-or-later
@@ -11,8 +11,6 @@
 #include "ServiceBroker.h"
 #include "guilib/GUIFont.h"
 #include "guilib/GUIFontManager.h"
-#include "guilib/Texture.h"
-#include "guilib/TextureManager.h"
 #include "guilib/graphics/vulkan/VulkanTexture.h"
 #include "rendering/MatrixStack.h"
 #include "rendering/vulkan/VulkanRenderSystem.h"
@@ -28,9 +26,10 @@
 #include <cassert>
 #include <memory>
 
+#include <glm/gtc/type_ptr.hpp>
+
 // stuff for freetype
 #include <ft2build.h>
-#include <glm/gtc/type_ptr.hpp>
 #include FT_FREETYPE_H
 #include FT_GLYPH_H
 #include FT_OUTLINE_H
@@ -143,12 +142,26 @@ CVulkanGUIFontTTF::~CVulkanGUIFontTTF()
 
 bool CVulkanGUIFontTTF::FirstBegin()
 {
-  m_scissorClip = /*ScissorsCanEffectClipping()*/false;
+  /**
+   * Check if @ref vkCmdSetScissor can be used to clip the text or if we have to use the vertex
+   * shader for clipping (@ref vkCmdSetScissor called within @ref CVulkanRenderSystem::SetScissors).
+   *
+   * Cases where scissor is not possible are for example when the text is rotated or scaled.
+   *
+   * If scissor is possible becomes vertex shader "fonts_vert.spv" used,
+   * otherwise "fonts_vert_clip.spv" is used.
+   */
+  m_scissorClip = ScissorsCanEffectClipping();
   if (!m_scissorClip)
   {
     m_renderSystem->ResetScissors();
   }
 
+  /**
+   * We do here the set of Vulkan image content and have all characters combined where
+   * was given by several @ref CopyCharToTexture calls. This reduces the number of Vulkan
+   * image content updates and avoids unnecessary overhead.
+   */
   if (m_textureStatus == TEXTURE_UPDATED)
   {
     // Copies one more line in case we have to sample from there
@@ -189,6 +202,24 @@ void CVulkanGUIFontTTF::LastEnd()
     uniform.depth = CServiceBroker::GetWinSystem()->GetGfxContext().GetTransformDepth();
     m_shaderFonts->UpdateUniformBuffer(renderImageIndex, uniform);
 
+    VkPipeline pipeline;
+    VkPipelineLayout pipelineLayout;
+
+    if (m_scissorClip)
+    {
+      pipeline = m_shaderFonts->VulkanPipeline(FONTS_TYPE_SCISSOR_CLIP);
+      pipelineLayout = m_shaderFonts->VulkanPipelineLayout(FONTS_TYPE_SCISSOR_CLIP);
+    }
+    else
+    {
+      pipeline = m_shaderFonts->VulkanPipeline(FONTS_TYPE_SHADER_CLIP);
+      pipelineLayout = m_shaderFonts->VulkanPipelineLayout(FONTS_TYPE_SHADER_CLIP);
+
+      m_renderSystem->ResetScissors();
+    }
+
+    CVulkanShaderFonts::ClipPushConstants pushConstants{};
+
     for (size_t i = 0; i < m_vertexTrans.size(); i++)
     {
       if (m_vertexTrans[i].m_vertexBuffer->bufferHandle == nullptr)
@@ -217,8 +248,6 @@ void CVulkanGUIFontTTF::LastEnd()
       fractX = -fractX + std::round(fractX);
       fractY = -fractY + std::round(fractY);
 
-      CVulkanShaderFonts::ClipPushConstants pushConstants{};
-
       // proj * model * gui * scroll * translation * scaling * correction factor
       // Note: Projection and model matrices are already combined in the uniform buffer, so we only need to apply
       // the GUI matrix and the translation/scaling/correction here.
@@ -237,16 +266,10 @@ void CVulkanGUIFontTTF::LastEnd()
       pushConstants.scissor.viewMatrix =
           glm::translate(pushConstants.scissor.viewMatrix, glm::vec3(fractX, fractY, 0.0f));
 
-      VkPipeline pipeline;
-      VkPipelineLayout pipelineLayout;
-
       if (m_scissorClip)
       {
         // clip using scissors
         m_renderSystem->SetScissors(clip);
-
-        pipeline = m_shaderFonts->VulkanPipeline(FONTS_TYPE_SCISSOR_CLIP);
-        pipelineLayout = m_shaderFonts->VulkanPipelineLayout(FONTS_TYPE_SCISSOR_CLIP);
 
         vkCmdPushConstants(m_renderSystem->vkCurrentCommandBuffer(), pipelineLayout,
                            VK_SHADER_STAGE_VERTEX_BIT, 0,
@@ -254,12 +277,7 @@ void CVulkanGUIFontTTF::LastEnd()
       }
       else
       {
-        pipeline = m_shaderFonts->VulkanPipeline(FONTS_TYPE_SHADER_CLIP);
-        pipelineLayout = m_shaderFonts->VulkanPipelineLayout(FONTS_TYPE_SHADER_CLIP);
-
         // clip using vertex shader
-        m_renderSystem->ResetScissors();
-
         pushConstants.shader.shaderClip = {
             (m_vertexTrans[i].m_clip.x1 - m_vertexTrans[i].m_translateX -
              m_vertexTrans[i].m_offsetX) /

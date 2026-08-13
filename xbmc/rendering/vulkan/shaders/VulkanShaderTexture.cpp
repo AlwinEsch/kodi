@@ -24,9 +24,9 @@ namespace KODI::RENDERING::VULKAN
 
 namespace
 {
-constexpr const char* kVertexShaderFile = "vulkan_shader_gr1_vert.spv";
-constexpr const char* kFragShaderFile = "vulkan_shader_gr1_frag_texture.spv";
-constexpr const char* kFragShaderFile_NoBlend = "vulkan_shader_gr1_frag_texture_noblend.spv";
+constexpr const char* kVertexShaderFile = "texture_vert.spv";
+constexpr const char* kFragShaderFile = "texture_frag.spv";
+constexpr const char* kFragShaderFile_NoBlend = "texture_frag_noblend.spv";
 
 } // namespace
 
@@ -52,7 +52,6 @@ bool CVulkanShaderTexture::CreatePipelineLayout()
   VK_CHECK_RESULT(vkCreatePipelineLayout(m_vkData->vkDevice, &info, nullptr,
                                          &m_vkPipelineLayout[TEXTURE_TYPE_NO_BLEND]),
                   false);
-  m_vkPipelineLayout[TEXTURE_TYPE_NO_BLEND_NO_ALPHA] = m_vkPipelineLayout[TEXTURE_TYPE_NO_BLEND];
 
   // Push constant ranges
   pushConstantRanges = {
@@ -64,7 +63,6 @@ bool CVulkanShaderTexture::CreatePipelineLayout()
   VK_CHECK_RESULT(vkCreatePipelineLayout(m_vkData->vkDevice, &info, nullptr,
                                          &m_vkPipelineLayout[TEXTURE_TYPE_BLEND]),
                   false);
-  m_vkPipelineLayout[TEXTURE_TYPE_BLEND_NO_ALPHA] = m_vkPipelineLayout[TEXTURE_TYPE_BLEND];
   return true;
 }
 
@@ -397,34 +395,20 @@ bool CVulkanShaderTexture::CreatePipeline()
 
   shaderStages[0] = vertShader;
 
-  pipelineCreateInfo.layout = m_vkPipelineLayout[TEXTURE_TYPE_BLEND];
   shaderStages[1] = fragShader;
+  pipelineCreateInfo.layout = m_vkPipelineLayout[TEXTURE_TYPE_BLEND];
   VK_CHECK_RESULT(vkCreateGraphicsPipelines(m_vkData->vkDevice, m_vkData->vkPipelineCache, 1,
                                             &pipelineCreateInfo, nullptr,
                                             &m_vkPipeline[TEXTURE_TYPE_BLEND]),
                   false);
 
-  pipelineCreateInfo.layout = m_vkPipelineLayout[TEXTURE_TYPE_NO_BLEND];
+  //blendAttachmentState.blendEnable = VK_FALSE;
+
   shaderStages[1] = fragShader_NoBlend;
+  pipelineCreateInfo.layout = m_vkPipelineLayout[TEXTURE_TYPE_NO_BLEND];
   VK_CHECK_RESULT(vkCreateGraphicsPipelines(m_vkData->vkDevice, m_vkData->vkPipelineCache, 1,
                                             &pipelineCreateInfo, nullptr,
                                             &m_vkPipeline[TEXTURE_TYPE_NO_BLEND]),
-                  false);
-
-  blendAttachmentState.blendEnable = VK_FALSE;
-
-  pipelineCreateInfo.layout = m_vkPipelineLayout[TEXTURE_TYPE_BLEND_NO_ALPHA];
-  shaderStages[1] = fragShader;
-  VK_CHECK_RESULT(vkCreateGraphicsPipelines(m_vkData->vkDevice, m_vkData->vkPipelineCache, 1,
-                                            &pipelineCreateInfo, nullptr,
-                                            &m_vkPipeline[TEXTURE_TYPE_BLEND_NO_ALPHA]),
-                  false);
-
-  pipelineCreateInfo.layout = m_vkPipelineLayout[TEXTURE_TYPE_NO_BLEND_NO_ALPHA];
-  shaderStages[1] = fragShader_NoBlend;
-  VK_CHECK_RESULT(vkCreateGraphicsPipelines(m_vkData->vkDevice, m_vkData->vkPipelineCache, 1,
-                                            &pipelineCreateInfo, nullptr,
-                                            &m_vkPipeline[TEXTURE_TYPE_NO_BLEND_NO_ALPHA]),
                   false);
 
   // Shader modules are no longer needed once the graphics m_pipeline has been created

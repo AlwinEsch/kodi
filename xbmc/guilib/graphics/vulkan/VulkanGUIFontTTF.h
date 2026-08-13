@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2005-2018 Team Kodi
+ *  Copyright (C) 2005-2026 Team Kodi
  *  This file is part of Kodi - https://kodi.tv
  *
  *  SPDX-License-Identifier: GPL-2.0-or-later
@@ -81,6 +81,7 @@ private:
   void SetImageContent(
       int32_t y1, int32_t y2, uint32_t width, uint32_t height, const void* imageData);
 
+  // Vulkan resources for the texture.
   VkSampler m_sampler{VK_NULL_HANDLE};
   VkImage m_image{VK_NULL_HANDLE};
   VkImageView m_imageView{VK_NULL_HANDLE};

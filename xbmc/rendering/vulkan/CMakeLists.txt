@@ -76,8 +76,7 @@ if(TARGET ${APP_NAME_LC}::Vulkan)
   set(SHADERS_VERTEX
     fonts_vert.glsl
     fonts_vert_clip.glsl
-    vulkan_shader_gr0_vert_test_triangle.glsl
-    vulkan_shader_gr1_vert.glsl
+    texture_vert.glsl
     vulkan_shader_gr2_vert_default.glsl
     vulkan_shader_gr3_vert_clip.glsl
     vulkan_shader_gr3_vert_simple.glsl
@@ -87,12 +86,11 @@ if(TARGET ${APP_NAME_LC}::Vulkan)
 
   set(SHADERS_PIXEL
     fonts_frag.glsl
-    vulkan_shader_gr0_frag_test_triangle.glsl
+    texture_frag.glsl
+    texture_frag_noblend.glsl
     vulkan_shader_gr1_frag_multi.glsl
     vulkan_shader_gr1_frag_multi_blendcolor.glsl
-    vulkan_shader_gr1_frag_texture.glsl
     vulkan_shader_gr1_frag_texture_lim.glsl
-    vulkan_shader_gr1_frag_texture_noblend.glsl
     vulkan_shader_gr2_frag_default.glsl
     vulkan_shader_gr3_frag_fonts.glsl
     vulkan_shader_gr4_frag_gui_composite.glsl
