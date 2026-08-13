@@ -14,7 +14,6 @@
 #include "RenderInfo.h"
 #include "cores/VideoPlayer/DVDCodecs/Video/DVDVideoCodec.h"
 #include "cores/VideoSettings.h"
-#include "guilib/graphics/vulkan/VulkanShader.h"
 #include "windowing/GraphicContext.h"
 
 #include <vector>

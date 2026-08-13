@@ -143,7 +143,7 @@ CVulkanGUIFontTTF::~CVulkanGUIFontTTF()
 
 bool CVulkanGUIFontTTF::FirstBegin()
 {
-  m_scissorClip = ScissorsCanEffectClipping();
+  m_scissorClip = /*ScissorsCanEffectClipping()*/false;
   if (!m_scissorClip)
   {
     m_renderSystem->ResetScissors();
@@ -209,12 +209,6 @@ void CVulkanGUIFontTTF::LastEnd()
         }
       }
 
-      if (m_scissorClip)
-      {
-        // clip using scissors
-        m_renderSystem->SetScissors(clip);
-      }
-
       // calculate the fractional offset to the ideal position
       float fractX =
           context.ScaleFinalXCoord(m_vertexTrans[i].m_translateX, m_vertexTrans[i].m_translateY);
@@ -223,25 +217,75 @@ void CVulkanGUIFontTTF::LastEnd()
       fractX = -fractX + std::round(fractX);
       fractY = -fractY + std::round(fractY);
 
+      CVulkanShaderFonts::ClipPushConstants pushConstants{};
+
       // proj * model * gui * scroll * translation * scaling * correction factor
       // Note: Projection and model matrices are already combined in the uniform buffer, so we only need to apply
       // the GUI matrix and the translation/scaling/correction here.
-      glm::mat4 matrix = context.GetGUIMatrix().GetGLMMatrix();
-      matrix = glm::translate(
-          matrix, glm::vec3(m_vertexTrans[i].m_offsetX, m_vertexTrans[i].m_offsetY, 0.0f));
-      matrix = glm::translate(
-          matrix, glm::vec3(m_vertexTrans[i].m_translateX, m_vertexTrans[i].m_translateY, 0.0f));
+      pushConstants.scissor.viewMatrix = context.GetGUIMatrix().GetMatrixGLM();
+      pushConstants.scissor.viewMatrix =
+          glm::translate(pushConstants.scissor.viewMatrix,
+                         glm::vec3(m_vertexTrans[i].m_offsetX, m_vertexTrans[i].m_offsetY, 0.0f));
+      pushConstants.scissor.viewMatrix = glm::translate(
+          pushConstants.scissor.viewMatrix,
+          glm::vec3(m_vertexTrans[i].m_translateX, m_vertexTrans[i].m_translateY, 0.0f));
       // the gui matrix messes with the scale. correct it here for now.
-      matrix = glm::scale(matrix, glm::vec3(context.GetGUIScaleX(), context.GetGUIScaleY(), 1.0f));
+      pushConstants.scissor.viewMatrix =
+          glm::scale(pushConstants.scissor.viewMatrix,
+                     glm::vec3(context.GetGUIScaleX(), context.GetGUIScaleY(), 1.0f));
       // the gui matrix doesn't align to exact pixel coords atm. correct it here for now.
-      matrix = glm::translate(matrix, glm::vec3(fractX, fractY, 0.0f));
+      pushConstants.scissor.viewMatrix =
+          glm::translate(pushConstants.scissor.viewMatrix, glm::vec3(fractX, fractY, 0.0f));
 
-      VkPipeline pipeline = m_shaderFonts->VulkanPipeline(/*FONTS_TYPE_SCISSOR_CLIP*/);
-      VkPipelineLayout pipelineLayout =
-          m_shaderFonts->VulkanPipelineLayout(/*FONTS_TYPE_SCISSOR_CLIP*/);
+      VkPipeline pipeline;
+      VkPipelineLayout pipelineLayout;
 
-      vkCmdPushConstants(m_renderSystem->vkCurrentCommandBuffer(), pipelineLayout,
-                         VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), glm::value_ptr(matrix));
+      if (m_scissorClip)
+      {
+        // clip using scissors
+        m_renderSystem->SetScissors(clip);
+
+        pipeline = m_shaderFonts->VulkanPipeline(FONTS_TYPE_SCISSOR_CLIP);
+        pipelineLayout = m_shaderFonts->VulkanPipelineLayout(FONTS_TYPE_SCISSOR_CLIP);
+
+        vkCmdPushConstants(m_renderSystem->vkCurrentCommandBuffer(), pipelineLayout,
+                           VK_SHADER_STAGE_VERTEX_BIT, 0,
+                           sizeof(CVulkanShaderFonts::ClipPushConstants_Scissor), &pushConstants);
+      }
+      else
+      {
+        pipeline = m_shaderFonts->VulkanPipeline(FONTS_TYPE_SHADER_CLIP);
+        pipelineLayout = m_shaderFonts->VulkanPipelineLayout(FONTS_TYPE_SHADER_CLIP);
+
+        // clip using vertex shader
+        m_renderSystem->ResetScissors();
+
+        pushConstants.shader.shaderClip = {
+            (m_vertexTrans[i].m_clip.x1 - m_vertexTrans[i].m_translateX -
+             m_vertexTrans[i].m_offsetX) /
+                context.GetGUIScaleX(),
+            (m_vertexTrans[i].m_clip.y1 - m_vertexTrans[i].m_translateY -
+             m_vertexTrans[i].m_offsetY) /
+                context.GetGUIScaleY(),
+            (m_vertexTrans[i].m_clip.x2 - m_vertexTrans[i].m_translateX -
+             m_vertexTrans[i].m_offsetX) /
+                context.GetGUIScaleX(),
+            (m_vertexTrans[i].m_clip.y2 - m_vertexTrans[i].m_translateY -
+             m_vertexTrans[i].m_offsetY) /
+                context.GetGUIScaleY(),
+        };
+
+        pushConstants.shader.cordStep = {
+            1.f / static_cast<float>(m_textureWidth),
+            1.f / static_cast<float>(m_textureHeight),
+            1.f,
+            1.f,
+        };
+
+        vkCmdPushConstants(m_renderSystem->vkCurrentCommandBuffer(), pipelineLayout,
+                           VK_SHADER_STAGE_VERTEX_BIT, 0,
+                           sizeof(CVulkanShaderFonts::ClipPushConstants_Shader), &pushConstants);
+      }
 
       VkDeviceSize bufferOffset = 0;
       VkBuffer vertexBuffer = m_vertexTrans[i].m_vertexBuffer->bufferHandle->buffer;

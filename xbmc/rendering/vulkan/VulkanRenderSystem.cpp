@@ -304,6 +304,8 @@ bool CVulkanRenderSystem::BeginRender2()
   if (!m_bRenderCreated)
     return false;
 
+  m_GUIElementCount = 0;
+
   CVulkanScopedWrite scoped_write(m_surface->SwapChain());
   if (!scoped_write.Success()) [[unlikely]]
   {

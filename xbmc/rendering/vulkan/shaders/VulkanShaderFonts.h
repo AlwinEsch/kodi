@@ -20,6 +20,13 @@ namespace KODI::RENDERING::VULKAN
 
 class CVulkanDeviceQueue;
 
+enum FontsRenderType
+{
+  FONTS_TYPE_SCISSOR_CLIP = 0,
+  FONTS_TYPE_SHADER_CLIP,
+  FONTS_TYPE_MAX
+};
+
 class CVulkanShaderFonts : public IVulkanShader
 {
 public:
@@ -32,11 +39,29 @@ public:
     float depth;
   };
 
-  VkPipelineLayout VulkanPipelineLayout() const
+  struct ClipPushConstants_Scissor
   {
-    return m_vkPipelineLayout;
+    glm::mat4 viewMatrix;
+  };
+
+  struct ClipPushConstants_Shader
+  {
+    glm::mat4 viewMatrix;
+    glm::vec4 shaderClip;
+    glm::vec4 cordStep;
+  };
+
+  union ClipPushConstants
+  {
+    ClipPushConstants_Scissor scissor;
+    ClipPushConstants_Shader shader;
+  };
+
+  VkPipelineLayout VulkanPipelineLayout(FontsRenderType type) const
+  {
+    return m_vkPipelineLayout[type];
   }
-  VkPipeline VulkanPipeline() const { return m_vkPipeline; }
+  VkPipeline VulkanPipeline(FontsRenderType type) const { return m_vkPipeline[type]; }
 
   VulkanMemoryData* GetUniformBuffer(uint32_t index) { return &m_uniformBuffers[index]; }
   void UpdateUniformBuffer(uint32_t index, const VulkanUniform& uniform);
@@ -52,8 +77,8 @@ protected:
   void DestroyUniformBuffers() override;
 
 private:
-  VkPipelineLayout m_vkPipelineLayout{VK_NULL_HANDLE};
-  VkPipeline m_vkPipeline{VK_NULL_HANDLE};
+  std::array<VkPipelineLayout, FONTS_TYPE_MAX> m_vkPipelineLayout{VK_NULL_HANDLE};
+  std::array<VkPipeline, FONTS_TYPE_MAX> m_vkPipeline{VK_NULL_HANDLE};
   std::array<VulkanMemoryData, MAX_CONCURRENT_FRAMES> m_uniformBuffers{};
 };
 

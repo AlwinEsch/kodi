@@ -289,7 +289,7 @@ public:
     return ((a << 24) & 0xff000000) | ((r << 16) & 0xff0000) | ((g << 8) & 0xff00) | (b & 0xff);
   }
 
-  inline glm::mat4 GetGLMMatrix() const
+  inline glm::mat4 GetMatrixGLM() const
   {
     float pMatrix[16];
     for (int i = 0; i < 3; i++)

@@ -53,12 +53,30 @@ bool CVulkanShaderFonts::CreatePipelineLayout()
 
   // Push constant ranges
   pushConstantRanges = {
-      vkPushConstantRange(VK_SHADER_STAGE_VERTEX_BIT, sizeof(glm::mat4), 0),
+      vkPushConstantRange(VK_SHADER_STAGE_VERTEX_BIT, sizeof(glm::mat4),
+                          offsetof(ClipPushConstants_Scissor, viewMatrix)),
   };
   info.pushConstantRangeCount = static_cast<uint32_t>(pushConstantRanges.size());
   info.pPushConstantRanges = pushConstantRanges.data();
 
-  VK_CHECK_RESULT(vkCreatePipelineLayout(m_vkData->vkDevice, &info, nullptr, &m_vkPipelineLayout),
+  VK_CHECK_RESULT(vkCreatePipelineLayout(m_vkData->vkDevice, &info, nullptr,
+                                         &m_vkPipelineLayout[FONTS_TYPE_SCISSOR_CLIP]),
+                  false);
+
+  // Push constant ranges
+  pushConstantRanges = {
+      vkPushConstantRange(VK_SHADER_STAGE_VERTEX_BIT, sizeof(glm::mat4),
+                          offsetof(ClipPushConstants_Scissor, viewMatrix)),
+      vkPushConstantRange(VK_SHADER_STAGE_VERTEX_BIT, sizeof(glm::vec4),
+                          offsetof(ClipPushConstants_Shader, shaderClip)),
+      vkPushConstantRange(VK_SHADER_STAGE_VERTEX_BIT, sizeof(glm::vec4),
+                          offsetof(ClipPushConstants_Shader, cordStep)),
+  };
+  info.pushConstantRangeCount = static_cast<uint32_t>(pushConstantRanges.size());
+  info.pPushConstantRanges = pushConstantRanges.data();
+
+  VK_CHECK_RESULT(vkCreatePipelineLayout(m_vkData->vkDevice, &info, nullptr,
+                                         &m_vkPipelineLayout[FONTS_TYPE_SHADER_CLIP]),
                   false);
 
   return true;
@@ -66,10 +84,12 @@ bool CVulkanShaderFonts::CreatePipelineLayout()
 
 void CVulkanShaderFonts::DestroyPipelineLayout()
 {
-  if (m_vkPipelineLayout != VK_NULL_HANDLE)
+  for (const auto& pipeline : m_vkPipeline)
   {
-    vkDestroyPipelineLayout(m_vkData->vkDevice, m_vkPipelineLayout, nullptr);
-    m_vkPipelineLayout = VK_NULL_HANDLE;
+    if (pipeline != VK_NULL_HANDLE)
+    {
+      vkDestroyPipeline(m_vkData->vkDevice, pipeline, nullptr);
+    }
   }
 }
 
@@ -101,7 +121,6 @@ bool CVulkanShaderFonts::CreatePipeline()
   pipelineCreateInfo.subpass = 0;
   pipelineCreateInfo.basePipelineHandle = VK_NULL_HANDLE;
   pipelineCreateInfo.basePipelineIndex = -1;
-  pipelineCreateInfo.layout = m_vkPipelineLayout;
 
   ///@}
   //------------------------------------------------------------------------------------------------
@@ -374,24 +393,24 @@ bool CVulkanShaderFonts::CreatePipeline()
   //------------------------------------------------------------------------------------------------
 
   auto vertShader = LoadShader(kVertexShaderFile, VK_SHADER_STAGE_VERTEX_BIT);
-  //auto vertShaderClip = LoadShader(kVertexShaderFileClip, VK_SHADER_STAGE_VERTEX_BIT);
+  auto vertShaderClip = LoadShader(kVertexShaderFileClip, VK_SHADER_STAGE_VERTEX_BIT);
   auto fragShader = LoadShader(kFragmentShaderFile, VK_SHADER_STAGE_FRAGMENT_BIT);
-  if (vertShader.module == VK_NULL_HANDLE /* || vertShaderClip.module == VK_NULL_HANDLE*/ ||
+  if (vertShader.module == VK_NULL_HANDLE || vertShaderClip.module == VK_NULL_HANDLE ||
       fragShader.module == VK_NULL_HANDLE)
   {
     std::string failedShaders;
     if (vertShader.module == VK_NULL_HANDLE)
     {
       failedShaders += kVertexShaderFile;
-      if (/*vertShaderClip.module == VK_NULL_HANDLE ||*/ fragShader.module == VK_NULL_HANDLE)
+      if (vertShaderClip.module == VK_NULL_HANDLE || fragShader.module == VK_NULL_HANDLE)
         failedShaders += ", ";
     }
-    //if (vertShaderClip.module == VK_NULL_HANDLE)
-    //{
-    //  failedShaders += kVertexShaderFileClip;
-    //  if (fragShader.module == VK_NULL_HANDLE)
-    //    failedShaders += ", ";
-    //}
+    if (vertShaderClip.module == VK_NULL_HANDLE)
+    {
+      failedShaders += kVertexShaderFileClip;
+      if (fragShader.module == VK_NULL_HANDLE)
+        failedShaders += ", ";
+    }
     if (fragShader.module == VK_NULL_HANDLE)
       failedShaders += kFragmentShaderFile;
     CLog::Log(LOGERROR, "Vulkan: Failed to load shaders: {0} ({1}:{2})", failedShaders,
@@ -403,20 +422,22 @@ bool CVulkanShaderFonts::CreatePipeline()
 
   shaderStages[0] = vertShader;
   shaderStages[1] = fragShader;
+  pipelineCreateInfo.layout = m_vkPipelineLayout[FONTS_TYPE_SCISSOR_CLIP];
   VK_CHECK_RESULT(vkCreateGraphicsPipelines(m_vkData->vkDevice, m_vkData->vkPipelineCache, 1,
                                             &pipelineCreateInfo, nullptr,
-                                            &m_vkPipeline /*[FONTS_TYPE_SCISSOR_CLIP]*/),
+                                            &m_vkPipeline[FONTS_TYPE_SCISSOR_CLIP]),
                   false);
 
-  //shaderStages[0] = vertShaderClip;
-  //VK_CHECK_RESULT(vkCreateGraphicsPipelines(m_vkData->vkDevice, m_vkData->vkPipelineCache, 1,
-  //                                          &pipelineCreateInfo, nullptr,
-  //                                          &m_vkPipeline[FONTS_TYPE_SHADER_CLIP]),
-  //                false);
+  shaderStages[0] = vertShaderClip;
+  pipelineCreateInfo.layout = m_vkPipelineLayout[FONTS_TYPE_SHADER_CLIP];
+  VK_CHECK_RESULT(vkCreateGraphicsPipelines(m_vkData->vkDevice, m_vkData->vkPipelineCache, 1,
+                                            &pipelineCreateInfo, nullptr,
+                                            &m_vkPipeline[FONTS_TYPE_SHADER_CLIP]),
+                  false);
 
   // Shader modules are no longer needed once the graphics m_pipeline has been created
   UnloadShader(vertShader);
-  //UnloadShader(vertShaderClip);
+  UnloadShader(vertShaderClip);
   UnloadShader(fragShader);
 
   return true;
@@ -424,10 +445,12 @@ bool CVulkanShaderFonts::CreatePipeline()
 
 void CVulkanShaderFonts::DestroyPipeline()
 {
-  if (m_vkPipeline != VK_NULL_HANDLE)
+  for (const auto& pipeline : m_vkPipeline)
   {
-    vkDestroyPipeline(m_vkData->vkDevice, m_vkPipeline, nullptr);
-    m_vkPipeline = VK_NULL_HANDLE;
+    if (pipeline != VK_NULL_HANDLE)
+    {
+      vkDestroyPipeline(m_vkData->vkDevice, pipeline, nullptr);
+    }
   }
 }
 
