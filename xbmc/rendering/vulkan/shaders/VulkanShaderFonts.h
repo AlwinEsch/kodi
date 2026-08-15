@@ -57,13 +57,19 @@ public:
     ClipPushConstants_Shader shader;
   };
 
+  void vkPipeline(VkPipeline& pipeline, VkPipelineLayout& layout, int type) override
+  {
+    pipeline = m_vkPipeline[type];
+    layout = m_vkPipelineLayout[type];
+  }
+
   VkPipelineLayout VulkanPipelineLayout(FontsRenderType type) const
   {
     return m_vkPipelineLayout[type];
   }
   VkPipeline VulkanPipeline(FontsRenderType type) const { return m_vkPipeline[type]; }
 
-  VulkanMemoryData* GetUniformBuffer(uint32_t index) { return &m_uniformBuffers[index]; }
+  VulkanMemoryData* GetUniformBuffer(uint32_t index) override { return &m_uniformBuffers[index]; }
   void UpdateUniformBuffer(uint32_t index, const VulkanUniform& uniform);
 
 protected:

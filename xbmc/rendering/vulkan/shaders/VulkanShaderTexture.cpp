@@ -24,6 +24,7 @@ namespace KODI::RENDERING::VULKAN
 
 namespace
 {
+
 constexpr const char* kVertexShaderFile = "texture_vert.spv";
 constexpr const char* kFragShaderFile = "texture_frag.spv";
 constexpr const char* kFragShaderFile_NoBlend = "texture_frag_noblend.spv";
@@ -80,8 +81,6 @@ void CVulkanShaderTexture::DestroyPipelineLayout()
 
 bool CVulkanShaderTexture::CreatePipeline()
 {
-  using Vertex = KODI::RENDERING::VULKAN::ShaderTextureVertex;
-
   //================================================================================================
   /// Pipeline creation info
   ///
@@ -273,7 +272,7 @@ bool CVulkanShaderTexture::CreatePipeline()
   VkPipelineDepthStencilStateCreateInfo depthStencilState = {};
   depthStencilState.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
   depthStencilState.flags = 0;
-  depthStencilState.depthTestEnable = VK_TRUE;
+  depthStencilState.depthTestEnable = VK_FALSE;
   depthStencilState.depthWriteEnable = VK_TRUE;
   depthStencilState.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
   depthStencilState.depthBoundsTestEnable = VK_FALSE;
@@ -447,11 +446,11 @@ bool CVulkanShaderTexture::CreateUniformBuffers()
     VK_CHECK_RESULT(m_deviceQueue->CreateBuffer(VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
                                                 VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT |
                                                     VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                                                &entry, sizeof(VulkanUniform), nullptr),
+                                                &entry, sizeof(Uniform), nullptr),
                     false);
 
     VK_CHECK_RESULT(vkBindBufferMemory(m_vkData->vkDevice, entry.buffer, entry.memory, 0), false);
-    VK_CHECK_RESULT(vkMapMemory(m_vkData->vkDevice, entry.memory, 0, sizeof(VulkanUniform), 0,
+    VK_CHECK_RESULT(vkMapMemory(m_vkData->vkDevice, entry.memory, 0, sizeof(Uniform), 0,
                                 (void**)&entry.mapped),
                     false);
 
@@ -462,7 +461,7 @@ bool CVulkanShaderTexture::CreateUniformBuffers()
     VkDescriptorBufferInfo bufferInfo{};
     bufferInfo.buffer = entry.buffer;
     bufferInfo.offset = 0;
-    bufferInfo.range = sizeof(VulkanUniform);
+    bufferInfo.range = sizeof(Uniform);
 
     VkWriteDescriptorSet uboWrite{};
     uboWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -493,9 +492,9 @@ void CVulkanShaderTexture::DestroyUniformBuffers()
   }
 }
 
-void CVulkanShaderTexture::UpdateUniformBuffer(uint32_t index, const VulkanUniform& uniformData)
+void CVulkanShaderTexture::UpdateUniformBuffer(uint32_t index, const Uniform& uniformData)
 {
-  memcpy(m_uniformBuffers[index].mapped, &uniformData, sizeof(VulkanUniform));
+  memcpy(m_uniformBuffers[index].mapped, &uniformData, sizeof(Uniform));
 }
 
 } // namespace KODI::RENDERING::VULKAN

@@ -74,6 +74,7 @@ if(TARGET ${APP_NAME_LC}::Vulkan)
   endfunction()
 
   set(SHADERS_VERTEX
+    default_vert.glsl
     fonts_vert.glsl
     fonts_vert_clip.glsl
     texture_vert.glsl
@@ -85,6 +86,7 @@ if(TARGET ${APP_NAME_LC}::Vulkan)
   )
 
   set(SHADERS_PIXEL
+    default_frag.glsl
     fonts_frag.glsl
     texture_frag.glsl
     texture_frag_noblend.glsl

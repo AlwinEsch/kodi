@@ -16,7 +16,7 @@
 #include "rendering/vulkan/DynamicBuffers.h"
 #include "rendering/vulkan/VulkanRenderSystem.h"
 #include "rendering/vulkan/shaders/VulkanShaderControl.h"
-#include "rendering/vulkan/shaders/VulkanShaderTexture.h"
+#include "rendering/vulkan/shaders/VulkanShaderDefault.h"
 #include "rendering/vulkan/utils/VulkanUtils.h"
 #include "utils/MathUtils.h"
 #include "utils/log.h"
@@ -53,7 +53,6 @@ CVulkanGUITexture::CVulkanGUITexture(
       m_renderSystem->ShaderControl()->GetShader(VULKAN_SM_TEXTURE));
 
   CVulkanDynamicBuffers* dynamicBuffers = m_renderSystem->DynamicBuffers();
-  m_uniformBuffer = dynamicBuffers->GetBuffer(BUFFER_TYPE_UNIFORM);
   m_vertexBuffer = dynamicBuffers->GetBuffer(BUFFER_TYPE_VERTEX);
   m_indexBuffer = dynamicBuffers->GetBuffer(BUFFER_TYPE_INDEX);
 }
@@ -76,7 +75,6 @@ void CVulkanGUITexture::Begin(KODI::UTILS::COLOR::Color color)
   m_color = KODI::UTILS::COLOR::ConvertToGLM(color);
 
   bool hasAlpha = m_texture.m_textures[m_currentFrame]->HasAlpha() || m_color.a < 1.0f;
-  TexturePipelineType usedPipelineType;
 
   if (m_diffuse.size())
   {
@@ -100,16 +98,13 @@ void CVulkanGUITexture::Begin(KODI::UTILS::COLOR::Color color)
     if (color == 0xFFFFFFFF)
     {
       m_usePushConst = false;
-      usedPipelineType = TEXTURE_TYPE_NO_BLEND;
+      m_usedPipelineType = TEXTURE_TYPE_NO_BLEND;
     }
     else
     {
       m_usePushConst = true;
-      usedPipelineType = TEXTURE_TYPE_BLEND;
+      m_usedPipelineType = TEXTURE_TYPE_BLEND;
     }
-
-    m_usedPipeline = m_shaderTexture->VulkanPipeline(usedPipelineType);
-    m_usedPipelineLayout = m_shaderTexture->VulkanPipelineLayout(usedPipelineType);
   }
 
   m_packedVertices.clear();
@@ -125,19 +120,23 @@ void CVulkanGUITexture::End()
 
   const uint32_t renderImageIndex = m_renderSystem->vkCurrentRenderImageIndex();
 
-  CVulkanShaderTexture::VulkanUniform uniform{};
+  VkPipeline pipeline;
+  VkPipelineLayout pipelineLayout;
+  m_shaderTexture->vkPipeline(pipeline, pipelineLayout, m_usedPipelineType);
+
+  CVulkanShaderTexture::Uniform uniform{};
   uniform.projectionMatrix = KODI::RENDERING::globalMatrixProject;
   uniform.modelMatrix = KODI::RENDERING::globalMatrixModview;
   uniform.depth = 1.0f;
 
-  VkBuffer buffer;
-  VkDeviceSize bufferOffset;
-
   if (m_usePushConst)
   {
-    vkCmdPushConstants(m_renderSystem->vkCurrentCommandBuffer(), m_usedPipelineLayout,
-                       VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(glm::vec4), glm::value_ptr(m_color));
+    vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, 0,
+                       sizeof(glm::vec4), glm::value_ptr(m_color));
   }
+
+  VkBuffer buffer;
+  VkDeviceSize bufferOffset;
 
   Vertex* vertices = static_cast<Vertex*>(m_vertexBuffer->AllocateOffset(
       sizeof(Vertex) * m_packedVertices.size(), buffer, bufferOffset));
@@ -150,16 +149,18 @@ void CVulkanGUITexture::End()
   vkCmdBindIndexBuffer(commandBuffer, buffer, bufferOffset, VK_INDEX_TYPE_UINT32);
 
   m_shaderTexture->UpdateUniformBuffer(renderImageIndex, uniform);
-  vkCmdBindDescriptorSets(
-      commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_usedPipelineLayout, 0, 1,
-      &m_shaderTexture->GetUniformBuffer(renderImageIndex)->descriptorSet, 0,
-      nullptr);
-  vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_usedPipelineLayout, 1,
-                          1, vkTexture->vkDescriptorSet(), 0, nullptr);
-  vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_usedPipeline);
+  vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1,
+                          &m_shaderTexture->GetUniformBuffer(renderImageIndex)->descriptorSet, 0,
+                          nullptr);
+  vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 1, 1,
+                          vkTexture->vkDescriptorSet(), 0, nullptr);
+  vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 
   // Draw indexed triangle
   vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(m_idx.size()), 1, 0, 0, 0);
+
+  CRect rect = {100, 100, 400, 400};
+  DrawQuad(rect, 0xFFFFFFFF, vkTexture, nullptr, 1.0f, true);
 }
 
 void CVulkanGUITexture::Draw(
@@ -251,128 +252,135 @@ void CVulkanGUITexture::DrawQuad(const CRect& rect,
                                  const float depth,
                                  const bool blending)
 {
-  fprintf(stderr,
-          "CVulkanGUITexture::DrawQuad: rect = (%f, %f, %f, %f), color = 0x%08X, depth = %f, "
-          "blending = %d\n",
-          double(rect.x1), double(rect.y1), double(rect.x2), double(rect.y2), color, double(depth),
-          blending);
-  return;
+  CVulkanTexture* vkTexture = dynamic_cast<CVulkanTexture*>(texture);
+
   CVulkanRenderSystem* renderSystem =
       dynamic_cast<CVulkanRenderSystem*>(CServiceBroker::GetRenderSystem());
-  CVulkanShaderTexture* shaderTexture = dynamic_cast<CVulkanShaderTexture*>(
-      renderSystem->ShaderControl()->GetShader(VULKAN_SM_TEXTURE));
+
   VkCommandBuffer commandBuffer = renderSystem->vkCurrentCommandBuffer();
   const uint32_t renderImageIndex = renderSystem->vkCurrentRenderImageIndex();
 
-  VkPipeline pipeline = shaderTexture->VulkanPipeline(TEXTURE_TYPE_BLEND);
-  VkPipelineLayout pipelineLayout = shaderTexture->VulkanPipelineLayout(TEXTURE_TYPE_BLEND);
   CVulkanDynamicBuffers* dynamicBuffers = renderSystem->DynamicBuffers();
-  CVulkanDynamicBuffer* uniformBuffer = dynamicBuffers->GetBuffer(BUFFER_TYPE_UNIFORM);
-  CVulkanDynamicBuffer* vertexBuffer = dynamicBuffers->GetBuffer(BUFFER_TYPE_VERTEX);
-  CVulkanDynamicBuffer* indexBuffer = dynamicBuffers->GetBuffer(BUFFER_TYPE_INDEX);
+
+  auto indexBuffer = dynamicBuffers->GetBuffer(BUFFER_TYPE_INDEX);
+  auto vertexBuffer = dynamicBuffers->GetBuffer(BUFFER_TYPE_VERTEX);
+
+  VkPipeline pipeline;
+  VkPipelineLayout pipelineLayout;
+
+  VkBuffer buffer;
+  VkDeviceSize bufferOffset;
+
+  std::array<uint32_t, 6> idx = {0, 1, 2, 2, 3, 0}; // Determines order of triangle strip
+
+  IVulkanShader* shader;
 
   if (texture)
   {
-    texture->LoadToGPU();
-    texture->BindToUnit(0);
-  }
+    std::array<CVulkanShaderTexture::Vertex, 4> ver;
+    // bottom left
+    ver[0].in_attrpos.x = rect.x1;
+    ver[0].in_attrpos.y = rect.y1;
+    ver[0].in_attrpos.z = 0;
 
-  if (blending)
-  {
-    //  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    //  glEnable(GL_BLEND);
-  }
-  else
-  {
-    //  glDisable(GL_BLEND);
-  }
+    // bottom right
+    ver[1].in_attrpos.x = rect.x2;
+    ver[1].in_attrpos.y = rect.y1;
+    ver[1].in_attrpos.z = 0;
 
-  if (texture)
-    renderSystem->EnableShader(VULKAN_SM_TEXTURE);
-  else
-    renderSystem->EnableShader(VULKAN_SM_DEFAULT);
+    // top right
+    ver[2].in_attrpos.x = rect.x2;
+    ver[2].in_attrpos.y = rect.y2;
+    ver[2].in_attrpos.z = 0;
 
-  //glVertexAttribPointer(posLoc, 3, GL_FLOAT, 0, 0, ver);
-  //if (texture)
-  //  glVertexAttribPointer(tex0Loc, 2, GL_FLOAT, 0, 0, tex);
+    // top left
+    ver[3].in_attrpos.x = rect.x1;
+    ver[3].in_attrpos.y = rect.y2;
+    ver[3].in_attrpos.z = 0;
 
-  //glEnableVertexAttribArray(posLoc);
-  //if (texture)
-  //  glEnableVertexAttribArray(tex0Loc);
-
-  glm::vec4 col;
-  std::array<Vertex, 4> ver;
-  std::array<uint32_t, 4> idx = {0, 1, 3, 2}; // Determines order of triangle strip
-
-  // Setup Colors
-  // NOTE: Vulkan uses ARGB format, but we need to convert it to RGBA for the shader
-  col.r = float((color >> 16) & 0xFF) / 255.0f;
-  col.g = float((color >> 8) & 0xFF) / 255.0f;
-  col.b = float((color >> 0) & 0xFF) / 255.0f;
-  col.a = float((color >> 24) & 0xFF) / 255.0f;
-
-  // bottom left
-  ver[0].in_attrpos.x = rect.x1;
-  ver[0].in_attrpos.y = rect.y1;
-  ver[0].in_attrpos.z = 0;
-
-  // bottom right
-  ver[1].in_attrpos.x = rect.x2;
-  ver[1].in_attrpos.y = rect.y1;
-  ver[1].in_attrpos.z = 0;
-
-  // top right
-  ver[2].in_attrpos.x = rect.x2;
-  ver[2].in_attrpos.y = rect.y2;
-  ver[2].in_attrpos.z = 0;
-
-  // top left
-  ver[3].in_attrpos.x = rect.x1;
-  ver[3].in_attrpos.y = rect.y2;
-  ver[3].in_attrpos.z = 0;
-
-  if (texture)
-  {
     // Setup texture coordinates
     CRect coords = texCoords ? *texCoords : CRect(0.0f, 0.0f, 1.0f, 1.0f);
     ver[0].in_attrcord0.x = ver[3].in_attrcord0.x = coords.x1;
     ver[0].in_attrcord0.y = ver[1].in_attrcord0.y = coords.y1;
     ver[1].in_attrcord0.x = ver[2].in_attrcord0.x = coords.x2;
     ver[2].in_attrcord0.y = ver[3].in_attrcord0.y = coords.y2;
+
+    CVulkanShaderTexture::Uniform uniform{};
+    uniform.projectionMatrix = KODI::RENDERING::globalMatrixProject;
+    uniform.modelMatrix = KODI::RENDERING::globalMatrixModview;
+    uniform.depth = depth;
+
+    shader = renderSystem->ShaderControl()->GetShader(VULKAN_SM_TEXTURE);
+    shader->vkPipeline(pipeline, pipelineLayout, TEXTURE_TYPE_BLEND);
+
+    CVulkanShaderTexture::Vertex* vertices =
+        static_cast<CVulkanShaderTexture::Vertex*>(vertexBuffer->AllocateOffset(
+            sizeof(CVulkanShaderTexture::Vertex) * ver.size(), buffer, bufferOffset));
+    memcpy(vertices, ver.data(), sizeof(CVulkanShaderTexture::Vertex) * ver.size());
+    vkCmdBindVertexBuffers(commandBuffer, 0, 1, &buffer, &bufferOffset);
+
+    dynamic_cast<CVulkanShaderTexture*>(shader)->UpdateUniformBuffer(renderImageIndex, uniform);
+
+    vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 1, 1,
+                            vkTexture->vkDescriptorSet(), 0, nullptr);
+  }
+  else
+  {
+    std::array<CVulkanShaderDefault::Vertex, 4> ver;
+    // bottom left
+    ver[0].in_attrpos.x = rect.x1;
+    ver[0].in_attrpos.y = rect.y1;
+    ver[0].in_attrpos.z = 0;
+
+    // bottom right
+    ver[1].in_attrpos.x = rect.x2;
+    ver[1].in_attrpos.y = rect.y1;
+    ver[1].in_attrpos.z = 0;
+
+    // top right
+    ver[2].in_attrpos.x = rect.x2;
+    ver[2].in_attrpos.y = rect.y2;
+    ver[2].in_attrpos.z = 0;
+
+    // top left
+    ver[3].in_attrpos.x = rect.x1;
+    ver[3].in_attrpos.y = rect.y2;
+    ver[3].in_attrpos.z = 0;
+
+    CVulkanShaderDefault::Uniform uniform{};
+    uniform.projectionMatrix = KODI::RENDERING::globalMatrixProject;
+    uniform.modelMatrix = KODI::RENDERING::globalMatrixModview;
+
+    shader = renderSystem->ShaderControl()->GetShader(VULKAN_SM_DEFAULT);
+    shader->vkPipeline(pipeline, pipelineLayout, DEFAULT_TYPE_BLEND);
+
+    CVulkanShaderDefault::Vertex* vertices =
+        static_cast<CVulkanShaderDefault::Vertex*>(vertexBuffer->AllocateOffset(
+            sizeof(CVulkanShaderDefault::Vertex) * ver.size(), buffer, bufferOffset));
+    memcpy(vertices, ver.data(), sizeof(CVulkanShaderDefault::Vertex) * ver.size());
+    vkCmdBindVertexBuffers(commandBuffer, 0, 1, &buffer, &bufferOffset);
+
+    dynamic_cast<CVulkanShaderDefault*>(shader)->UpdateUniformBuffer(renderImageIndex, uniform);
   }
 
-  //VulkanUniform uniform{};
-  //uniform.projectionMatrix = KODI::RENDERING::globalMatrixProject;
-  //uniform.modelMatrix = KODI::RENDERING::globalMatrixModview;
-  //uniform.depth = 1.0f;
+  // Setup Colors
+  glm::vec4 col = KODI::UTILS::COLOR::ConvertToGLM(color);
+  vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, 0,
+                     sizeof(glm::vec4), glm::value_ptr(col));
 
-  //vkCmdPushConstants(renderSystem->vkCurrentCommandBuffer(), shaderTexture->VulkanPipelineLayout(),
-  //                   VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(glm::vec4), glm::value_ptr(col));
+  uint32_t* indices = static_cast<uint32_t*>(
+      indexBuffer->AllocateOffset(sizeof(uint32_t) * idx.size(), buffer, bufferOffset));
+  memcpy(indices, idx.data(), sizeof(uint32_t) * idx.size());
+  vkCmdBindIndexBuffer(commandBuffer, buffer, bufferOffset, VK_INDEX_TYPE_UINT32);
 
-  //VkBuffer buffer;
-  //VkDeviceSize bufferOffset;
+  vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1,
+                          &shader->GetUniformBuffer(renderImageIndex)->descriptorSet, 0, nullptr);
 
-  //Vertex* vertices = static_cast<Vertex*>(
-  //    vertexBuffer->AllocateOffset(sizeof(Vertex) * ver.size(), buffer, bufferOffset));
-  //memcpy(vertices, ver.data(), sizeof(Vertex) * ver.size());
-  //vkCmdBindVertexBuffers(commandBuffer, 0, 1, &buffer, &bufferOffset);
-
-  //uint32_t* indices = static_cast<uint32_t*>(
-  //    indexBuffer->AllocateOffset(sizeof(uint32_t) * idx.size(), buffer, bufferOffset));
-  //memcpy(indices, idx.data(), sizeof(uint32_t) * idx.size());
-  //vkCmdBindIndexBuffer(commandBuffer, buffer, bufferOffset, VK_INDEX_TYPE_UINT32);
-
-  //renderSystem->ShaderControl()->UpdateUniformBuffer(renderImageIndex, uniform);
-  //vkCmdBindDescriptorSets(
-  //    commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1,
-  //    &renderSystem->ShaderControl()->GetUniformBuffer(renderImageIndex)->descriptorSet, 0,
-  //    nullptr);
-  //vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 1, 1,
-  //                        vkTexture->vkDescriptorSet(), 0, nullptr);
-  //vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+  vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 
   // Draw indexed triangle
   vkCmdDrawIndexed(commandBuffer, static_cast<uint32_t>(idx.size()), 1, 0, 0, 0);
+
   CRenderSystemBase::m_GUIElementCount++;
 }
 

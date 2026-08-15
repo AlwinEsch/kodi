@@ -27,17 +27,6 @@ typedef enum TexturePipelineType {
   TEXTURE_TYPE_SIZE = 2
 } TexturePipelineType;
 
-// Vertex layout used for the texture shader. This layout is used to define the input
-// attributes for the vertex shader stage of the graphics pipeline.
-// It includes the position of the vertex and two sets of texture coordinates,
-// which can be used for multi-texturing or other effects.
-struct ShaderTextureVertex
-{
-  glm::vec3 in_attrpos;
-  glm::vec2 in_attrcord0;
-  glm::vec2 in_attrcord1;
-};
-
 class CVulkanDeviceQueue;
 
 class CVulkanShaderTexture : public IVulkanShader
@@ -46,21 +35,28 @@ public:
   CVulkanShaderTexture(const VulkanData* vulkanData, CVulkanDeviceQueue* deviceQueue);
   virtual ~CVulkanShaderTexture() = default;
 
-  struct VulkanUniform
+  struct Vertex
+  {
+    glm::vec3 in_attrpos;
+    glm::vec2 in_attrcord0;
+    glm::vec2 in_attrcord1;
+  };
+
+  struct Uniform
   {
     glm::mat4 projectionMatrix;
     glm::mat4 modelMatrix;
     float depth;
   };
 
-  VkPipelineLayout VulkanPipelineLayout(TexturePipelineType type) const
+  void vkPipeline(VkPipeline& pipeline, VkPipelineLayout& layout, int type) override
   {
-    return m_vkPipelineLayout[type];
+    pipeline = m_vkPipeline[type];
+    layout = m_vkPipelineLayout[type];
   }
-  VkPipeline VulkanPipeline(TexturePipelineType type) const { return m_vkPipeline[type]; }
 
-  VulkanMemoryData* GetUniformBuffer(uint32_t index) { return &m_uniformBuffers[index]; }
-  void UpdateUniformBuffer(uint32_t index, const VulkanUniform& uniform);
+  VulkanMemoryData* GetUniformBuffer(uint32_t index) override { return &m_uniformBuffers[index]; }
+  void UpdateUniformBuffer(uint32_t index, const Uniform& uniform);
 
 protected:
   bool CreatePipelineLayout() override;

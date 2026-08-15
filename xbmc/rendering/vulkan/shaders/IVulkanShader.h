@@ -58,6 +58,13 @@ public:
   bool Create();
   void Destroy();
 
+  virtual void vkPipeline(VkPipeline& pipeline, VkPipelineLayout& layout, int type) {}
+  virtual VulkanMemoryData* GetUniformBuffer(uint32_t index)
+  {
+    fprintf(stderr, "GetUniformBuffer not implemented\n");
+    return nullptr;
+  }
+
 protected:
   virtual bool CreatePipelineLayout() { return true; }
   virtual void DestroyPipelineLayout() {}
@@ -68,8 +75,7 @@ protected:
   virtual bool CreateUniformBuffers() { return true; }
   virtual void DestroyUniformBuffers() {}
 
-  VkPipelineShaderStageCreateInfo LoadShader(std::string fileName,
-                                             VkShaderStageFlagBits stage);
+  VkPipelineShaderStageCreateInfo LoadShader(std::string fileName, VkShaderStageFlagBits stage);
   void UnloadShader(VkPipelineShaderStageCreateInfo shaderStage);
 
   const VulkanData* m_vkData;
