@@ -6,6 +6,10 @@ if(CORE_SYSTEM_NAME STREQUAL windows OR CORE_SYSTEM_NAME STREQUAL windowsstore)
 endif()
 
 if(TARGET ${APP_NAME_LC}::VAAPI)
+  if(TARGET ${APP_NAME_LC}::Vulkan)
+    list(APPEND SOURCES RendererVAAPIVulkan.cpp)
+    list(APPEND HEADERS RendererVAAPIVulkan.h)
+  endif()
   if(TARGET ${APP_NAME_LC}::OpenGl)
     list(APPEND SOURCES RendererVAAPIGL.cpp)
     list(APPEND HEADERS RendererVAAPIGL.h)
@@ -54,6 +58,11 @@ if("gbm" IN_LIST CORE_PLATFORM_NAME_LC OR "wayland" IN_LIST CORE_PLATFORM_NAME_L
                         VideoLayerBridgeDRMPRIME.cpp)
     list(APPEND HEADERS RendererDRMPRIME.h
                         VideoLayerBridgeDRMPRIME.h)
+  endif()
+
+  if(TARGET ${APP_NAME_LC}::Vulkan)
+    list(APPEND SOURCES RendererDRMPRIMEVulkan.cpp)
+    list(APPEND HEADERS RendererDRMPRIMEVulkan.h)
   endif()
 
   if(TARGET ${APP_NAME_LC}::OpenGLES)

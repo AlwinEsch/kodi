@@ -8,7 +8,9 @@
 
 #include "RPRendererDMAUtils.h"
 
-#if !defined(HAS_GLES)
+#if defined(HAS_VULKAN)
+#include "RPRendererDMAVulkan.h"
+#elif defined(HAS_GL)
 #include "RPRendererDMAOpenGL.h"
 #else
 #include "RPRendererDMAOpenGLES.h"
@@ -19,7 +21,9 @@ using namespace RETRO;
 
 bool CRPRendererDMAUtils::SupportsScalingMethod(SCALINGMETHOD method)
 {
-#if !defined(HAS_GLES)
+#if defined(HAS_VULKAN)
+  return CRPRendererDMAVulkan::SupportsScalingMethod(method);
+#elif defined(HAS_GL)
   return CRPRendererDMAOpenGL::SupportsScalingMethod(method);
 #else
   return CRPRendererDMAOpenGLES::SupportsScalingMethod(method);

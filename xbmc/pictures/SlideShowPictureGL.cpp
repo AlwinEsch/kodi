@@ -98,10 +98,10 @@ void CSlideShowPicGL::Render(float* x, float* y, CTexture* pTexture, Color color
   glEnableVertexAttribArray(tex0Loc);
 
   // Setup Colour values
-  colour[0] = KODI::UTILS::GL::GetChannelFromARGB(KODI::UTILS::GL::ColorChannel::R, color);
-  colour[1] = KODI::UTILS::GL::GetChannelFromARGB(KODI::UTILS::GL::ColorChannel::G, color);
-  colour[2] = KODI::UTILS::GL::GetChannelFromARGB(KODI::UTILS::GL::ColorChannel::B, color);
-  colour[3] = KODI::UTILS::GL::GetChannelFromARGB(KODI::UTILS::GL::ColorChannel::A, color);
+  colour[0] = KODI::UTILS::RENDER::GetChannelFromARGB(KODI::UTILS::RENDER::ColorChannel::R, color);
+  colour[1] = KODI::UTILS::RENDER::GetChannelFromARGB(KODI::UTILS::RENDER::ColorChannel::G, color);
+  colour[2] = KODI::UTILS::RENDER::GetChannelFromARGB(KODI::UTILS::RENDER::ColorChannel::B, color);
+  colour[3] = KODI::UTILS::RENDER::GetChannelFromARGB(KODI::UTILS::RENDER::ColorChannel::A, color);
 
   glUniform4f(uniColLoc, (colour[0] / 255.0f), (colour[1] / 255.0f), (colour[2] / 255.0f),
               (colour[3] / 255.0f));

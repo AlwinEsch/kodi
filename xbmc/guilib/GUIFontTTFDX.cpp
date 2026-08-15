@@ -50,10 +50,12 @@ CGUIFontTTFDX::~CGUIFontTTFDX(void)
   m_staticIndexBuffer = nullptr;
   if (!m_buffers.empty())
   {
-    std::for_each(m_buffers.begin(), m_buffers.end(), [](CD3DBuffer* buf) {
-      if (buf)
-        delete buf;
-    });
+    std::for_each(m_buffers.begin(), m_buffers.end(),
+                  [](CD3DBuffer* buf)
+                  {
+                    if (buf)
+                      delete buf;
+                  });
   }
   m_buffers.clear();
   m_staticIndexBufferCreated = false;

@@ -17,4 +17,5 @@ xbmc/platform/win32/storage/discs      platform/win32/storage/discs
 xbmc/platform/win32/threads            platform/win32/threads
 xbmc/platform/win32/utils              platform/win32/utils
 xbmc/rendering/dx                      rendering/dx
+xbmc/rendering/vulkan/display_windows  rendering/vulkan/display/windows
 xbmc/windowing/windows                 windowing/windows

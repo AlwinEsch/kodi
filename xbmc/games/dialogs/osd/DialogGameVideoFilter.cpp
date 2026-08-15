@@ -141,7 +141,9 @@ void CDialogGameVideoFilter::InitVideoFilters()
 
   //! @todo Have the add-on give us the xml as a string (or parse it)
   std::string xmlFilename;
-#if defined(HAS_GLES)
+#if defined(HAS_VULKAN)
+  xmlFilename = "ShaderPresetsVulkanSLP.xml";
+#elif defined(HAS_GLES)
   xmlFilename = "ShaderPresetsGLSLP_GLES.xml";
 #elif defined(HAS_GL)
   xmlFilename = "ShaderPresetsGLSLP.xml";

@@ -25,6 +25,7 @@ CMakeSettings.json
 # Created in vscode when using cmake-tools
 cmake-variants.yaml
 cmake-kits.json
+out/
 
 # generated files etc
 .last_success_revision

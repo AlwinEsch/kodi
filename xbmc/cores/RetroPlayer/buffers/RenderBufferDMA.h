@@ -12,7 +12,11 @@
 
 #include <memory>
 
+#ifdef HAS_VULKAN
+#include "system_vulkan.h"
+#else
 #include "system_gl.h"
+#endif
 
 class CEGLImage;
 class IBufferObject;
@@ -43,21 +47,21 @@ public:
   void ReleaseMemory() override;
   bool UploadTexture() override;
 
-  GLuint TextureID() const { return m_textureId; }
+  //GLuint TextureID() const { return m_textureId; }
 
 protected:
   // Construction parameters
   CRenderContext& m_context;
   const int m_fourcc = 0;
 
-  const GLenum m_textureTarget = GL_TEXTURE_2D;
-  GLuint m_textureId = 0;
+  //const GLenum m_textureTarget = GL_TEXTURE_2D;
+  //GLuint m_textureId = 0;
 
 private:
   void CreateTexture();
   void DeleteTexture();
 
-  std::unique_ptr<CEGLImage> m_egl;
+  //std::unique_ptr<CEGLImage> m_egl;
   std::unique_ptr<IBufferObject> m_bo;
 };
 } // namespace RETRO

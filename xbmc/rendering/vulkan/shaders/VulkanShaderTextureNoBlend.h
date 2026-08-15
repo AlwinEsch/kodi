@@ -1,0 +1,30 @@
+/*
+ *  Copyright (C) 2005-2026 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
+ *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
+ */
+
+#pragma once
+
+#include "rendering/vulkan/shaders/IVulkanShader.h"
+
+#include <glm/glm.hpp>
+
+namespace KODI::RENDERING::VULKAN
+{
+
+class CVulkanDeviceQueue;
+
+class CVulkanShaderTextureNoBlend : public IVulkanShader
+{
+public:
+  CVulkanShaderTextureNoBlend(const VulkanData* vulkanData,
+                              CVulkanDeviceQueue* deviceQueue);
+  virtual ~CVulkanShaderTextureNoBlend() = default;
+
+private:
+};
+
+} // namespace KODI::RENDERING::VULKAN

@@ -20,7 +20,16 @@ set(HEADERS BaseRenderer.h
             RenderManager.h
             DebugRenderer.h)
 
-if(CORE_SYSTEM_NAME STREQUAL windows OR CORE_SYSTEM_NAME STREQUAL windowsstore)
+if(TARGET ${APP_NAME_LC}::Vulkan)
+  list(APPEND SOURCES FrameBufferObjectVulkan.cpp
+                      LinuxRendererVulkan.cpp
+                      OverlayRendererVulkan.cpp
+                      RenderCaptureVulkan.cpp)
+  list(APPEND HEADERS FrameBufferObjectVulkan.h
+                      LinuxRendererVulkan.h
+                      OverlayRendererVulkan.h
+                      RenderCaptureVulkan.h)
+elseif(CORE_SYSTEM_NAME STREQUAL windows OR CORE_SYSTEM_NAME STREQUAL windowsstore)
   list(APPEND SOURCES WinRenderer.cpp
                       OverlayRendererDX.cpp
                       RenderCaptureDX.cpp)
@@ -30,8 +39,8 @@ if(CORE_SYSTEM_NAME STREQUAL windows OR CORE_SYSTEM_NAME STREQUAL windowsstore)
 endif()
 
 if(TARGET ${APP_NAME_LC}::OpenGl OR TARGET ${APP_NAME_LC}::OpenGLES)
-  list(APPEND SOURCES FrameBufferObject.cpp)
-  list(APPEND HEADERS FrameBufferObject.h)
+  list(APPEND SOURCES FrameBufferObjectGL.cpp)
+  list(APPEND HEADERS FrameBufferObjectGL.h)
 endif()
 
 if(TARGET ${APP_NAME_LC}::OpenGl)

@@ -8,7 +8,7 @@ if(CORE_SYSTEM_NAME STREQUAL linux OR CORE_SYSTEM_NAME STREQUAL freebsd)
   set(_DEFAULT_PLATFORM X11 WAYLAND GBM)
 
   if(NOT APP_RENDER_SYSTEM)
-    message(SEND_ERROR "You need to decide whether you want to use GL- or GLES-based rendering. Please set APP_RENDER_SYSTEM to either \"gl\" or \"gles\". For normal desktop systems, you will usually want to use \"gl\".")
+    message(SEND_ERROR "You need to decide whether you want to use GL- or GLES-based rendering. Please set APP_RENDER_SYSTEM to either \"vulkan\", \"gl\" or \"gles\". Default is to \"Vulkan\".")
   endif()
 else()
   string(TOLOWER ${CORE_SYSTEM_NAME} _DEFAULT_PLATFORM)

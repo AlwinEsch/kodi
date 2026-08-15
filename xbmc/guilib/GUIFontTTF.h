@@ -21,7 +21,9 @@
 #include FT_FREETYPE_H
 #include <harfbuzz/hb.h>
 
-#ifdef HAS_DX
+#if defined(HAS_VULKAN)
+#include <glm/glm.hpp>
+#elif defined(HAS_DX)
 #include <DirectXMath.h>
 #include <DirectXPackedVector.h>
 
@@ -53,7 +55,14 @@ typedef std::vector<character_t> vecText;
  \brief
  */
 
-#ifdef HAS_DX
+#if defined(HAS_VULKAN)
+struct SVertex
+{
+  glm::vec3 in_attrpos;
+  glm::vec4 in_attrcolor;
+  glm::vec2 in_attrcord0;
+};
+#elif defined(HAS_DX)
 struct SVertex
 {
   float x, y, z;

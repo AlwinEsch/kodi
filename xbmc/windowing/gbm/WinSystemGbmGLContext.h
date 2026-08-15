@@ -9,7 +9,7 @@
 #pragma once
 
 #include "WinSystemGbmEGLContext.h"
-#include "cores/VideoPlayer/VideoRenderers/FrameBufferObject.h"
+#include "cores/VideoPlayer/VideoRenderers/FrameBufferObjectGL.h"
 #include "rendering/gl/RenderSystemGL.h"
 #include "utils/EGLUtils.h"
 
@@ -55,7 +55,7 @@ protected:
 
 private:
   bool m_guiCompositing{false};
-  CFrameBufferObject m_guiFbo;
+  CFrameBufferObjectGL m_guiFbo;
   int m_guiFboWidth{0};
   int m_guiFboHeight{0};
   // True when the GUI FBO is empty (no draws this frame); CompositeGui skips composite when true.

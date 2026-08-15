@@ -1409,6 +1409,7 @@ bool CGUIWindowManager::Render()
   int bufferAge = CServiceBroker::GetWinSystem()->GetBufferAge();
   bool visualizeDirtyRegions =
       CServiceBroker::GetSettingsComponent()->GetAdvancedSettings()->m_guiVisualizeDirtyRegions;
+visualizeDirtyRegions = true;
   if (visualizeDirtyRegions)
     bufferAge = 20;
   if (bufferAge)

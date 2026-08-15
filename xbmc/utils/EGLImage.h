@@ -15,7 +15,11 @@
 #include <EGL/eglext.h>
 #include <drm_fourcc.h>
 
+#ifdef HAS_VULKAN
+#include "system_vulkan.h"
+#else
 #include "system_gl.h"
+#endif
 
 class CEGLImage
 {

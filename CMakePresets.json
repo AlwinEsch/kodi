@@ -1,0 +1,341 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 20
+  },
+  "configurePresets": [
+    {
+      "name": "base",
+      "hidden": true,
+      "description": "Gemeinsame Einstellungen für alle Plattformen",
+      "binaryDir": "${sourceDir}/out/${presetName}",
+      "installDir": "${sourceDir}/out/install_${presetName}",
+      "cacheVariables": {
+        "ENABLE_INTERNAL_FFMPEG": "ON"
+      }
+    },
+    // Windows Presets
+    {
+      "name": "windows-base",
+      "hidden": true,
+      "inherits": "base",
+      "generator": "Visual Studio 18 2026",
+      "architecture": "x64",
+      "binaryDir": "${sourceDir}/out/win-x64",
+      //"cacheVariables": {
+      //  "CMAKE_BUILD_TYPE": "Debug"
+      //},
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows"
+      },
+      "vendor": {
+        "microsoft.com/VisualStudioSettings/CMake/1.0": {
+          "hostOS": [
+            "Windows"
+          ]
+        }
+      }
+    },
+    {
+      "name": "windows-x64-vulkan-debug",
+      "displayName": "Windows x64 Debug - Vulkan",
+      "description": "Create a Windows x64 Debug build about Vulkan",
+      "inherits": "windows-base",
+      "cacheVariables": {
+        "APP_RENDER_SYSTEM": "vulkan"
+      }
+    },
+    {
+      "name": "windows-x64-dx11-debug",
+      "displayName": "Windows x64 Debug - DirectX",
+      "description": "Create a Windows x64 Debug build about DirectX",
+      "inherits": "windows-base",
+      "cacheVariables": {
+        "APP_RENDER_SYSTEM": "dx11"
+      }
+    },
+    // Linux Presets
+    {
+      "name": "linux-base",
+      "hidden": true,
+      "inherits": "base",
+      "architecture": {
+        "value": "x64",
+        "strategy": "external"
+      },
+      "generator": "Ninja",
+      "binaryDir": "$env{HOME}/.vs/builds/${presetName}",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_C_COMPILER": "gcc",
+        "CMAKE_CXX_COMPILER": "g++",
+        "ENABLE_GOLD": {
+          "type": "BOOL",
+          "value": "OFF"
+        }
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Linux"
+      },
+      "vendor": {
+        "microsoft.com/VisualStudioSettings/CMake/1.0": {
+          "hostOS": [
+            "Linux"
+          ],
+          "intelliSenseMode": "linux-gcc-x64"
+        }
+      }
+    },
+    {
+      "name": "linux-x64-all-vulkan-debug",
+      "displayName": "Linux x64 Debug - Vulkan (all display servers)",
+      "description": "Create a Linux x64 Debug build about Vulkan on all display servers",
+      "inherits": "linux-base",
+      "cacheVariables": {
+        "APP_RENDER_SYSTEM": "vulkan",
+        "CORE_PLATFORM_NAME": "x11 wayland gbm"
+      }
+    },
+    {
+      "name": "linux-x64-all-gl-debug",
+      "displayName": "Linux x64 Debug - OpenGL (all display servers)",
+      "description": "Create a Linux x64 Debug build about OpenGL on all display servers",
+      "inherits": "linux-base",
+      "cacheVariables": {
+        "APP_RENDER_SYSTEM": "gl",
+        "CORE_PLATFORM_NAME": "x11 wayland gbm"
+      }
+    },
+    {
+      "name": "linux-x64-all-gles-debug",
+      "displayName": "Linux x64 Debug - OpenGLES (all display servers)",
+      "description": "Create a Linux x64 Debug build about OpenGLES on all display servers",
+      "inherits": "linux-base",
+      "cacheVariables": {
+        "APP_RENDER_SYSTEM": "gles",
+        "CORE_PLATFORM_NAME": "x11 wayland gbm"
+      }
+    },
+    {
+      "name": "linux-x64-wayland-vulkan-debug",
+      "displayName": "Linux x64 Debug - Vulkan (Wayland)",
+      "description": "Create a Linux x64 Debug build about Vulkan on Wayland",
+      "inherits": "linux-base",
+      "cacheVariables": {
+        "APP_RENDER_SYSTEM": "vulkan",
+        "CORE_PLATFORM_NAME": "wayland"
+      }
+    },
+    {
+      "name": "linux-x64-wayland-gl-debug",
+      "displayName": "Linux x64 Debug - OpenGL (Wayland)",
+      "description": "Create a Linux x64 Debug build about OpenGL on Wayland",
+      "inherits": "linux-base",
+      "cacheVariables": {
+        "APP_RENDER_SYSTEM": "gl",
+        "CORE_PLATFORM_NAME": "wayland"
+      }
+    },
+    {
+      "name": "linux-x64-wayland-gles-debug",
+      "displayName": "Linux x64 Debug - OpenGLES (Wayland)",
+      "description": "Create a Linux x64 Debug build about OpenGLES on Wayland",
+      "inherits": "linux-base",
+      "cacheVariables": {
+        "APP_RENDER_SYSTEM": "gles",
+        "CORE_PLATFORM_NAME": "wayland"
+      }
+    },
+    {
+      "name": "linux-x64-x11-vulkan-debug",
+      "displayName": "Linux x64 Debug - Vulkan (X11)",
+      "description": "Create a Linux x64 Debug build about Vulkan on X11",
+      "inherits": "linux-base",
+      "cacheVariables": {
+        "APP_RENDER_SYSTEM": "vulkan",
+        "CORE_PLATFORM_NAME": "x11"
+      }
+    },
+    {
+      "name": "linux-x64-x11-gl-debug",
+      "displayName": "Linux x64 Debug - OpenGL (X11)",
+      "description": "Create a Linux x64 Debug build about OpenGL on X11",
+      "inherits": "linux-base",
+      "cacheVariables": {
+        "APP_RENDER_SYSTEM": "gl",
+        "CORE_PLATFORM_NAME": "x11"
+      }
+    },
+    {
+      "name": "linux-x64-x11-gles-debug",
+      "displayName": "Linux x64 Debug - OpenGLES (X11)",
+      "description": "Create a Linux x64 Debug build about OpenGLES on X11",
+      "inherits": "linux-base",
+      "cacheVariables": {
+        "APP_RENDER_SYSTEM": "gles",
+        "CORE_PLATFORM_NAME": "x11"
+      }
+    },
+    {
+      "name": "linux-x64-gbm-vulkan-debug",
+      "displayName": "Linux x64 Debug - Vulkan (GBM)",
+      "description": "Create a Linux x64 Debug build about Vulkan on GBM",
+      "inherits": "linux-base",
+      "cacheVariables": {
+        "APP_RENDER_SYSTEM": "vulkan",
+        "CORE_PLATFORM_NAME": "gbm"
+      }
+    },
+    {
+      "name": "linux-x64-gbm-gl-debug",
+      "displayName": "Linux x64 Debug - OpenGL (GBM)",
+      "description": "Create a Linux x64 Debug build about OpenGL on GBM",
+      "inherits": "linux-base",
+      "cacheVariables": {
+        "APP_RENDER_SYSTEM": "gl",
+        "CORE_PLATFORM_NAME": "gbm"
+      }
+    },
+    {
+      "name": "linux-x64-gbm-gles-debug",
+      "displayName": "Linux x64 Debug - OpenGLES (GBM)",
+      "description": "Create a Linux x64 Debug build about OpenGLES on GBM",
+      "inherits": "linux-base",
+      "cacheVariables": {
+        "APP_RENDER_SYSTEM": "gles",
+        "CORE_PLATFORM_NAME": "gbm"
+      }
+    },
+    // macOS Presets
+    {
+      "name": "macos-base",
+      "hidden": true,
+      "inherits": "base",
+      "generator": "Unix Makefiles",
+      "binaryDir": "$env{HOME}/.vs/builds/${presetName}",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Darwin"
+      },
+      "vendor": {
+        "microsoft.com/VisualStudioSettings/CMake/1.0": {
+          "hostOS": [
+            "macOS"
+          ]
+        }
+      }
+    },
+    {
+      "name": "macos-x64-vulkan-debug",
+      "displayName": "macOS x64 Debug - Vulkan",
+      "description": "Create a macOS x64 Debug build about Vulkan",
+      "inherits": "macos-base",
+      "cacheVariables": {
+        "APP_RENDER_SYSTEM": "vulkan"
+      }
+    },
+    {
+      "name": "macos-x64-gl-debug",
+      "displayName": "macOS x64 Debug - OpenGL",
+      "description": "Create a macOS x64 Debug build about OpenGL",
+      "inherits": "macos-base",
+      "cacheVariables": {
+        "APP_RENDER_SYSTEM": "gl"
+      }
+    }
+  ],
+  "buildPresets": [
+    // Windows Presets
+    {
+      "name": "windows-vulkan-debug",
+      "displayName": "Build Windows x64 Vulkan Debug",
+      "configurePreset": "windows-x64-vulkan-debug"
+    },
+    {
+      "name": "windows-dx11-debug",
+      "displayName": "Build Windows x64 DirectX 11 Debug",
+      "configurePreset": "windows-x64-dx11-debug"
+    },
+    // Linux Presets
+    {
+      "name": "linux-all-vulkan-debug",
+      "displayName": "Build Linux x64 Vulkan Debug on All display servers",
+      "configurePreset": "linux-x64-all-vulkan-debug"
+    },
+    {
+      "name": "linux-all-gl-debug",
+      "displayName": "Build Linux x64 OpenGL Debug on All display servers",
+      "configurePreset": "linux-x64-all-gl-debug"
+    },
+    {
+      "name": "linux-all-gles-debug",
+      "displayName": "Build Linux x64 OpenGLES Debug on All display servers",
+      "configurePreset": "linux-x64-all-gles-debug"
+    },
+    {
+      "name": "linux-wayland-vulkan-debug",
+      "displayName": "Build Linux x64 Vulkan Debug on Wayland display server",
+      "configurePreset": "linux-x64-wayland-vulkan-debug"
+    },
+    {
+      "name": "linux-wayland-gl-debug",
+      "displayName": "Build Linux x64 OpenGL Debug on Wayland display server",
+      "configurePreset": "linux-x64-wayland-gl-debug"
+    },
+    {
+      "name": "linux-wayland-gles-debug",
+      "displayName": "Build Linux x64 OpenGLES Debug on Wayland display server",
+      "configurePreset": "linux-x64-wayland-gles-debug"
+    },
+    {
+      "name": "linux-x11-vulkan-debug",
+      "displayName": "Build Linux x64 Vulkan Debug on X11 display server",
+      "configurePreset": "linux-x64-x11-vulkan-debug"
+    },
+    {
+      "name": "linux-x11-gl-debug",
+      "displayName": "Build Linux x64 OpenGL Debug on X11 display server",
+      "configurePreset": "linux-x64-x11-gl-debug"
+    },
+    {
+      "name": "linux-x11-gles-debug",
+      "displayName": "Build Linux x64 OpenGLES Debug on X11 display server",
+      "configurePreset": "linux-x64-x11-gles-debug"
+    },
+    {
+      "name": "linux-gbm-vulkan-debug",
+      "displayName": "Build Linux x64 Vulkan Debug on GBM display server",
+      "configurePreset": "linux-x64-gbm-vulkan-debug"
+    },
+    {
+      "name": "linux-gbm-gl-debug",
+      "displayName": "Build Linux x64 OpenGL Debug on GBM display server",
+      "configurePreset": "linux-x64-gbm-gl-debug"
+    },
+    {
+      "name": "linux-gbm-gles-debug",
+      "displayName": "Build Linux x64 OpenGLES Debug on GBM display server",
+      "configurePreset": "linux-x64-gbm-gles-debug"
+    },
+    // macOS Presets
+    {
+      "name": "macos-vulkan-debug",
+      "displayName": "Build macOS x64 Vulkan Debug",
+      "configurePreset": "macos-x64-vulkan-debug"
+    },
+    {
+      "name": "macos-gl-debug",
+      "displayName": "Build macOS x64 OpenGL Debug",
+      "configurePreset": "macos-x64-gl-debug"
+    }
+  ]
+}

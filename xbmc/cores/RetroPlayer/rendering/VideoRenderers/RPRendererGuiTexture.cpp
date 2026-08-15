@@ -20,7 +20,10 @@
 using namespace DirectX;
 #endif
 
-#if defined(HAS_GL) || defined(HAS_GLES)
+#if defined(HAS_VULKAN)
+#include "rendering/vulkan/utils/VulkanUtils.h"
+#include "system_vulkan.h"
+#elif defined(HAS_GL) || defined(HAS_GLES)
 #include "utils/GLUtils.h"
 
 #include "system_gl.h"
@@ -113,7 +116,61 @@ void CRPRendererGuiTexture::RenderInternal(bool clear, uint8_t alpha)
 
   const uint32_t color = (alpha << 24) | 0xFFFFFF;
 
-#if defined(HAS_DX)
+#if defined(HAS_VULKAN)
+  //renderBuffer->BindToUnit(0);
+
+  //glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+  //glEnable(GL_BLEND); // Turn blending On
+
+  //m_context.EnableGUIShader(GL_SHADER_METHOD::TEXTURE);
+
+  //GLubyte col[4];
+  //GLfloat ver[4][3];
+  //GLfloat tex[4][2];
+  //GLubyte idx[4] = {0, 1, 3, 2}; // Determines order of triangle strip
+
+  //GLint posLoc = m_context.GUIShaderGetPos();
+  //GLint tex0Loc = m_context.GUIShaderGetCoord0();
+  //GLint uniColLoc = m_context.GUIShaderGetUniCol();
+  //GLint depthLoc = m_context.GUIShaderGetDepth();
+
+  //glVertexAttribPointer(posLoc, 3, GL_FLOAT, 0, 0, ver);
+  //glVertexAttribPointer(tex0Loc, 2, GL_FLOAT, 0, 0, tex);
+
+  //glEnableVertexAttribArray(posLoc);
+  //glEnableVertexAttribArray(tex0Loc);
+
+  //// Setup color values
+  //col[0] = UTILS::RENDER::GetChannelFromARGB(UTILS::RENDER::ColorChannel::R, color);
+  //col[1] = UTILS::RENDER::GetChannelFromARGB(UTILS::RENDER::ColorChannel::G, color);
+  //col[2] = UTILS::RENDER::GetChannelFromARGB(UTILS::RENDER::ColorChannel::B, color);
+  //col[3] = UTILS::RENDER::GetChannelFromARGB(UTILS::RENDER::ColorChannel::A, color);
+
+  //for (unsigned int i = 0; i < 4; i++)
+  //{
+  //  // Setup vertex position values
+  //  ver[i][0] = m_rotatedDestCoords[i].x;
+  //  ver[i][1] = m_rotatedDestCoords[i].y;
+  //  ver[i][2] = 0.0f;
+  //}
+
+  //// Setup texture coordinates
+  //tex[0][0] = tex[3][0] = u1;
+  //tex[0][1] = tex[1][1] = v1;
+  //tex[1][0] = tex[2][0] = u2;
+  //tex[2][1] = tex[3][1] = v2;
+
+  //glUniform4f(uniColLoc, (col[0] / 255.0f), (col[1] / 255.0f), (col[2] / 255.0f),
+  //            (col[3] / 255.0f));
+  //glUniform1f(depthLoc, -1.0f);
+  //glDrawElements(GL_TRIANGLE_STRIP, 4, GL_UNSIGNED_BYTE, idx);
+
+  //glDisableVertexAttribArray(posLoc);
+  //glDisableVertexAttribArray(tex0Loc);
+
+  //m_context.DisableGUIShader();
+
+#elif defined(HAS_DX)
 
   Vertex vertex[5];
   for (int i = 0; i < 4; i++)
@@ -206,10 +263,10 @@ void CRPRendererGuiTexture::RenderInternal(bool clear, uint8_t alpha)
   glEnableVertexAttribArray(tex0Loc);
 
   // Setup Colour values
-  colour[0] = UTILS::GL::GetChannelFromARGB(UTILS::GL::ColorChannel::R, color);
-  colour[1] = UTILS::GL::GetChannelFromARGB(UTILS::GL::ColorChannel::G, color);
-  colour[2] = UTILS::GL::GetChannelFromARGB(UTILS::GL::ColorChannel::B, color);
-  colour[3] = UTILS::GL::GetChannelFromARGB(UTILS::GL::ColorChannel::A, color);
+  colour[0] = UTILS::RENDER::GetChannelFromARGB(UTILS::RENDER::ColorChannel::R, color);
+  colour[1] = UTILS::RENDER::GetChannelFromARGB(UTILS::RENDER::ColorChannel::G, color);
+  colour[2] = UTILS::RENDER::GetChannelFromARGB(UTILS::RENDER::ColorChannel::B, color);
+  colour[3] = UTILS::RENDER::GetChannelFromARGB(UTILS::RENDER::ColorChannel::A, color);
 
   if (m_context.UseLimitedColor())
   {
@@ -264,10 +321,10 @@ void CRPRendererGuiTexture::RenderInternal(bool clear, uint8_t alpha)
   glEnableVertexAttribArray(tex0Loc);
 
   // Setup color values
-  col[0] = UTILS::GL::GetChannelFromARGB(UTILS::GL::ColorChannel::R, color);
-  col[1] = UTILS::GL::GetChannelFromARGB(UTILS::GL::ColorChannel::G, color);
-  col[2] = UTILS::GL::GetChannelFromARGB(UTILS::GL::ColorChannel::B, color);
-  col[3] = UTILS::GL::GetChannelFromARGB(UTILS::GL::ColorChannel::A, color);
+  col[0] = UTILS::RENDER::GetChannelFromARGB(UTILS::RENDER::ColorChannel::R, color);
+  col[1] = UTILS::RENDER::GetChannelFromARGB(UTILS::RENDER::ColorChannel::G, color);
+  col[2] = UTILS::RENDER::GetChannelFromARGB(UTILS::RENDER::ColorChannel::B, color);
+  col[3] = UTILS::RENDER::GetChannelFromARGB(UTILS::RENDER::ColorChannel::A, color);
 
   for (unsigned int i = 0; i < 4; i++)
   {

@@ -323,7 +323,7 @@ function(copy_files_from_filelist_to_buildtree pattern)
         if((${CMAKE_SOURCE_DIR}/${src} MATCHES ${DEPENDS_PATH}) OR
            (EXISTS ${CMAKE_SOURCE_DIR}/${src} AND (NOT IS_DIRECTORY ${CMAKE_SOURCE_DIR}/${src} OR DIR_OPTION)))
           # If the path is in DEPENDS_PATH, pass through as is. This will be handled in a build time
-          # glob of the location. This insures any dependencies built at build time can be bundled if 
+          # glob of the location. This insures any dependencies built at build time can be bundled if
           # required.
           # OR If the full path to an existing file is specified then add that single file.
           # Don't recursively add all files with the given name.

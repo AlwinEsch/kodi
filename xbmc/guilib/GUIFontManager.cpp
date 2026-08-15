@@ -23,8 +23,7 @@
 #include <mutex>
 #if defined(HAS_GL)
 #include "GUIFontTTFGL.h"
-#endif
-#if defined(HAS_GLES)
+#elif defined(HAS_GLES)
 #include "GUIFontTTFGLES.h"
 #endif
 #include "FileItem.h"
@@ -408,9 +407,7 @@ void GUIFontManager::Clear()
 
 #if defined(HAS_GL)
   CGUIFontTTFGL::DestroyStaticVertexBuffers();
-#endif
-
-#if defined(HAS_GLES)
+#elif defined(HAS_GLES)
   CGUIFontTTFGLES::DestroyStaticVertexBuffers();
 #endif
 }

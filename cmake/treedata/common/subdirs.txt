@@ -15,6 +15,7 @@ xbmc/dbwrappers                                 dbwrappers
 xbmc/dialogs                                    dialogs
 xbmc/favourites                                 favourites
 xbmc/guilib                                     guilib
+xbmc/guilib/graphics/vulkan                     guilib_graphics_vulkan
 xbmc/guilib/guiinfo                             guilib_guiinfo
 xbmc/guilib/handlers                            guilib_announcement_handlers
 xbmc/guilib/listproviders                       guilib_listproviders
@@ -29,6 +30,9 @@ xbmc/playlists                                  playlists
 xbmc/powermanagement                            powermanagement
 xbmc/programs                                   programs
 xbmc/rendering                                  rendering
+xbmc/rendering/vulkan                           rendering_vulkan
+xbmc/rendering/vulkan/shaders                   rendering_vulkan_shaders
+xbmc/rendering/vulkan/utils                     rendering_vulkan_utils
 xbmc/resources                                  resources
 xbmc/speech                                     speech
 xbmc/storage                                    storage

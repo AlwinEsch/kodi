@@ -29,9 +29,12 @@
 // stuff for freetype
 #include <ft2build.h>
 #include <harfbuzz/hb-ft.h>
-#if defined(HAS_GL) || defined(HAS_GLES)
-#include "utils/GLUtils.h"
 
+#if defined(HAS_VULKAN)
+#include <vulkan/vulkan_core.h>
+#endif
+
+#if defined(HAS_GL) || defined(HAS_GLES)
 #include "system_gl.h"
 #endif
 
@@ -216,7 +219,6 @@ void CGUIFontTTF::RemoveReference()
   if (!m_referenceCount)
     g_fontManager.FreeFontFile(this);
 }
-
 
 void CGUIFontTTF::ClearCharacterCache()
 {
@@ -1228,28 +1230,37 @@ void CGUIFontTTF::RenderCharacter(CGraphicContext& context,
   SVertex* v = &vertices[vertices.size() - VERTEX_PER_GLYPH];
   m_color = color;
 
-#if !defined(HAS_DX)
-  uint8_t r = KODI::UTILS::GL::GetChannelFromARGB(KODI::UTILS::GL::ColorChannel::R, color);
-  uint8_t g = KODI::UTILS::GL::GetChannelFromARGB(KODI::UTILS::GL::ColorChannel::G, color);
-  uint8_t b = KODI::UTILS::GL::GetChannelFromARGB(KODI::UTILS::GL::ColorChannel::B, color);
-  uint8_t a = KODI::UTILS::GL::GetChannelFromARGB(KODI::UTILS::GL::ColorChannel::A, color);
-#endif
+#if defined(HAS_VULKAN)
+  // Vulkan uses triangle strips like OpenGL, not quads, so have to rearrange the vertex order
+  // We uses vertex shaders to manipulate text rotation/translation/scaling/clipping.
 
+  // nudge position to align with raster grid. messes up kerning, but also avoids
+  // linear filtering (when not scaled/rotated).
+  float xOffset = 0.0f;
+  if (roundX)
+    xOffset = (vertex.x1 - std::floor(vertex.x1));
+  float yOffset = (vertex.y1 - std::floor(vertex.y1));
+  const glm::vec4 glmcol = KODI::UTILS::COLOR::ConvertToGLM(color);
+
+  v[0].in_attrpos = glm::vec3(vertex.x1 - xOffset - 0.5f, vertex.y1 - yOffset - 0.5f, 0.0f);
+  v[0].in_attrcolor = glmcol;
+  v[0].in_attrcord0 = glm::vec2(tl, tt);
+
+  v[1].in_attrpos = glm::vec3(vertex.x1 - xOffset - 0.5f, vertex.y2 - yOffset + 0.5f, 0.0f);
+  v[1].in_attrcolor = glmcol;
+  v[1].in_attrcord0 = glm::vec2(tl, tb);
+
+  v[2].in_attrpos = glm::vec3(vertex.x2 - xOffset + 0.5f, vertex.y1 - yOffset - 0.5f, 0.0f);
+  v[2].in_attrcolor = glmcol;
+  v[2].in_attrcord0 = glm::vec2(tr, tt);
+
+  v[3].in_attrpos = glm::vec3(vertex.x2 - xOffset + 0.5f, vertex.y2 - yOffset + 0.5f, 0.0f);
+  v[3].in_attrcolor = glmcol;
+  v[3].in_attrcord0 = glm::vec2(tr, tb);
+#elif defined(HAS_DX)
   for (int i = 0; i < VERTEX_PER_GLYPH; i++)
   {
-#ifdef HAS_DX
     CD3DHelper::XMStoreColor(&v[i].col, color);
-#else
-    v[i].r = r;
-    v[i].g = g;
-    v[i].b = b;
-    v[i].a = a;
-#endif
-  }
-
-#if defined(HAS_DX)
-  for (int i = 0; i < VERTEX_PER_GLYPH; i++)
-  {
     v[i].x = x[i];
     v[i].y = y[i];
     v[i].z = z[i];
@@ -1300,6 +1311,19 @@ void CGUIFontTTF::RenderCharacter(CGraphicContext& context,
   v[3].x = vertex.x2 - xOffset + 0.5f;
   v[3].y = vertex.y2 - yOffset + 0.5f;
   v[3].z = 0;
+
+  const uint8_t r = KODI::UTILS::GL::GetChannelFromARGB(KODI::UTILS::GL::ColorChannel::R, color);
+  const uint8_t g = KODI::UTILS::GL::GetChannelFromARGB(KODI::UTILS::GL::ColorChannel::G, color);
+  const uint8_t b = KODI::UTILS::GL::GetChannelFromARGB(KODI::UTILS::GL::ColorChannel::B, color);
+  const uint8_t a = KODI::UTILS::GL::GetChannelFromARGB(KODI::UTILS::GL::ColorChannel::A, color);
+
+  for (int i = 0; i < VERTEX_PER_GLYPH; i++)
+  {
+    v[i].r = r;
+    v[i].g = g;
+    v[i].b = b;
+    v[i].a = a;
+  }
 #endif
 }
 

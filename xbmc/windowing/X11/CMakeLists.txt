@@ -1,15 +1,11 @@
-set(SOURCES GLContextEGL.cpp
-            GLContext.cpp
-            OptionalsReg.cpp
+set(SOURCES OptionalsReg.cpp
             OSScreenSaverX11.cpp
             WinEventsX11.cpp
             WinSystemX11.cpp
             XRandR.cpp
             X11DPMSSupport.cpp)
 
-set(HEADERS GLContext.h
-            GLContextEGL.h
-            OptionalsReg.h
+set(HEADERS OptionalsReg.h
             OSScreenSaverX11.h
             WinEventsX11.h
             WinSystemX11.h
@@ -23,11 +19,21 @@ if(TARGET ${APP_NAME_LC}::GLX)
                       VideoSyncGLX.h)
 endif()
 
+if(TARGET ${APP_NAME_LC}::Vulkan)
+  list(APPEND SOURCES WinSystemX11Vulkan.cpp)
+  list(APPEND HEADERS WinSystemX11Vulkan.h)
+endif()
+if(TARGET ${APP_NAME_LC}::OpenGl OR TARGET ${APP_NAME_LC}::OpenGLES)
+  list(APPEND SOURCES GLContext.cpp
+                      GLContextEGL.cpp)
+  list(APPEND HEADERS GLContext.h
+                      GLContextEGL.h)
+endif()
 if(TARGET ${APP_NAME_LC}::OpenGl)
-  list(APPEND SOURCES WinSystemX11GLContext.cpp)
-  list(APPEND HEADERS WinSystemX11GLContext.h)
-  list(APPEND SOURCES VideoSyncOML.cpp)
-  list(APPEND HEADERS VideoSyncOML.h)
+  list(APPEND SOURCES VideoSyncOML.cpp
+                      WinSystemX11GLContext.cpp)
+  list(APPEND HEADERS VideoSyncOML.h
+                      WinSystemX11GLContext.h)
 endif()
 if(TARGET ${APP_NAME_LC}::OpenGLES)
   list(APPEND SOURCES WinSystemX11GLESContext.cpp)

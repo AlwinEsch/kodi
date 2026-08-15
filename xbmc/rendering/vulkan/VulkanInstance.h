@@ -1,0 +1,57 @@
+/*
+ *  Copyright (C) 2005-2026 Team Kodi
+ *  This file is part of Kodi - https://kodi.tv
+ *
+ *  SPDX-License-Identifier: GPL-2.0-or-later
+ *  See LICENSES/README.md for more information.
+ */
+
+#pragma once
+
+#include "VulkanInfo.h"
+
+#include <vector>
+
+#include <vulkan/vulkan_core.h>
+
+namespace KODI
+{
+namespace RENDERING
+{
+namespace VULKAN
+{
+
+class CVulkanInstance
+{
+public:
+  CVulkanInstance() = default;
+  ~CVulkanInstance();
+
+  bool Create(const std::vector<const char*>& required_extensions,
+              const std::vector<const char*>& required_layers);
+  void Destroy();
+
+  VkInstance GetVkInstance() const { return m_vkInstance; }
+  const CVulkanInfo& GetVulkanInfo() const { return m_vulkanInfo; }
+  void SetUsedPhysicalDeviceIndex(uint32_t index) { m_vulkanInfo.usedPhysicalDeviceIndex = index; }
+
+  static bool ValidateExtensions(const char* extension,
+                                 const std::vector<VkExtensionProperties>& available);
+
+private:
+  CVulkanInstance(const CVulkanInstance&) = delete;
+  CVulkanInstance& operator=(const CVulkanInstance&) = delete;
+
+  bool GetBasicInfos(const std::vector<const char*>& requiredLayers);
+  bool GetDeviceInfos(VkPhysicalDevice physicalDevice = VK_NULL_HANDLE);
+
+  VkInstance m_vkInstance{VK_NULL_HANDLE};
+
+  CVulkanInfo m_vulkanInfo;
+
+  VkDebugUtilsMessengerEXT m_vkDebugMessenger{VK_NULL_HANDLE};
+};
+
+} // namespace VULKAN
+} // namespace RENDERING
+} // namespace KODI

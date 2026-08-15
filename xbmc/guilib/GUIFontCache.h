@@ -26,6 +26,13 @@
 #include <stdint.h>
 #include <vector>
 
+#if defined(HAS_VULKAN)
+namespace KODI::RENDERING::VULKAN
+{
+  struct VulkanMemoryData;
+} // namespace KODI::RENDERING::VULKAN
+#endif // HAS_VULKAN
+
 constexpr float FONT_CACHE_DIST_LIMIT = 0.01f;
 
 class CGraphicContext;
@@ -220,9 +227,18 @@ struct CGUIFontCacheDynamicPosition
   }
 };
 
+/**
+ * @brief Represents a vertex buffer used in the font cache.
+ *
+ * @note About Vulkan, a struct is needed and the Vulkan headers are included.
+ * For OpenGL and GLES, it is just a GLuint. For DirectX, it is a void pointer.
+ */
 struct CVertexBuffer
 {
-#if defined(HAS_GL) || defined(HAS_GLES)
+#if defined(HAS_VULKAN)
+  typedef KODI::RENDERING::VULKAN::VulkanMemoryData* BufferHandleType;
+#define BUFFER_HANDLE_INIT nullptr
+#elif defined(HAS_GL) || defined(HAS_GLES)
   typedef unsigned int BufferHandleType;
 #define BUFFER_HANDLE_INIT 0
 #elif defined(HAS_DX)
@@ -242,14 +258,24 @@ struct CVertexBuffer
     /* In practice, the copy constructor is only called before a vertex buffer
      * has been attached. If this should ever change, we'll need another support
      * function in GUIFontTTFGL/DX to duplicate a buffer, given its handle. */
+#if defined(HAS_VULKAN)
+    assert(other.bufferHandle == nullptr);
+#else
     assert(other.bufferHandle == 0);
+#endif
   }
   CVertexBuffer& operator=(CVertexBuffer& other)
   {
     /* This is used with move-assignment semantics for initialising the object in the font cache */
-    assert(bufferHandle == 0);
+#if defined(HAS_VULKAN)
+    assert(bufferHandle == nullptr);
+    bufferHandle = other.bufferHandle;
+    other.bufferHandle = nullptr;
+#else
+    assert(other.bufferHandle == 0);
     bufferHandle = other.bufferHandle;
     other.bufferHandle = 0;
+#endif
     size = other.size;
     m_font = other.m_font;
     return *this;

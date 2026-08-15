@@ -210,6 +210,7 @@ bool CWinSystemWayland::InitWindowSystem()
       ->SetVisible(true);
 
   m_colorManager = std::make_unique<CColorManager>(*m_connection);
+
   return CWinSystemBase::InitWindowSystem();
 }
 

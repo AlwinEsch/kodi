@@ -179,11 +179,15 @@ bool CGUITexture::Process(unsigned int currentTime)
     }
   }
 
+  //if (changed)
+  //  fprintf(stderr, "CGUITexture::Process: %s, changed=%d\n", m_info.filename.c_str(), changed);
+
   return changed;
 }
 
 void CGUITexture::Render(int32_t depthOffset, int32_t overrideDepth)
 {
+  //fprintf(stderr, "CGUITexture::Render: %s\n", m_info.filename.c_str());
   if (!m_visible || !m_texture.size())
     return;
 
@@ -305,7 +309,10 @@ void CGUITexture::Render(float left,
   CRect texture(u1, v1, u2, v2);
   CRect vertex(left, top, right, bottom);
   CServiceBroker::GetWinSystem()->GetGfxContext().ClipRect(vertex, texture, m_diffuse.size() ? &diffuse : NULL);
-
+  //fprintf(stderr, "Render: vertexIsEmpty=%d vertex=(%f,%f,%f,%f) texture=(%f,%f,%f,%f) diffuse=(%f,%f,%f,%f)\n",
+  //        vertex.IsEmpty(),
+  //        double(vertex.x1), double(vertex.y1), double(vertex.x2), double(vertex.y2), double(texture.x1), double(texture.y1), double(texture.x2),
+  //        double(texture.y2), double(diffuse.x1), double(diffuse.y1), double(diffuse.x2), double(diffuse.y2));
   if (vertex.IsEmpty())
     return; // nothing to render
 
@@ -429,6 +436,9 @@ bool CGUITexture::AllocResources()
 
   // call our implementation
   Allocate();
+
+  //fprintf(stderr, "CGUITexture::AllocResources: %s, changed=%d\n", m_info.filename.c_str(),
+  //        changed);
 
   return changed;
 }

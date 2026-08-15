@@ -45,7 +45,7 @@ enum KD_TEX_FMT
   KD_TEX_FMT_SDR_BGRA8          = 0x1700, // 32bpp, 8 bit per channel, BGRA order
 
   // HDR texture family
-  KD_TEX_FMT_HDR                = 0x2000, 
+  KD_TEX_FMT_HDR                = 0x2000,
   KD_TEX_FMT_HDR_R16f           = 0x2100, // 16bpp, single channel float
   KD_TEX_FMT_HDR_RG16f          = 0x2200, // 32bpp, dual channel float
   KD_TEX_FMT_HDR_R11F_G11F_B10F = 0x2300, // 32bpp, 6e5/5e5 per color channel
@@ -55,7 +55,7 @@ enum KD_TEX_FMT
 
   // YUV texture family
   KD_TEX_FMT_YUV                = 0x3000,
-  KD_TEX_FMT_YUV_YUYV8          = 0x3000, // 16bpp, 4:2:2 packed 
+  KD_TEX_FMT_YUV_YUYV8          = 0x3000, // 16bpp, 4:2:2 packed
 
   // S3TC texture family
   KD_TEX_FMT_S3TC               = 0x4000,
@@ -136,7 +136,7 @@ enum KD_TEX_ALPHA
 
   KD_TEX_ALPHA_MASK             = 0xF0000,
 };
- 
+
 // Texture component swizzle or effect
 enum KD_TEX_SWIZ
 {

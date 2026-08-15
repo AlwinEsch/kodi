@@ -81,6 +81,11 @@ if(NOT VERBOSE)
   endif()
 endif()
 
+# Set help about __FILENAME__ macro to the relative path of the source file being compiled
+# Source - https://stackoverflow.com/a/40947954
+string(LENGTH "${CMAKE_SOURCE_DIR}/" SOURCE_PATH_SIZE)
+add_definitions("-DSOURCE_PATH_SIZE=${SOURCE_PATH_SIZE}")
+
 # Includes
 include(cmake/modules/extra/ECMEnableSanitizers.cmake)
 include(cmake/scripts/common/GeneratorSetup.cmake)
@@ -109,6 +114,11 @@ option(ENABLE_AIRTUNES    "Enable AirTunes support?" ON)
 option(ENABLE_OPTICAL     "Enable optical support?" ON)
 option(ENABLE_PYTHON      "Enable python support?" ON)
 option(ENABLE_TESTING     "Enable testing support?" ON)
+if(NOT WIN32)
+  set(APP_RENDER_SYSTEM "vulkan" CACHE STRING "Render system to use: \"vulkan\", \"gl\" or \"gles\"")
+else()
+  set(APP_RENDER_SYSTEM "vulkan" CACHE STRING "Render system to use: \"vulkan\" or \"dx11\"")
+endif()
 
 # Internal Depends - supported on all platforms
 

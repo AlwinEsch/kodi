@@ -8,17 +8,17 @@
 
 #pragma once
 
-#include "system_gl.h"
+#include "system_vulkan.h"
 
 //
-// CFrameBufferObject
+// CFrameBufferObjectVulkan
 // A class that abstracts FBOs to facilitate Render To Texture
 //
 // Requires OpenGL 1.5+ or the GL_EXT_framebuffer_object extension.
 //
 // Usage:
 //
-//     CFrameBufferObject *fbo = new CFrameBufferObject();
+//     CFrameBufferObjectVulkan *fbo = new CFrameBufferObjectVulkan();
 //     fbo->Initialize();
 //     fbo->CreateAndBindToTexture(GL_TEXTURE_2D, 256, 256, GL_RGBA);
 //  OR fbo->BindToTexture(GL_TEXTURE_2D, <existing texture ID>);
@@ -29,11 +29,11 @@
 //     glBindTexture(GL_TEXTURE_2D, fbo->Texture());
 //
 
-class CFrameBufferObject
+class CFrameBufferObjectVulkan
 {
 public:
   // Constructor
-  CFrameBufferObject();
+  CFrameBufferObjectVulkan();
 
   // returns true if FBO support is detected
   bool IsSupported();
@@ -50,19 +50,19 @@ public:
   // Cleanup
   void Cleanup();
 
-  // Set texture filtering
-  void SetFiltering(GLenum target, GLenum mode);
+  //// Set texture filtering
+  //void SetFiltering(GLenum target, GLenum mode);
 
-  // Create a new texture and bind to it
-  bool CreateAndBindToTexture(GLenum target, int width, int height, GLenum format, GLenum type=GL_UNSIGNED_BYTE,
-                              GLenum filter=GL_LINEAR, GLenum clampmode=GL_CLAMP_TO_EDGE);
+  //// Create a new texture and bind to it
+  //bool CreateAndBindToTexture(GLenum target, int width, int height, GLenum format, GLenum type=GL_UNSIGNED_BYTE,
+  //                            GLenum filter=GL_LINEAR, GLenum clampmode=GL_CLAMP_TO_EDGE);
 
   // Attach a depth renderbuffer. Required when rendering into the FBO with
   // front-to-back (depth-tested) opaque passes enabled.
   bool AttachDepthBuffer(int width, int height);
 
   // Return the internally created texture ID
-  GLuint Texture() const { return m_texid; }
+  unsigned int Texture() const { return m_texid; }
 
   // Begin rendering to FBO
   bool BeginRender();
@@ -70,12 +70,12 @@ public:
   void EndRender() const;
 
 private:
-  GLuint m_fbo = 0;
+  unsigned int m_fbo = 0;
   bool   m_valid;
   bool   m_bound;
   bool   m_supported;
-  GLuint m_texid = 0;
-  GLuint m_depthBuffer = 0;
+  unsigned int m_texid = 0;
+  unsigned int m_depthBuffer = 0;
 };
 
 

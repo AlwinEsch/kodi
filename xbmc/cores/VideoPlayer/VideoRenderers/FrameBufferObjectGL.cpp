@@ -6,7 +6,7 @@
  *  See LICENSES/README.md for more information.
  */
 
-#include "FrameBufferObject.h"
+#include "FrameBufferObjectGL.h"
 
 #include "ServiceBroker.h"
 #include "rendering/GLExtensions.h"
@@ -15,17 +15,17 @@
 #include "utils/log.h"
 
 //////////////////////////////////////////////////////////////////////
-// CFrameBufferObject
+// CFrameBufferObjectGL
 //////////////////////////////////////////////////////////////////////
 
-CFrameBufferObject::CFrameBufferObject()
+CFrameBufferObjectGL::CFrameBufferObjectGL()
 {
   m_valid = false;
   m_supported = false;
   m_bound = false;
 }
 
-bool CFrameBufferObject::IsSupported()
+bool CFrameBufferObjectGL::IsSupported()
 {
   if (CGLExtensions::IsExtensionSupported(CGLExtensions::EXT_framebuffer_object))
     m_supported = true;
@@ -34,7 +34,7 @@ bool CFrameBufferObject::IsSupported()
   return m_supported;
 }
 
-bool CFrameBufferObject::Initialize()
+bool CFrameBufferObjectGL::Initialize()
 {
   if (!IsSupported())
     return false;
@@ -51,7 +51,7 @@ bool CFrameBufferObject::Initialize()
   return true;
 }
 
-void CFrameBufferObject::Cleanup()
+void CFrameBufferObjectGL::Cleanup()
 {
   if (!IsValid())
     return;
@@ -72,7 +72,7 @@ void CFrameBufferObject::Cleanup()
   m_bound = false;
 }
 
-bool CFrameBufferObject::CreateAndBindToTexture(GLenum target, int width, int height, GLenum format, GLenum type,
+bool CFrameBufferObjectGL::CreateAndBindToTexture(GLenum target, int width, int height, GLenum format, GLenum type,
                                                 GLenum filter, GLenum clampmode)
 {
   if (!IsValid())
@@ -106,7 +106,7 @@ bool CFrameBufferObject::CreateAndBindToTexture(GLenum target, int width, int he
   return true;
 }
 
-bool CFrameBufferObject::AttachDepthBuffer(int width, int height)
+bool CFrameBufferObjectGL::AttachDepthBuffer(int width, int height)
 {
   if (!IsValid() || !IsBound())
     return false;
@@ -133,7 +133,7 @@ bool CFrameBufferObject::AttachDepthBuffer(int width, int height)
   return true;
 }
 
-void CFrameBufferObject::SetFiltering(GLenum target, GLenum mode)
+void CFrameBufferObjectGL::SetFiltering(GLenum target, GLenum mode)
 {
   glBindTexture(target, m_texid);
   glTexParameteri(target, GL_TEXTURE_MAG_FILTER, mode);
@@ -141,7 +141,7 @@ void CFrameBufferObject::SetFiltering(GLenum target, GLenum mode)
 }
 
 // Begin rendering to FBO
-bool CFrameBufferObject::BeginRender()
+bool CFrameBufferObjectGL::BeginRender()
 {
   if (IsValid() && IsBound())
   {
@@ -152,7 +152,7 @@ bool CFrameBufferObject::BeginRender()
 }
 
 // Finish rendering to FBO
-void CFrameBufferObject::EndRender() const
+void CFrameBufferObjectGL::EndRender() const
 {
   if (IsValid())
     glBindFramebuffer(GL_FRAMEBUFFER, 0);

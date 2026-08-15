@@ -38,7 +38,13 @@ bool CPlatformAndroid::InitStageOne()
 
   setenv("OS", "Linux", true); // for python scripts that check the OS
 
+#if defined(HAS_VULKAN)
+  CWinSystemAndroidVulkan::Register();
+#endif
+
+#if defined(HAS_GLES)
   CWinSystemAndroidGLESContext::Register();
+#endif
 
   CAndroidPowerSyscall::Register();
 

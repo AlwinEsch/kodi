@@ -21,4 +21,5 @@ xbmc/platform/posix                         platform/posix
 xbmc/platform/posix/filesystem              platform/posix/filesystem
 xbmc/platform/posix/threads                 platform/posix/threads
 xbmc/platform/posix/utils                   platform/posix/utils
+xbmc/rendering/vulkan/display/android       rendering/vulkan/display/android
 xbmc/windowing/android                      windowing/android

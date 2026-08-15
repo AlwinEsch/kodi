@@ -137,6 +137,7 @@ void CGUITextureD3D::Draw(float *x, float *y, float *z, const CRect &texture, co
   else
   {
     ID3D11ShaderResourceView* resource = tex->GetShaderResource();
+    ID3D11ShaderResourceView* resource = tex->GetShaderResource();
     pGUIShader->SetShaderViews(1, &resource);
   }
   pGUIShader->SetDepth(m_depth);
